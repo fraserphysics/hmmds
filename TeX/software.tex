@@ -1,0 +1,1820 @@
+%%% Note: The following settings will cause many overfull hbox false alarms:
+\documentclass[prelim,showlabels]{book}
+
+\usepackage[letter,center]{crop}
+\crop
+\usepackage{graphicx,color}
+\usepackage{amsmath, amsfonts}% ToDo: compatible w/siammathtime.sty?
+\usepackage{amsthm}% Note: Conflicts with newsiambook
+\usepackage{xspace}
+\usepackage{bm} % Bold Math
+\usepackage{rotating} % for sidewaysfigure
+\usepackage{afterpage}
+\usepackage{booktabs}       % for nicer looking tables
+\usepackage{dcolumn}        % decimal point aligned columns
+\usepackage{url}
+\usepackage{showlabels}
+\newtheorem{theorem}{Theorem}
+\renewcommand{\th}{^{\text th}}
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\INTEGER}{\field{Z}}
+\newcommand{\REAL}{\field{R}}
+\newcommand{\COMPLEX}{\field{C}}
+\newcommand{\EV}{\field{E}}
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\s}{{\bf s}}
+\newcommand{\bS}{{\bf S}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Tsamp}{\tau_s }
+%\newcommand{\ColorComment}[3]{{\color{#1}\textbf{#2:} #3}}
+\newcommand{\ColorComment}[3]{}
+\newcommand{\argmin}{\operatorname*{argmin}}
+\newcommand{\argmax}{\operatorname*{argmax}}
+\newcommand{\Normal}{{\mathcal{N}}}
+\newcommand{\NormalE}[3]{{\mathcal{N}}\left.\left(#1,#2\right)\right|_{#3}}
+\newcommand{\transpose}{^\top}
+\newcommand{\ceil}[1]{\lceil#1\rceil}
+\newcommand{\bceil}[1]{\left\lceil#1\right\rceil}
+\newcommand{\floor}[1]{\lfloor#1\rfloor}
+\newcommand{\bfloor}[1]{\left\lfloor#1\right\rfloor}
+\newcommand{\states}{{\cal S}}
+\newcommand{\outputs}{{\cal Y}}
+\newcommand{\State}{S}
+\newcommand{\Output}{Y}
+\newcommand{\parameters}{\theta}
+\newcommand{\parametersPrime}{\theta'}% for EM1.gpt
+
+\newcommand{\ti}[2]{{#1}{(#2)}}                  % Time Index
+%%% \newcommand{\ts}[3]{{#1}{(t\=#2,\ldots,#3)}}         % Time Sequence
+\newcommand{\ts}[3]{#1_{#2}^{#3}}                    % Time Sequence
+%%% \newcommand{\ts}[3]{\left\{ #1(l) \right\}_{l=#2}^{#3}}  % Time Sequence
+\newcommand{\id}{{\bf I}}
+\newcommand{\ie}{i.e.\xspace}
+\newcommand{\eg}{e.g.\xspace}
+\newcommand{\etal}{et al.\xspace}
+\newcommand{\iid}{i.~i.~d.\xspace}
+\newcommand{\apost}{\emph{a posteriori}\xspace}
+\newcommand{\apri}{\emph{a priori}\xspace}
+\newcommand{\plotsize}{\small}
+\newcommand{\mlabel}[1]{\label{#1}}
+\newcommand{\biburl}[1]{\\\url{#1}} % URL in a "note" gets a line by itself
+\newcommand{\EMmap}{{\mathcal T}} %
+
+\author{Andrew M. Fraser}
+\title{Software for Hidden Markov Models and Dynamical Systems}
+
+\begin{document}
+\frontmatter
+\maketitle
+
+\section*{Quick Start}
+\label{chap:quick}
+
+After fetching the file \emph{webhmmds.tar.bz2}, you can type the
+following in a terminal window to unpack the software and build this
+document:
+\begin{verbatim}
+>tar -xjf webhmmds.tar.bz2
+>cd webhmmds
+>make TeX/software.pdf
+\end{verbatim}
+If rather than typing \texttt{make TeX/software.pdf} you simply typed
+\texttt{make}, you would build a version of the book.  In either case
+the build process would take several hours and it might fail if your
+environment doesn't match mine.  If you have more than one processor
+and more than four GB of RAM, typing \texttt{make -j10
+  TeX/software.pdf} might reduce the build time to less than an hour.
+
+If you want to see a particular figure built, for example the cover
+\emph{fig/Statesintro.pdf}, try:
+\begin{verbatim}
+>tar -xjf webhmmds.tar.bz2
+>cd webhmmds
+>make fig/Statesintro.pdf
+\end{verbatim}
+
+\chapter{Preface}
+\label{chap:preface}
+
+This document describes the software I used to produce \emph{Hidden
+  Markov models and dynamical systems}, hereinafter \emph{the book}.
+When I started working on the book, I decided to structure it as a
+software project using version control to help with collaboration keep
+track of changes.  I used and gnu \emph{make} to control building the
+figures and formatting the text.  I hoped that using the structure of
+a software project would produce a single package that achieved the
+following goals:
+\begin{itemize}
+\item Keep a record of all techniques
+\item Allow readers to read, run, modify, and redistribute the code
+\item Allow readers to verify results
+\item Make formatting techniques available to other authors
+\end{itemize}
+
+Here is a list all of the directories in this the \emph{webhmmds}
+project and some of the key files:
+\begin{description}
+\item[Makefile:] Controls the building of data files and figures and
+  formatting \LaTeX.  Typing ``make TeX/software.pdf'' produces this
+  document, and simply typing ``make'' produces a version of the book.
+\item[TeX/] \LaTeX source files for the book and this document
+\item[figs/] A directory to hold the derived *.pdf and *.pdf\_t
+  figure files.  None of the figure files are included; they must be
+  built using the software.
+\item[code/] Programs for processing data and making figures
+  \begin{description}
+  \item[hmm/] Modules that contain subclasses of the basic HMM class.
+    The basic HMM class is part of a separate project called
+    \emph{chestnut}.  I include that part of \emph{chestnut} here for
+    convenience.
+  \item[plotscripts/] Scripts that read from the \emph{data} directory
+    and write figures to the \emph{figs} directory
+  \item[python/] Scripts that read from the \emph{data} directory do
+    manipulations and write results to the \emph{data} directory
+  \item[xfigs/] Drawings made using the tool \emph{xfig}
+  \end{description}
+\item[data/] Source and derived data files.  I only distribute derived
+  files that require many hours of cpu time to produce.  I report the
+  cpu time required for my 1 GHZ 64 bit Athlon PC.
+  \begin{description}
+  \item[Apnea/] The *.Rtimes files contain the time in centiseconds of
+    estimates of the time that each heartbeat occurred.  I derived
+    these files from PhysioNet's data using their WFDB software. 
+  \item[LP5.DAT:] D.~Y.~Tang's laser measurements
+  \item[PFsurvey:] Data for Fig.~6.10 in the book (takes more than two
+    days to make)
+  \item[Save\_Hview\_T\_100, Save\_Hview\_T\_118, and
+    Save\_Hview\_T\_119:] Data saved from the old version of the GUI
+    program \emph{code/python/Hview.py}.  The new version makes
+    similar data but the pictures are not quite as nice
+  \item[a03er\_seg:] Data for Figs.~6.1-6.3 derived from PhysioNet
+    files using WFDB software
+  \item[summary\_of\_training and event-2-answers:] Expert annotations
+    for each minute of the ECG data.  I fetched these files from
+    PhysioNet.
+  \item[gutenberg-19355:] H.\,L.\, Menken's \emph{A book of Prefaces}
+  \end{description}
+\end{description}
+
+In a number of ways, the project did not develop as I had imagined,
+and I don't have a single package that achieves all of the goals.  I
+wrote the \emph{webhmmds} package --of which document is a part-- after
+submitting the final manuscript of the book to SIAM.  The code uses
+the new \emph{numpy} and \emph{scipy} packages which did not exist
+when I started writing the book.  Although it does not exactly
+reproduce the results in the book, I believe that my new code is
+easier to read than the old code and that it reflects a little bit
+more experience with Python.  In short I recommend it.
+
+I have the following four groups of files: 1.~A CVS repository called
+\emph{hmmdsbook} that contains both the \LaTeX for the first draft of
+the book and software that I used to process the data for the figures;
+2.~An SVN repository called \emph{tex\_hmmds} that contains the
+processed data from \emph{hmmdsbook}, revised \LaTeX, and revised
+plotting scripts to make the manuscript that I submitted to SIAM;
+3.~\emph{Fraser-SIAM.rar} a \emph{Roshal ARchive} of the result of
+SIAM's editorial work on the manuscript (which I cannot distribute);
+4.~An SVN repository called \emph{webhmmds} that contains new code for
+processing the data and up to date \LaTeX source files.
+
+Here are some notes on the goals and the code:
+\begin{description}
+\item[Keep a record of all techniques:] The \emph{hmmdsbook} files
+  were useful for producing the current \emph{webhmmds} package.  For most
+  programs I only had to upgrade from the obsolete Numeric and
+  numarray packages to numpy and scipy.
+\item[Allow readers to read, run, and modify the code:]  The new code
+  runs, and I think it would be pretty easy to read or modify.
+\item[Allow readers to verify results:] Unfortunately the results of
+  the new code do not match the results in the book.  In part this is
+  due to the fact that the restructured code does not make the same
+  sequence of calls to \emph{random} as the old code.  It also
+  reflects less time spent tweaking parameters.  While suspicious readers
+  may examine the old \emph{hmmdsbook} package, they will find it
+  harder to read and more difficult to run than the newer code.
+\item[Make formatting techniques available to other authors:] Karl
+  Hegbloom helped me work with the SIAM macros and the required
+  Mathtime and Mathtime Plus fonts.  While I don't think we learned
+  anything that generalizes, readers may examine the \emph{tex\_hmmds}
+  package.
+\end{description}
+
+The remainder of this document contains a version of each figure in
+the book.  While the book explains the mathematics behind the
+algorithms, this document provides software implementation details.
+I've copied the Chapter and Section organization as the book to make
+it easy to move between the book and this document.
+
+\section*{Execution time}
+
+I have built the book on the following PCs
+\begin{description}
+\item[Eight core 2.8GHz 64 bit Intel Xeon] On this machine which had
+  8GB RAM and ran Ubuntu 8.04, issuing ``time make -j8'' produced the
+  entire book in 74 minutes using five hours and one minute of
+  individual cpu time.
+\end{description}
+In the following sections, I report the time required by a single
+cpu for my 1 GHZ 64 bit Athlon PC.
+
+\section*{Copyright and License}
+
+SIAM owns the copyright to the \LaTeX source files for the book,
+namely: \emph{algorithms.tex, introduction.tex, appendix.tex,
+  main.tex, toys.tex, continuous.tex, real.tex,} and
+\emph{variants.tex}.  You may only use these files to see how the book
+was made.  The \LaTeX source files are subject to the following
+restrictions:
+\begin{itemize}
+\item You may not use them to print a copy of the book
+\item You may not further distribute them
+\item You may not distribute modifications of the files
+\end{itemize}
+
+I (Andrew M. Fraser) own the copyright to all the other files, and I
+make those files available under the terms of version 3 of the GNU
+General Public License as published by the Free Software Foundation,
+(http://www.gnu.org/licenses/).
+
+\section*{To Do}
+\begin{description}
+\item[Write Fast Code] Write new versions of algorithms\_*.py that are
+  in \textit{core} now.  One new version to accept sparse matrices and
+  another written in C.
+\item[Laser Model] Find a stable period five orbit and get better
+  versions of Figs.~\ref{fig:LaserLogLike}, \ref{fig:LaserStates} and
+  \ref{fig:LaserForecast}.  Here is an approach:
+  \begin{itemize}
+  \item Find  range of radii from one of the two unstable fixed points
+    from which orbit takes 5 oscillations on other side and then
+    returns original side
+  \item Calculate map $M:X_2\otimes X_3\mapsto X_2\otimes X_3$ at
+    $X_1=0$ in neighborhood of first crossing of $X_1=0$ plane
+  \item Minimize the distance between the first and second crossing
+  \item Calculate the stability of the fixed point
+  \end{itemize}
+
+\item[Cover Figure] Find a model that produces some dots for every
+  state in Fig.~\ref{fig:Statesintro}.  (This is not a high priority.)
+\item[Extend Fig.~\ref{fig:LikeLor}] Write code that makes more
+  efficient use of memory and extend the plot to $10^8$.  (This is not
+  a high priority.)
+\item[Update Makefile] Since Damian Eads is dropping the Chestnut
+  project, I have incorporated the code into this project.  I should
+  modify the Makefile so that appropriate targets depend on the newly
+  included code.  (This is not a high priority.)
+\end{description}
+
+\mainmatter
+\chapter{Introduction}
+\label{chap:introduction}
+
+The text \texttt{\{chap:introduction\}}
+that appears in the margin is produced by the package
+\emph{showlabels}.  I find it helpful as I write \LaTeX documents to
+be able to see the symbolic names of labeled items.
+
+\section{Laser Example}
+
+The red trace in Fig.~\ref{fig:LaserLP5} plots the first 250 points in
+Tang's data file named LP5.DAT.  The blue trace is the result of an
+optimization that searches for parameters of the model described in
+the book that minimizes the sum of the squared differences between the
+simulation and the data.  The program Laser\_data.py calls the
+scipy.optimize.fmin\_powell routine to do the optimization and makes
+the file data/LaserLP5.  The optimization takes about 6 minutes.  The
+script Laser\_plots.py makes figs/LaserLP5.pdf from data/LaserLP5.
+\begin{figure}[htbp]
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/LaserLP5.pdf}}
+  }
+  \caption[Laser intensity measurements.]%
+  {Laser intensity measurements.  The trace labeled \emph{Laser} is a
+    plot of laser intensity measurements provided by Tang \etal.  The
+    trace labeled \emph{Simulation} plots a numerical simulation of
+    the Lorenz system (1.1) with parameters $r=21.16$,
+    $s=1.792$, $b=0.3670$, and measurement parameters $\Tsamp=0.1435$,
+    $S_g = 7.071$, and $O_g =15.16$.  I used the optimization
+    procedure described in the text to select these parameters.  The
+    simulated intensities were derived from the state by $\ti{y}{t} =
+    S_g \cdot (\ti{x_1}{t})^2 + O_g$.  I specified an absolute error
+    tolerance of $10^{-7}$ per time step for the numerical
+    integrator.}
+  \label{fig:LaserLP5}
+\end{figure}
+
+Following Karl Hegbloom, I define a utility named run\_gnuplot in the
+file Makefile.  The utility operates on a list of arguments
+consisting of a file containing gnuplot commands, data files, and the
+names of figure files to be written.  In Makefile, I use run\_gnuplot
+every time that I need the gnuplot utility for making a figure.
+Henceforth, I when I write ``the script foo.gpt makes foobar.pdf from
+data/foo'', I mean that I use the Makefile utility run\_gnuplot to
+call the utility gnuplot with arguments that make the files
+figs/foo.pdf and figs.foo.pdf\_t from the information in the file
+data/foo.  The file figs/foo.pdf\_t contains \LaTeX commands for the
+text in the figure and the file figs/foo.pdf contains the rest of the
+figure.  In the \LaTeX source, writing
+\texttt{$\backslash$input\{figs/foo.pdf\_t\}} invokes the figure.  An
+advantage of the method is that you can define new \LaTeX commands in
+the source and use them in the figure.  When I started rewriting the
+software to make it easier to read, I hoped to avoid gnuplot and
+run\_gnuplot because the commands are hard to read.  I found that I
+needed them for plotting response surfaces like
+Fig.~\ref{fig:LaserLogLike}.  Once I decided to use them for response
+surfaces, I decided to continue use them for other plots because I
+already had the scripts and because the resulting plots look good.
+
+The program Laser\_data.py also makes data/LaserLogLike for
+Fig.~\ref{fig:LaserLogLike}.  The program takes about 33 minutes to
+maximize the likelihood of parameters for an extended Kalman filter.
+The script LaserLogLike.gpt makes LaserLogLike.pdf from
+data/LaserLogLike.
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \def\l#1{\mbox{\lower1.5ex\hbox{$#1$}}}%
+    \def\s{\mbox{\kern2.0em\lower2.0ex\hbox{$s$}}}%
+    \def\b{\mbox{\lower1.5ex\hbox{$b$}}}%
+    \def\LogLikely{$\log\left(P(\ts{y}{1}{250}|\theta) \right)$}%
+%    \input{figs/LaserLogLike.pdf_t}
+  }
+  \caption{Log likelihood as function of $s$ and $b$.  Other parameters were
+    taken from the vector $\hat \theta$ that maximizes the likelihood
+    $P(\ts{y}{1}{250}|\theta)$ (see Eqn.~1.3).}
+  \label{fig:LaserLogLike}
+\end{figure}
+
+After finishing the optimization for Fig.~\ref{fig:LaserLogLike}, the
+data for Figs.\ref{fig:LaserStates}, \ref{fig:LaserForecast}, and
+\ref{fig:LaserHist} are made in less than a minute.
+\begin{figure}[htbp]
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/LaserStates.pdf}}
+  }
+  \caption[State trajectory $\ts{\hat
+    x}{1}{250}$.]%
+  {State trajectory $\ts{\hat x}{1}{250}$ estimated from observation
+    sequence $\ts{y}{1}{250}$. (see Eqn.~1.4.)
+    Components $x_1$ and $x_3$ of the Lorenz system (see
+    Eqn.~1.1) are plotted.  Recovering the familiar
+    Lorenz figure suggests both that the laser data is \emph{Lorenz
+      like} and that the algorithm for estimating states from
+    observations is reasonable.}
+  \label{fig:LaserStates}
+\end{figure}
+
+Figure~\ref{fig:LaserForecast} is not as nice as the figure in the book.
+I hope to rework the optimization code yet again to find a stable
+period five orbit that matches the data.
+\begin{figure}[htbp]
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/LaserForecast.pdf}}
+  }
+  \caption[Forecast observation sequence.]%
+  {Forecast observation sequence.  I set the noise terms $\eta$ and
+    $\epsilon$ to zero and iterated Eqn.~1.2 400 times to
+    generate the forecast $\ts{\hat y}{251}{650}$.  I started with
+    the initial condition $\hat x$ defined by Eqn.~1.5.
+    The forecast begins to fail noticeably after $t=500$.  The failure
+    suggests that the period five cycle in the forecast is unstable.
+    The laser cycle must have been stable to appear in the data.  Thus
+    an essential characteristic of the model is wrong.}
+  \label{fig:LaserForecast}
+\end{figure}
+
+%\section{State Space Models}
+\addtocounter{section}{1}
+\section{Discrete HMMs}
+\label{sec:intro_hmm}
+\index{discrete hidden Markov model}%
+
+Karl Hegbloom and I drew Fig.~\ref{fig:mm} using the xfig utility.
+Karl set up a method that let us use the same drawing for
+Fig.~\ref{fig:dhmm} too.  In his words:
+\begin{quote} 
+  Both "Markov\_mm.pdf\_t" and "Markov\_dhmm.pdf\_t" are generated from
+  the same .fig file.  The output arcs and their labels are at depth
+  40 and the rest is at depth 50.  When "mm.pdf\_t" is created, the
+  space taken up by the output arcs is blank, so we need to trim it
+  off using the '-K' switch to 'fig2dev'.
+\end{quote}
+
+\begin{figure}[htbp]
+  \centering{
+%    %\resizebox{\textwidth}{!}{\input figs/Markov_mm.pdf_t }
+%    \input{figs/Markov_mm.pdf_t}
+  }
+  \caption[A Markov model.]{A Markov model}
+  \label{fig:mm}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering{
+%    \input{figs/Markov_dhmm.pdf_t}
+  }
+  \caption[A hidden Markov model.]{A hidden Markov model}
+  \label{fig:dhmm}
+\end{figure}
+
+\subsection{Example: Quantized Lorenz Time Series}
+\label{sec:QuantizedLorenz}
+
+I used the \emph{gsl}, gnu scientific library, to integrate the Lorenz
+system and make the data for
+Figs.~\ref{fig:TSintro}-\ref{fig:Statesintro}.  Although I used SWIG
+to connect the gsl to python for the book, I use scipy.weave for the
+newer software now (see code/python/lorenz.py).  It seems simpler.  To
+translate data into a Fig.~\ref{fig:TSintro}, I called pylab from the
+script code/plotscripts/TSintro.py.  I have not found pylab to be much
+easier to use than gnuplot.
+\begin{figure}[htbp]
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/TSintro.pdf}}
+  }
+  \caption[Generating the observations $\ts{y}{1}{40}$.]%
+  {Generating the observations $\ts{y}{1}{40}$.  The curve in the
+    upper plot depicts the first component $\ti{x_1}{\tau}$ of an
+    orbit of the Lorenz system (1.1), and the points
+    marked {\scriptsize\raise0.5ex\hbox{$\bm{\diamond}\!$}} indicate the
+    values sampled with an interval $\Tsamp = 0.15$.  The points
+    in the lower plot are the quantized values $\ti{y}{t} \equiv
+    \bceil{\frac{\ti{x_1}{t \cdot \Tsamp}}{10} + 2}$, where
+    $\ceil{u}$ is the least integer greater than or equal to $u$.  }
+  \label{fig:TSintro} 
+\end{figure}
+I use gnuplot to make STSintro from data/states for Fig.~\ref{fig:STSintro}.
+ \begin{figure}[htbp]
+   \centering{\plotsize%
+%     \input{figs/STSintro.pdf_t}
+}
+   \caption{A plot of the state sequence found by Viterbi decoding a quantized
+     time series from the Lorenz system.  Here the number of the
+     decoded state $\ti{s}{t}$ is plotted against time $t$.  Although
+     it is hard to see any structure in the plot because the numbers
+     assigned to the states are not significant,
+     Fig.~1.9 illustrates that the decoded states
+     are closely related to positions in the generating state space.}
+   \label{fig:STSintro}
+ \end{figure}
+
+Figure~\ref{fig:Statesintro} is picture on the cover.  My son Adrian
+wrote stateplot.py which makes the figure from data in the files
+data/state0 -- data/state11 and data/lorenz.xyz.  To create the state
+data files I used the HMM component of the \emph{chestnut} package
+(see http://mloss.org/software/view/153/).  Training the model,
+m12s.4y and decoding the states takes five minutes
+%%% This is a large color figure on a page by itself. (butterfly)
+%%%
+ \begin{figure}[htb]
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/Statesintro.pdf}}
+  }
+   \caption[Relationship between states of HMM and Lorenz system.]%
+   {The relationship between the hidden states of an HMM and the
+     original coordinates of the Lorenz system.}
+   \label{fig:Statesintro}
+ \end{figure}
+%%%\afterpage{\clearpage}%% Print this right here or let it float to end of chapter?
+
+\subsection{Example: Hidden States as Parts of Speech}
+\label{sec:POSpeech}
+
+I've copied Table~\ref{tab:POS} from the source for the book.  Since
+the actual table of words is the result of the new code
+(po\_speech.py), the explanations do not match the word groups.  Using
+different seeds for the random number generator produces different
+groupings.  For now, each run takes 52 minutes.  In the future, I will
+write the core routines in C which will reduce the time by an order of
+magnitude.
+\begin{table}[htb]
+  \caption[Words most frequently associated with each state.]%
+  {Words most frequently associated with each state.  While I have no
+    interpretation for three of the states, some of the following
+    interpretations of the other states are strikingly successful.}
+  \begin{center}{\plotsize%
+      \fbox{%
+      \begin{tabular}[t]{r@{\hspace{0.28em}}p{19em}}
+        1  -- & \rule{0pt}{2.5ex}Adjectives \\
+        2  -- & \rule{0pt}{2.5ex}Punctuation and other tokens that appear at the end of phrases \\
+        6  -- & \rule{0pt}{2.5ex}Capitalized articles and other tokens that appear at the beginning of phrases \\
+        7  -- & \rule{0pt}{2.5ex}Objective pronouns and other words with similar functions \\
+        8  -- & \rule{0pt}{2.5ex}Nouns
+      \end{tabular}\qquad%
+      \begin{tabular}[t]{r@{\hspace{0.28em}}p{10em}}
+        9  -- & \rule{0pt}{2.5ex}Nouns \\
+        10 -- & \rule{0pt}{2.5ex}Helping verbs \\
+        11 -- & \rule{0pt}{2.5ex}Nominative pronouns \\
+        12 -- & \rule{0pt}{2.5ex}Articles \\
+        13 -- & \rule{0pt}{2.5ex}Conjunctions \\
+        14 -- & \rule{0pt}{2.5ex}Prepositions \\
+        15 -- & \rule{0pt}{2.5ex}Relative pronouns
+      \end{tabular}}\\[2.0ex]
+      \begin{tabular}{|@{\hspace{0.10em}}r@{\hspace{0.40em}}|*{10}{@{\hspace{0.28em}}l@{\hspace{0.28em}}}|}
+%        \hline \input{data/po_speech} [0.5ex]
+        \hline
+      \end{tabular}
+    }\end{center}
+  \label{tab:POS}
+\end{table}
+
+\subsection{Remarks}
+\label{sec:DHMMRemarks}
+
+Figures~\ref{fig:dhmm_net} and \ref{fig:nonmm} are xfig drawings.
+\begin{figure}[htbp]
+  \centering{
+%    \input{figs/Markov_dhmm_net.pdf_t}
+  }
+  \caption[Bayes net schematic for a hidden Markov model.]%
+  {Bayes net schematic for a hidden Markov model.  The drawn edges
+    indicate the dependence and independence relations: Given
+    $\ti{S}{t}$, $\ti{Y}{t}$ is conditionally independent of
+    everything else, and given $\ti{S}{t-1}$, $\ti{S}{t+1}$, and
+    $\ti{Y}{t}$, $\ti{S}{t}$ is conditionally independent of
+    everything else.}
+  \label{fig:dhmm_net}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering{
+%    \input{figs/nonmm.pdf_t}
+  }
+  \caption[An HMM that cannot be represented by a
+  Markov model.]%
+  {An HMM that cannot be represented by a Markov model of any order.
+    Consider the string of observations ``$b,a,a,\ldots,a,a,a$''.  For
+    each ``$a$'' in the string, the previous non-``$a$'' observation
+    was ``$b$''.  Since the model will not produce another ``$b$'' before
+    it produces a ``$c$'', the next observation can be either a
+    ``$c$'' or another ``$a$'', but not a ``$b$''.  Because there is
+    no limit on the number of consecutive ``$a$'s'' that can appear,
+    there is no limit on how far back in the observation sequence you
+    might have to look to know the probabilities of the next
+    observation.}
+  \label{fig:nonmm}
+\end{figure}
+
+\chapter{Basic Algorithms}
+\label{chap:algorithms}
+
+\section{The Forward Algorithm}
+\label{sec:forward}
+\index{forward algorithm|textbf}
+
+Figure~\ref{fig:forward} is an xfig drawing that invokes many \LaTeX
+commands defined in the file software.tex.
+\begin{sidewaysfigure}[htbp]
+  %% 0.75\textheight is approx 5.7 in.  The .eps is exactly that size.
+  %% The widths for the minipages below are taken by measuring the
+  %% ovals inside of XFig.
+  \centering{\plotsize%
+    %% Column a
+    \def\colaa{$\alpha(s_1,t-1)$}%
+    \def\colab{$\alpha(s_2,t-1)$}%
+    \def\colac{$\alpha(s_3,t-1)$}%
+    %% Column b
+    \def\colba{$P \left(s_1|\ts{y}{1}{t-1} \right)$}%
+    \def\colbb{$P \left(s_2|\ts{y}{1}{t-1} \right)$}%
+    \def\colbc{$P \left(s_3|\ts{y}{1}{t-1} \right)$}%
+    \def\sumeqforwardAthree{%
+      \begin{minipage}[t]{1.8in}
+        \raggedright%
+        Weighted\\%
+        sum of prior\\%
+        $\alpha$'s\\%
+        Eqn.~2.4c
+      \end{minipage}}%
+    %% Column c
+    \def\colca{$P \left(s_1,\ti{y}{t}|\ts{y}{1}{t-1} \right)$}%
+    \def\colcb{$P \left(s_2,\ti{y}{t}|\ts{y}{1}{t-1} \right)$}%
+    \def\colcc{$P \left(s_3,\ti{y}{t}|\ts{y}{1}{t-1} \right)$}%
+    \def\prdeqforwardBtwo{%
+      \begin{minipage}[t]{2.3in}
+        \raggedright%
+        Multiply\\%
+        observation\\%
+        probability\\%
+        Eqn.~2.5b
+      \end{minipage}}%
+    %% Column d
+    \def\coldb{$P(\ti{y}{t}|\ts{y}{1}{t-1})$}%
+    \def\prdeqforwardC{%
+      \begin{minipage}[t]{1.8in}
+        \raggedright%
+        Add, to get\\%
+        $\gamma(t)$, $P \left(\ti{y}{t}|\ts{y}{1}{t-1} \right)$\\%
+        Eqn.~2.6
+      \end{minipage}}%
+    %% Column e
+    \def\colea{$\alpha(s_1,t)$}%
+    \def\coleb{$\alpha(s_2,t)$}%
+    \def\colec{$\alpha(s_3,t)$}%
+    \def\quoteqforwardD{%
+      \begin{minipage}[t]{1.8in}
+        \raggedright%
+        Normalize\\%
+        new $\alpha$'s\\%
+        Eqn.~2.7
+      \end{minipage}}%
+%    \input{figs/forward.pdf_t}
+  }
+  \vspace{5 em}
+  \caption[Dependency relations in the forward
+  algorithm.]%
+  {Dependency relations in the forward algorithm (See
+    Eqns.~2.4-2.7 in the text).  The
+    figure indicates the calculations the algorithm executes to
+    incorporate the observation at time $t$ for a three state model.}
+  \label{fig:forward}
+\end{sidewaysfigure}
+\afterpage{\clearpage}%% Print this right here please.
+
+%\section{The Backward Algorithm}
+\addtocounter{section}{1}
+
+\section{The Viterbi Algorithm}
+\label{sec:viterbi}
+
+Figure~\ref{fig:viterbi} is straight \LaTeX source that is part of the
+file software.tex.
+%%%
+%%% fig:viterbi
+%%%
+\begin{figure}[htbp]
+  \begin{center}
+    \def\tnext{_{\text{next}}}%
+    \def\told{_{\text{old}}}%
+    \def\tbest{_{\text{best}}}%
+    \fbox{
+      \begin{minipage}{0.90\textwidth}
+        \begin{tabbing}
+          XX\=XX\=XX\=XX\=XX\=XX\=XX\=XX\= \kill
+          Initialize: \> \+ \\
+          for each $s$\\ \> \+
+          $\nu\tnext (s) = \log \left( P_{\ti{Y}{1},\ti{S}{1}}
+            \left(\ti{y}{1},s \right)\right)$ \\ \\ \< \- \< \-
+          Iterate: \> \+ \\
+          for $t$ from 2 to $T-1$\\ \> \+
+          Swap $\nu\tnext \leftrightarrow \nu\told$\\
+          for each $s\tnext$\\ \> \+
+             \\ for each $s\told$\\ \> \+
+                $\omega(s\told,s\tnext) = \nu(s\told,t) + \log\left(
+            P(s\tnext|s\told) \right)$  \\ \> \+ 
+             $ + \log\left( P(\ti{y}{t+1}|s\tnext) \right)$\\
+          \< \- \< \- %This stuff is for tabs \< \-
+          \\ \# Find best predecessor\\
+          $B(s\tnext,t+1) = \argmax_{s\told} \omega(s\told,s\tnext) $ \\
+          \\ \# Update $\nu$\\
+          $\nu\tnext(s\tnext) =\,$ \= $\omega(B(s\tnext,t+1),s\tnext)$ \\
+          \< \- \< \- \< \- %This stuff is for tabs \< \-
+          Backtrack: \> \+ \\
+          $\bar s = \argmax_s \nu\tnext(s)$ \\
+          $\ti{\hat s}{T}  = \bar s$ \\
+          for $t$ from $T-1$ to $1$  \\ \> \+
+          $ \bar s = B(\bar s,t+1)$  \\
+          $\ti{\hat s}{t} = \bar s$
+        \end{tabbing}
+      \end{minipage}
+    }
+    \caption[Pseudocode for the Viterbi Algorithm.]%
+    {Pseudocode for the Viterbi Algorithm}
+    \label{fig:viterbi}
+  \end{center}
+\end{figure}
+Figure~\ref{fig:viterbiB} is an xfig drawing that invokes commands
+defined in software.tex.
+%%%
+%%% fig:viterbiB
+%%%
+\begin{sidewaysfigure}[htbp]
+  %% 0.75\textheight is approx 5.7 in.  The .eps is exactly that size.
+  %% The widths for the minipages below are taken by measuring the
+  %% ovals inside of XFig.
+  \centering{\plotsize%
+    %% Column a
+    \def\colaa{$\nu(s_1,t-1)$}%
+    \def\colab{$\nu(s_2,t-1)$}%
+    \def\colac{$\nu(s_3,t-1)$}%
+    %% Column b
+    \def\colba{$ \begin{matrix} B(s_1,t) = \argmax_{{\tilde s}}\\%
+        \log\left(P(s_1|{\tilde s}) \right)\\+ \nu({\tilde s},t-1)
+      \end{matrix}$}%
+    \def\colbb{$ \begin{matrix} B(s_2,t) = \argmax_{{\tilde s}}\\%
+        \log\left(P(s_2|{\tilde s}) \right)\\+ \nu({\tilde s},t-1)
+      \end{matrix}$}%
+    \def\colbc{$ \begin{matrix} B(s_3,t) = \argmax_{{\tilde s}}\\%
+        \log\left(P(s_3|{\tilde s}) \right)\\+ \nu({\tilde s},t-1)
+      \end{matrix}$}%
+    \def\bestpred{%
+      \begin{minipage}[t]{3.9in}
+        \raggedright%
+        For each state $s$ find the best\\%
+        predecessor $\tilde s$, \ie, the\\%
+        one that maximizes\\%
+        $\log\left(P(s|\tilde s) \right) + \nu(\tilde s,t-1)$.\\%
+        The bolder lines indicate best\\%
+        predecessors.
+      \end{minipage}}%
+    %% Column c
+    \def\colca{$\nu(s_1,t)$}%
+    \def\colcb{$\nu(s_2,t)$}%
+    \def\colcc{$\nu(s_3,t)$}%
+    \def\newnu{%
+      \begin{minipage}[t]{2.7in}
+        \raggedright%
+        For each state $s$\\%
+        calculate $\nu(s,t)$\\%
+        by including the\\%
+        conditional probability\\%
+        of the observation $\ti{y}{t}$,\\%
+        \ie, $ \nu(s,t) = \log\left(P(\ti{y}{t}|s) \right) $\\
+        \qquad$+ \log\left(P(s|B(s,t)) \right)$\\
+        \qquad$+ \nu(B(s,t),t-1)$.
+      \end{minipage}}
+    %%
+%    \input{figs/viterbiB.pdf_t} 
+  }
+  \vspace{7em}
+  \caption[Dependency relations in the Viterbi algorithm.]%
+  {Dependency relations in the Viterbi algorithm.}
+  \label{fig:viterbiB}
+\end{sidewaysfigure}
+
+\subsection{General Decoding}
+\label{sec:GenDecode}
+
+\subsection{MAP Sequence of States or Sequence of MAP States?}
+\label{sec:sequenceMAP}
+
+Figure~\ref{fig:sequenceMAP} is an xfig drawing.
+\begin{figure}[htbp]
+  \centering{\plotsize%
+%    \input{figs/sequenceMAP.pdf_t} 
+  }  
+  \caption{HMM used to illustrate that the maximum \apost\ sequence of states is
+    not the same as the sequence of maximum \apost\ states.}
+\label{fig:sequenceMAP}
+\end{figure}
+
+\section{The Baum-Welch Algorithm}
+\label{sec:baum_welch}
+
+%\subsection{Weights and Reestimation}
+\addtocounter{subsection}{1}
+
+\subsubsection{Reestimation}
+
+Table~\ref{tab:reestimation} is somewhat obscure straight \LaTeX.
+\begin{table}[htbp]
+  \caption[Summary of reestimation formulas.]%
+  {Summary of reestimation formulas.\index{reestimation formulas}}
+  \centering{\plotsize%
+    \begin{minipage}{.7\textwidth}
+      Note that formulas for $w(s,t)$ and ${\tilde w}({\tilde s},s,t)$
+      appear in Eqns.~2.20 and 2.22 respectively.
+    \end{minipage}\\[1ex]
+%    \begin{tabular*}{0.98\textwidth}[H]{|l|r|l|}
+    \begin{tabular}[H]{|p{5.5em}|c|c|}
+      \hline
+      \rule{0pt}{2.5ex}Description & Expression & New Value \\
+      \hline
+      \rule{0pt}{2.5ex}Initial State Probability
+      & $P_{\ti{S}{1}|\ti{\parameters}{n+1}} \left(s|\ti{\parameters}{n+1} \right)$
+      & {\normalsize $ w(s,1) $} \\[1.5ex]
+      \hline State Transition Probability
+      & $P_{\ti{S}{t+1}|\ti{S}{t},\ti{\parameters}{n+1}} \left({\tilde
+          s}|s, \ti{\parameters}{n+1} \right)$
+      & \raisebox{-2.5ex}[3ex][6ex]{\Large $ \frac {\sum_{t=1}^{T-1} {\tilde
+            w}({\tilde s},s,t)} {\sum_{s'\in\states} \sum_{t=1}^{T-1}
+          {\tilde w}(s',s,t)}$} \\[2.5ex]
+      \hline Conditional Observation Probability
+      & $P_{\ti{Y}{t}|\ti{S}{t},\ti{\parameters}{n+1}} \left(y|s,
+        \ti{\parameters}{n+1} \right)$
+      & \raisebox{-3.3ex}[2.5ex][6ex]{\Large $ \frac {\sum_{t:\ti{y}{t}=y} w(s,t)}
+        {\sum_{t} w(s,t)}$} \\[2.0ex]
+      \hline
+%    \end{tabular*}}
+    \end{tabular}}
+  \label{tab:reestimation}
+\end{table}
+
+Fig.~\ref{fig:train} is also obscure straight \LaTeX.
+%%%
+%%% fig:train
+%%%
+\begin{figure}[htbp]
+  \begin{center}
+    %\small%
+    \def\assign{\leftarrow}%
+    \def\oldmodel{\ti{\parameters}{n}}%
+    \def\newmodel{\ti{\parameters}{n+1}}%
+% Tabbing commands:
+% \=    Set a stop
+% \>    Skip to the next stop
+% \<    Go back a stop
+% \\    New line
+% \+    Move left margin right one stop
+% \-    Move the left margin left one stop
+\fbox{
+  \begin{minipage}{0.90\textwidth}
+    \begin{tabbing}
+      XX\=XX\=XX\=XX\=XX\=XX\=XX\=XX\= \kill
+      Notation: \> \+ \\ \\
+      \begin{minipage}[b]{1.0\textwidth}
+        $\oldmodel$ is the model, or equivalently the set of
+        parameters, after $n$ iterations of the Baum-Welch algorithm.
+      \end{minipage}\\ \\%
+      %%
+      \begin{minipage}[b]{1.0\textwidth}
+        $\bm{\alpha}_n$ is the set of conditional state probabilities
+        calculated on the basis of the $n^{\text{th}}$ model and the
+        data $\ts{y}{1}{T}$.  See Eqns.~2.2 and 2.7.
+        \begin{equation*}
+          \bm{\alpha}_n \equiv \left\{ P_{ S(t)| \ts{Y}{1}{t},\oldmodel} \left( s |
+             \ts{y}{1}{t},\oldmodel\right) : \forall s \in \states\, \& \, 1
+           \leq t \leq T \right\}
+        \end{equation*}
+      \end{minipage}\\ \\%
+      %%
+      \begin{minipage}[b]{1.0\textwidth}
+         $\bm{\beta}_n$ is a set of values calculated on the basis of the
+         $n^{\text{th}}$ model $\oldmodel$ and the data $\ts{y}{1}{T}$.  See
+         Eqns.~2.11 and 2.12.
+         \begin{equation*}
+         \bm{\beta}_n \equiv \left\{ \frac{P_{\ts{Y}{t+1}{T}|\ti{S}{t}}
+         \left(\ts{y}{t+1}{T} | s \right)} {P
+         \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right)} : \forall s \in
+         \states\, \& \, 1 \leq t < T \right\}
+         \end{equation*}
+      \end{minipage}\\ \\%
+      %%
+      \begin{minipage}[b]{1.0\textwidth}
+         $\bm{\gamma}_n$ is the set of conditional observation probabilities
+         calculated on the basis of the $n^{\text{th}}$ model $\oldmodel$ and
+         the data $\ts{y}{1}{T}$.  See Eqns.~2.3 and 2.6.
+         \begin{equation*}
+         \bm{\gamma}_n \equiv \left\{P \left(\ti{y}{t} | \ts{y}{1}{t-1},
+         \oldmodel\right) : \, 2 \leq t \leq T \right\}
+         \end{equation*}
+      \end{minipage}\\ \\%
+      %%
+      \<\-
+      Initialize: \> \+ \\
+      Set $n=1$ and choose $\ti{\parameters}{1}$\\ \\ \< \-
+      Iterate: \> \+ \\
+      $\newmodel \assign \text{reestimate} \left( \ts{y}{1}{T},
+      \bm{\alpha}_n, \bm{\beta}_n, \bm{\gamma}_n, \oldmodel\right)$ XX\= \kill
+      $\left(\bm{\alpha}_n,\bm{\gamma}_n\right) \assign
+      \text{forward}(\ts{y}{1}{T},\oldmodel)$ \> See Section 2.1 page 20\\
+      $\bm{\beta}_n \assign \text{backward}(\bm{\gamma}_n, \ts{y}{1}{T},
+      \oldmodel)$ \> See Section 2.2 page 25\\
+      $\newmodel \assign \text{reestimate} \left( \ts{y}{1}{T},
+      \bm{\alpha}_n, \bm{\beta}_n, \bm{\gamma}_n, \oldmodel\right)$ \> See Table
+      2.2 page 33 \\
+      $n \assign n+1$ \\
+      Test for completion
+    \end{tabbing}
+  \end{minipage}
+}
+\caption[Baum-Welch model parameter optimization.]%
+{Summary and pseudo-code for optimizing model parameters by iterating
+  the Baum-Welch algorithm. \index{Baum-Welch algorithm}}
+    \label{fig:train}
+  \end{center}
+\end{figure}
+
+\subsection{Remarks}
+\label{sec:AlgApp}
+
+\subsubsection{Multiple Maxima}
+\label{sec:MultiMax}
+
+It takes three hours and 36 minutes for TrainChar.py to make the data
+for Fig.~\ref{fig:TrainChar}.  I use gnuplot with TrainChar.gpt to
+make TrainChar.pdf from data/TrainChar.
+\begin{figure}
+  \centering{\plotsize%
+    \def\llps{$\frac{\log \left( P \left(\ts{y}{1}{T}|\ti{\parameters}{n} \right)\right)}{T}$}%
+%    \input{figs/TrainChar.pdf_t}
+  }
+  \caption[Convergence of the Baum-Welch algorithm.]{%
+    Convergence of the Baum-Welch algorithm.  Here I have
+    plotted $\frac{\log \left( P
+        \left(\ts{y}{1}{T}|\ti{\parameters}{n} \right)\right)}{T}$
+    (the log likelihood per step) as a function of the number of
+    iterations $n$ of the Baum-Welch algorithm for five different
+    initial models $\ti{\parameters}{1}$.  I used the same sequence
+    of observations $\ts{y}{1}{T}$ that I used for
+    Fig.~1.9, and I used different seeds for a
+    random number generator to make the five initial models.  Note the
+    following characteristics: The five different initial models all
+    converge to different models with different likelihoods; the curves
+    intersect each other as some models improve more with training
+    than others; convergence is difficult to determine because some
+    curves seem to have converged for many iterations and later rise
+    significantly.  Although it appears that three of the initial
+    models all converge to -0.5, close examination of the data
+    suggests that they are converging to different models with log
+    likelihoods per step of -0.49898, -0.49975, and -0.50275.}
+  \label{fig:TrainChar}
+\end{figure}
+
+\section{The EM algorithm}
+\label{sec:EM}
+\index{estimate maximize (EM) algorithm|textbf}%
+
+I use gnuplot to make each component of Fig.~\ref{fig:GaussMix}.  The
+script gaussmix.gpt needs the file data/em\_yt to make gaussmix.pdf.
+Rather than have em\_yt in the distribution, I should modify
+code/python/em.py to write the file.
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    %% 
+    %% Data generated by code/python/em.py
+    %% 
+    %% 
+    %% 0 0.592235464363 -2.02434657272 1.77965344905 \\%
+    %% 
+    %% 
+    %% 1 0.602707378184 -2.02772188643 1.88504047255 \\%
+    %%
+    \def\cs{\hspace{0.10em}}%
+    \def\st{\rule{0pt}{2.25ex}}%
+    \def\v{\vline}%
+    %% '.' is decimal aligned, see "hmmdsbook.cls", search "dcolumn" or "columntype".
+    {\scriptsize$\qquad \ti{\parameters}{1}=(0.5, -1, 1) \qquad
+      \ti{\parameters}{2}=(0.592, -2.024, 1.779) \qquad
+      \ti{\parameters}{3}=(0.603, -2.028, 1.885)$}\\[2.0ex]
+    \def\ptheta{$P_{\ti{\parameters}{1}}$}%
+    \def\px{$P_{\parameters}$}%
+    \def\Pthetax{$P_{\ti{\parameters}{3}}$}%
+%    \input{figs/gaussmixA.pdf_t}\\[-2.5ex]
+%    \input{figs/gaussmix.pdf_t}
+  }
+  \caption[Two iterations of the EM
+  algorithm.]%
+  {Two iterations of the EM algorithm.  I use the algorithm to search
+    for the parameters of Eqn.~2.49 that maximize the
+    likelihood of the ten simulated observations that appear above in
+    the row labeled $\ti{y}{t}$.  The triple of rows labeled
+    $\ti{\parameters}{1}$ report the weighting calculated using
+    Eqn.~2.50 used in Eqns.~2.51 to recalculate
+    the conditional means, $\mu_1$ and $\mu_2$, for
+    $\ti{\parameters}{2}$ in the M step, and the next triple of rows,
+    labeled $\ti{\parameters}{2}$, report the same quantities for the
+    calculation of $\ti{\parameters}{3}$.  The parameters of the first
+    three models appear in the row just below the boxed table.
+    $\ti{\parameters}{3}$ is the triple of parameters produced by two
+    iterations of the EM algorithm, $\lambda = 0.603, ~ \mu_1 =
+    -2.028,~ \mu_2 = 1.885$.  On the axes of the upper plot, I
+    illustrate $P(x|\parameters)$ as defined in
+    Eqn.~2.49 for two sets of model parameters: The
+    dashed line depicts $\parameters = (0.5, -2, 2)$, the distribution
+    used to simulate the data, and the solid line depicts
+    $\ti{\parameters}{1} = (0.5, -1, 1)$, the starting distribution I
+    chose for the EM algorithm.  On the bottom axes I plot the
+    simulated observations as marks on the abscissa and
+    $P(y|\ti{\parameters}{3})$ as a solid line.}
+  \label{fig:GaussMix}
+\end{figure}
+
+\addtocounter{subsection}{1}
+%\subsection{Monotonicity}
+
+\subsection{Convergence}
+
+\subsubsection{A contrived example}
+\label{sec:contrived}
+
+The scripts EM1.gpt and EM2.gpt make the components of
+Fig.~\ref{fig:EM} without needing any external data.
+\begin{figure}[htbp]
+  \centering
+  {\plotsize%
+    { \def\x#1{\mbox{\lower1.0ex\hbox{$#1$}}}%
+      \def\xlab{\mbox{\lower4.0ex\hbox{$\parameters$}}}%
+      \def\y#1{\mbox{\kern-0.5em\lower1.0ex\hbox{$#1$}}}%
+      \def\ylab{\mbox{\kern-0.5em\lower1.5ex\hbox{$\parametersPrime$}}}%
+      \def\zlab{$Q(\parametersPrime,\parameters)$}%
+%      \input{figs/EM1.pdf_t}
+    }%
+    {\def\xlab{$\parameters$}%
+      \def\ylab{$\EMmap(\parameters)$}%
+%      \input{figs/EM2.pdf_t}
+    }}
+  \caption[An illustration of the EM algorithm.]%
+  {An illustration of the EM algorithm for an experiment in which a
+    coin is thrown four times, first a head is observed
+    $(\ti{y}{1}=1)$, then a tail is observed $(\ti{y}{2}=0)$, and
+    finally two results are unobserved with $s_h$ and $s_t$ being the
+    number of unobserved heads and tails respectively.  The goal is to
+    find the maximum likelihood value of $\parameters$, the
+    probability of heads.  The log likelihood function for the
+    complete data is $L_{\parameters} = (s_h + 1)\log(\parameters) +
+    (s_t +1)\log(1-\parameters)$.  The auxiliary function
+    $Q(\parameters',\parameters) = (1+2\parameters)\log(\parameters')
+    + (1 + 2(1-\parameters))\log(1-\parameters')$ appears on the left,
+    and the map $\EMmap(\parameters)$ appears on the right.  Note that
+    $\parameters^* = \frac{1}{2}$ is the fixed point of $\EMmap$
+    (where the plot intersects the slope 1 reference line) and it is stable
+    because the slope of $\EMmap$ is less than one.}
+  \label{fig:EM}
+\end{figure}
+
+\chapter{Variants and Generalizations}
+\label{chap:variants}
+
+Laser\_plots.py uses pylab to make Fig.~\ref{fig:LaserHist} directly
+from Tang's file data/LP5.DAT.
+\begin{figure}[htbp]
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/LaserHist.pdf}}
+  }
+  \caption[Histogram of Tang's laser measurements.]%
+  {Histogram of Tang's laser measurements.  Even though neither $y=5$
+    nor $y=93$ occurs in $\ts{y}{1}{600}$, it is more plausible that
+    $y=93$ would occur in future measurements because of what happens
+    in the neighborhood.  Discarding the numerical significance of the
+    bin labels would preclude such an observation. }
+  \label{fig:LaserHist}
+\end{figure}
+
+\section{Gaussian Observations}
+\label{sec:gaussian}
+\index{Gaussian observation}
+
+\subsection{Independent Scalar Observations}
+\label{sec:ScalarGaussian}
+
+The data for the time series plots within
+Fig.~\ref{fig:ScalarGaussian} get made by ScalarGaussian.py and they
+are plotted using pylab by SGO.py.  The three state transition
+drawings all come from the same xfig file ScalarGaussian.fig.  Each
+time software.tex invokes the drawing, it redefines the commands used
+for the labels.
+%%%
+%%% fig:ScalarGaussian
+%%%
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \setlength{\unitlength}{1in}%
+    \begin{tabular}[H]{cc}
+      \begin{picture}(0,0)
+        \put(-0.1,0.8){\makebox{\normalsize\textbf{(a)}}}
+      \end{picture}%
+      {\def\prba{$0.93$}%
+        \def\prbb{$0.13$}%
+        \def\prbc{$0.07$}%
+        \def\prbd{$0.87$}%
+        \def\lbla{\parbox[t]{1.8in}{$\mu=-1$\\$\sigma=1$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=1$\\$\sigma=1$}}%
+%        \input{figs/SGO.pdf_t}
+      }%
+      %\smallskip%
+      &
+      \begin{picture}(0,0)
+        \put(0.0,0.8){\makebox{\normalsize\textbf{(b)}}}
+      \end{picture}%
+      \hspace{2em}
+%      \resizebox{0.4\textwidth}{!}{\includegraphics{figs/SGOsimS.pdf}}
+      % 
+      %\smallskip%
+      \\
+      \begin{picture}(0,0)
+        \put(0.0,0.8){\makebox{\normalsize\textbf{(c)}}}
+      \end{picture}%
+      \hspace{2em}
+%      \resizebox{0.4\textwidth}{!}{\includegraphics{figs/SGOsimY.pdf}}%
+      \smallskip%
+      &
+      \begin{picture}(0,0)
+        \put(0.0,0.8){\makebox{\normalsize\textbf{(d)}}}
+      \end{picture}%
+      \hspace{2em}
+%      \resizebox{0.4\textwidth}{!}{\includegraphics{figs/SGOdecodeS.pdf}}%
+      %\smallskip%
+      \\
+      \begin{picture}(0,0)
+        \put(-0.1,0.8){\makebox{\normalsize\textbf{(e)}}}
+      \end{picture}%
+      {\def\prba{$0.5$}%
+        \def\prbb{$0.5$}%
+        \def\prbc{$0.5$}%
+        \def\prbd{$0.5$}%
+        \def\lbla{\parbox[t]{1.8in}{$\mu=-2$\\$\sigma=2$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=2$\\$\sigma=2$}}%
+%        \input{figs/SGO.pdf_t}
+      }&
+      \begin{picture}(0,0)
+        \put(-0.1,0.8){\makebox{\normalsize\textbf{(f)}}}
+      \end{picture}%
+      {\def\prba{$0.92$}%
+        \def\prbb{$0.12$}%
+        \def\prbc{$0.08$}%
+        \def\prbd{$0.88$}%
+        \def\lbla{\parbox[t]{1.8in}{$\mu=-0.74$\\$\sigma=1.05$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=1.17$\\$\sigma=1.13$}}%
+%        \input{figs/SGO.pdf_t}
+      }
+      \end{tabular}}
+    \caption[An HMM with scalar Gaussian
+    observations.]%
+    {An HMM with scalar Gaussian observations.  A state diagram
+      appears in \emph{(a)}.  The half-life of the first state is
+      about ten and the half life of the second state is about five,
+      \ie, $0.93^{10} \approx 0.87^5 \approx 0.5$.  A simulated state
+      sequence and observation sequence appear in \emph{(b)} and
+      \emph{(c)} respectively.  Using the model parameters from
+      \emph{(a)} and the observation sequence from \emph{(c)}, the
+      Viterbi algorithm estimates the state sequence that appears in
+      \emph{(d)} which is satisfyingly similar to the state sequence
+      in \emph{(b)}.  Finally, starting from the initial model
+      depicted in \emph{(e)} and using the observation sequence
+      depicted in \emph{(c)}, 50 iterations of the Baum-Welch
+      algorithm produces the model depicted in \emph{(f)} which is
+      satisfyingly similar to \emph{(a)}.}
+  \label{fig:ScalarGaussian}
+\end{figure}
+
+\subsection{Singularities of the likelihood function and regularization}
+\label{sec:regularization}
+
+Figure~\ref{fig:MLEfail} is an xfig drawing.
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \setlength{\unitlength}{1in}%
+    \begin{tabular}[H]{cc}
+      \begin{picture}(0,0)
+        \put(-0.1,0.8){\makebox{\normalsize\textbf{(a)}}}
+      \end{picture}%
+      {\def\prba{$0.5$}%
+        \def\prbb{$0.5$}%
+        \def\prbc{$0.5$}%
+        \def\prbd{$0.5$}%
+        \def\lbla{\parbox[t]{1.8in}{$\mu=0.0$\\$\sigma=4.0$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=3.6$\\$\sigma=0.126$}}%
+%        \input{figs/SGO.pdf_t}
+      }&
+      \begin{picture}(0,0)
+        \put(-0.1,0.8){\makebox{\normalsize\textbf{(b)}}}
+      \end{picture}%
+      {\def\prba{$0.99$}%
+        \def\prbb{$1.0$}%
+        \def\prbc{$0.01$}%
+        \def\prbd{$0.0$}%
+        \def\lbla{\parbox[t]{1.8in}{$\mu=-0.08$\\$\sigma=1.38$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=3.60$\\$\sigma=0.08$}}%
+%        \input{figs/SGO.pdf_t}
+      }%
+    \end{tabular}}%
+  \caption[An illustration of trouble with
+  maximum likelihood.]%
+  {An illustration of trouble with maximum likelihood.  Here I have
+    used the same implementation of the Baum-Welch algorithm that I
+    used to produce Fig.~3.2\emph{(f)}, but
+    rather than starting with the model in
+    Fig.~3.2\emph{~(c)}, I started the algorithm with
+    the initial model depicted in (a) above.  Five iterations of the
+    algorithm produced the suspicious model depicted in \emph{(b)} above.}
+  \label{fig:MLEfail}% numbers from ScalarGaussian.py
+\end{figure}
+
+\section{Related Models}
+\label{sec:related}
+It takes 11 minutes for VStatePic.py to make the state data for
+Fig.~\ref{fig:VARGstates} from data/lorenz.xyz.
+\begin{figure}[p]
+  \centering{\plotsize%
+%    \includegraphics[width=1.0\textwidth]{figs/VARGstates.pdf}
+  }
+  \caption[Vector autoregressive observation models.]%
+  {Plots of decoded states using an HMM with vector autoregressive
+    observations.  Here the observations are a trajectory of three
+    dimensional state vectors from the Lorenz system.  In each state
+    the observation $\ti{y}{t}$ is modeled as a Gaussian with a mean
+    that is an affine (linear plus fixed offset) function of the
+    observation $\ti{y}{t-1}$.  The empty boxes correspond to states
+    that do not appear in the decoded sequence of states.  In
+    comparing with Fig.~1.9 which used a model with
+    coarsely quantized observations, notice that large regions near
+    the fixed points at centers of the spirals are represented by a
+    single state.  These large regions occur because the dynamics are
+    approximately linear over their extents.}
+  \label{fig:VARGstates}
+\end{figure}
+
+% \chapter[Continuous States and Observations]{Continuous States and
+%   Observations and Kalman Filtering}
+% \label{chap:continuous}
+\addtocounter{chapter}{1}
+\chapter[Performance Bounds]{Performance Bounds and a Toy Problem}
+\label{chap:toys}
+\index{toy problems}
+
+\subsubsection{Lorenz Example}
+
+I make Figs.~\ref{fig:ToyTS1} and \ref{fig:ToyStretch} from the files
+Save\_Hview\_T\_100, Save\_Hview\_T\_118, and Save\_Hview\_T\_119.
+Which I made using the old version of GUI program Hview.py.  You can
+use the new version to make similar files and figures, but I like the
+way the old ones look.  The script ToyA.py makes the figures from the
+data.
+\begin{figure}[htbp]
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/ToyTS.pdf}}
+  }
+  \caption[Extended Kalman filter for one step forecasting.]%
+    {Extended Kalman filter for one step forecasting with simulation
+    parameters:\\
+    \begin{tabular}[c]{ll}
+       $\Tsamp=0.25$ & Sample interval \\
+       $\sigma_\eta = 10^{-6}$ & Standard deviation of state noise \\
+       $\sigma_\epsilon = 0.01$ & Standard deviation of measurement
+       noise \\
+       $\Delta = 10^{-4}$ & Measurement quantization \\
+     \end{tabular}\\
+    A time series of observations appears in the upper plot.  The
+    middle plot characterizes the one-step forecast distributions
+    $P_{\gamma} \left(\ti{y}{t} \right) \equiv P
+    \left(\ti{y}{t}|\ts{y}{1}{t-1},\theta \right) =
+    \NormalE{\ti{\mu_\gamma}{t}}{\ti{\sigma^2_\gamma}{t}}{\ti{y}{t}}$;
+    the first trace is the standard deviations of the forecasts and
+    the second trace is the difference between the actual observation
+    and the mean of the forecast.  The logs of the likelihoods of the
+    forecasts, $\log(P_{\gamma} \left(\ti{y}{t} \right))$, appear in
+    the bottom plot.}
+  \label{fig:ToyTS1}
+\end{figure}
+%%%
+\begin{figure}[htbp]
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/ToyStretch.pdf}}
+  }
+  \caption[Dynamical stretching increases state variance.]%
+  {These plots illustrate dynamical stretching increasing the variance
+    of the conditional distribution in state space corresponding to
+    time steps 118 and 119 in Fig.~5.1.  In each plot,
+    the larger ellipse represents the \emph{forecast} state
+    distribution $P_{a} \left(\ti{x}{t} \right) \equiv P
+    \left(\ti{x}{t}|\ts{y}{1}{t-1},\theta \right) =
+    \NormalE{\mu_a}{\Sigma_a}{\ti{x}{t}}$ and the smaller ellipse
+    represents the \emph{updated} state distribution $P_{\alpha}
+    \left(\ti{x}{t} \right) \equiv P \left(\ti{x}{t}|\ts{y}{1}{t},
+      \theta \right) =
+    \NormalE{\mu_\alpha}{\Sigma_\alpha}{\ti{x}{t}}$.  For each
+    distribution, an ellipse depicts the level set $(x-\mu)\transpose
+    \Sigma^{-1} (x-\mu) =1$ in the $x_1\times x_3$ plane.  Since the
+    observations provide information about the value of $x_1$, the
+    updated distributions vary less in the $x_1$ direction than the
+    corresponding forecasts.  To aid comparisons, the $x_1$ range is
+    $0.2$ and the $x_3$ range is $0.01$ in each plot.  In the $x_1$
+    direction, the standard deviation of the updated distribution
+    $P_{\alpha}(\ti{x}{t})$ at $t=118$ (the smaller of the two
+    ellipses on the left) is 0.007.  The dynamics map that
+    distribution to the forecast distribution $P_{a}(\ti{x}{t})$ at
+    $t=119$ (the larger of the two ellipses on the right) for which
+    the standard deviation in the $x_1$ direction is more than ten
+    times larger.}
+  \label{fig:ToyStretch}
+\end{figure}
+
+It takes an hour and 28 minutes for Hsurvey.py to make data/Hsurvey
+and data/HtauS.  I use gnuplot with Hsurvey.gpt to make
+Fig.~\ref{fig:ToyH} from those data files.
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \def\tsa{$\Tsamp$}%
+    \def\x#1{\mbox{\kern-0.5em\lower1.0ex\hbox{$#1$}}}%
+    \def\devy{\mbox{\lower7.0ex\hbox{$\log_{10} \left( \tilde \sigma_\epsilon \right)$}}}%
+    \def\y#1{\mbox{\kern-1.0em\lower2.0ex\hbox{$#1$}}}%
+    \def\tsb{\mbox{\lower6.0ex\hbox{$\Tsamp$}}}%
+    \def\ailly{$-\hat h$}%
+%    \input{figs/ToyH.pdf_t}
+  }
+  \caption[Average log likelihood of one step forecasts.]%
+  {Average log likelihood of one step forecasts as a function of time
+    step $\Tsamp$ and filter parameter $\tilde \sigma_\epsilon$.  To
+    simulate measurements for this figure, I used the parameters:\\
+    \begin{tabular}[c]{ll}
+     $\sigma_\eta = 10^{-6}$ & Standard deviation of state noise \\
+     $\sigma_\epsilon = 10^{-10}$ & Standard deviation of measurement noise \\
+     $\Delta = 10^{-4}$ & Measurement quantization \\
+     $T=5,000$ & Number of samples
+   \end{tabular}\\
+   For both plots, the vertical axis is the average log likelihood of
+   the one-step forecast $-\hat h \equiv \frac{1}{T} \sum_{t=1}^T
+   \log \left( P \left(\ti{y}{t}|\ts{y}{1}{t-1}, \theta
+     \right)\right)$.  On the left I plot $-\hat h$ as a function of
+   both $\Tsamp$, the time step, and $\tilde \sigma_\epsilon$, the
+   standard deviation of the measurement noise model used by the
+   Kalman filter.  On the right ``$\circ$''%% Top row of dots
+   indicates the
+   performance of filters that use measurement noise models that depend on the
+   sampling time through the formula $\tilde \sigma_\epsilon(\Tsamp) =
+   10^{0.4 \Tsamp -4.85}$, which closely follows the ridge top in the plot
+   on the left, ``$\diamond$''%% Bottom row of dots
+   indicates the performance of
+   filters that use $\tilde \sigma_\epsilon = 10^{-4}$, \ie the
+   measurement quantization level, and the solid line traces
+   Eqn.~5.2 in the text.}
+   \label{fig:ToyH}
+\end{figure}
+%\afterpage{\clearpage}%% Print this right here please.
+
+% \section{Fidelity Criteria and Entropy}
+% \label{sec:fidelity}
+
+% \section{Stretching and Entropy}
+
+% \section{Lyapunov Exponents and Pesin's Formula}
+% \label{sec:PesinFormula}
+\addtocounter{section}{3}
+\section{Benettin's Procedure for Calculating Lyapunov Exponents Numerically}
+\label{sec:Benettin}
+
+Figure~\ref{fig:QR} is a boring collection of straight \LaTeX~ and
+three xfig drawings.
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \def\Mone{$ \begin{bmatrix} \begin{bmatrix} e_1
+        \end{bmatrix} & \begin{bmatrix} e_2 \end{bmatrix} \end{bmatrix} $}%
+    \def\Mtwo{$ R \begin{bmatrix} \begin{bmatrix} e_1
+        \end{bmatrix} & \begin{bmatrix} e_2 \end{bmatrix} \end{bmatrix} $}%
+    \def\Mthree{$ QR \begin{bmatrix} \begin{bmatrix} e_1
+        \end{bmatrix} & \begin{bmatrix} e_2 \end{bmatrix} \end{bmatrix} $}%
+    \def\Mfour{$ \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} $}%
+    \def\Mfive{$ \begin{bmatrix} 5 & 0.15 \\ 0 & 0.2 \end{bmatrix} $}%
+    \def\Msix{$ \begin{bmatrix}3 & 0.25 \\ -4 & 0 \end{bmatrix} $}%
+%     \input{figs/QR.pdf_t}
+  }
+  \caption[The action of the $Q$ $R$ factors of a matrix on a unit square.]%
+  {The action of the $Q$ $R$ factors of a matrix on a unit square.
+    Here $A=
+    \begin{bmatrix} 3 & 0.25 \\ -4 & 0 \end{bmatrix}$, $Q=
+    \begin{bmatrix} 0.6 & 0.8 \\ -0.8 & 0.6 \end{bmatrix}$, and $R=
+    \begin{bmatrix} 5 & 0.15 \\ 0 & 0.2 \end{bmatrix}$.  $R$ stretches
+    the $x$ component by a factor of five and shears $y$ components in
+    the $x$ direction and shrinks them by a factor of five with a net
+    effect of preserving areas.  $Q$ simply rotates the stretched
+    figure.  Each parallelepiped in the bottom row is constructed from
+    the columns of the corresponding matrix in the middle row.  The
+    algebraic formulas for those vectors appear in the top row.  Note
+    that $R$ determines the changes in length and area, and that $Q$
+    does not effect either.}
+  \label{fig:QR}
+\end{figure}
+
+Figure~\ref{fig:benettin} uses the file data/benettin which takes
+eleven minutes for LyapPlot.py to make.  I use gnuplot and
+LyapPlot.gpt to translate the data into benettin.pdf.
+three xfig drawings.
+\begin{figure}[htb]
+  \centering{\plotsize%
+    \def\NFp{95\%}%
+    \def\SamOne{Sample1}%
+    \def\SamTwo{Sample2}%
+    \def\SamThr{Sample3}%
+    \def\Fp{5\%}%
+    \def\ylabel{$\hat\lambda(t)$}%
+    \def\t{$t$}%
+%    \input{figs/benettin.pdf_t}
+  }
+  \caption[Lyapunov exponent calculation for
+  the Lorenz system.]%
+  {Lyapunov exponent calculation for the Lorenz system.  In the upper
+    part, the three lighter traces are plots of $\frac{1}{T}
+    \sum_{t=1}^T \log\left( \left| \ti{r_{1,1}}{t} \right| \right)$
+    and the heavier traces the 5\% and 95\% limits on 1,000 separate
+    runs.  The lower part is the same except that $\left|
+      \ti{r_{1,1}}{t} \right|$ is augmented by a noise term with
+    amplitude $\frac{\sigma_\eta}{\Delta} = 0.01$ (See
+    Eqn.~5.49.  The shapes of the traces are almost
+    unchanged except for uniform shift up of about 0.03.  I conclude
+    that a test model that is the same as the generating model except
+    that the state noise is $\frac{\sigma_\eta}{\Delta} = 0.01$ would
+    have a cross entropy of about 0.936 nats, while the largest Lyapunov
+    exponent is $\hat \lambda_1 \approx 0.906$ nats.}
+  \label{fig:benettin}
+\end{figure}
+
+% \section{A Practical Performance Bound}
+% \label{sec:PracticalBound}
+\addtocounter{section}{1}
+\section{Approaching the Bound}
+\label{sec:approach}
+
+It takes three hours and 55 minutes for Sparse\_hmm\_lor.py to make
+data/LikeLor.  I use gnuplot and LikeLor.gpt to make
+Fig.~\ref{fig:LikeLor} from the data.  Note: To make this figure you
+need to have at least two gigabytes of RAM.
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \def\Nstates{$n_{\text{states}}$}%
+    \def\h{$\hat h(\mathcal{B},F,\mu||\theta)$ (nats)}%
+    \def\bits{$\hat h$ (bits)}%
+%    \input{figs/LikeLor.pdf_t}
+  }
+  \caption[Entropy gap, $\hat
+  \delta_{\mu||\theta}$ vs number of states in HMMs]%
+  {Entropy gap, $\hat \delta_{\mu||\theta}$ vs number of states in
+    HMMs.  The upper trace plots estimates of cross entropy $\hat
+    h(\mathcal{B},F,\mu||\theta)$ for a sequence of HMMs vs the number
+    of discrete state in the models.  I built the models using actual
+    Lorenz state space trajectories as described in the text.  The
+    lower trace is an estimate of the entropy rate, $\hat h(F,\mu)) =
+    \hat \lambda_1$, of the true process based on Lyapunov exponents
+    estimated by the Benettin procedure.  The distance between the
+    curves is the \emph{entropy gap} $\hat \delta_{\mu||\theta}$. The
+    gap seems to be going to zero, suggesting that an HMM with enough
+    states might perform at least as well as any other model based on
+    any other technology.  Each model was built using the same sample
+    trajectory of 8,000,000 points in the original state space, and
+    the cross entropy estimates are based on a test sequence of 10,000
+    observations.}
+  \label{fig:LikeLor}
+\end{figure}
+
+\chapter{Obstructive Sleep Apnea}
+\label{chap:apnea}
+
+The script apnea\_ts\_plots.py uses pylab to make
+Figs.~\ref{fig:a03erA} - \ref{fig:ApneaNLD}.  While the heart rate data for
+these figures comes from *.lphr files that the script rr2hr.py
+creates from *.Rtimes files, I derived the rest of the data directly
+from PhysioNet files using the PhysioNet's WFDB software.
+
+\section{The  Challenge and the Data}
+\label{sec:challenge}
+
+\subsection{The Data}
+\label{sec:data}
+\begin{figure}
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/a03erA.pdf}}
+  }
+  \caption[A segment of record a03]%
+  {A segment of record a03.  Two cycles of a large apnea
+    induced oscillation in $SpO_2$ are drawn in the lower plot.  The
+    middle plot is the oronasal airflow signal, and the upper plot is
+    the ECG (units of both ONR and ECG are unknown).  The time
+    axis is marked in \emph{hours:minutes}.  Notice the increased
+    heart rate just after 0:58 and just before 0:59.}
+  \label{fig:a03erA}
+\end{figure}
+
+\begin{figure}
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/a03erN.pdf}}
+  }
+  \caption[A segment of record a03]%
+  {A segment of record a03 taken during a period of normal
+    respiration.  Signals the same as in Fig.~6.1.}
+  \label{fig:a03erN}
+\end{figure}
+
+\begin{figure}
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/a03erHR.pdf}}
+  }
+  \caption[A segment of record 03 at the end of an episode of apnea]%
+  {A segment of record 03 at the end of an episode of apnea with
+    indications in both the $SpO_2$ signal and the heart rate
+    \emph{(HR)} signal.  The expert marked the time before 1:00 as
+    apnea and the time afterwards as normal.}
+  \label{fig:a03erHR}
+\end{figure}
+
+\section{First Classification Algorithms and Two Useful Features}
+\label{sec:NVG}
+
+% \subsection{Using Information from Experts to Train}
+\addtocounter{subsection}{1}
+\subsection{Nonlinear Dynamics}
+\label{sec:NLD}
+
+\begin{figure}
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/ApneaNLD.pdf}}
+  }
+  \caption[Nonlinear effects]%
+  {Nonlinear effects: The upper plot seems to be a period two
+    oscillation.  The lower plot is approximately sawtooth.}
+  \label{fig:ApneaNLD}
+\end{figure}
+
+\subsection{The Excellent Eye of Dr.\ McNames}
+\label{sec:mcnames}
+
+The script apnea\_sgram.py uses pylab to make Fig.~\ref{fig:sgram} from
+a11.Rtimes.  The pylab function specgram makes the spectrogram.
+\begin{figure}
+  \centering{
+%    \resizebox{\textwidth}{!}{\includegraphics{figs/sgram.pdf}}
+  }
+  \caption[Information about respiration in high
+  frequency phase variations]%
+  {Information about respiration in high frequency phase variations.
+    This is the $a11$ record roughly between minutes 40 and 225.  The
+    upper plot is heart rate (bandpass filtered 0.09-3.66 cpm), the
+    middle plot is a spectrogram of the phase jitter in the heart
+    rate, and the lower plot is the expert classification.  A single
+    band of spectral power between about 10 and 20 cpm without much
+    power below the band in the spectrogram indicates normal
+    respiration.}
+  \label{fig:sgram}
+\end{figure}
+
+\section{Decoding Sequences of Classifications}
+\label{sec:V4Class}
+
+%
+\begin{figure}[htbp]
+  \begin{center}
+    \newcommand{\tnext}{_{\text{next}}}
+    \newcommand{\told}{_{\text{old}}}
+    \newcommand{\tbest}{_{\text{best}}}
+    \newcommand{\ick}{\log \left(\sum_{s} g(s,c\tbest) f(t+1,s,c\tbest) \right)}
+    \fbox{
+      \begin{minipage}{\columnwidth}
+	\begin{tabbing}
+	  XX\=XX\=XX\=XX\=XX\=XX\=XX\=XX\= \kill
+	  Initialize: \> \+ \\
+	  for each $c$\\ \> \+
+	  $\nu\tnext (c) = \log \left( \sum_{s} g(s,C) P_{\ti{Y}{1},\ti{S}{1}}
+	    \left(\ti{y}{1},s \right)\right)$ \\ \\ \< \- \< \-
+	  Iterate: \> \+ \\
+	  for $t$ from 1 to $T$\\ \> \+
+	  Swap $\nu\tnext \leftrightarrow \nu\told$\\
+	  for each $c\tnext$\\ \> \+
+	  \\ \# Find best predecessor\\
+	  $c\tbest = \argmax_{c\told}\left( \nu\told(c\told) + \ick \right)$ \\
+	  \\ \# Update $\nu$\\
+	  $\nu\tnext(c\tnext) =\,$ \= $\nu\told(c\tbest) + \ick$ \\ \> \-
+	  \\ \# Update predecessor array\\
+	  Predecessor[$c\tnext,t$] = $c\tbest$\\
+	  \\ \# Update $\phi$\\
+	  for $s$ in $c\tnext$\\ \> \+
+	  Assign $\phi\tnext(s,c\tnext)$ using Eqn.~6.7\\ \\
+	  \< \- \< \- \< \- %This stuff is for tabs \< \-
+	  Backtrack: \> \+ \\
+	  $\ts{c}{1}{t} = \ts{\hat c}{1}{t}(\bar c)$ , where $\bar c =
+	  \argmax_c \nu\tnext(c)$ at $t=T$
+	\end{tabbing}
+      \end{minipage}
+    }
+    \caption[Pseudocode for the Viterbi
+    Algorithm for class sequences.]%
+    {Pseudocode for the Viterbi Algorithm for class sequences}
+    \label{fig:viterbiC}
+  \end{center}
+\end{figure}
+
+\section{Assembling the Pieces}
+\label{sec:Pieces}
+
+\subsection{Extracting a Low Pass Filtered Heart Rate}
+\label{sec:LPHR}
+
+The script rr2hr.py takes about a minute to process the data in the
+data/Apnea/*.Rtimes files to make all of the data/Apnea/*.lphr files.
+
+\subsection{Extracting Respiration Information}
+\label{sec:RESP}
+
+The script respire.py uses the data in the data/Apnea/*Rtimes files to
+make all of the data/Apnea/*.resp files and the
+files mean.resp, AA.resp, AN.resp, and C.resp for Fig.~\ref{fig:LDA}.
+It takes 34 minutes and 1.8 GB of RAM.
+\begin{figure}
+  \centering{
+%    \resizebox{0.65\textwidth}{!}{\includegraphics{figs/LDA1.pdf}}
+%    \resizebox{0.3\textwidth}{!}{\includegraphics{figs/LDA2.pdf}}
+  }
+  \caption[Linear discriminant analysis of phase
+  jitter periodograms]%
+  {Linear discriminant analysis of phase jitter periodograms.  The
+    plot in the upper left, shows the following mean periodograms:
+    $\mu_C$, the mean for the \emph{c} records; $\mu_{N}$, the mean of
+    the minutes that the expert classified as normal in the $a$
+    records; and $\mu_{A}$, the mean of the minutes that the expert
+    classified as apnea in the $a$ records.  The lower left plot shows
+    the basis vectors that result from the linear discriminant
+    analysis.  Scatter plots of the three classes projected on the
+    basis $(v_1,v_2)$ appear on the right.}
+  \label{fig:LDA}
+\end{figure}
+
+
+\subsection{Classifying Records}
+\label{sec:ClassRec}
+
+Figure~\ref{fig:class1} is not exactly like the figure in the book.
+The results of the new software are enough different from the results
+of the old software to concern me.  I will put more effort into
+understanding the difference.  The prerequisites for making
+Fig.~\ref{fig:class1} include all of the *.resp and *.lphr files and
+the HMM model files mod\_A, mod\_C, mod\_L, mod\_M, and mod\_H.  The
+script DoubleClassify.py with the flag --Single makes data files
+pass1A, pass1B, pass1C, and pass1X that class1.py uses to create the
+figure.
+\begin{figure}[tbhp]
+  \centering{
+%      \resizebox{\textwidth}{!}{\includegraphics{figs/class1.pdf}}
+  }
+  \caption[The first pass classifier]%
+  {The first pass classifier.  I've plotted the location of each
+    record using the log likelihood ratio $llr$ and the ratio
+    statistic $R$.  Records to the left of the line $2.39-\frac{llr}{2}$
+    are in the $L$ group.  Records to the right of the line
+    $2.55-\frac{llr}{2}$ are in the $H$ group.  And those in between are
+    in the $M$ group.}
+  \label{fig:class1}
+\end{figure}
+
+\subsection{Model Topology and Training Data}
+\label{sec:topology}
+
+Figure~\ref{fig:structure} is a simple xfig drawing.
+\begin{figure}
+  \centering{\plotsize%
+    \def\Azero{$A_H$}%
+    \def\Aone{$A_{I1}$}%
+    \def\Atwo{$A_{I2}$}%
+    \def\Athree{$A_{P11}$}%
+    \def\Afour{$A_{P12}$}%
+    \def\Afive{$A_{P21}$}%
+    \def\Asix{$A_{P22}$}%
+    \def\Nzero{$N_H$}%
+    \def\None{$N_{I1}$}%
+    \def\Ntwo{$N_{I2}$}%
+    \def\Nthree{$N_{I3}$}%
+    \def\Nfour{$N_{I4}$}%
+    \def\Nfive{$N_{P11}$}%
+    \def\Nsix{$N_{P12}$}%
+    \def\azero{$A_H$}%
+    \def\aone{$A_{I1}$}%
+    \def\atwo{$A_{P11}$}%
+    \def\athree{$A_{P12}$}%
+    \def\nzero{$N_H$}%
+    \def\none{$N_{I1}$}%
+    \def\ntwo{$N_{I2}$}%
+    \def\nthree{$N_{I3}$}%
+    \def\nfour{$N_{P11}$}%
+    \def\nfive{$N_{P12}$}%
+    \def\ModH{\large$Mod_H$}%
+    \def\ModL{\large$Mod_M$ and $Mod_L$}%
+%     \input{figs/structure.pdf_t}
+  }
+  \caption[Structure of HMMs for minute by minute classification]%
+  {Structure of HMMs for minute by minute classification in the second
+    pass of my procedure.  I used the structure on the left for those
+    records classified as $H$ on the first pass and the structure on
+    the right for those records classified as $M$ or $L$ on the first
+    pass.}
+  \label{fig:structure}
+\end{figure}
+
+\subsection{Tunable Parameters}
+\label{sec:tune}
+%
+It takes more than two days to make the data for
+Fig.~\ref{fig:PFsurvey}.  To let readers avoid that delay, I've
+included the data in the source package.  If you want to build the
+data, simply remove data/PFsurveyH, make data/PFsurveyH and copy it to
+data/PFsurvey.
+\begin{figure}
+  \centering{\plotsize%
+    \def\pow{Pow}%
+    \def\fudge{Fudge}%
+    \def\x#1{\mbox{\hbox{$#1$}}}%
+    \def\y#1{\mbox{\lower2.0ex\hbox{$#1$}}}%
+%    \input{figs/PFsurvey.pdf_t}
+  }
+  \caption[The response of classification performance to changes in \emph{Pow} and \emph{Fudge}]%
+  {The response of classification performance to changes in \emph{Pow}
+    and \emph{Fudge}.  I've plotted the performance of $Mod_H$ trained
+    and evaluated on the \emph{H} group of records.  As described in
+    the text, \emph{Pow} governs the relative weighting of the low
+    pass heart rate signal to the respiration characteristics and
+    \emph{Fudge} is a bias for choosing the \emph{normal}
+    classification.  The $Z$ axis is the fraction of minutes
+    classified correctly.}
+  \label{fig:PFsurvey}
+\end{figure}
+
+\subsection{Results}
+\label{sec:results}
+
+The results in Table~\ref{tab:result1} are part of the typed in \LaTeX
+source.  I should write code that creates a file of results and then
+import the results into the text.
+\begin{table}
+  \caption[Performance with tuned values of \emph{Fudge} and \emph{Pow} on training]%
+  {Performance with tuned values of \emph{Fudge} and
+    \emph{Pow} on training records.  I've sorted the list in order of
+    how well the code classified each of the minutes in each record.  For
+    each record, the number in the column labeled $N\rightarrow A$ is
+    the number of minutes labeled as \emph{normal} by the expert that
+    the code labeled as \emph{apnea}.  The interpretations of the
+    other columns are similar.}
+  \centering{\plotsize%
+    \begin{tabular}{|llllll|}
+      \hline
+      Record & $N\rightarrow N$ &  $N\rightarrow A$ &  $A\rightarrow N$ &  $A\rightarrow A$ & \% Right \\
+      \hline
+      \rule{0pt}{2.0ex}%
+      a11 &  198 &   46 &  138 &   84 & 0.6052 \\
+      b02 &  255 &  169 &   14 &   79 & 0.6460 \\
+      a06 &  276 &   27 &  140 &   66 & 0.6719 \\
+      a08 &  197 &  114 &   24 &  165 & 0.7240 \\
+      b01 &  362 &  105 &    2 &   17 & 0.7798 \\
+      a07 &   96 &   93 &   12 &  309 & 0.7941 \\
+      a18 &   37 &   14 &   82 &  356 & 0.8037 \\
+      b03 &  296 &   71 &   13 &   60 & 0.8091 \\
+      a03 &  175 &   98 &    0 &  246 & 0.8112 \\
+      a20 &  184 &   10 &   78 &  237 & 0.8271 \\
+      a15 &   91 &   50 &   36 &  332 & 0.8310 \\
+      a05 &  147 &   30 &   44 &  232 & 0.8366 \\
+      a16 &  140 &   21 &   51 &  269 & 0.8503 \\
+      a13 &  213 &   38 &   28 &  215 & 0.8664 \\
+      a09 &   90 &   24 &   39 &  342 & 0.8727 \\
+      a10 &  404 &   13 &   49 &   50 & 0.8798 \\
+      a14 &   69 &   57 &    2 &  381 & 0.8841 \\
+      a17 &  302 &   24 &   32 &  126 & 0.8843 \\
+      a02 &   72 &   36 &   19 &  401 & 0.8958 \\
+      a19 &  289 &    8 &   30 &  174 & 0.9242 \\
+      a12 &   14 &   29 &    3 &  530 & 0.9444 \\
+      b04 &  418 &    0 &   10 &    0 & 0.9766 \\
+      a01 &   11 &    8 &    0 &  470 & 0.9836 \\
+      a04 &   35 &    4 &    2 &  451 & 0.9878 \\
+      c07 &  424 &    0 &    4 &    0 & 0.9907 \\
+      c05 &  462 &    0 &    3 &    0 & 0.9935 \\
+      c09 &  465 &    0 &    2 &    0 & 0.9957 \\
+      c10 &  429 &    0 &    1 &    0 & 0.9977 \\
+      c03 &  452 &    1 &    0 &    0 & 0.9978 \\
+      c06 &  466 &    0 &    1 &    0 & 0.9979 \\
+      c02 &  500 &    0 &    1 &    0 & 0.9980 \\
+      c01 &  483 &    0 &    0 &    0 & 1.0000 \\
+      c04 &  481 &    0 &    0 &    0 & 1.0000 \\
+      c08 &  513 &    0 &    0 &    0 & 1.0000 \\
+      \hline
+      \rule{0pt}{2.0ex}%
+      sum & 9046 & 1090 &  860 & 5592 & 0.8824\\
+      \hline
+    \end{tabular}}
+  \label{tab:result1}
+\end{table}
+
+Table~\ref{tab:cinc2000} is a copy of the table in the book.  It does
+not reflect the performance of the new code.
+\begin{table}
+  \caption[The scores described in this chapter]%
+  {Here are the scores described in this chapter interspersed
+    with the top scores from the CINC2000 website
+    (\url{http://www.physionet.org/challenge/2000/top-scores.shtml}).}
+  \centering{\plotsize%
+    \begin{tabular}{|l|p{25em}|l|}
+      \hline
+      Score & Entrant & Entries \\
+      \hline
+      \rule{0pt}{2.25ex}%
+      92.62 & J McNames, A Fraser, and A Rechtsteiner
+      Portland State University, Portland, OR, USA & 4 \\
+      92.30 & B Raymond, R Cayton, R Bates, and M Chappell
+      Birmingham Heartlands Hospital, Birmingham, UK & 8 \\
+      89.36 & P de Chazal, C Henehan, E Sheridan, R Reilly, P Nolan,
+      and M O'Malley
+      University College - Dublin, Ireland  & 15 \\
+      87.56 & M Schrader, C Zywietz, V von Einem, B Widiger, G Joseph
+      Medical School Hannover, Hannover, Germany &	9 \\
+      87.30 & MR Jarvis and PP Mitra
+      Caltech, Pasadena, CA, USA &	3 \\
+      \hline
+      \rule{0pt}{2.25ex}%
+      86.95 & Second entry in this chapter.  Adjust \emph{Fudge} to get
+      fraction of apnea minutes in the test records to match the fraction of
+      apnea minutes in the training records & \\
+      \hline
+      \rule{0pt}{2.25ex}%
+      86.24 & First entry in this chapter.  Models and parameters tuned to
+      the training records. & \\
+      \hline
+      \rule{0pt}{2.25ex}%
+      85.63 & Z Shinar, A Baharav, and S Akselrod
+      Tel-Aviv University, Ramat-Aviv, Israel &	1 \\
+      85.54 & C Maier, M Bauch, and H Dickhaus
+      University of Heidelberg, Heilbronn, Germany & 5 \\
+      84.49 & JE Mietus, C-K Peng, and AL Goldberger
+      Beth Israel Deaconess Medical Center, Boston, MA, USA (unofficial
+      entry) & \\
+      \hline
+    \end{tabular}}
+  \label{tab:cinc2000}
+\end{table}
+%
+
+\end{document}
+%%% Local Variables:
+%%% eval: (TeX-PDF-mode)
+%%% End:

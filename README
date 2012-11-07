@@ -1,0 +1,53 @@
+I (Andy Fraser) started this project on 2012-10-31.  I will rewrite
+the code for my book "Hidden Markov Models and Dynamical Systems"
+using the following tools: python3, numpy, scipy, sphinx, doctest, qt4
+
+and not using: gnuplot, swig, c
+
+I will sacrifice the appearance of plots to simplicity of the code.  I
+hope that the scipy sparse matrix package will let me have simple fast
+code.  I will choose simplicity over speed within reason.
+
+My starting point is the project "webhmmds" in svn at
+http://fraserphysics.com/webhmmds.  After I get the hmm code with most
+output model options running and documented/tested with
+sphinx/doctest, I will put the project on google_code under git and
+GPL3.  I will use a single brief LaTeX document instead of the text
+that SIAM owns to collect the figures.
+
+To do:
+
+1. Write code to make cover plot using data copied from old project.
+
+   From webhmmds/Makefile:
+
+STATES    = 0 1 2 3 4 5 6 7 8 9 10 11
+STATEDATA = ${D}/states  $(foreach state, ${STATES},
+${D}/state${state})
+${D}/m12s.4y : ${P}/MakeModel.py ${D}/lorenz.4
+        ${PYTHON} ${P}/MakeModel.py ${D} lorenz.4 m12s.4y
+$(call atomic, ${STATEDATA}, ${D}/m12s.4y ${D}/lorenz.4
+${P}/StatePic.py)
+        ${PYTHON} ${P}/StatePic.py ${D} lorenz.4 lorenz.xyz m12s.4y
+
+
+${F}/Statesintro.pdf: ${PS}/stateplot.py ${STATEDATA}
+        python  ${PS}/stateplot.py ${D} state $@
+
+  A. Start with numpy arrays/matrices and do enough to make the plot
+
+  B. Do git init early.  Use sphinx and doctest.
+
+  C. Figure out how to use scipy sparse matrices as option
+
+  D. Make the directory the importable thing with __init__.py
+
+2. Write code to make the data for the cover plot.  Probably cython.
+
+3. Write code to analyze apnea data to make sure that you have basic
+    hmm class with enough flexibility to handle: Multiple sets of
+    training data; Custom output models; Decoding class sequences.
+
+# Local Variables:
+# mode: text
+# End:
