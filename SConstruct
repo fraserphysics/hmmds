@@ -1,5 +1,8 @@
 '''SConstruct: Derived from eos project
 
+Need the following to work with scipy
+>export SCONS_HORRIBLE_REGRESSION_TEST_HACK=yes
+
 SCons User Guide at
 http://www.scons.org/doc/production/HTML/scons-user/index.html
 

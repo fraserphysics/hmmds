@@ -1,0 +1,6 @@
+.*
+!.gitignore
+TeX/*.aux
+TeX/*.fls
+TeX/*.log
+TeX/*.pdf
