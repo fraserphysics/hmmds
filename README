@@ -19,32 +19,20 @@ To do:
 
 1. Write code to make cover plot using data copied from old project.
 
-   From webhmmds/Makefile:
-
-STATES    = 0 1 2 3 4 5 6 7 8 9 10 11
-STATEDATA = ${D}/states  $(foreach state, ${STATES},
-${D}/state${state})
-${D}/m12s.4y : ${P}/MakeModel.py ${D}/lorenz.4
-        ${PYTHON} ${P}/MakeModel.py ${D} lorenz.4 m12s.4y
-$(call atomic, ${STATEDATA}, ${D}/m12s.4y ${D}/lorenz.4
-${P}/StatePic.py)
-        ${PYTHON} ${P}/StatePic.py ${D} lorenz.4 lorenz.xyz m12s.4y
-
-
-${F}/Statesintro.pdf: ${PS}/stateplot.py ${STATEDATA}
-        python  ${PS}/stateplot.py ${D} state $@
-
   A. Start with numpy arrays/matrices and do enough to make the plot
 
-  B. Do git init early.  Use sphinx and doctest.
+    1. Beautify for python2.7
+    2. Translate to python3
+
+  B. Use sphinx and doctest.
 
   C. Figure out how to use scipy sparse matrices as option
 
-  D. Make the directory the importable thing with __init__.py
-
 2. Write code to make the data for the cover plot.  Probably cython.
 
-3. Write code to analyze apnea data to make sure that you have basic
+3. Ask Guy to look at style.
+
+4. Write code to analyze apnea data to make sure that you have basic
     hmm class with enough flexibility to handle: Multiple sets of
     training data; Custom output models; Decoding class sequences.
 

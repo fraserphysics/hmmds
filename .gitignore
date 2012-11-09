@@ -4,3 +4,6 @@ TeX/*.aux
 TeX/*.fls
 TeX/*.log
 TeX/*.pdf
+derived_data
+figs
+*.pyc

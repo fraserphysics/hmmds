@@ -14,7 +14,6 @@ http://www.scons.org/doc/HTML/scons-api/SCons.Scanner.LaTeX.LaTeX-class.html
 
 http://www.scons.org/wiki/LatexSupport
 '''
-import numpy, scipy
 
 def build_pdf_t(target, source, env):
     ''' Written for the fig2pdf Builder, this function runs fig2dev
@@ -37,9 +36,33 @@ fig2pdf = Builder(
     action=build_pdf_t, src_suffix='.fig', suffix='.pdf',
     emitter=lambda target,source,env:([target[0],str(target[0])+'_t'],source))
 
+PYTHON = 'env '+\
+    ' PYTHONPATH=code/applications/synthetic:code/hmm '+\
+    ' SCONS_HORRIBLE_REGRESSION_TEST_HACK=no '+\
+    ' python '
+CAS = lambda file: 'code/applications/synthetic/'+file
+CPS = lambda file: 'code/plotscripts/'+file
+DDS = lambda file: 'derived_data/synthetic/'+file
+STATEDATA = [DDS('states')]+[DDS('state%s'%x) for x in range(12)]
 swe=Environment()
 swe.PDF('TeX/software.tex')
-
+swe['TEXINPUTS'] = ['figs','TeX']
+swe.Command(
+    DDS('m12s.4y'),[CAS('MakeModel.py'),DDS('lorenz.4')],
+    PYTHON+CAS('MakeModel.py')+' derived_data/synthetic lorenz.4 m12s.4y'
+    )
+swe.Command(
+    STATEDATA,
+    [DDS('m12s.4y')]+[DDS('lorenz.4')]+[CPS('StatePic.py')],
+    PYTHON+CPS('StatePic.py')+
+      ' derived_data/synthetic lorenz.4 lorenz.xyz m12s.4y'
+    )
+swe.Command(
+    'figs/Statesintro.pdf',                                # target
+    [CPS('stateplot.py')]+STATEDATA,                       # sources
+    PYTHON+CPS('stateplot.py')+                            # command
+      ' derived_data/synthetic state figs/Statesintro.pdf'
+    )
 #---------------
 # Local Variables:
 # eval: (python-mode)
