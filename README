@@ -19,14 +19,7 @@ To do:
 
 1. Write code to make cover plot using data copied from old project.
 
-  A. Start with numpy arrays/matrices and do enough to make the plot
-
-    1. Beautify for python2.7
-    2. Translate to python3
-
-  B. Use sphinx and doctest.
-
-  C. Figure out how to use scipy sparse matrices as option
+  Figure out how to use scipy sparse matrices as option
 
 2. Write code to make the data for the cover plot.  Probably cython.
 

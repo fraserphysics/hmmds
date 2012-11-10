@@ -1,5 +1,6 @@
-# Scalar.py  Copyright (c) 2003, 2007, 2008 Andrew Fraser
-""" Implements HMMs with discrete observations.
+""" Scalar.py: Implements HMMs with discrete observations.
+Copyright (c) 2003, 2007, 2008, 2012 Andrew M. Fraser
+
 """
 
 import random, numpy
