@@ -3,7 +3,7 @@ Copyright (c) 2003, 2007, 2008, 2012 Andrew M. Fraser
 
 """
 
-import random, numpy
+import random, numpy as np
 def print_V(V):
     for x in V:
         print('%-6.3f'%x,end='')
@@ -17,6 +17,10 @@ def print_Name_VV(name,VV):
         print('   ',end='')
         print_V(V)
 
+def initialize(x,shape):
+    if x == None or x.shape != shape:
+        return np.zeros(shape,np.float64)
+    return x*0
 ## ----------------------------------------------------------------------
 class HMM:
     """A Hidden Markov Model implementation with the following
@@ -28,21 +32,21 @@ class HMM:
     Test the code in this file by manipulating the HMM in Figure 1.6
     (fig:dhmm) in the book.
 
-    >>> P_S0 = numpy.array([1./3., 1./3., 1./3.])
-    >>> P_S0_ergodic = numpy.array([1./7., 4./7., 2./7.])
-    >>> P_ScS = numpy.array([
+    >>> P_S0 = np.array([1./3., 1./3., 1./3.])
+    >>> P_S0_ergodic = np.array([1./7., 4./7., 2./7.])
+    >>> P_ScS = np.array([
     ...         [0,   1,   0],
     ...         [0,  .5,  .5],
     ...         [.5, .5,   0]
-    ...         ],numpy.float64)
-    >>> P_YcS = numpy.array([
+    ...         ],np.float64)
+    >>> P_YcS = np.array([
     ...         [1, 0,     0],
     ...         [0, 1./3., 2./3.],
     ...         [0, 2./3., 1./3.]
     ...         ])
     >>> mod = HMM(P_S0,P_S0_ergodic,P_ScS,P_YcS)
     >>> S,Y = mod.simulate(500)
-    >>> Y = numpy.array(Y,numpy.int32)
+    >>> Y = np.array(Y,np.int32)
     >>> E = mod.decode(Y)
     >>> table = ['%3s, %3s, %3s'%('y','S','Decoded')]
     >>> table += ['%3d, %3d, %3d'%triple for triple in zip(Y,S,E[:10])]
@@ -86,10 +90,10 @@ class HMM:
         ):
         """Builds a new Hidden Markov Model"""
         self.N =len(P_S0)
-        self.P_S0 = numpy.matrix(P_S0)
-        self.P_S0_ergodic = numpy.matrix(P_S0_ergodic)
-        self.P_ScS = numpy.matrix(P_ScS)
-        self.P_YcS = numpy.array(P_YcS)
+        self.P_S0 = np.array(P_S0)
+        self.P_S0_ergodic = np.array(P_S0_ergodic)
+        self.P_ScS = np.array(P_ScS)
+        self.P_YcS = np.array(P_YcS)
         self.Py = None
         self.alpha = None
         self.gamma = None
@@ -105,8 +109,7 @@ class HMM:
 
         # Check size and initialize self.Py
         self.T = len(y)
-        if self.Py == None or self.Py.shape != (self.T,self.N):
-            self.Py = numpy.zeros((self.T,self.N),numpy.float64)
+        self.Py = initialize(self.Py,(self.T,self.N))
         for t in range(self.T):
             self.Py[t,:] = self.P_YcS[:,y[t]]
         return self.Py # End of Py_calc()
@@ -124,19 +127,16 @@ class HMM:
        """
 
        # Ensure allocation and size of alpha and gamma
-       if self.alpha == None or self.alpha.shape != (self.T,self.N):
-           self.alpha = numpy.zeros((self.T,self.N),numpy.float64)
-       if self.gamma == None or len(self.gamma) != self.T:
-           self.gamma = numpy.zeros((self.T,),numpy.float64)
-       last = numpy.matrix(self.P_S0) # Copy
-       lastA = last.A # View as array to make * element-wise multiplicaiton
+       self.alpha = initialize(self.alpha,(self.T,self.N))
+       self.gamma = initialize(self.gamma,(self.T,))
+       last = np.copy(self.P_S0.reshape(-1)) # Copy
        for t in range(self.T):
-           lastA *= self.Py[t]              # Element-wise multiply
-           self.gamma[t] = lastA.sum()
-           lastA /= self.gamma[t]
-           self.alpha[t,:] = lastA[0,:]
-           last[:,:] = last*self.P_ScS      # Vector matrix product in place
-       return (numpy.log(self.gamma)).sum() # End of forward()
+           last *= self.Py[t]              # Element-wise multiply
+           self.gamma[t] = last.sum()
+           last /= self.gamma[t]
+           self.alpha[t,:] = last
+           last = np.dot(last,self.P_ScS)
+       return (np.log(self.gamma)).sum() # End of forward()
     def backward(self):
         """
         On entry:
@@ -147,15 +147,13 @@ class HMM:
         for each state i, beta[t,i] = Pr{y_{t+1}^T|s(t)=i}/Pr{y_{t+1}^T}
         """
         # Ensure allocation and size of beta
-        if self.beta == None or self.beta.shape != (self.T,self.N):
-            self.beta = numpy.zeros((self.T,self.N),numpy.float64)
-        lastbeta = numpy.mat(numpy.ones(self.beta.shape[1]))
-        lastbetaA = lastbeta.A[0,:]   # Array view so * is element-wise multiply
+        self.beta = initialize(self.beta,(self.T,self.N))
+        last = np.array(np.ones(self.beta.shape[1]))
         pscst = self.P_ScS.T               # Transpose view
         # iterate
         for t in range(self.T-1,-1,-1):
-            self.beta[t,:] = lastbetaA
-            lastbeta[:,:] = (lastbetaA*self.Py[t,:]/self.gamma[t])*pscst
+            self.beta[t,:] = last
+            last = np.dot((last*self.Py[t,:]/self.gamma[t]),pscst)
         return # End of backward()
     def train(self, y, N_iter=1, display=True):
         # Do (N_iter) BaumWelch iterations
@@ -175,48 +173,48 @@ class HMM:
         self.state[s].Py[t], given alpha, beta, gamma, and Py, these
         calcuations are independent of the observation model
         calculations."""
-        u_sum = numpy.zeros((self.N,self.N),numpy.float64)
-        new_P_S0 = numpy.zeros((self.N,))
-        new_P_S0_ergodic = numpy.zeros((self.N,))
+        u_sum = np.zeros((self.N,self.N),np.float64)
+        new_P_S0 = np.zeros((self.N,))
+        new_P_S0_ergodic = np.zeros((self.N,))
         for t in range(self.T-1):
-            u_sum += numpy.outer(self.alpha[t]/self.gamma[t+1],
+            u_sum += np.outer(self.alpha[t]/self.gamma[t+1],
                                  self.Py[t+1]*self.beta[t+1,:])
         self.alpha *= self.beta
         new_P_S0_ergodic += self.alpha.sum(axis=0)
         new_P_S0 += self.alpha[0]
         assert u_sum.shape == self.P_ScS.shape
-        ScST = self.P_ScS.A.T # To get element wise multiplication and correct /
+        ScST = self.P_ScS.T # To get element wise multiplication and correct /
         ScST *= u_sum.T
         ScST /= ScST.sum(axis=0)
-        self.P_S0 = numpy.mat(new_P_S0/new_P_S0.sum())
-        self.P_S0_ergodic = numpy.mat(new_P_S0_ergodic/new_P_S0_ergodic.sum())
+        self.P_S0 = np.array(new_P_S0/new_P_S0.sum())
+        self.P_S0_ergodic = np.array(new_P_S0_ergodic/new_P_S0_ergodic.sum())
         return (self.alpha,new_P_S0_ergodic) # End of reestimate_s()
     def reestimate(self,y):
         """ Reestimate all paramters.  In particular, reestimate observation
         model.
         """
         w,sum_w = self.reestimate_s()
-        if not type(y) == numpy.ndarray:
-            y = numpy.array(y,numpy.int32)
-        assert(y.dtype == numpy.int32 and y.shape == (self.T,))
+        if not type(y) == np.ndarray:
+            y = np.array(y,np.int32)
+        assert(y.dtype == np.int32 and y.shape == (self.T,))
         for yi in range(self.P_YcS.shape[1]):
-            self.P_YcS[:,yi] = w.take(numpy.where(y==yi)[0],axis=0
+            self.P_YcS[:,yi] = w.take(np.where(y==yi)[0],axis=0
                                       ).sum(axis=0)/sum_w
         return # End of reestimate()
     def decode(self,y):
         """Use the Viterbi algorithm to find the most likely state
            sequence for a given observation sequence y"""
         self.Py_calc(y)
-        pred = numpy.zeros((self.T, self.N), numpy.int32) # Best predecessors
-        ss = numpy.zeros((self.T, 1), numpy.int32)        # State sequence
-        L_S0, L_ScS, L_Py = (numpy.log(numpy.maximum(x,1e-30)) for x in
+        pred = np.zeros((self.T, self.N), np.int32) # Best predecessors
+        ss = np.zeros((self.T, 1), np.int32)        # State sequence
+        L_S0, L_ScS, L_Py = (np.log(np.maximum(x,1e-30)) for x in
                              (self.P_S0,self.P_ScS,self.Py))
         nu = L_Py[0] + L_S0
         for t in range(1,self.T):
             omega = L_ScS.T + nu
             pred[t,:] = omega.T.argmax(axis=0)   # Best predecessor
             nu = pred[t,:].choose(omega.T) + L_Py[t]
-        lasts = numpy.argmax(nu)
+        lasts = np.argmax(nu)
         for t in range(self.T-1,-1,-1):
             ss[t] = lasts
             lasts = pred[t,lasts]
@@ -226,14 +224,14 @@ class HMM:
         """generates a random sequence of observations of given length"""
         random.seed(seed)
         # Set up cumulative distributions
-        cum_init = numpy.cumsum(self.P_S0_ergodic.A[0])
-        cum_tran = numpy.cumsum(self.P_ScS.A,axis=1)
-        cum_y = numpy.cumsum(self.P_YcS,axis=1)
+        cum_init = np.cumsum(self.P_S0_ergodic[0])
+        cum_tran = np.cumsum(self.P_ScS,axis=1)
+        cum_y = np.cumsum(self.P_YcS,axis=1)
         # Initialize lists
         outs = []
         states = []
         def cum_rand(cum): # A little service function
-            return numpy.searchsorted(cum,random.random())
+            return np.searchsorted(cum,random.random())
         # Select initial state
         i = cum_rand(cum_init)
         # Select subsequent states and call model to generate observations
@@ -255,9 +253,9 @@ class HMM:
         self.P_ScS[From,:] /= self.P_ScS[From,:].sum()
     def dump_base(self):
         print("dumping a %s with %d states"%(self.__class__,self.N))
-        print_Name_V(' P_S0        ',self.P_S0.A[0])
-        print_Name_V(' P_S0_ergodic',self.P_S0_ergodic.A[0])
-        print_Name_VV('P_ScS', self.P_ScS.A)
+        print_Name_V(' P_S0        ',self.P_S0)
+        print_Name_V(' P_S0_ergodic',self.P_S0_ergodic)
+        print_Name_VV('P_ScS', self.P_ScS)
         return #end of dump_base()
     def dump(self):
         self.dump_base()
