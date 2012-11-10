@@ -39,7 +39,11 @@ fig2pdf = Builder(
 PYTHON = 'env '+\
     ' PYTHONPATH=code/applications/synthetic:code/hmm '+\
     ' SCONS_HORRIBLE_REGRESSION_TEST_HACK=no '+\
-    ' python '
+    ' python3 '
+#Need python2 for plotting because matplotlib for python3 doesn't exist
+PYTHON2 = 'env '+\
+    ' SCONS_HORRIBLE_REGRESSION_TEST_HACK=no '+\
+    ' python2.7 '
 CAS = lambda file: 'code/applications/synthetic/'+file
 CPS = lambda file: 'code/plotscripts/'+file
 DDS = lambda file: 'derived_data/synthetic/'+file
@@ -60,7 +64,7 @@ swe.Command(
 swe.Command(
     'figs/Statesintro.pdf',                                # target
     [CPS('stateplot.py')]+STATEDATA,                       # sources
-    PYTHON+CPS('stateplot.py')+                            # command
+    PYTHON2+CPS('stateplot.py')+                            # command
       ' derived_data/synthetic state figs/Statesintro.pdf'
     )
 #---------------

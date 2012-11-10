@@ -19,8 +19,8 @@ def skip_header(lines):
     
 def read_data(data_dir, data_file):
     # Read in <data_file>
-    f = file(os.path.join(data_dir, data_file), 'r')
-    lines = skip_header(f.xreadlines())
+    f = open(os.path.join(data_dir, data_file), 'r')
+    lines = skip_header(f)
     y = [int(line)-1 for line in lines]
     f.close()
     return y, max(y)+1
@@ -30,34 +30,34 @@ Y, cardy = read_data(data_dir, data_file)
 Y = scipy.array(Y)
 
 # Read in model
-mod = pickle.load(file(os.path.join(data_dir, model_file),'r'))
+mod = pickle.load(open(os.path.join(data_dir, model_file),'rb'))
 nstates = mod.P_S0.shape[-1] # P_S_0 is a matrix with shape (1,nstates)
 
 # Viterbi decoding
 ss = mod.decode(Y)
-f = file(os.path.join(data_dir, 'states'),'w')
+f = open(os.path.join(data_dir, 'states'),'w')
 for s in ss:
-    print >>f, s
+    print(s, file=f)
 f.close()
 # print "State trajectory=\n",trajectory
 
 # Read in vectors
 #vectors = []
-f = file(os.path.join(data_dir, vector_file),'r')
-lines = skip_header(f.xreadlines())
-vectors = [map(float,line.split()) for line in lines]
+f = open(os.path.join(data_dir, vector_file),'r')
+lines = skip_header(f)
+vectors = [list(map(float,line.split())) for line in lines]
 f.close()
 
 # vs[s] will be a list of vectors that belong in state s
-vs = [[] for state in xrange(nstates)]
+vs = [[] for state in range(nstates)]
 
 for t in range(0,len(ss)):
     vs[ss[t]].append(vectors[t])
 
-for s in xrange(nstates):
-    f = file(os.path.join(data_dir, "state%d"%s), 'w')
+for s in range(nstates):
+    f = open(os.path.join(data_dir, "state%d"%s), 'w')
     for v in vs[s]:
-        print >>f, v[0], v[1], v[2]
+        print(v[0], v[1], v[2], file=f)
     f.close()
 
 #Local Variables:

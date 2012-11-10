@@ -11,8 +11,8 @@ def skip_header(lines):
     
 def read_data(data_dir, data_file):
     # Read in <data_file>
-    f = file(os.path.join(data_dir, data_file), 'r')
-    lines = skip_header(f.xreadlines())
+    f = open(os.path.join(data_dir, data_file), 'r')
+    lines = skip_header(f)
     y = [int(line)-1 for line in lines]
     f.close()
     return y, max(y)+1
@@ -21,7 +21,7 @@ def randomP(A):
     """ Fill allocated array A with random normalized probability
     """
     sum = 0
-    for i in xrange(len(A)):
+    for i in range(len(A)):
         x = random.random()
         sum += x
         A[i] = x
@@ -29,7 +29,7 @@ def randomP(A):
     return A
 
 # control and model parameters
-niterations = 500        # maximum number of iterations
+niterations = 20        # maximum number of iterations
 nstates = 12             # about the data
 
 _, data_dir, data_file, model_file = sys.argv
@@ -53,7 +53,7 @@ mod = Scalar.HMM(P_S0,P_S0_ergodic,P_ScS,P_YcS)
 mod.train(Y,N_iter=niterations)
 
 # Save model in <model_file>
-f = file(os.path.join(data_dir, model_file), 'w')
+f = open(os.path.join(data_dir, model_file), 'wb')
 pickle.dump(mod, f)
 f.close()
 

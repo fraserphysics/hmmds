@@ -1,7 +1,7 @@
 # Scalar.py  Copyright (c) 2003, 2007, 2008 Andrew Fraser
 """ Implements HMMs with discrete observations.
 """
-from __future__ import print_function
+
 import random, numpy
 def print_V(V):
     for x in V:
@@ -64,7 +64,7 @@ class HMM:
     it= 2 LLps=  -0.918
     it= 3 LLps=  -0.917
     >>> mod.dump()
-    dumping a __main__.HMM with 3 states
+    dumping a <class '__main__.HMM'> with 3 states
      P_S0         =0.000 0.963 0.037 |
      P_S0_ergodic =0.142 0.580 0.278 |
       P_ScS =
@@ -106,7 +106,7 @@ class HMM:
         self.T = len(y)
         if self.Py == None or self.Py.shape != (self.T,self.N):
             self.Py = numpy.zeros((self.T,self.N),numpy.float64)
-        for t in xrange(self.T):
+        for t in range(self.T):
             self.Py[t,:] = self.P_YcS[:,y[t]]
         return self.Py # End of Py_calc()
     def forward(self):
@@ -129,7 +129,7 @@ class HMM:
            self.gamma = numpy.zeros((self.T,),numpy.float64)
        last = numpy.matrix(self.P_S0) # Copy
        lastA = last.A # View as array to make * element-wise multiplicaiton
-       for t in xrange(self.T):
+       for t in range(self.T):
            lastA *= self.Py[t]              # Element-wise multiply
            self.gamma[t] = lastA.sum()
            lastA /= self.gamma[t]
@@ -152,14 +152,14 @@ class HMM:
         lastbetaA = lastbeta.A[0,:]   # Array view so * is element-wise multiply
         pscst = self.P_ScS.T               # Transpose view
         # iterate
-        for t in xrange(self.T-1,-1,-1):
+        for t in range(self.T-1,-1,-1):
             self.beta[t,:] = lastbetaA
             lastbeta[:,:] = (lastbetaA*self.Py[t,:]/self.gamma[t])*pscst
         return # End of backward()
     def train(self, y, N_iter=1, display=True):
         # Do (N_iter) BaumWelch iterations
         LLL = []
-        for it in xrange(N_iter):
+        for it in range(N_iter):
             self.Py_calc(y)
             LLps = self.forward()/len(y)
             if display:
@@ -177,7 +177,7 @@ class HMM:
         u_sum = numpy.zeros((self.N,self.N),numpy.float64)
         new_P_S0 = numpy.zeros((self.N,))
         new_P_S0_ergodic = numpy.zeros((self.N,))
-        for t in xrange(self.T-1):
+        for t in range(self.T-1):
             u_sum += numpy.outer(self.alpha[t]/self.gamma[t+1],
                                  self.Py[t+1]*self.beta[t+1,:])
         self.alpha *= self.beta
@@ -198,7 +198,7 @@ class HMM:
         if not type(y) == numpy.ndarray:
             y = numpy.array(y,numpy.int32)
         assert(y.dtype == numpy.int32 and y.shape == (self.T,))
-        for yi in xrange(self.P_YcS.shape[1]):
+        for yi in range(self.P_YcS.shape[1]):
             self.P_YcS[:,yi] = w.take(numpy.where(y==yi)[0],axis=0
                                       ).sum(axis=0)/sum_w
         return # End of reestimate()
@@ -211,12 +211,12 @@ class HMM:
         L_S0, L_ScS, L_Py = (numpy.log(numpy.maximum(x,1e-30)) for x in
                              (self.P_S0,self.P_ScS,self.Py))
         nu = L_Py[0] + L_S0
-        for t in xrange(1,self.T):
+        for t in range(1,self.T):
             omega = L_ScS.T + nu
             pred[t,:] = omega.T.argmax(axis=0)   # Best predecessor
             nu = pred[t,:].choose(omega.T) + L_Py[t]
         lasts = numpy.argmax(nu)
-        for t in xrange(self.T-1,-1,-1):
+        for t in range(self.T-1,-1,-1):
             ss[t] = lasts
             lasts = pred[t,lasts]
         return ss.flat # End of viterbi
@@ -236,7 +236,7 @@ class HMM:
         # Select initial state
         i = cum_rand(cum_init)
         # Select subsequent states and call model to generate observations
-        for t in xrange(length):
+        for t in range(length):
             states.append(i)
             outs.append(cum_rand(cum_y[i]))
             i = cum_rand(cum_tran[i])
