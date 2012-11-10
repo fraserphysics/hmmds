@@ -1,19 +1,19 @@
 # Scalar.py  Copyright (c) 2003, 2007, 2008 Andrew Fraser
 """ Implements HMMs with discrete observations.
 """
+from __future__ import print_function
 import random, numpy
-
 def print_V(V):
     for x in V:
-        print '%-6.3f'%x,
-    print ''
+        print('%-6.3f'%x,end='')
+    print('|')
 def print_Name_V(name,V):
-    print name+' =',
+    print(name+' =',end='')
     print_V(V)
 def print_Name_VV(name,VV):
-    print '  '+name+' ='
+    print('  '+name+' =')
     for V in VV:
-        print '   ',
+        print('   ',end='')
         print_V(V)
 
 ## ----------------------------------------------------------------------
@@ -23,6 +23,58 @@ class HMM:
 
     Tools for applications: forward(), backward(), train(), decode(),
     reestimate() and simulate()
+
+    Test the code in this file by manipulating the HMM in Figure 1.6
+    (fig:dhmm) in the book.
+
+    >>> P_S0 = numpy.array([1./3., 1./3., 1./3.])
+    >>> P_S0_ergodic = numpy.array([1./7., 4./7., 2./7.])
+    >>> P_ScS = numpy.array([
+    ...         [0,   1,   0],
+    ...         [0,  .5,  .5],
+    ...         [.5, .5,   0]
+    ...         ],numpy.float64)
+    >>> P_YcS = numpy.array([
+    ...         [1, 0,     0],
+    ...         [0, 1./3., 2./3.],
+    ...         [0, 2./3., 1./3.]
+    ...         ])
+    >>> mod = HMM(P_S0,P_S0_ergodic,P_ScS,P_YcS)
+    >>> S,Y = mod.simulate(500)
+    >>> Y = numpy.array(Y,numpy.int32)
+    >>> E = mod.decode(Y)
+    >>> table = ['%3s, %3s, %3s'%('y','S','Decoded')]
+    >>> table += ['%3d, %3d, %3d'%triple for triple in zip(Y,S,E[:10])]
+    >>> for triple in table:
+    ...     print(triple)
+      y,   S, Decoded
+      2,   1,   1
+      2,   1,   1
+      1,   2,   2
+      0,   0,   0
+      1,   1,   1
+      1,   2,   2
+      2,   1,   1
+      1,   2,   2
+      2,   1,   1
+      2,   2,   1
+    >>> L = mod.train(Y,N_iter=4)
+    it= 0 LLps=  -0.920
+    it= 1 LLps=  -0.918
+    it= 2 LLps=  -0.918
+    it= 3 LLps=  -0.917
+    >>> mod.dump()
+    dumping a __main__.HMM with 3 states
+     P_S0         =0.000 0.963 0.037 |
+     P_S0_ergodic =0.142 0.580 0.278 |
+      P_ScS =
+       0.000 1.000 0.000 |
+       0.000 0.519 0.481 |
+       0.512 0.488 0.000 |
+      P_YcS =
+       1.000 0.000 0.000 |
+       0.000 0.335 0.665 |
+       0.000 0.726 0.274 |
     """
     def __init__(
         self,         # HMM instance
@@ -111,7 +163,7 @@ class HMM:
             self.Py_calc(y)
             LLps = self.forward()/len(y)
             if display:
-                print "it= %d LLps= %7.3f"%(it,LLps)
+                print("it= %d LLps= %7.3f"%(it,LLps))
             LLL.append(LLps)
             self.backward()
             self.reestimate(y)
@@ -195,44 +247,27 @@ class HMM:
         "P" and the existing P_ScS array.  Set P_ScS itself if you
         need to set exact values.  Use this method to modify topology
         before training.
+
+        FixMe: No test coverage.
         """
         self.P_ScS[From,To] = P
         self.P_ScS[From,:] /= self.P_ScS[From,:].sum()
     def dump_base(self):
-        print "dumping a %s with %d states"%(self.__class__,self.N)
-        print_Name_V(' P_S0=        ',self.P_S0.A[0])
-        print_Name_V(' P_S0_ergodic=',self.P_S0_ergodic.A[0])
+        print("dumping a %s with %d states"%(self.__class__,self.N))
+        print_Name_V(' P_S0        ',self.P_S0.A[0])
+        print_Name_V(' P_S0_ergodic',self.P_S0_ergodic.A[0])
         print_Name_VV('P_ScS', self.P_ScS.A)
         return #end of dump_base()
     def dump(self):
         self.dump_base()
-        print_Name_VV('P_YcS=', self.P_YcS)
+        print_Name_VV('P_YcS', self.P_YcS)
         return #end of dump()
-if __name__ == '__main__':  # Test code
-    """ Test the code in this file and in algorithms_1.py by manipulating
-    the HMM in Figure 1.6 (fig:dhmm) in the book.
-    """
-    P_S0 = numpy.array([1./3., 1./3., 1./3.])
-    P_S0_ergodic = numpy.array([1./7., 4./7., 2./7.])
-    P_ScS = numpy.array([
-            [0,   1,   0],
-            [0,  .5,  .5],
-            [.5, .5,   0]
-            ],numpy.float64)
-    P_YcS = numpy.array([
-            [1, 0,     0],
-            [0, 1./3., 2./3.],
-            [0, 2./3., 1./3.]
-            ])
-    mod = HMM(P_S0,P_S0_ergodic,P_ScS,P_YcS)
-    S,Y = mod.simulate(500)
-    Y = numpy.array(Y,numpy.int32)
-    E = mod.decode(Y)
-    print '%3s, %3s, %3s'%('y','S','E_s')
-    for triple in zip(Y,S,E[:10]):
-        print '%3d, %3d, %3d'%triple
-    L = mod.train(Y,N_iter=10)
-    mod.dump()
+def _test():
+    import doctest
+    doctest.testmod()
+
+if __name__ == "__main__":
+    _test()
 
 #--------------------------------
 # Local Variables:
