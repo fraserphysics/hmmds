@@ -2,8 +2,6 @@
 """ Implements HMMs with discrete observations.
 """
 import random, numpy
-import algorithms_0 as ALG
-#import algorithms_1 as ALG
 
 def print_V(V):
     for x in V:
@@ -26,28 +24,35 @@ class HMM:
     Tools for applications: forward(), backward(), train(), decode(),
     reestimate() and simulate()
     """
-    def __init__(self, P_S0,P_S0_ergodic,P_ScS,P_YcS):
+    def __init__(
+        self,         # HMM instance
+        P_S0,         # Initial distribution of states
+        P_S0_ergodic, # Stationary distribution of states
+        P_ScS,        # Transition probabilities: State Conditioned on State
+        P_YcS         # Observation probabilities: Y Condidtioned on State
+        ):
         """Builds a new Hidden Markov Model"""
         self.N =len(P_S0)
         self.P_S0 = numpy.matrix(P_S0)
         self.P_S0_ergodic = numpy.matrix(P_S0_ergodic)
         self.P_ScS = numpy.matrix(P_ScS)
         self.P_YcS = numpy.array(P_YcS)
+        self.Py = None
+        self.alpha = None
+        self.gamma = None
+        self.beta = None
         return # End of __init__()
-    def Py_calc(self,y):
+    def Py_calc(
+        self,    # HMM
+        y        # A sequence of integer observations
+        ):
         """
         Allocate self.Py and assign values self.Py[t,i] = P(y(t)|s(t)=i)
-       
-        On entry:
-        self    is an HMM
-        y       is a sequence of observations
         """
 
         # Check size and initialize self.Py
         self.T = len(y)
-        try:
-            assert(self.Py.shape is (self.T,self.N))
-        except:
+        if self.Py == None or self.Py.shape != (self.T,self.N):
             self.Py = numpy.zeros((self.T,self.N),numpy.float64)
         for t in xrange(self.T):
             self.Py[t,:] = self.P_YcS[:,y[t]]
@@ -65,13 +70,19 @@ class HMM:
        return value is log likelihood of all data
        """
 
-       # Check size and initialize alpha and gamma
-       try:
-           assert(self.alpha.shape==(self.T,self.N) and len(self.gamma)==self.T)
-       except:
+       # Ensure allocation and size of alpha and gamma
+       if self.alpha == None or self.alpha.shape != (self.T,self.N):
            self.alpha = numpy.zeros((self.T,self.N),numpy.float64)
+       if self.gamma == None or len(self.gamma) != self.T:
            self.gamma = numpy.zeros((self.T,),numpy.float64)
-       ALG.forward(self.P_S0, self.P_ScS, self.Py, self.gamma, self.alpha)
+       last = numpy.matrix(self.P_S0) # Copy
+       lastA = last.A # View as array to make * element-wise multiplicaiton
+       for t in xrange(self.T):
+           lastA *= self.Py[t]              # Element-wise multiply
+           self.gamma[t] = lastA.sum()
+           lastA /= self.gamma[t]
+           self.alpha[t,:] = lastA[0,:]
+           last[:,:] = last*self.P_ScS      # Vector matrix product in place
        return (numpy.log(self.gamma)).sum() # End of forward()
     def backward(self):
         """
@@ -82,12 +93,16 @@ class HMM:
         On return:
         for each state i, beta[t,i] = Pr{y_{t+1}^T|s(t)=i}/Pr{y_{t+1}^T}
         """
-       # Check size and initialize beta
-        try:
-            assert (self.beta.shape == (self.T,self.N))
-        except:
-           self.beta = numpy.zeros((self.T,self.N),numpy.float64)
-        ALG.backward(self.P_ScS, self.Py, self.gamma, self.beta)
+        # Ensure allocation and size of beta
+        if self.beta == None or self.beta.shape != (self.T,self.N):
+            self.beta = numpy.zeros((self.T,self.N),numpy.float64)
+        lastbeta = numpy.mat(numpy.ones(self.beta.shape[1]))
+        lastbetaA = lastbeta.A[0,:]   # Array view so * is element-wise multiply
+        pscst = self.P_ScS.T               # Transpose view
+        # iterate
+        for t in xrange(self.T-1,-1,-1):
+            self.beta[t,:] = lastbetaA
+            lastbeta[:,:] = (lastbetaA*self.Py[t,:]/self.gamma[t])*pscst
         return # End of backward()
     def train(self, y, N_iter=1, display=True):
         # Do (N_iter) BaumWelch iterations
@@ -110,12 +125,19 @@ class HMM:
         u_sum = numpy.zeros((self.N,self.N),numpy.float64)
         new_P_S0 = numpy.zeros((self.N,))
         new_P_S0_ergodic = numpy.zeros((self.N,))
-        w  = ALG.reestimate_a(self.Py, self.gamma, self.alpha, self.beta, u_sum,
-                         new_P_S0, new_P_S0_ergodic)
-        # w is simply self.alpha which has been multiplied by beta element-wise
-        self.P_S0, self.P_S0_ergodic, self.P_ScS = ALG.reestimate_s(
-            self.P_ScS, u_sum, new_P_S0, new_P_S0_ergodic)
-        return (w,new_P_S0_ergodic) # End of reestimate_s()
+        for t in xrange(self.T-1):
+            u_sum += numpy.outer(self.alpha[t]/self.gamma[t+1],
+                                 self.Py[t+1]*self.beta[t+1,:])
+        self.alpha *= self.beta
+        new_P_S0_ergodic += self.alpha.sum(axis=0)
+        new_P_S0 += self.alpha[0]
+        assert u_sum.shape == self.P_ScS.shape
+        ScST = self.P_ScS.A.T # To get element wise multiplication and correct /
+        ScST *= u_sum.T
+        ScST /= ScST.sum(axis=0)
+        self.P_S0 = numpy.mat(new_P_S0/new_P_S0.sum())
+        self.P_S0_ergodic = numpy.mat(new_P_S0_ergodic/new_P_S0_ergodic.sum())
+        return (self.alpha,new_P_S0_ergodic) # End of reestimate_s()
     def reestimate(self,y):
         """ Reestimate all paramters.  In particular, reestimate observation
         model.
@@ -132,10 +154,20 @@ class HMM:
         """Use the Viterbi algorithm to find the most likely state
            sequence for a given observation sequence y"""
         self.Py_calc(y)
-        return ALG.viterbi(self.T,self.N,
-                         numpy.log(numpy.maximum(self.P_S0,1e-30)),
-                         numpy.log(numpy.maximum(self.P_ScS,1e-30)),
-                         numpy.log(numpy.maximum(self.Py,1e-30)))
+        pred = numpy.zeros((self.T, self.N), numpy.int32) # Best predecessors
+        ss = numpy.zeros((self.T, 1), numpy.int32)        # State sequence
+        L_S0, L_ScS, L_Py = (numpy.log(numpy.maximum(x,1e-30)) for x in
+                             (self.P_S0,self.P_ScS,self.Py))
+        nu = L_Py[0] + L_S0
+        for t in xrange(1,self.T):
+            omega = L_ScS.T + nu
+            pred[t,:] = omega.T.argmax(axis=0)   # Best predecessor
+            nu = pred[t,:].choose(omega.T) + L_Py[t]
+        lasts = numpy.argmax(nu)
+        for t in xrange(self.T-1,-1,-1):
+            ss[t] = lasts
+            lasts = pred[t,lasts]
+        return ss.flat # End of viterbi
     # End of decode()
     def simulate(self,length,seed=3):
         """generates a random sequence of observations of given length"""
