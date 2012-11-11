@@ -174,21 +174,20 @@ class HMM:
         calcuations are independent of the observation model
         calculations."""
         u_sum = np.zeros((self.N,self.N),np.float64)
-        new_P_S0 = np.zeros((self.N,))
-        new_P_S0_ergodic = np.zeros((self.N,))
         for t in range(self.T-1):
             u_sum += np.outer(self.alpha[t]/self.gamma[t+1],
                                  self.Py[t+1]*self.beta[t+1,:])
         self.alpha *= self.beta
-        new_P_S0_ergodic += self.alpha.sum(axis=0)
-        new_P_S0 += self.alpha[0]
+        wsum = self.alpha.sum(axis=0)
+        self.P_S0_ergodic = np.copy(wsum)
+        self.P_S0 = np.copy(self.alpha[0])
+        for x in (self.P_S0_ergodic, self.P_S0):
+            x /= x.sum()
         assert u_sum.shape == self.P_ScS.shape
         ScST = self.P_ScS.T # To get element wise multiplication and correct /
         ScST *= u_sum.T
         ScST /= ScST.sum(axis=0)
-        self.P_S0 = np.array(new_P_S0/new_P_S0.sum())
-        self.P_S0_ergodic = np.array(new_P_S0_ergodic/new_P_S0_ergodic.sum())
-        return (self.alpha,new_P_S0_ergodic) # End of reestimate_s()
+        return (self.alpha,wsum) # End of reestimate_s()
     def reestimate(self,y):
         """ Reestimate all paramters.  In particular, reestimate observation
         model.
@@ -214,10 +213,10 @@ class HMM:
             omega = L_ScS.T + nu
             pred[t,:] = omega.T.argmax(axis=0)   # Best predecessor
             nu = pred[t,:].choose(omega.T) + L_Py[t]
-        lasts = np.argmax(nu)
+        last_s = np.argmax(nu)
         for t in range(self.T-1,-1,-1):
-            ss[t] = lasts
-            lasts = pred[t,lasts]
+            ss[t] = last_s
+            last_s = pred[t,last_s]
         return ss.flat # End of viterbi
     # End of decode()
     def simulate(self,length,seed=3):

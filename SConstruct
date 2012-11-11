@@ -44,6 +44,7 @@ PYTHON = 'env '+\
 PYTHON2 = 'env '+\
     ' SCONS_HORRIBLE_REGRESSION_TEST_HACK=no '+\
     ' python2.7 '
+CH  = lambda file: 'code/hmm/'+file
 CAS = lambda file: 'code/applications/synthetic/'+file
 CPS = lambda file: 'code/plotscripts/'+file
 DDS = lambda file: 'derived_data/synthetic/'+file
@@ -52,7 +53,12 @@ swe=Environment()
 swe.PDF('TeX/software.tex')
 swe['TEXINPUTS'] = ['figs','TeX']
 swe.Command(
-    DDS('m12s.4y'),[CAS('MakeModel.py'),DDS('lorenz.4')],
+    [DDS('lorenz.xyz'),DDS('lorenz.4')],CAS('lorenz.py'),
+    PYTHON+'%s --L=20000 --levels=4 --quantfile=%s --xyzfile=%s'%(
+        CAS('lorenz.py'),DDS('lorenz.4'),DDS('lorenz.xyz'))
+    )
+swe.Command(
+    DDS('m12s.4y'),[CH('Scalar.py'),CAS('MakeModel.py'),DDS('lorenz.4')],
     PYTHON+CAS('MakeModel.py')+' derived_data/synthetic lorenz.4 m12s.4y'
     )
 swe.Command(
@@ -64,7 +70,7 @@ swe.Command(
 swe.Command(
     'figs/Statesintro.pdf',                                # target
     [CPS('stateplot.py')]+STATEDATA,                       # sources
-    PYTHON2+CPS('stateplot.py')+                            # command
+    PYTHON2+CPS('stateplot.py')+                           # command
       ' derived_data/synthetic state figs/Statesintro.pdf'
     )
 #---------------
