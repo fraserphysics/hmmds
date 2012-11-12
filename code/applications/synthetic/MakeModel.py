@@ -28,34 +28,42 @@ def randomP(A):
     A /= sum
     return A
 
-# control and model parameters
-niterations = 20        # maximum number of iterations
-nstates = 12             # about the data
+def main(argv=None):
+    import argparse
 
-_, data_dir, data_file, model_file = sys.argv
-#import Scalar_sparse as Scalar
-import Scalar
+    if argv is None:                    # Usual case
+        argv = sys.argv[1:]
 
-Y, cardy = read_data(data_dir, data_file)
-Y = numpy.array(Y,numpy.int32)
+    nstates = 12
+    n, data_dir, data_file, model_file = argv
+    niterations = int(n) # maximum number of iterations
+    import Scalar
 
-random.seed(3)
-P_S0 = randomP(numpy.zeros(nstates))
-P_S0_ergodic = randomP(numpy.zeros(nstates))
-P_ScS = numpy.zeros((nstates,nstates))
-P_YcS = numpy.zeros((nstates,cardy))
-for AA in (P_ScS,P_YcS):
-    for A in AA:
-        randomP(A)
+    Y, cardy = read_data(data_dir, data_file)
+    Y = numpy.array(Y,numpy.int32)
 
-# Train the model
-mod = Scalar.HMM(P_S0,P_S0_ergodic,P_ScS,P_YcS)
-mod.train(Y,N_iter=niterations)
+    random.seed(7)
+    P_S0 = randomP(numpy.zeros(nstates))
+    P_S0_ergodic = randomP(numpy.zeros(nstates))
+    P_ScS = numpy.zeros((nstates,nstates))
+    P_YcS = numpy.zeros((nstates,cardy))
+    for AA in (P_ScS,P_YcS):
+        for A in AA:
+            randomP(A)
 
-# Save model in <model_file>
-f = open(os.path.join(data_dir, model_file), 'wb')
-pickle.dump(mod, f)
-f.close()
+    # Train the model
+    mod = Scalar.HMM(P_S0,P_S0_ergodic,P_ScS,P_YcS)
+    mod.train(Y,N_iter=niterations)
+
+    # Save model in <model_file>
+    f = open(os.path.join(data_dir, model_file), 'wb')
+    pickle.dump(mod, f)
+    f.close()
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
 
 #Local Variables:
 #mode:python

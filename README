@@ -17,11 +17,9 @@ that SIAM owns to collect the figures.
 
 To do:
 
-1. Write code to make cover plot using data copied from old project.
+1. Rewrite python code in plotscripts/
 
-  Figure out how to use scipy sparse matrices as option
-
-2. Write code to make the data for the cover plot.  Probably cython.
+2.  Figure out how to use scipy sparse matrices in hmm
 
 3. Ask Guy to look at style.
 

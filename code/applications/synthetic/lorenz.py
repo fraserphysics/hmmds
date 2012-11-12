@@ -1,12 +1,16 @@
 '''lorenz.py
 
 This file may be imported into other scripts to provide a python
-interface to gsl for integrating the lorenz system.  It may also be
-called as "main" to make data files.  Here is the Lorenz system:
+interface to tools for integrating the lorenz system (eg,
+scipy.integrate or gsl).  It may also be called as "main" to make data
+files.  Here is the Lorenz system
 
-   \dot x = s(y-x)
-   \dot y = rx -xz -y
-   \dot z = xy -bz
+.. math::
+    \dot x = s(y-x)
+
+    \dot y = rx -xz -y
+
+    \dot z = xy -bz
 
 Here are the fuctions that the original version of this module provided:
 Lsteps, Ltan_steps, Ltan_one
@@ -19,6 +23,7 @@ Lsteps, Ltan_steps, Ltan_one
  0.12  0.33  1.95
  0.14  0.36  1.90
  0.16  0.39  1.85
+
 '''
 import sys, numpy as np
 
@@ -46,6 +51,9 @@ def main(argv=None):
         description='Make files derived from Lorenz simulations')
     parser.add_argument('--L', type=int, default=100,
                        help='Number of samples')
+    parser.add_argument('--IC', type=float, nargs=3,
+                        default=[11.580, 13.548, 28.677],
+                        help='Initial conditions')
     parser.add_argument('--s', type=float, default=10.0,
                        help='Lorenz s parameter')
     parser.add_argument('--r', type=float, default=28.0,
@@ -66,7 +74,10 @@ def main(argv=None):
         import doctest
         doctest.testmod()
     else:
-        print('Something to calculate')
+        xyz = Lsteps(np.array(args.IC),args.s,args.b,args.r,args.dt,args.L)
+        for v in xyz:
+            print((3*'%6.3f ')%tuple(v),file=args.xyzfile) 
+            print('%d'%int(np.ceil(v[0]/10+2)),file=args.quantfile)     
     return 0
 
 if __name__ == "__main__":

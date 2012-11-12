@@ -3,6 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+   Append to sys.path in conf.py to find source files.
+
+   Command line: "make html"
+
 Welcome to HMM and Dynamical Systems's documentation
 =====================================================
 
@@ -12,6 +16,9 @@ Contents:
    :maxdepth: 2
 
 .. automodule:: Scalar
+   :members:
+
+.. automodule:: lorenz
    :members:
 
 Indices and tables
