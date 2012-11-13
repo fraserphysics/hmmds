@@ -17,9 +17,9 @@ def print_Name_VV(name,VV):
         print('   ',end='')
         print_V(V)
 
-def initialize(x,shape):
+def initialize(x,shape,dtype=np.float64):
     if x == None or x.shape != shape:
-        return np.zeros(shape,np.float64)
+        return np.zeros(shape,dtype)
     return x*0
 ## ----------------------------------------------------------------------
 class HMM:
@@ -106,12 +106,10 @@ class HMM:
         """
         Allocate self.Py and assign values self.Py[t,i] = P(y(t)|s(t)=i)
         """
-
         # Check size and initialize self.Py
         self.T = len(y)
         self.Py = initialize(self.Py,(self.T,self.N))
-        for t in range(self.T):
-            self.Py[t,:] = self.P_YcS[:,y[t]]
+        self.Py[:,:] = self.P_YcS.T[y,:]
         return self.Py # End of Py_calc()
     def forward(self):
        """

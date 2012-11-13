@@ -8,3 +8,6 @@ doc/build
 derived_data
 figs
 *.pyc
+code/hmm/*.c
+code/hmm/build
+code/hmm/*.so
