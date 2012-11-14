@@ -146,12 +146,11 @@ class HMM:
         """
         # Ensure allocation and size of beta
         self.beta = initialize(self.beta,(self.T,self.N))
-        last = np.array(np.ones(self.beta.shape[1]))
-        pscst = self.P_ScS.T               # Transpose view
+        last = np.ones(self.N)
         # iterate
         for t in range(self.T-1,-1,-1):
             self.beta[t,:] = last
-            last = np.dot((last*self.Py[t,:]/self.gamma[t]),pscst)
+            last = np.dot(self.P_ScS,(last*self.Py[t,:]/self.gamma[t]))
         return # End of backward()
     def train(self, y, N_iter=1, display=True):
         # Do (N_iter) BaumWelch iterations

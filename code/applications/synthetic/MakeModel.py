@@ -37,7 +37,8 @@ def main(argv=None):
     nstates = 12
     n, data_dir, data_file, model_file = argv
     niterations = int(n) # maximum number of iterations
-    import Scalar
+    #from Scalar import HMM
+    from C import HMM
 
     Y, cardy = read_data(data_dir, data_file)
     Y = numpy.array(Y,numpy.int32)
@@ -52,7 +53,7 @@ def main(argv=None):
             randomP(A)
 
     # Train the model
-    mod = Scalar.HMM(P_S0,P_S0_ergodic,P_ScS,P_YcS)
+    mod = HMM(P_S0,P_S0_ergodic,P_ScS,P_YcS)
     mod.train(Y,N_iter=niterations)
 
     # Save model in <model_file>
