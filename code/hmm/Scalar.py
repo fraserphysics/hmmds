@@ -150,7 +150,7 @@ class HMM:
         # iterate
         for t in range(self.T-1,-1,-1):
             self.beta[t,:] = last
-            last = np.dot(self.P_ScS,(last*self.Py[t,:]/self.gamma[t]))
+            last = np.dot(self.P_ScS,(last*self.Py[t]/self.gamma[t]))
         return # End of backward()
     def train(self, y, N_iter=1, display=True):
         # Do (N_iter) BaumWelch iterations
@@ -257,6 +257,102 @@ class HMM:
         self.dump_base()
         print_Name_VV('P_YcS', self.P_YcS)
         return #end of dump()
+import scipy.sparse as SS
+class HMM_sparse(HMM):
+    '''Subclass of HMM in which P_ScS is a sparse matrix.  New idea: Make
+    new class of np.array called "TRANSITION" that has additional methods
+    for sparse operations.  Internally it stores sparse matrix versions of
+    itself.
+    
+    I work for the clarity and structure of the code here.  I
+    emphasize speed in the cython subclass.
+
+    '''
+    def make_sparse(self,M,T,N):
+        """Make T x N sparse csr matrix with room for T*N items, eg alpha or
+        beta
+        """
+        if SS.isspmatrix_csr(M) and M.shape == (T,M):
+            return M
+        data = np.empty((T*N),np.float64)
+        indices = np.empty((T*N),np.int32)
+        indptr = np.empty((T+1),np.int32)
+        indptr[0] = 0
+        for t in range(T):
+            indptr[t+1] = (t+1)*N
+            indices[indptr[t]:indptr[t+1]] = range(N)
+        return SS.csr_matrix((data, indices, indptr),
+                                           shape = (T,N))
+    def __init__(self, P_S0,P_S0_ergodic,P_ScS,P_YcS):
+        HMM.__init__(self,P_S0,P_S0_ergodic,P_ScS,P_YcS)
+        self.P_ScS = SS.csr_matrix(P_ScS)
+        return # End of __init__()
+    def forward(self):
+       """
+       On entry:
+       self       is an HMM
+       self.Py    has been calculated
+       self.T     is length of Y
+       self.N     is number of states
+       On return:
+       self.gamma[t] = Pr{y(t)=y(t)|y_0^{t-1}}
+       self.alpha[t,i] = Pr{s(t)=i|y_0^t}
+       return value is log likelihood of all data
+       """
+       # Ensure allocation and size of alpha and gamma
+       self.alpha = self.make_sparse(self.alpha,self.T,self.N)
+       self.gamma = initialize(self.gamma,(self.T,))
+       last = np.copy(self.P_S0.reshape(-1)) # Copy
+       lastM = np.mat(last.reshape(1,-1))
+       for t in range(self.T):
+           last *= self.Py[t]              # Element-wise multiply
+           self.gamma[t] = last.sum()
+           last /= self.gamma[t]
+           self.alpha[t,:] = last
+           lastM[:,:] = (lastM*self.P_ScS).todense()
+       return (np.log(self.gamma)).sum() # End of forward()
+    def backward(self):
+        """
+        On entry:
+        self    is an HMM
+        y       is a sequence of observations
+        exp(PyGhist[t]) = Pr{y(t)=y(t)|y_0^{t-1}}
+        On return:
+        for each state i, beta[t,i] = Pr{y_{t+1}^T|s(t)=i}/Pr{y_{t+1}^T}
+        """
+        # Ensure allocation and size of beta
+        self.beta = self.make_sparse(self.beta,self.T,self.N)
+        last = np.ones(self.N)
+        lastM = np.mat(last.reshape(-1,1))
+        # iterate
+        for t in range(self.T-1,-1,-1):
+            self.beta[t,:] = last
+            last *= self.Py[t]
+            last /= self.gamma[t]
+            lastM[:,:] = self.P_ScS*lastM
+        return # End of backward()
+    def reestimate_s(self):
+        """ Reestimate state transition probabilities and initial
+        state probabilities.  Given the observation probabilities, ie,
+        self.state[s].Py[t], given alpha, beta, gamma, and Py, these
+        calcuations are independent of the observation model
+        calculations."""
+        u_sum = np.zeros((self.N,self.N),np.float64)
+        for t in range(self.T-1):
+            u_sum += np.outer(self.alpha[t]/self.gamma[t+1],
+                                 self.Py[t+1]*self.beta[t+1,:])
+        self.alpha *= self.beta
+        wsum = self.alpha.sum(axis=0)
+        self.P_S0_ergodic = np.copy(wsum)
+        self.P_S0 = np.copy(self.alpha[0])
+        for x in (self.P_S0_ergodic, self.P_S0):
+            x /= x.sum()
+        assert u_sum.shape == self.P_ScS.shape
+        ScST = self.P_ScS.T.todense()
+        ScST *= u_sum.T
+        ScST /= ScST.sum(axis=0)
+        self.P_ScS = SS.csr_matrix(ScST.T)
+        return (self.alpha,wsum) # End of reestimate_s()
 def _test():
     import doctest
     doctest.testmod()
