@@ -85,8 +85,8 @@ class HMM:
         self,         # HMM instance
         P_S0,         # Initial distribution of states
         P_S0_ergodic, # Stationary distribution of states
-        P_ScS,        # Transition probabilities: State Conditioned on State
-        P_YcS         # Observation probabilities: Y Condidtioned on State
+        P_ScS,        # P_ScS[a,b] = Prob(s(1)=b|s(0)=a)
+        P_YcS         # P_YcS[a,b] = Prob(y(0)=b|s(0)=a)
         ):
         """Builds a new Hidden Markov Model"""
         self.N =len(P_S0)
@@ -258,11 +258,43 @@ class HMM:
         print_Name_VV('P_YcS', self.P_YcS)
         return #end of dump()
 import scipy.sparse as SS
+class TRANSITION(np.ndarray):
+    ''' See http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
+    '''
+    def __new__(subtype, shape, dtype=float, buffer=None, offset=0,
+          strides=None, order=None):
+        obj = np.ndarray.__new__(subtype, shape, dtype, buffer, offset, strides,
+                         order)
+        obj.reinit()
+        return obj
+
+    def reinit(self):
+        mask = np.zeros(self.shape,dtype=np.int8)
+        for i in range(self.shape[0]):
+            row = self[i,:]
+            mask[i,np.where(row>row.max()/1e1)] = 1
+        for i in range(self.shape[1]):
+            col = self[:,i]
+            mask[np.where(col>col.max()/1e1),i] = 1
+        print(mask.sum())
+        self *= mask
+        self.csr = SS.csr_matrix(self)
+        self.csc = SS.csc_matrix(self)
+        return
+    def right_mul(self,x):
+        ''' Return x*self
+        '''
+        return x*self.csc
+        # len(RV.shape) == 1
+    def left_mul(self,x):
+        ''' Return self*x
+        '''
+        return self.csr*x
+
 class HMM_sparse(HMM):
-    '''Subclass of HMM in which P_ScS is a sparse matrix.  New idea: Make
-    new class of np.array called "TRANSITION" that has additional methods
-    for sparse operations.  Internally it stores sparse matrix versions of
-    itself.
+    '''Subclass of HMM which uses sparse matrix operations for some
+    operations involving P_ScS.  Internally P_ScS stores multiple
+    versions of itself.
     
     I work for the clarity and structure of the code here.  I
     emphasize speed in the cython subclass.
@@ -285,7 +317,7 @@ class HMM_sparse(HMM):
                                            shape = (T,N))
     def __init__(self, P_S0,P_S0_ergodic,P_ScS,P_YcS):
         HMM.__init__(self,P_S0,P_S0_ergodic,P_ScS,P_YcS)
-        self.P_ScS = SS.csr_matrix(P_ScS)
+        self.P_ScS = TRANSITION(self.P_ScS.shape,buffer=self.P_ScS.data)
         return # End of __init__()
     def forward(self):
        """
@@ -300,16 +332,15 @@ class HMM_sparse(HMM):
        return value is log likelihood of all data
        """
        # Ensure allocation and size of alpha and gamma
-       self.alpha = self.make_sparse(self.alpha,self.T,self.N)
+       self.alpha = initialize(self.alpha,(self.T,self.N))
        self.gamma = initialize(self.gamma,(self.T,))
        last = np.copy(self.P_S0.reshape(-1)) # Copy
-       lastM = np.mat(last.reshape(1,-1))
        for t in range(self.T):
            last *= self.Py[t]              # Element-wise multiply
            self.gamma[t] = last.sum()
            last /= self.gamma[t]
            self.alpha[t,:] = last
-           lastM[:,:] = (lastM*self.P_ScS).todense()
+           last = self.P_ScS.right_mul(last)
        return (np.log(self.gamma)).sum() # End of forward()
     def backward(self):
         """
@@ -321,38 +352,16 @@ class HMM_sparse(HMM):
         for each state i, beta[t,i] = Pr{y_{t+1}^T|s(t)=i}/Pr{y_{t+1}^T}
         """
         # Ensure allocation and size of beta
-        self.beta = self.make_sparse(self.beta,self.T,self.N)
+        self.beta = initialize(self.beta,(self.T,self.N))
         last = np.ones(self.N)
-        lastM = np.mat(last.reshape(-1,1))
         # iterate
         for t in range(self.T-1,-1,-1):
             self.beta[t,:] = last
-            last *= self.Py[t]
-            last /= self.gamma[t]
-            lastM[:,:] = self.P_ScS*lastM
+            last = self.P_ScS.left_mul(last*self.Py[t]/self.gamma[t])
         return # End of backward()
-    def reestimate_s(self):
-        """ Reestimate state transition probabilities and initial
-        state probabilities.  Given the observation probabilities, ie,
-        self.state[s].Py[t], given alpha, beta, gamma, and Py, these
-        calcuations are independent of the observation model
-        calculations."""
-        u_sum = np.zeros((self.N,self.N),np.float64)
-        for t in range(self.T-1):
-            u_sum += np.outer(self.alpha[t]/self.gamma[t+1],
-                                 self.Py[t+1]*self.beta[t+1,:])
-        self.alpha *= self.beta
-        wsum = self.alpha.sum(axis=0)
-        self.P_S0_ergodic = np.copy(wsum)
-        self.P_S0 = np.copy(self.alpha[0])
-        for x in (self.P_S0_ergodic, self.P_S0):
-            x /= x.sum()
-        assert u_sum.shape == self.P_ScS.shape
-        ScST = self.P_ScS.T.todense()
-        ScST *= u_sum.T
-        ScST /= ScST.sum(axis=0)
-        self.P_ScS = SS.csr_matrix(ScST.T)
-        return (self.alpha,wsum) # End of reestimate_s()
+    def reestimate(self,y):
+        HMM.reestimate(self,y)
+        self.P_ScS.reinit()
 def _test():
     import doctest
     doctest.testmod()
