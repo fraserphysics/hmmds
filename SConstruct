@@ -59,7 +59,7 @@ swe.Command(
     )
 swe.Command(
     DDS('m12s.4y'),[CH('Scalar.py'),CAS('MakeModel.py'),DDS('lorenz.4')],
-    PYTHON+CAS('MakeModel.py')+' 30 derived_data/synthetic lorenz.4 m12s.4y'
+    PYTHON+CAS('MakeModel.py')+' 300 derived_data/synthetic lorenz.4 m12s.4y'
     )
 swe.Command(
     STATEDATA,

@@ -20,9 +20,9 @@ To do:
 1. Rewrite python code in plotscripts/
 
 2.  Figure out how to use scipy sparse matrices in hmm
+    
     Scalar.py: Easiest to read
-    O.py:      Optimized subclasses of Scalar.  Some import compiled
-               Cython
+
     C.pyx      Cython subclasses of Scalar.  Compilation products
                include C.so and C.py
 
