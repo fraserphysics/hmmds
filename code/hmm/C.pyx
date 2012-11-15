@@ -6,6 +6,47 @@ import Scalar, numpy as np
 cimport cython, numpy as np
 DTYPE = np.float64
 ctypedef np.float64_t DTYPE_t
+class PROB(np.ndarray):
+    ''' Subclass of ndarray for probability matrices.  P[a,b] is the
+    probability of b given a.  The class has additional methods and is
+    designed to enable further subclasses with ugly speed
+    optimization.  See
+    http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
+    '''
+    def __new__(subtype, shape, dtype=float, buffer=None, offset=0,
+          strides=None, order=None):
+        obj = np.ndarray.__new__(subtype, shape, dtype, buffer, offset, strides,
+                         order)
+        obj.out = np.zeros(shape[1])
+        obj.outT = np.dot(obj,obj.out)
+        return obj
+    def assign_col(self,i,col):
+        self[:,i] = col
+    def likelihoods(self,v):
+        '''likelihoods for vector of observations v
+        '''
+        return self[:,v].T
+    def inplace_elementwise_multiply(self,A):
+        self *= A
+    def normalize(self):
+        S = self.sum(axis=1)
+        for i in range(self.shape[0]):
+            self[i,:] /= S[i]
+    def step_back(self,A):
+        ''' need last = np.dot(self.P_ScS,np.ones(self.N))
+        '''
+        np.dot(self,A,self.outT)
+        t = self.outT
+        self.outT = A
+        return t
+    def step_forward(self,A):
+        np.dot(A,self,self.out)
+        t = self.out
+        self.out = A
+        return t
+def make_prob(x):
+    x = np.array(x)
+    return PROB(x.shape,buffer=x.data)
 
 class HMM(Scalar.HMM):
     @cython.boundscheck(False)

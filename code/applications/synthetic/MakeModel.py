@@ -37,8 +37,8 @@ def main(argv=None):
     nstates = 12
     n, data_dir, data_file, model_file = argv
     niterations = int(n) # maximum number of iterations
-    #from Scalar import HMM
-    from Scalar import HMM_sparse as HMM
+    from Scalar import HMM
+    #from Scalar import HMM_sparse as HMM
     #from C import HMM
 
     Y, cardy = read_data(data_dir, data_file)

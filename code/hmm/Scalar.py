@@ -22,6 +22,33 @@ def initialize(x,shape,dtype=np.float64):
         return np.zeros(shape,dtype)
     return x*0
 ## ----------------------------------------------------------------------
+class PROB(np.ndarray):
+    ''' Subclass of ndarray for probability matrices.  P[a,b] is the
+    probability of b given a.  The class has additional methods and is
+    designed to enable further subclasses with ugly speed
+    optimization.  See
+    http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
+    '''
+    def assign_col(self,i,col):
+        self[:,i] = col
+    def likelihoods(self,v):
+        '''likelihoods for vector of observations v
+        '''
+        return self[:,v].T
+    def inplace_elementwise_multiply(self,A):
+        self *= A
+    def normalize(self):
+        S = self.sum(axis=1)
+        for i in range(self.shape[0]):
+            self[i,:] /= S[i]
+    def step_back(self,A):
+        return np.dot(self,A)
+    def step_forward(self,A):
+        return np.dot(A,self)
+def make_prob(x):
+    x = np.array(x)
+    return PROB(x.shape,buffer=x.data)
+
 class HMM:
     """A Hidden Markov Model implementation with the following
     groups of methods:
@@ -86,14 +113,15 @@ class HMM:
         P_S0,         # Initial distribution of states
         P_S0_ergodic, # Stationary distribution of states
         P_ScS,        # P_ScS[a,b] = Prob(s(1)=b|s(0)=a)
-        P_YcS         # P_YcS[a,b] = Prob(y(0)=b|s(0)=a)
+        P_YcS,        # P_YcS[a,b] = Prob(y(0)=b|s(0)=a)
+        prob=make_prob# Function to make conditional probability matrix
         ):
         """Builds a new Hidden Markov Model"""
         self.N =len(P_S0)
         self.P_S0 = np.array(P_S0)
         self.P_S0_ergodic = np.array(P_S0_ergodic)
-        self.P_ScS = np.array(P_ScS)
-        self.P_YcS = np.array(P_YcS)
+        self.P_ScS = prob(P_ScS)
+        self.P_YcS = prob(P_YcS)
         self.Py = None
         self.alpha = None
         self.gamma = None
@@ -109,8 +137,8 @@ class HMM:
         # Check size and initialize self.Py
         self.T = len(y)
         self.Py = initialize(self.Py,(self.T,self.N))
-        self.Py[:,:] = self.P_YcS.T[y,:]
-        return self.Py # End of Py_calc()
+        self.Py[:,:] = self.P_YcS.likelihoods(y)
+        return # End of Py_calc()
     def forward(self):
        """
        On entry:
@@ -133,7 +161,7 @@ class HMM:
            self.gamma[t] = last.sum()
            last /= self.gamma[t]
            self.alpha[t,:] = last
-           last = np.dot(last,self.P_ScS)
+           last = self.P_ScS.step_forward(last)
        return (np.log(self.gamma)).sum() # End of forward()
     def backward(self):
         """
@@ -150,7 +178,9 @@ class HMM:
         # iterate
         for t in range(self.T-1,-1,-1):
             self.beta[t,:] = last
-            last = np.dot(self.P_ScS,(last*self.Py[t]/self.gamma[t]))
+            last *= self.Py[t]
+            last /= self.gamma[t]
+            last = self.P_ScS.step_back(last)
         return # End of backward()
     def train(self, y, N_iter=1, display=True):
         # Do (N_iter) BaumWelch iterations
@@ -181,9 +211,8 @@ class HMM:
         for x in (self.P_S0_ergodic, self.P_S0):
             x /= x.sum()
         assert u_sum.shape == self.P_ScS.shape
-        ScST = self.P_ScS.T # To get element wise multiplication and correct /
-        ScST *= u_sum.T
-        ScST /= ScST.sum(axis=0)
+        self.P_ScS.inplace_elementwise_multiply(u_sum)
+        self.P_ScS.normalize()
         return (self.alpha,wsum) # End of reestimate_s()
     def reestimate(self,y):
         """ Reestimate all paramters.  In particular, reestimate observation
@@ -194,8 +223,8 @@ class HMM:
             y = np.array(y,np.int32)
         assert(y.dtype == np.int32 and y.shape == (self.T,))
         for yi in range(self.P_YcS.shape[1]):
-            self.P_YcS[:,yi] = w.take(np.where(y==yi)[0],axis=0
-                                      ).sum(axis=0)/sum_w
+            self.P_YcS.assign_col(
+                yi, w.take(np.where(y==yi)[0],axis=0).sum(axis=0)/sum_w)
         return # End of reestimate()
     def decode(self,y):
         """Use the Viterbi algorithm to find the most likely state
