@@ -66,45 +66,57 @@ class HMM(Scalar.HMM):
         # Ensure allocation and size of alpha and gamma
         self.alpha = Scalar.initialize(self.alpha,(self.T,self.N))
         self.gamma = Scalar.initialize(self.gamma,(self.T,))
-        # Setup direct access to arrays
+
+        # Setup direct access to numpy arrays
         cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.Py
-        cdef np.ndarray[DTYPE_t, ndim=2] alpha = self.alpha
+        cdef double *_gamma = <double *>gamma.data
+
         cdef np.ndarray[DTYPE_t, ndim=1] last = np.copy(self.P_S0.reshape(-1))
-        cdef np.ndarray[DTYPE_t, ndim=1] Next = np.ones(self.N)
-        cdef np.ndarray[DTYPE_t, ndim=2] pscs = self.P_ScS
-        # iterate
+        cdef double *_last = <double *>last.data
+
+        cdef np.ndarray[DTYPE_t, ndim=2] Alpha = self.alpha
+        cdef char *_alpha = Alpha.data
+        cdef int astride = Alpha.strides[0]
+        cdef double *a
+
+        cdef np.ndarray[DTYPE_t, ndim=2] Pscs = self.P_ScS
+        cdef char *_ps = Pscs.data
+        cdef int pstride0 = Pscs.strides[0]
+        cdef int pstride1 = Pscs.strides[1]
+        cdef double *ps
+
+        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.Py
+        cdef int pystride = Py.strides[0]
+        cdef char *_py = Py.data
+        cdef double *py
+
+        # Allocate vector of length N
+        cdef np.ndarray[DTYPE_t, ndim=1] Next = np.empty(self.N)
+        cdef double *_next = <double *>Next.data
+
         cdef int t,i,j
         cdef int N = self.N
         cdef int T = self.T
-        cdef double *_gamma = <double *>gamma.data
-        cdef double *_py = <double *>Py.data
-        cdef int ystride0 = Py.strides[0]/8
-        cdef int ystride1 = Py.strides[1]/8
-        cdef double *_alpha = <double *>alpha.data
-        cdef int astride0 = alpha.strides[0]/8
-        cdef int astride1 = alpha.strides[1]/8
-        cdef double *_last = <double *>last.data
-        cdef double *_next = <double *>Next.data
-        cdef double *_pscs = <double *>pscs.data
-        cdef int pstride0 = pscs.strides[0]/8
-        cdef int pstride1 = pscs.strides[1]/8
         cdef double *_tmp
         cdef double total
+        # iterate
         for t in range(T):
+            py = <double *>(_py+t*pystride)
             for i in range(N):
-                _last[i] = _last[i]*_py[t*ystride0+i*ystride1]
+                _last[i] = _last[i]*py[i]
             total = 0
             for i in range(N):
                 total += _last[i]
             _gamma[t] = total
+            a = <double *>(_alpha+t*astride)
             for i in range(N):
                 _last[i] /= total
-                _alpha[astride0*t+astride1*i] = _last[i]
+                a[i] = _last[i]
             for i in range(N):
                 _next[i] = 0
                 for j in range(N):
-                    _next[i] += _last[j] *  _pscs[j*pstride0+i*pstride1]
+                    ps = <double *>(_ps + j*pstride0+i*pstride1)
+                    _next[i] += _last[j] *  ps[0]
             _tmp = _last
             _last = _next
             _next = _tmp
@@ -121,6 +133,7 @@ class HMM(Scalar.HMM):
         """
         # Ensure allocation and size of beta
         self.beta = Scalar.initialize(self.beta,(self.T,self.N))
+
         # Setup direct access to arrays
         cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
         cdef np.ndarray[DTYPE_t, ndim=2] Py = self.Py
