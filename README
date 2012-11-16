@@ -23,8 +23,8 @@ To do:
 
     C.pyx      Cython subclasses of Scalar
 
-        A. Implement all methods of SPARSE using only sparse representation
-        B. Write fast HMM_SPARSE.forward() and HMM_SPARSE.backward()
+        A. Write fast HMM_SPARSE.forward() and HMM_SPARSE.backward()
+	B. Make HMM_SPARSE a subclass of C.HMM to get its reestimate_s
 
 2. Rewrite python code in plotscripts/
 

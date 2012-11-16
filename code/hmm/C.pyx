@@ -201,61 +201,99 @@ class HMM(Scalar.HMM):
         self.P_ScS.normalize()
         return self.alpha # End of reestimate_s()
 
-class PROB(np.ndarray):
-    '''   Dying code to be replaced by SPARSE class
-    http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
-    '''
-    def __new__(subtype, shape, dtype=float, buffer=None, offset=0,
-          strides=None, order=None):
-        obj = np.ndarray.__new__(subtype, shape, dtype, buffer, offset, strides,
-                         order)
-        obj.out = np.zeros(shape[1])
-        obj.outT = np.dot(obj,obj.out)
-        return obj
-    def assign_col(self,i,col):
-        self[:,i] = col
-    def likelihoods(self,v):
-        '''likelihoods for vector of observations v
-        '''
-        return self[:,v].T
-    def inplace_elementwise_multiply(self,A):
-        self *= A
-class SPARSE(PROB):
+class PROB:
     '''Replacement for Scalar.PROB that stores data in sparse matrix
     format.  P[a,b] is the probability of b given a.
     '''
     threshold = 1.0e-15
-    def __new__(subtype, shape, dtype=float, buffer=None, offset=0,
-          strides=None, order=None):
-        obj = np.ndarray.__new__(subtype, shape, dtype, buffer, offset, strides,
-                         order)
-        obj.tcol = np.empty(shape[0])
-        obj.trow = np.empty(shape[1])
-        obj.normalize()
-        return obj
+    # For pruning.  Drop x[i,j] if x[i,j] < threshold*max(A[i,:]) and
+    # x[i,j] < threshold*max(A[:,j])
+    def __init__(self,x):
+        if SS.isspmatrix_csc(x):
+            self.csc = x
+        else:
+            self.csc = SS.csc_matrix(x)
+        self.data = self.csc.data
+        self.indptr = self.csc.indptr
+        self.indices= self.csc.indices
+        self.data = self.csc.data
+        self.shape = x.shape
+        N,M = x.shape
+        self.tcol = np.empty(N)  # Scratch space step_back
+        self.trow = np.empty(M)  # Scratch space step_forward
+        self.normalize()
+    def assign_col(self,i,col):
+        '''Implements self[:,i]=col.  Very slow because finding each csc[j,i]
+        is slow
+
+        '''
+        N,M = self.shape
+        for j in range(N):
+            self.csc[j,i] = col[j]
+    def likelihoods(self,v):
+        '''Returns L with L[t,j]=self[j,v[t]], ie, the state likelihoods for
+        observations v.
+        '''
+        N,M = self.shape
+        T = len(v)
+        L = np.zeros((T,N))
+        for t in range(T):
+            i = v[t]
+            for j in range(self.indptr[i],self.indptr[i+1]):
+                J = self.indices[j]
+                L[t,J] = self.data[j]
+        return L
+    def inplace_elementwise_multiply(self,A):
+        N,M = self.shape
+        for i in range(M):
+            for j in range(self.indptr[i],self.indptr[i+1]):
+                J = self.indices[j]
+                self.data[j] *= A[J,i]
     def normalize(self):
-        S = self.sum(axis=1)
-        for i in range(self.shape[0]):
-            self[i,:] /= S[i]
-        mask = np.zeros(self.shape,dtype=np.int8)
-        for i in range(self.shape[0]):
-            row = self[i,:]
-            mask[i,np.where(row>row.max()*SPARSE.threshold)] = 1
-        for i in range(self.shape[1]):
-            col = self[:,i]
-            mask[np.where(col>col.max()*SPARSE.threshold),i] = 1
-        self *= mask
-        self.csc = SS.csc_matrix(self)
+        '''Divide each row, self[j,:], by its sum.  Then prune based on
+        threshold.
+
+        '''
+        N,M = self.shape
+        max_row = np.zeros(M) # Row of maxima in each column
+        max_col = np.zeros(N)
+        sum_col = np.zeros(N) # Column of row sums
+        for i in range(M):    # Add up the rows
+            for j in range(self.indptr[i],self.indptr[i+1]):
+                J = self.indices[j]
+                sum_col[J] += self.data[j]
+        for i in range(M):    # Normalize the rows and find max of the
+                              # resulting rows and columns
+            for j in range(self.indptr[i],self.indptr[i+1]):
+                J = self.indices[j]
+                self.data[j] /= sum_col[J]
+                x = self.data[j]
+                if x > max_row[i]:
+                    max_row[i] = x
+                if x > max_col[J]:
+                    max_col[J] = x
+        for i in range(M):
+            k = self.indptr[i]
+            L = self.indptr[i+1]
+            for j in range(self.indptr[i],L):
+                J = self.indices[j]
+                x = self.data[j]/PROB.threshold
+                if x > max_row[i] or x > max_col[J]: # FixMe: Check this
+                    self.indices[k] = J
+                    self.data[k] = self.data[j]
+                    k += 1
+                else:
+                    self.indptr[i+1] -= 1
     def step_back(self,A):
-        #A[:] = self.csc*A
-        #return
+        ''' Implements A[:] = self*A
+        '''
         cdef np.ndarray[DTYPE_t, ndim=1] _A = A
         cdef double *a = <double *>_A.data
-        cdef np.ndarray[DTYPE_t, ndim=1] data = self.csc.data
+        cdef np.ndarray[DTYPE_t, ndim=1] data = self.data
         cdef double *_data = <double *>data.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indices = self.csc.indices
+        cdef np.ndarray[ITYPE_t, ndim=1] indices = self.indices
         cdef int *_indices = <int *>indices.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indptr = self.csc.indptr
+        cdef np.ndarray[ITYPE_t, ndim=1] indptr = self.indptr
         cdef int *_indptr = <int *>indptr.data
         cdef np.ndarray[DTYPE_t, ndim=1] tdata = self.tcol
         cdef double *t = <double *>tdata.data
@@ -271,15 +309,15 @@ class SPARSE(PROB):
         tdata.data = <char *>a
         _A.data = <char *>t
     def step_forward(self,A):
-        #A[:] = A*self.csc
-        #return
+        ''' Implements A[:] = self*A*self
+        '''
         cdef np.ndarray[DTYPE_t, ndim=1] _A = A
         cdef double *a = <double *>_A.data
-        cdef np.ndarray[DTYPE_t, ndim=1] data = self.csc.data
+        cdef np.ndarray[DTYPE_t, ndim=1] data = self.data
         cdef double *_data = <double *>data.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indices = self.csc.indices
+        cdef np.ndarray[ITYPE_t, ndim=1] indices = self.indices
         cdef int *_indices = <int *>indices.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indptr = self.csc.indptr
+        cdef np.ndarray[ITYPE_t, ndim=1] indptr = self.indptr
         cdef int *_indptr = <int *>indptr.data
         cdef np.ndarray[DTYPE_t, ndim=1] tdata = self.trow
         cdef double *t = <double *>tdata.data
@@ -295,8 +333,7 @@ class SPARSE(PROB):
         _A.data = <char *>t
         
 def make_prob(x):
-    x = np.array(x)
-    return SPARSE(x.shape,buffer=x.data)
+    return PROB(x)
 
 class HMM_SPARSE(Scalar.HMM):
     def __init__(self, P_S0, P_S0_ergodic, P_ScS, P_YcS):
