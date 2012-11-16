@@ -1,5 +1,6 @@
-# MakeModel.py <H_dir> <data_dir> <data_file> <model_file>
-# EG. python MakeModel.py data lorenz.4 m12s.4y
+''' MakeModel.py <H_dir> <data_dir> <data_file> <model_file>
+ EG. python MakeModel.py data lorenz.4 m12s.4y
+'''
 
 import sys, os.path, pickle, random, numpy
 
@@ -10,12 +11,11 @@ def skip_header(lines):
     return dropwhile(isheader, lines)
     
 def read_data(data_dir, data_file):
-    # Read in <data_file>
-    f = open(os.path.join(data_dir, data_file), 'r')
-    lines = skip_header(f)
-    y = [int(line)-1 for line in lines]
-    f.close()
-    return y, max(y)+1
+    '''Read data and return as numpy array
+    '''
+    lines = skip_header(open(os.path.join(data_dir, data_file), 'r'))
+    y = numpy.array([int(line)-1 for line in lines],numpy.int32)
+    return y, y.max()+1
 
 def randomP(A):
     """ Fill allocated array A with random normalized probability
@@ -29,7 +29,6 @@ def randomP(A):
     return A
 
 def main(argv=None):
-    import argparse
 
     if argv is None:                    # Usual case
         argv = sys.argv[1:]
@@ -42,7 +41,6 @@ def main(argv=None):
     #from C import HMM
 
     Y, cardy = read_data(data_dir, data_file)
-    Y = numpy.array(Y,numpy.int32)
 
     random.seed(7)
     P_S0 = randomP(numpy.zeros(nstates))
@@ -57,7 +55,10 @@ def main(argv=None):
     mod = HMM(P_S0,P_S0_ergodic,P_ScS,P_YcS)
     mod.train(Y,N_iter=niterations)
 
-    # Save model in <model_file>
+    # Strip alpha, beta, and Py, then save model in <model_file>
+    mod.alpha = None
+    mod.beta = None
+    mod.Py = None
     f = open(os.path.join(data_dir, model_file), 'wb')
     pickle.dump(mod, f)
     f.close()

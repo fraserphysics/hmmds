@@ -17,20 +17,11 @@ that SIAM owns to collect the figures.
 
 To do:
 
-1.  Figure out how to use scipy sparse matrices in hmm
-    
-    Scalar.py: Easiest to read
+1. Rewrite python code in plotscripts/ and synthetic/
 
-    C.pyx      Cython subclasses of Scalar
+2. Ask Guy or Aric to look at style.
 
-        A. Write fast HMM_SPARSE.forward() and HMM_SPARSE.backward()
-	B. Make HMM_SPARSE a subclass of C.HMM to get its reestimate_s
-
-2. Rewrite python code in plotscripts/
-
-3. Ask Guy to look at style.
-
-4. Write code to analyze apnea data to make sure that you have basic
+3. Write code to analyze apnea data to make sure that you have basic
     hmm class with enough flexibility to handle: Multiple sets of
     training data; Custom output models; Decoding class sequences.
 
