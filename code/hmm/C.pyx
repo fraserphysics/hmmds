@@ -245,42 +245,19 @@ class SPARSE(PROB):
             col = self[:,i]
             mask[np.where(col>col.max()*SPARSE.threshold),i] = 1
         self *= mask
-        self.csr = SS.csr_matrix(self)
+        self.csc = SS.csc_matrix(self)
     def step_back(self,A):
-        #A[:] = self.csr*A
+        #A[:] = self.csc*A
         #return
         cdef np.ndarray[DTYPE_t, ndim=1] _A = A
         cdef double *a = <double *>_A.data
-        cdef np.ndarray[DTYPE_t, ndim=1] data = self.csr.data
+        cdef np.ndarray[DTYPE_t, ndim=1] data = self.csc.data
         cdef double *_data = <double *>data.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indices = self.csr.indices
+        cdef np.ndarray[ITYPE_t, ndim=1] indices = self.csc.indices
         cdef int *_indices = <int *>indices.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indptr = self.csr.indptr
+        cdef np.ndarray[ITYPE_t, ndim=1] indptr = self.csc.indptr
         cdef int *_indptr = <int *>indptr.data
         cdef np.ndarray[DTYPE_t, ndim=1] tdata = self.tcol
-        cdef double *t = <double *>tdata.data
-        cdef int N = self.shape[0]
-        cdef int M = self.shape[1]
-        cdef int i,j,J
-        for i in range(N):
-            t[i] = 0
-            for j in range(_indptr[i],_indptr[i+1]):
-                J = _indices[j]
-                t[i] += _data[j]*a[J]
-        tdata.data = <char *>a
-        _A.data = <char *>t
-    def step_forward(self,A):
-        #A[:] = A*self.csr
-        #return
-        cdef np.ndarray[DTYPE_t, ndim=1] _A = A
-        cdef double *a = <double *>_A.data
-        cdef np.ndarray[DTYPE_t, ndim=1] data = self.csr.data
-        cdef double *_data = <double *>data.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indices = self.csr.indices
-        cdef int *_indices = <int *>indices.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indptr = self.csr.indptr
-        cdef int *_indptr = <int *>indptr.data
-        cdef np.ndarray[DTYPE_t, ndim=1] tdata = self.trow
         cdef double *t = <double *>tdata.data
         cdef int N = self.shape[0]
         cdef int M = self.shape[1]
@@ -293,25 +270,33 @@ class SPARSE(PROB):
                 t[J] += _data[j]*a[i]
         tdata.data = <char *>a
         _A.data = <char *>t
+    def step_forward(self,A):
+        #A[:] = A*self.csc
+        #return
+        cdef np.ndarray[DTYPE_t, ndim=1] _A = A
+        cdef double *a = <double *>_A.data
+        cdef np.ndarray[DTYPE_t, ndim=1] data = self.csc.data
+        cdef double *_data = <double *>data.data
+        cdef np.ndarray[ITYPE_t, ndim=1] indices = self.csc.indices
+        cdef int *_indices = <int *>indices.data
+        cdef np.ndarray[ITYPE_t, ndim=1] indptr = self.csc.indptr
+        cdef int *_indptr = <int *>indptr.data
+        cdef np.ndarray[DTYPE_t, ndim=1] tdata = self.trow
+        cdef double *t = <double *>tdata.data
+        cdef int N = self.shape[0]
+        cdef int M = self.shape[1]
+        cdef int i,j,J
+        for i in range(N):
+            t[i] = 0
+            for j in range(_indptr[i],_indptr[i+1]):
+                J = _indices[j]
+                t[i] += _data[j]*a[J]
+        tdata.data = <char *>a
+        _A.data = <char *>t
         
 def make_prob(x):
     x = np.array(x)
     return SPARSE(x.shape,buffer=x.data)
-def make_sparse(M,T,N):
-    """Make T x N sparse csr matrix with room for T*N items, eg alpha or
-    beta.  Dead code for now.
-    """
-    if SS.isspmatrix_csr(M) and M.shape == (T,M):
-        return M
-    data = np.empty((T*N),np.float64)
-    indices = np.empty((T*N),np.int32)
-    indptr = np.empty((T+1),np.int32)
-    indptr[0] = 0
-    for t in range(T):
-        indptr[t+1] = (t+1)*N
-        indices[indptr[t]:indptr[t+1]] = range(N)
-    return SS.csr_matrix((data, indices, indptr),
-                                       shape = (T,N))
 
 class HMM_SPARSE(Scalar.HMM):
     def __init__(self, P_S0, P_S0_ergodic, P_ScS, P_YcS):
