@@ -48,6 +48,7 @@ def main(argv=None):
         for v in vs[s]:
             print(v[0], v[1], v[2], file=f)
         f.close()
+    return 0
 
 if __name__ == "__main__":
     sys.exit(main())

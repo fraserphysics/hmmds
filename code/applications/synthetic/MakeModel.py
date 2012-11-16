@@ -62,7 +62,6 @@ def main(argv=None):
     f = open(os.path.join(data_dir, model_file), 'wb')
     pickle.dump(mod, f)
     f.close()
-
     return 0
 
 if __name__ == "__main__":
