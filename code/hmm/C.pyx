@@ -1,53 +1,11 @@
 '''C.pyx: cython code for speed up.  Only significant improvment comes
 from the loop over time in reestimate_s()
 '''
-import Scalar, numpy as np
+import Scalar, numpy as np, scipy.sparse as SS
 # Imitate http://docs.cython.org/src/tutorial/numpy.html
 cimport cython, numpy as np
 DTYPE = np.float64
 ctypedef np.float64_t DTYPE_t
-class PROB(np.ndarray):
-    ''' Subclass of ndarray for probability matrices.  P[a,b] is the
-    probability of b given a.  The class has additional methods and is
-    designed to enable further subclasses with ugly speed
-    optimization.  See
-    http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
-    '''
-    def __new__(subtype, shape, dtype=float, buffer=None, offset=0,
-          strides=None, order=None):
-        obj = np.ndarray.__new__(subtype, shape, dtype, buffer, offset, strides,
-                         order)
-        obj.out = np.zeros(shape[1])
-        obj.outT = np.dot(obj,obj.out)
-        return obj
-    def assign_col(self,i,col):
-        self[:,i] = col
-    def likelihoods(self,v):
-        '''likelihoods for vector of observations v
-        '''
-        return self[:,v].T
-    def inplace_elementwise_multiply(self,A):
-        self *= A
-    def normalize(self):
-        S = self.sum(axis=1)
-        for i in range(self.shape[0]):
-            self[i,:] /= S[i]
-    def step_back(self,A):
-        ''' need last = np.dot(self.P_ScS,np.ones(self.N))
-        '''
-        np.dot(self,A,self.outT)
-        t = self.outT
-        self.outT = A
-        return t
-    def step_forward(self,A):
-        np.dot(A,self,self.out)
-        t = self.out
-        self.out = A
-        return t
-def make_prob(x):
-    x = np.array(x)
-    return PROB(x.shape,buffer=x.data)
-
 class HMM(Scalar.HMM):
     @cython.boundscheck(False)
     def forward(self):
@@ -237,10 +195,99 @@ class HMM(Scalar.HMM):
         self.P_S0 = np.copy(self.alpha[0])
         for x in (self.P_S0_ergodic, self.P_S0):
             x /= x.sum()
-        ScST = self.P_ScS.T # To get element wise multiplication and correct /=
-        ScST *= u_sum.T
-        ScST /= ScST.sum(axis=0)
-        return (self.alpha,wsum) # End of reestimate_s()
+        self.P_ScS.inplace_elementwise_multiply(u_sum)
+        self.P_ScS.normalize()
+        return self.alpha # End of reestimate_s()
+
+class PROB(np.ndarray):
+    ''' Subclass of ndarray for probability matrices.  P[a,b] is the
+    probability of b given a.  The class has additional methods and is
+    designed to enable further subclasses with ugly speed
+    optimization.  See
+    http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
+    '''
+    def __new__(subtype, shape, dtype=float, buffer=None, offset=0,
+          strides=None, order=None):
+        obj = np.ndarray.__new__(subtype, shape, dtype, buffer, offset, strides,
+                         order)
+        obj.out = np.zeros(shape[1])
+        obj.outT = np.dot(obj,obj.out)
+        return obj
+    def assign_col(self,i,col):
+        self[:,i] = col
+    def likelihoods(self,v):
+        '''likelihoods for vector of observations v
+        '''
+        return self[:,v].T
+    def inplace_elementwise_multiply(self,A):
+        self *= A
+    def normalize(self):
+        S = self.sum(axis=1)
+        for i in range(self.shape[0]):
+            self[i,:] /= S[i]
+    def step_back(self,A):
+        ''' need last = np.dot(self.P_ScS,np.ones(self.N))
+        '''
+        np.dot(self,A,self.outT)
+        t = self.outT
+        self.outT = A
+        return t
+    def step_forward(self,A):
+        np.dot(A,self,self.out)
+        t = self.out
+        self.out = A
+        return t
+class SPARSE(PROB):
+    ''' Subclass of PROB that includes sparse matrix representation
+    and uses sparse matrix operations to implement some methods.
+    '''
+    threshold = 1.0e-15
+    def __new__(subtype, shape, dtype=float, buffer=None, offset=0,
+          strides=None, order=None):
+        obj = np.ndarray.__new__(subtype, shape, dtype, buffer, offset, strides,
+                         order)
+        obj.normalize()
+        return obj
+    def normalize(self):
+        S = self.sum(axis=1)
+        for i in range(self.shape[0]):
+            self[i,:] /= S[i]
+        mask = np.zeros(self.shape,dtype=np.int8)
+        for i in range(self.shape[0]):
+            row = self[i,:]
+            mask[i,np.where(row>row.max()*SPARSE.threshold)] = 1
+        for i in range(self.shape[1]):
+            col = self[:,i]
+            mask[np.where(col>col.max()*SPARSE.threshold),i] = 1
+        self *= mask
+        self.csr = SS.csr_matrix(self)
+    def step_back(self,A):
+        return self.csr*A
+    def step_forward(self,A):
+        return A*self.csr
+def make_prob(x):
+    x = np.array(x)
+    return SPARSE(x.shape,buffer=x.data)
+def make_sparse(M,T,N):
+    """Make T x N sparse csr matrix with room for T*N items, eg alpha or
+    beta.  Dead code for now.
+    """
+    if SS.isspmatrix_csr(M) and M.shape == (T,M):
+        return M
+    data = np.empty((T*N),np.float64)
+    indices = np.empty((T*N),np.int32)
+    indptr = np.empty((T+1),np.int32)
+    indptr[0] = 0
+    for t in range(T):
+        indptr[t+1] = (t+1)*N
+        indices[indptr[t]:indptr[t+1]] = range(N)
+    return SS.csr_matrix((data, indices, indptr),
+                                       shape = (T,N))
+
+class HMM_SPARSE(Scalar.HMM):
+    def __init__(self, P_S0, P_S0_ergodic, P_ScS, P_YcS):
+        Scalar.HMM.__init__(self, P_S0, P_S0_ergodic, P_ScS, P_YcS,
+                        prob=make_prob)
 #--------------------------------
 # Local Variables:
 # mode: python

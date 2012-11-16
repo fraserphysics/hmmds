@@ -17,14 +17,17 @@ that SIAM owns to collect the figures.
 
 To do:
 
-1. Rewrite python code in plotscripts/
-
-2.  Figure out how to use scipy sparse matrices in hmm
+1.  Figure out how to use scipy sparse matrices in hmm
     
     Scalar.py: Easiest to read
 
-    C.pyx      Cython subclasses of Scalar.  Compilation products
-               include C.so and C.py
+    C.pyx      Cython subclasses of Scalar
+
+        A. Write fast SPARSE.step_forward() and SPARSE.step_back()
+        B. Write fast HMM_SPARSE.forward() and HMM_SPARSE.backward()
+        C. Implement all methods of SPARSE using only sparse representation
+
+2. Rewrite python code in plotscripts/
 
 3. Ask Guy to look at style.
 

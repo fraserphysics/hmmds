@@ -213,18 +213,19 @@ class HMM:
         assert u_sum.shape == self.P_ScS.shape
         self.P_ScS.inplace_elementwise_multiply(u_sum)
         self.P_ScS.normalize()
-        return (self.alpha,wsum) # End of reestimate_s()
+        return self.alpha # End of reestimate_s()
     def reestimate(self,y):
         """ Reestimate all paramters.  In particular, reestimate observation
         model.
         """
-        w,sum_w = self.reestimate_s()
+        w = self.reestimate_s()
         if not type(y) == np.ndarray:
             y = np.array(y,np.int32)
         assert(y.dtype == np.int32 and y.shape == (self.T,))
         for yi in range(self.P_YcS.shape[1]):
             self.P_YcS.assign_col(
-                yi, w.take(np.where(y==yi)[0],axis=0).sum(axis=0)/sum_w)
+                yi, w.take(np.where(y==yi)[0],axis=0).sum(axis=0))
+        self.P_YcS.normalize()
         return # End of reestimate()
     def decode(self,y):
         """Use the Viterbi algorithm to find the most likely state
@@ -286,111 +287,7 @@ class HMM:
         self.dump_base()
         print_Name_VV('P_YcS', self.P_YcS)
         return #end of dump()
-import scipy.sparse as SS
-class TRANSITION(np.ndarray):
-    ''' See http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
-    '''
-    def __new__(subtype, shape, dtype=float, buffer=None, offset=0,
-          strides=None, order=None):
-        obj = np.ndarray.__new__(subtype, shape, dtype, buffer, offset, strides,
-                         order)
-        obj.reinit()
-        return obj
 
-    def reinit(self):
-        mask = np.zeros(self.shape,dtype=np.int8)
-        for i in range(self.shape[0]):
-            row = self[i,:]
-            mask[i,np.where(row>row.max()/1e1)] = 1
-        for i in range(self.shape[1]):
-            col = self[:,i]
-            mask[np.where(col>col.max()/1e1),i] = 1
-        print(mask.sum())
-        self *= mask
-        self.csr = SS.csr_matrix(self)
-        self.csc = SS.csc_matrix(self)
-        return
-    def right_mul(self,x):
-        ''' Return x*self
-        '''
-        return x*self.csc
-        # len(RV.shape) == 1
-    def left_mul(self,x):
-        ''' Return self*x
-        '''
-        return self.csr*x
-
-class HMM_sparse(HMM):
-    '''Subclass of HMM which uses sparse matrix operations for some
-    operations involving P_ScS.  Internally P_ScS stores multiple
-    versions of itself.
-    
-    I work for the clarity and structure of the code here.  I
-    emphasize speed in the cython subclass.
-
-    '''
-    def make_sparse(self,M,T,N):
-        """Make T x N sparse csr matrix with room for T*N items, eg alpha or
-        beta
-        """
-        if SS.isspmatrix_csr(M) and M.shape == (T,M):
-            return M
-        data = np.empty((T*N),np.float64)
-        indices = np.empty((T*N),np.int32)
-        indptr = np.empty((T+1),np.int32)
-        indptr[0] = 0
-        for t in range(T):
-            indptr[t+1] = (t+1)*N
-            indices[indptr[t]:indptr[t+1]] = range(N)
-        return SS.csr_matrix((data, indices, indptr),
-                                           shape = (T,N))
-    def __init__(self, P_S0,P_S0_ergodic,P_ScS,P_YcS):
-        HMM.__init__(self,P_S0,P_S0_ergodic,P_ScS,P_YcS)
-        self.P_ScS = TRANSITION(self.P_ScS.shape,buffer=self.P_ScS.data)
-        return # End of __init__()
-    def forward(self):
-       """
-       On entry:
-       self       is an HMM
-       self.Py    has been calculated
-       self.T     is length of Y
-       self.N     is number of states
-       On return:
-       self.gamma[t] = Pr{y(t)=y(t)|y_0^{t-1}}
-       self.alpha[t,i] = Pr{s(t)=i|y_0^t}
-       return value is log likelihood of all data
-       """
-       # Ensure allocation and size of alpha and gamma
-       self.alpha = initialize(self.alpha,(self.T,self.N))
-       self.gamma = initialize(self.gamma,(self.T,))
-       last = np.copy(self.P_S0.reshape(-1)) # Copy
-       for t in range(self.T):
-           last *= self.Py[t]              # Element-wise multiply
-           self.gamma[t] = last.sum()
-           last /= self.gamma[t]
-           self.alpha[t,:] = last
-           last = self.P_ScS.right_mul(last)
-       return (np.log(self.gamma)).sum() # End of forward()
-    def backward(self):
-        """
-        On entry:
-        self    is an HMM
-        y       is a sequence of observations
-        exp(PyGhist[t]) = Pr{y(t)=y(t)|y_0^{t-1}}
-        On return:
-        for each state i, beta[t,i] = Pr{y_{t+1}^T|s(t)=i}/Pr{y_{t+1}^T}
-        """
-        # Ensure allocation and size of beta
-        self.beta = initialize(self.beta,(self.T,self.N))
-        last = np.ones(self.N)
-        # iterate
-        for t in range(self.T-1,-1,-1):
-            self.beta[t,:] = last
-            last = self.P_ScS.left_mul(last*self.Py[t]/self.gamma[t])
-        return # End of backward()
-    def reestimate(self,y):
-        HMM.reestimate(self,y)
-        self.P_ScS.reinit()
 def _test():
     import doctest
     doctest.testmod()

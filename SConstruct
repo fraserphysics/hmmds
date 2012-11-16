@@ -58,9 +58,23 @@ swe.Command(
         CAS('lorenz.py'),DDS('lorenz.4'),DDS('lorenz.xyz'))
     )
 swe.Command(
-    DDS('m12s.4y'),[CH('Scalar.py'),CAS('MakeModel.py'),DDS('lorenz.4')],
+    DDS('m12s.4y'),
+    [CH('Scalar.py'),CAS('MakeModel.py'),DDS('lorenz.4')],
+    PYTHON+CAS('MakeModel.py')+' 30 derived_data/synthetic lorenz.4 m12s.4y'
+    )
+swe.Command(
+    CH('C.cpython-32mu.so'),
+    [CH('Scalar.py'), CH('C.pyx')],
+    'cd code/hmm; python3 setup.py build_ext --inplace'
+    )
+'''
+swe.Command(
+    DDS('m12s.4y'),
+    [CH('C.cpython-32mu.so'), CH('Scalar.py'), CAS('MakeModel.py'),
+     DDS('lorenz.4')],
     PYTHON+CAS('MakeModel.py')+' 300 derived_data/synthetic lorenz.4 m12s.4y'
     )
+    '''
 swe.Command(
     STATEDATA,
     [DDS('m12s.4y')]+[DDS('lorenz.4')]+[CPS('StatePic.py')],
