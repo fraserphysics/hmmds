@@ -45,6 +45,11 @@ class PROB(np.ndarray):
         A[:] = np.dot(self,A)
     def step_forward(self,A):
         A[:] = np.dot(A,self)
+    def values(self):
+        '''Hack to free subclasses from requirement of self being an nd_array
+
+        '''
+        return self
 def make_prob(x):
     x = np.array(x)
     return PROB(x.shape,buffer=x.data)
@@ -234,7 +239,7 @@ class HMM:
         pred = np.zeros((self.T, self.N), np.int32) # Best predecessors
         ss = np.zeros((self.T, 1), np.int32)        # State sequence
         L_S0, L_ScS, L_Py = (np.log(np.maximum(x,1e-30)) for x in
-                             (self.P_S0,self.P_ScS,self.Py))
+                             (self.P_S0,self.P_ScS.values(),self.Py))
         nu = L_Py[0] + L_S0
         for t in range(1,self.T):
             omega = L_ScS.T + nu
@@ -251,8 +256,8 @@ class HMM:
         random.seed(seed)
         # Set up cumulative distributions
         cum_init = np.cumsum(self.P_S0_ergodic[0])
-        cum_tran = np.cumsum(self.P_ScS,axis=1)
-        cum_y = np.cumsum(self.P_YcS,axis=1)
+        cum_tran = np.cumsum(self.P_ScS.values(),axis=1)
+        cum_y = np.cumsum(self.P_YcS.values(),axis=1)
         # Initialize lists
         outs = []
         states = []
@@ -273,7 +278,7 @@ class HMM:
         need to set exact values.  Use this method to modify topology
         before training.
 
-        FixMe: No test coverage.
+        FixMe: No test coverage.  Broken for cython code
         """
         self.P_ScS[From,To] = P
         self.P_ScS[From,:] /= self.P_ScS[From,:].sum()
@@ -281,11 +286,11 @@ class HMM:
         print("dumping a %s with %d states"%(self.__class__,self.N))
         print_Name_V(' P_S0        ',self.P_S0)
         print_Name_V(' P_S0_ergodic',self.P_S0_ergodic)
-        print_Name_VV('P_ScS', self.P_ScS)
+        print_Name_VV('P_ScS', self.P_ScS.values())
         return #end of dump_base()
     def dump(self):
         self.dump_base()
-        print_Name_VV('P_YcS', self.P_YcS)
+        print_Name_VV('P_YcS', self.P_YcS.values())
         return #end of dump()
 
 def _test():

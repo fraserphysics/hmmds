@@ -7,10 +7,9 @@ EG. ${PYTHON} ${P}/StatePic.py ${D} lorenz.4 m12s.4y lorenz.xyz m12s.4y
 2. data_dir/states that has a single decoded state trajectory
 """
 
-import sys, os.path, pickle, scipy
+import sys, os.path, pickle, numpy
 data_dir, data_file, vector_file, model_file = sys.argv[1:5]
 
-import Scalar
 from itertools import dropwhile
 
 def skip_header(lines):
@@ -27,7 +26,7 @@ def read_data(data_dir, data_file):
 
 # Read in the output sequence
 Y, cardy = read_data(data_dir, data_file)
-Y = scipy.array(Y)
+Y = numpy.array(Y,numpy.int32)
 
 # Read in model
 mod = pickle.load(open(os.path.join(data_dir, model_file),'rb'))

@@ -226,6 +226,10 @@ class PROB:
         self.tcol = np.empty(N)  # Scratch space step_back
         self.trow = np.empty(M)  # Scratch space step_forward
         self.normalize()
+    def values(self):
+        ''' Return dense version of matrix
+        '''
+        return self.csc.todense()
     def assign_col(self,i,col):
         '''Implements self[:,i]=col.  Very slow because finding each csc[j,i]
         is slow.  However, this is not used in a loop over T.
