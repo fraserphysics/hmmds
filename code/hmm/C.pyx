@@ -5,7 +5,9 @@ import Scalar, numpy as np, scipy.sparse as SS
 # Imitate http://docs.cython.org/src/tutorial/numpy.html
 cimport cython, numpy as np
 DTYPE = np.float64
+ITYPE = np.int32
 ctypedef np.float64_t DTYPE_t
+ctypedef np.int32_t ITYPE_t
 class HMM(Scalar.HMM):
     @cython.boundscheck(False)
     def forward(self):
@@ -200,10 +202,7 @@ class HMM(Scalar.HMM):
         return self.alpha # End of reestimate_s()
 
 class PROB(np.ndarray):
-    ''' Subclass of ndarray for probability matrices.  P[a,b] is the
-    probability of b given a.  The class has additional methods and is
-    designed to enable further subclasses with ugly speed
-    optimization.  See
+    '''   Dying code to be replaced by SPARSE class
     http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
     '''
     def __new__(subtype, shape, dtype=float, buffer=None, offset=0,
@@ -221,31 +220,17 @@ class PROB(np.ndarray):
         return self[:,v].T
     def inplace_elementwise_multiply(self,A):
         self *= A
-    def normalize(self):
-        S = self.sum(axis=1)
-        for i in range(self.shape[0]):
-            self[i,:] /= S[i]
-    def step_back(self,A):
-        ''' need last = np.dot(self.P_ScS,np.ones(self.N))
-        '''
-        np.dot(self,A,self.outT)
-        t = self.outT
-        self.outT = A
-        return t
-    def step_forward(self,A):
-        np.dot(A,self,self.out)
-        t = self.out
-        self.out = A
-        return t
 class SPARSE(PROB):
-    ''' Subclass of PROB that includes sparse matrix representation
-    and uses sparse matrix operations to implement some methods.
+    '''Replacement for Scalar.PROB that stores data in sparse matrix
+    format.  P[a,b] is the probability of b given a.
     '''
     threshold = 1.0e-15
     def __new__(subtype, shape, dtype=float, buffer=None, offset=0,
           strides=None, order=None):
         obj = np.ndarray.__new__(subtype, shape, dtype, buffer, offset, strides,
                          order)
+        obj.tcol = np.empty(shape[0])
+        obj.trow = np.empty(shape[1])
         obj.normalize()
         return obj
     def normalize(self):
@@ -262,9 +247,53 @@ class SPARSE(PROB):
         self *= mask
         self.csr = SS.csr_matrix(self)
     def step_back(self,A):
-        return self.csr*A
+        #A[:] = self.csr*A
+        #return
+        cdef np.ndarray[DTYPE_t, ndim=1] _A = A
+        cdef double *a = <double *>_A.data
+        cdef np.ndarray[DTYPE_t, ndim=1] data = self.csr.data
+        cdef double *_data = <double *>data.data
+        cdef np.ndarray[ITYPE_t, ndim=1] indices = self.csr.indices
+        cdef int *_indices = <int *>indices.data
+        cdef np.ndarray[ITYPE_t, ndim=1] indptr = self.csr.indptr
+        cdef int *_indptr = <int *>indptr.data
+        cdef np.ndarray[DTYPE_t, ndim=1] tdata = self.tcol
+        cdef double *t = <double *>tdata.data
+        cdef int N = self.shape[0]
+        cdef int M = self.shape[1]
+        cdef int i,j,J
+        for i in range(N):
+            t[i] = 0
+            for j in range(_indptr[i],_indptr[i+1]):
+                J = _indices[j]
+                t[i] += _data[j]*a[J]
+        tdata.data = <char *>a
+        _A.data = <char *>t
     def step_forward(self,A):
-        return A*self.csr
+        #A[:] = A*self.csr
+        #return
+        cdef np.ndarray[DTYPE_t, ndim=1] _A = A
+        cdef double *a = <double *>_A.data
+        cdef np.ndarray[DTYPE_t, ndim=1] data = self.csr.data
+        cdef double *_data = <double *>data.data
+        cdef np.ndarray[ITYPE_t, ndim=1] indices = self.csr.indices
+        cdef int *_indices = <int *>indices.data
+        cdef np.ndarray[ITYPE_t, ndim=1] indptr = self.csr.indptr
+        cdef int *_indptr = <int *>indptr.data
+        cdef np.ndarray[DTYPE_t, ndim=1] tdata = self.trow
+        cdef double *t = <double *>tdata.data
+        cdef int N = self.shape[0]
+        cdef int M = self.shape[1]
+        cdef int i,j,J
+        for j in range(M):
+            t[j] = 0
+        for i in range(N):
+            for j in range(_indptr[i],_indptr[i+1]):
+                J = _indices[j]
+                t[J] += _data[j]*a[i]
+        tdata.data = <char *>a
+        _A.data = <char *>t
+        
 def make_prob(x):
     x = np.array(x)
     return SPARSE(x.shape,buffer=x.data)

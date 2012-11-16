@@ -23,9 +23,8 @@ To do:
 
     C.pyx      Cython subclasses of Scalar
 
-        A. Write fast SPARSE.step_forward() and SPARSE.step_back()
+        A. Implement all methods of SPARSE using only sparse representation
         B. Write fast HMM_SPARSE.forward() and HMM_SPARSE.backward()
-        C. Implement all methods of SPARSE using only sparse representation
 
 2. Rewrite python code in plotscripts/
 

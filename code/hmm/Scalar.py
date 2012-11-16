@@ -42,9 +42,9 @@ class PROB(np.ndarray):
         for i in range(self.shape[0]):
             self[i,:] /= S[i]
     def step_back(self,A):
-        return np.dot(self,A)
+        A[:] = np.dot(self,A)
     def step_forward(self,A):
-        return np.dot(A,self)
+        A[:] = np.dot(A,self)
 def make_prob(x):
     x = np.array(x)
     return PROB(x.shape,buffer=x.data)
@@ -161,7 +161,7 @@ class HMM:
            self.gamma[t] = last.sum()
            last /= self.gamma[t]
            self.alpha[t,:] = last
-           last = self.P_ScS.step_forward(last)
+           self.P_ScS.step_forward(last)
        return (np.log(self.gamma)).sum() # End of forward()
     def backward(self):
         """
@@ -180,7 +180,7 @@ class HMM:
             self.beta[t,:] = last
             last *= self.Py[t]
             last /= self.gamma[t]
-            last = self.P_ScS.step_back(last)
+            self.P_ScS.step_back(last)
         return # End of backward()
     def train(self, y, N_iter=1, display=True):
         # Do (N_iter) BaumWelch iterations
