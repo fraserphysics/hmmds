@@ -1,7 +1,8 @@
 '''C.pyx: cython code for speed up.  Only significant improvment comes
 from the loop over time in reestimate_s()
 '''
-import Scalar, numpy as np, scipy.sparse as SS
+import Scalar, numpy as np, scipy.sparse as SS, warnings
+#warnings.simplefilter('ignore',SS.SparseEfficiencyWarning)
 # Imitate http://docs.cython.org/src/tutorial/numpy.html
 cimport cython, numpy as np
 DTYPE = np.float64
@@ -204,11 +205,14 @@ class HMM(Scalar.HMM):
 class PROB:
     '''Replacement for Scalar.PROB that stores data in sparse matrix
     format.  P[a,b] is the probability of b given a.
+    
+    For pruning.  Drop x[i,j] if x[i,j] < threshold*max(A[i,:]) and
+    x[i,j] < threshold*max(A[:,j]) I don't understand sensitivity of
+    training to pruning threshold.
+
     '''
-    threshold = 1.0e-15
-    # For pruning.  Drop x[i,j] if x[i,j] < threshold*max(A[i,:]) and
-    # x[i,j] < threshold*max(A[:,j])
-    def __init__(self,x):
+    def __init__(self,x,threshold=-1):
+        self.threshold = threshold
         if SS.isspmatrix_csc(x):
             self.csc = x
         else:
@@ -224,8 +228,7 @@ class PROB:
         self.normalize()
     def assign_col(self,i,col):
         '''Implements self[:,i]=col.  Very slow because finding each csc[j,i]
-        is slow
-
+        is slow.  However, this is not used in a loop over T.
         '''
         N,M = self.shape
         for j in range(N):
@@ -262,28 +265,36 @@ class PROB:
             for j in range(self.indptr[i],self.indptr[i+1]):
                 J = self.indices[j]
                 sum_col[J] += self.data[j]
-        for i in range(M):    # Normalize the rows and find max of the
-                              # resulting rows and columns
+        for i in range(M):    # Normalize the rows
             for j in range(self.indptr[i],self.indptr[i+1]):
                 J = self.indices[j]
                 self.data[j] /= sum_col[J]
+        if self.threshold < 0:
+            return
+        for i in range(M):    # Find max of the rows and columns
+            for j in range(self.indptr[i],self.indptr[i+1]):
+                J = self.indices[j]
                 x = self.data[j]
                 if x > max_row[i]:
                     max_row[i] = x
                 if x > max_col[J]:
                     max_col[J] = x
+        max_row *= self.threshold
+        max_col *= self.threshold
+        k = self.indptr[0]
+        L = self.indptr[0]
         for i in range(M):
-            k = self.indptr[i]
-            L = self.indptr[i+1]
-            for j in range(self.indptr[i],L):
+            for j in range(L,self.indptr[i+1]):
                 J = self.indices[j]
-                x = self.data[j]/PROB.threshold
-                if x > max_row[i] or x > max_col[J]: # FixMe: Check this
+                x = self.data[j]
+                if (x > max_row[i] or x > max_col[J]):
                     self.indices[k] = J
-                    self.data[k] = self.data[j]
+                    self.data[k] = x
                     k += 1
                 else:
-                    self.indptr[i+1] -= 1
+                    print('Prune')
+            L = self.indptr[i+1]
+            self.indptr[i+1] = k
     def step_back(self,A):
         ''' Implements A[:] = self*A
         '''
@@ -335,10 +346,187 @@ class PROB:
 def make_prob(x):
     return PROB(x)
 
-class HMM_SPARSE(Scalar.HMM):
+class HMM_SPARSE(HMM):
     def __init__(self, P_S0, P_S0_ergodic, P_ScS, P_YcS):
         Scalar.HMM.__init__(self, P_S0, P_S0_ergodic, P_ScS, P_YcS,
-                        prob=make_prob)
+                            prob=make_prob)
+
+    @cython.boundscheck(False)
+    def Py_calc(
+        self,    # HMM
+        y        # A sequence of integer observations
+        ):
+        """
+        Allocate self.Py and assign values self.Py[t,i] = P(y(t)|s(t)=i)
+        """
+        # Check size and initialize self.Py
+        self.T = len(y)
+        self.Py = Scalar.initialize(self.Py,(self.T,self.N))
+        YcS = self.P_YcS
+
+        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.Py
+        cdef int pystride = Py.strides[0]
+        cdef char *_py = Py.data
+        cdef double *py
+
+        cdef np.ndarray[ITYPE_t, ndim=1] Y = y
+        cdef int *_y = <int *>Y.data
+
+        cdef np.ndarray[DTYPE_t, ndim=1] data = YcS.data
+        cdef double *_data = <double *>data.data
+        cdef np.ndarray[ITYPE_t, ndim=1] indices = YcS.indices
+        cdef int *_indices = <int *>indices.data
+        cdef np.ndarray[ITYPE_t, ndim=1] indptr = YcS.indptr
+        cdef int *_indptr = <int *>indptr.data
+
+        cdef int T = self.T
+        cdef int t,i,j,J
+        for t in range(T):
+            py = <double *>(_py+t*pystride)
+            i = _y[t]
+            for j in range(_indptr[i],_indptr[i+1]):
+                J = _indices[j]
+                py[J] = _data[j]
+        return # End of Py_calc()
+    @cython.boundscheck(False)
+    def forward(self):
+        """
+        On entry:
+        self       is an HMM
+        self.Py    has been calculated
+        self.T     is length of Y
+        self.N     is number of states
+        On return:
+        self.gamma[t] = Pr{y(t)=y(t)|y_0^{t-1}}
+        self.alpha[t,i] = Pr{s(t)=i|y_0^t}
+        return value is log likelihood of all data
+        """
+
+        # Ensure allocation and size of alpha and gamma
+        self.alpha = Scalar.initialize(self.alpha,(self.T,self.N))
+        self.gamma = Scalar.initialize(self.gamma,(self.T,))
+
+        # Setup direct access to numpy arrays
+        cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
+        cdef double *_gamma = <double *>gamma.data
+
+        cdef np.ndarray[DTYPE_t, ndim=1] last = np.copy(self.P_S0.reshape(-1))
+        cdef double *_last = <double *>last.data
+
+        cdef np.ndarray[DTYPE_t, ndim=2] Alpha = self.alpha
+        cdef char *_alpha = Alpha.data
+        cdef int astride = Alpha.strides[0]
+        cdef double *a
+
+        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.Py
+        cdef int pystride = Py.strides[0]
+        cdef char *_py = Py.data
+        cdef double *py
+
+        PSCS = self.P_ScS
+        cdef np.ndarray[DTYPE_t, ndim=1] data = PSCS.data
+        cdef double *_data = <double *>data.data
+        cdef np.ndarray[ITYPE_t, ndim=1] indices = PSCS.indices
+        cdef int *_indices = <int *>indices.data
+        cdef np.ndarray[ITYPE_t, ndim=1] indptr = PSCS.indptr
+        cdef int *_indptr = <int *>indptr.data
+        cdef np.ndarray[DTYPE_t, ndim=1] tdata = PSCS.trow
+        cdef double *_next = <double *>tdata.data
+
+        cdef int t,i,j
+        cdef int N = self.N
+        cdef int T = self.T
+        cdef double *_tmp
+        cdef double total
+        # iterate
+        for t in range(T):
+            py = <double *>(_py+t*pystride)
+            for i in range(N):
+                _last[i] = _last[i]*py[i]
+            total = 0
+            for i in range(N):
+                total += _last[i]
+            _gamma[t] = total
+            a = <double *>(_alpha+t*astride)
+            for i in range(N):
+                _last[i] /= total
+                a[i] = _last[i]
+
+            for i in range(N):  # Block for next = last*self
+                _next[i] = 0
+                for j in range(_indptr[i],_indptr[i+1]):
+                    J = _indices[j]
+                    _next[i] += _data[j]*_last[J]
+
+            _tmp = _last
+            _last = _next
+            _next = _tmp
+        return (np.log(self.gamma)).sum() # End of forward()
+
+    @cython.boundscheck(False)
+    def backward(self):
+        """
+        On entry:
+        self    is an HMM
+        y       is a sequence of observations
+        exp(PyGhist[t]) = Pr{y(t)=y(t)|y_0^{t-1}}
+        On return:
+        for each state i, beta[t,i] = Pr{y_{t+1}^T|s(t)=i}/Pr{y_{t+1}^T}
+        """
+        # Ensure allocation and size of beta
+        self.beta = Scalar.initialize(self.beta,(self.T,self.N))
+
+        # Setup direct access to numpy arrays
+        cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
+        cdef double *_gamma = <double *>gamma.data
+
+        cdef np.ndarray[DTYPE_t, ndim=1] last = np.ones(self.N)
+        cdef double *_last = <double *>last.data
+
+        cdef np.ndarray[DTYPE_t, ndim=2] Beta = self.beta
+        cdef char *_beta = Beta.data
+        cdef int bstride = Beta.strides[0]
+        cdef double *b
+
+        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.Py
+        cdef int pystride = Py.strides[0]
+        cdef char *_py = Py.data
+        cdef double *py
+
+        PSCS = self.P_ScS
+        cdef np.ndarray[DTYPE_t, ndim=1] data = PSCS.data
+        cdef double *_data = <double *>data.data
+        cdef np.ndarray[ITYPE_t, ndim=1] indices = PSCS.indices
+        cdef int *_indices = <int *>indices.data
+        cdef np.ndarray[ITYPE_t, ndim=1] indptr = PSCS.indptr
+        cdef int *_indptr = <int *>indptr.data
+        cdef np.ndarray[DTYPE_t, ndim=1] tdata = PSCS.tcol
+        cdef double *_next = <double *>tdata.data
+
+        # iterate
+        cdef int t,i,j,J
+        cdef int N = self.N
+        cdef int T = self.T
+        cdef double *_tmp
+        cdef double total
+        for t in range(T-1,-1,-1):
+            py = <double *>(_py+t*pystride)
+            b = <double *>(_beta+t*bstride)
+            for i in range(N):
+                b[i] = _last[i]
+                _last[i] *= py[i]/_gamma[t]
+
+            for j in range(N):
+                _next[j] = 0
+            for i in range(N):
+                for j in range(_indptr[i],_indptr[i+1]):
+                    J = _indices[j]
+                    _next[J] += _data[j]*_last[i]
+
+            _tmp = _last
+            _last = _next
+            _next = _tmp
+        return # End of backward()
 #--------------------------------
 # Local Variables:
 # mode: python
