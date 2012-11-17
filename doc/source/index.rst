@@ -15,11 +15,9 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-.. automodule:: Scalar
-   :members:
-
-.. automodule:: lorenz
-   :members:
+   Scalar
+   Lorenz
+   Cython
 
 Indices and tables
 ==================

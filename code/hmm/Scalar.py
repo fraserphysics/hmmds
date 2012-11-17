@@ -55,14 +55,30 @@ def make_prob(x):
     return PROB(x.shape,buffer=x.data)
 
 class HMM:
-    """A Hidden Markov Model implementation with the following
-    groups of methods:
+    """A Hidden Markov Model implementation.
 
-    Tools for applications: forward(), backward(), train(), decode(),
-    reestimate() and simulate()
+    Parameters
+    ----------
+    self : HMM
+    P_S0 : array_like
+        Initial distribution of states
+    P_S0_ergodic : array_like
+        Stationary distribution of states
+    P_ScS : array_like
+        P_ScS[a,b] = Prob(s(1)=b|s(0)=a)
+    P_YcS : array_like
+        P_YcS[a,b] = Prob(y(0)=b|s(0)=a)
+    prob=make_prob : function, optional
+        Function to make conditional probability matrix
 
-    Test the code in this file by manipulating the HMM in Figure 1.6
-    (fig:dhmm) in the book.
+    Returns
+    -------
+    out : None
+
+    Examples
+    --------
+    Illustrate/Test some methods by manipulating the HMM in Figure 1.6
+    of the book.
 
     >>> P_S0 = np.array([1./3., 1./3., 1./3.])
     >>> P_S0_ergodic = np.array([1./7., 4./7., 2./7.])
@@ -112,6 +128,7 @@ class HMM:
        1.000 0.000 0.000 |
        0.000 0.335 0.665 |
        0.000 0.726 0.274 |
+
     """
     def __init__(
         self,         # HMM instance
@@ -121,7 +138,8 @@ class HMM:
         P_YcS,        # P_YcS[a,b] = Prob(y(0)=b|s(0)=a)
         prob=make_prob# Function to make conditional probability matrix
         ):
-        """Builds a new Hidden Markov Model"""
+        """Builds a new Hidden Markov Model
+        """
         self.N =len(P_S0)
         self.P_S0 = np.array(P_S0)
         self.P_S0_ergodic = np.array(P_S0_ergodic)

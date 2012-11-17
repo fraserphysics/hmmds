@@ -19,6 +19,8 @@ To do:
 
 1. Work on documentation
 
+https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
+
 2. Ask Guy or Aric to look at style.
 
 3. Write code to analyze apnea data to make sure that you have basic

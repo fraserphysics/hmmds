@@ -1,0 +1,2 @@
+.. automodule:: C
+   :members:
