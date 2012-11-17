@@ -1,4 +1,4 @@
-Integrators for the Lorenz Equations
+Plot Scripts
 =================================================================
-.. automodule:: lorenz
+.. automodule:: StatePic
    :members:

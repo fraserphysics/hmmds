@@ -38,10 +38,57 @@ def Lsteps(IC,      # IC[0:3] is the initial condition
            T_step,  # The time between returned samples
            N_steps  # N_steps The number of returned samples
            ):
+    '''Integrate the Lorenz ODE and return a time series
+
+    Parameters
+    ----------
+    IC : array_like floats
+        Initial conditions.  Returned as first point in result
+    s : float
+    b : float
+    r : float
+        s,b and r are the parameters of the Lorenz system
+    T_step : float
+        Sampling interval for returned time series
+    N_steps : int
+        Number of samples to return
+    
+    Returns
+    -------
+    V : array_like, 2-d
+        The resulting time series.  V.shape (N_steps,3)
+    '''
     from scipy.integrate import odeint
     t = np.arange(N_steps,dtype=float)*T_step
     return odeint(F, np.array(IC), t, args=(s,b,r))
 def main(argv=None):
+    '''Writes time series to files specified by options --xyzfile and or
+    --quantfile.  If neither is specified, simpy runs doctest.
+
+    Bullet points
+    -------------
+
+    Options:
+
+    * --L
+
+    * --IC
+
+    * --s
+
+    * --r
+
+    * --b
+
+    * --dt
+
+    * --levels
+
+    * --quantfile
+
+    * --xyzfile
+
+    '''
     import argparse
 
     if argv is None:                    # Usual case

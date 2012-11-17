@@ -29,6 +29,16 @@ def randomP(A):
     return A
 
 def main(argv=None):
+    '''Call with arguments: n, data_dir, data_file, model_file
+    
+    n = number of iterations
+    
+    data_dir = directory for data and resulting model
+
+    data_file = name of data file
+
+    model_file = name of the file into which resulting model to be written
+    '''
 
     if argv is None:                    # Usual case
         argv = sys.argv[1:]

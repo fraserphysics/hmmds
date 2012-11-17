@@ -11,6 +11,15 @@ import sys, os.path, pickle, numpy
 from MakeModel import read_data, skip_header
 
 def main(argv=None):
+    '''Call with arguments: data_dir, data_file, vector_file, model_file
+
+    Writes files named ['state%d'%n for n in range(nstates)] to the
+    data_dir.  Each file consists of points in vector_file that are
+    decoded to the the state number specified in the name.  The states
+    are assigned by using the model in model_file to Viterbi decode
+    the data in data_file.
+
+    '''
 
     if argv is None:                    # Usual case
         argv = sys.argv[1:]

@@ -1,5 +1,4 @@
-'''C.pyx: cython code for speed up.  Only significant improvment comes
-from the loop over time in reestimate_s()
+'''C.pyx: cython code for speed up.
 '''
 import Scalar, numpy as np, scipy.sparse as SS, warnings
 #warnings.simplefilter('ignore',SS.SparseEfficiencyWarning)
@@ -10,20 +9,12 @@ ITYPE = np.int32
 ctypedef np.float64_t DTYPE_t
 ctypedef np.int32_t ITYPE_t
 class HMM(Scalar.HMM):
+    '''A Cython subclass of HMM that implments methods forward, backward
+    and reestimate-s for speed'''
+
     @cython.boundscheck(False)
     def forward(self):
-        """
-        On entry:
-        self       is an HMM
-        self.Py    has been calculated
-        self.T     is length of Y
-        self.N     is number of states
-        On return:
-        self.gamma[t] = Pr{y(t)=y(t)|y_0^{t-1}}
-        self.alpha[t,i] = Pr{s(t)=i|y_0^t}
-        return value is log likelihood of all data
-        """
-
+        Scalar.HMM.forward.__doc__
         # Ensure allocation and size of alpha and gamma
         self.alpha = Scalar.initialize(self.alpha,(self.T,self.N))
         self.gamma = Scalar.initialize(self.gamma,(self.T,))
@@ -84,6 +75,7 @@ class HMM(Scalar.HMM):
         return (np.log(self.gamma)).sum() # End of forward()
     @cython.boundscheck(False)
     def backward(self):
+        HMM.Scalar.backward.__doc__
         """
         On entry:
         self    is an HMM
@@ -145,11 +137,7 @@ class HMM(Scalar.HMM):
         return # End of backward()
     @cython.boundscheck(False)
     def reestimate_s(self):
-        """ Reestimate state transition probabilities and initial
-        state probabilities.  Given the observation probabilities, ie,
-        self.state[s].Py[t], given alpha, beta, gamma, and Py, these
-        calcuations are independent of the observation model
-        calculations."""
+        HMM.Scalar.reestimate_s.__doc__
         cdef np.ndarray[DTYPE_t, ndim=1] wsum = np.zeros(self.N,np.float64)
         cdef double *_w = <double *>wsum.data
 
@@ -351,6 +339,10 @@ def make_prob(x):
     return PROB(x)
 
 class HMM_SPARSE(HMM):
+    '''HMM code that uses sparse matrices for state to state and state to
+    observation probabilities.  API matches Scalar.HMM
+
+    '''
     def __init__(self, P_S0, P_S0_ergodic, P_ScS, P_YcS):
         Scalar.HMM.__init__(self, P_S0, P_S0_ergodic, P_ScS, P_YcS,
                             prob=make_prob)
@@ -362,6 +354,15 @@ class HMM_SPARSE(HMM):
         ):
         """
         Allocate self.Py and assign values self.Py[t,i] = P(y(t)|s(t)=i)
+
+        Parameters
+        ----------
+        y : array_like
+            A sequence of integer observations
+
+        Returns
+        -------
+        None
         """
         # Check size and initialize self.Py
         self.T = len(y)
@@ -395,17 +396,42 @@ class HMM_SPARSE(HMM):
     @cython.boundscheck(False)
     def forward(self):
         """
-        On entry:
-        self       is an HMM
-        self.Py    has been calculated
-        self.T     is length of Y
-        self.N     is number of states
-        On return:
-        self.gamma[t] = Pr{y(t)=y(t)|y_0^{t-1}}
-        self.alpha[t,i] = Pr{s(t)=i|y_0^t}
-        return value is log likelihood of all data
-        """
+        Implements recursive calculation of state probabilities given
+        observation probabilities.
 
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        L : float
+            Average log (base e) likelihood per point of entire observation
+            sequence 
+
+        Bullet points
+        -------------
+
+        On entry:
+
+        * self       is an HMM
+
+        * self.Py    has been calculated
+
+        * self.T     is length of Y
+
+        * self.N     is number of states
+
+        Bullet points
+        -------------
+
+        On return:
+
+        * self.gamma[t] = Pr{y(t)=y(t)|y_0^{t-1}}
+        * self.alpha[t,i] = Pr{s(t)=i|y_0^t}
+        * return value is log likelihood of all data
+
+        """
         # Ensure allocation and size of alpha and gamma
         self.alpha = Scalar.initialize(self.alpha,(self.T,self.N))
         self.gamma = Scalar.initialize(self.gamma,(self.T,))
@@ -470,12 +496,33 @@ class HMM_SPARSE(HMM):
     @cython.boundscheck(False)
     def backward(self):
         """
+        Implements the Baum_Welch backwards pass through state conditional
+        likelihoods of the obserations.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        
+        Bullet points
+        -------------
+
         On entry:
-        self    is an HMM
-        y       is a sequence of observations
-        exp(PyGhist[t]) = Pr{y(t)=y(t)|y_0^{t-1}}
+
+        * self    is an HMM
+
+        * self.Py    has been calculated
+
+        Bullet points
+        -------------
+
         On return:
-        for each state i, beta[t,i] = Pr{y_{t+1}^T|s(t)=i}/Pr{y_{t+1}^T}
+
+        * for each state i, beta[t,i] = Pr{y_{t+1}^T|s(t)=i}/Pr{y_{t+1}^T}
+
         """
         # Ensure allocation and size of beta
         self.beta = Scalar.initialize(self.beta,(self.T,self.N))

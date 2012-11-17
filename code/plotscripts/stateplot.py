@@ -1,4 +1,4 @@
-"""The script that makes the cover figure.  Invocation
+""" The script that makes the cover figure.  Invocation
 
 python stateplot.py derived_data/synthetic state figs/Statesintro.pdf
 """
@@ -7,6 +7,16 @@ mpl.use('PDF')
 import matplotlib.pyplot as plt
 
 def main(argv=None):
+    '''Call with arguments: data_dir, base_name, fig_name
+
+    data_dir is the directory that has the state files
+
+    base_name When it is "state" the data files are "state0", "state1"
+    ,..., "state11".
+
+    fig_name, eg, figs/Statesintro.pdf.  Where the figure gets written
+
+    '''
 
     if argv is None:                    # Usual case
         argv = sys.argv[1:]

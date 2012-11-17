@@ -10,14 +10,13 @@
 Welcome to HMM and Dynamical Systems's documentation
 =====================================================
 
-Contents:
-
 .. toctree::
-   :maxdepth: 2
 
-   Scalar
-   Lorenz
+   HMM base class <Scalar>
    Cython
+   Lorenz
+   Applications
+   Plot Scripts <Plotscripts>
 
 Indices and tables
 ==================

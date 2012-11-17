@@ -1,21 +1,8 @@
 """ Scalar.py: Implements HMMs with discrete observations.
-Copyright (c) 2003, 2007, 2008, 2012 Andrew M. Fraser
 
 """
-
+# Copyright (c) 2003, 2007, 2008, 2012 Andrew M. Fraser
 import random, numpy as np
-def print_V(V):
-    for x in V:
-        print('%-6.3f'%x,end='')
-    print('|')
-def print_Name_V(name,V):
-    print(name+' =',end='')
-    print_V(V)
-def print_Name_VV(name,VV):
-    print('  '+name+' =')
-    for V in VV:
-        print('   ',end='')
-        print_V(V)
 
 def initialize(x,shape,dtype=np.float64):
     if x == None or x.shape != shape:
@@ -23,31 +10,115 @@ def initialize(x,shape,dtype=np.float64):
     return x*0
 ## ----------------------------------------------------------------------
 class PROB(np.ndarray):
-    ''' Subclass of ndarray for probability matrices.  P[a,b] is the
+    '''Subclass of ndarray for probability matrices.  P[a,b] is the
     probability of b given a.  The class has additional methods and is
-    designed to enable further subclasses with ugly speed
-    optimization.  See
-    http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
+    designed to enable further subclasses with speed improvements
+    implemented by uglier code.
+
     '''
+    # See http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
     def assign_col(self,i,col):
+        '''
+        Replace column of self with data specified by the parameters
+
+        Parameters
+        ----------
+        i : int
+            Column index
+        col : array_like
+            Column data
+
+        Returns
+        -------
+        None
+        '''
         self[:,i] = col
     def likelihoods(self,v):
-        '''likelihoods for vector of observations v
+        '''likelihoods for vector of data
+
+        Parameters
+        ----------
+        v : array_like
+            Column data
+
+        Returns
+        -------
+        L : array_like
+
+            Given T = len(v) and self.shape = (M,N), L.shape = (T,M)
+            with the interpretation L[t,a] = Prob(v[t]|a)
+
         '''
         return self[:,v].T
     def inplace_elementwise_multiply(self,A):
+        '''
+        Multiply self by argument
+
+        Parameters
+        ----------
+        A : array_like
+
+        Returns
+        -------
+        None
+        '''
         self *= A
     def normalize(self):
+        '''
+        Make each row a proability that sums to one
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
         S = self.sum(axis=1)
         for i in range(self.shape[0]):
             self[i,:] /= S[i]
-    def step_back(self,A):
-        A[:] = np.dot(self,A)
     def step_forward(self,A):
-        A[:] = np.dot(A,self)
-    def values(self):
-        '''Hack to free subclasses from requirement of self being an nd_array
+        '''
+        Replace values of argument A with matrix product A*self
 
+        Parameters
+        ----------
+        A : array_like
+
+        Returns
+        -------
+        None
+        '''
+        A[:] = np.dot(A,self)
+    def step_back(self,A):
+        '''
+        Replace values of argument A with matrix product self*A
+
+        Parameters
+        ----------
+        A : array_like
+
+        Returns
+        -------
+        None
+        '''
+        A[:] = np.dot(self,A)
+    def values(self):
+        '''
+        Produce values of self
+
+
+        This is a hack to free subclasses from the requirement of self
+        being an nd_array
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        v : array_like
         '''
         return self
 def make_prob(x):
@@ -59,7 +130,6 @@ class HMM:
 
     Parameters
     ----------
-    self : HMM
     P_S0 : array_like
         Initial distribution of states
     P_S0_ergodic : array_like
@@ -73,7 +143,7 @@ class HMM:
 
     Returns
     -------
-    out : None
+    None
 
     Examples
     --------
@@ -116,18 +186,18 @@ class HMM:
     it= 1 LLps=  -0.918
     it= 2 LLps=  -0.918
     it= 3 LLps=  -0.917
-    >>> mod.dump()
-    dumping a <class '__main__.HMM'> with 3 states
-     P_S0         =0.000 0.963 0.037 |
-     P_S0_ergodic =0.142 0.580 0.278 |
+    >>> print(mod)
+    A <class '__main__.HMM'> with 3 states
+     P_S0         =0.000 0.963 0.037 
+     P_S0_ergodic =0.142 0.580 0.278 
       P_ScS =
-       0.000 1.000 0.000 |
-       0.000 0.519 0.481 |
-       0.512 0.488 0.000 |
+       0.000 1.000 0.000 
+       0.000 0.519 0.481 
+       0.512 0.488 0.000 
       P_YcS =
-       1.000 0.000 0.000 |
-       0.000 0.335 0.665 |
-       0.000 0.726 0.274 |
+       1.000 0.000 0.000 
+       0.000 0.335 0.665 
+       0.000 0.726 0.274 
 
     """
     def __init__(
@@ -156,6 +226,15 @@ class HMM:
         ):
         """
         Allocate self.Py and assign values self.Py[t,i] = P(y(t)|s(t)=i)
+
+        Parameters
+        ----------
+        y : array_like
+            A sequence of integer observations
+
+        Returns
+        -------
+        None
         """
         # Check size and initialize self.Py
         self.T = len(y)
@@ -163,37 +242,84 @@ class HMM:
         self.Py[:,:] = self.P_YcS.likelihoods(y)
         return # End of Py_calc()
     def forward(self):
-       """
-       On entry:
-       self       is an HMM
-       self.Py    has been calculated
-       self.T     is length of Y
-       self.N     is number of states
-       On return:
-       self.gamma[t] = Pr{y(t)=y(t)|y_0^{t-1}}
-       self.alpha[t,i] = Pr{s(t)=i|y_0^t}
-       return value is log likelihood of all data
-       """
+        """
+        Implements recursive calculation of state probabilities given
+        observation probabilities.
 
-       # Ensure allocation and size of alpha and gamma
-       self.alpha = initialize(self.alpha,(self.T,self.N))
-       self.gamma = initialize(self.gamma,(self.T,))
-       last = np.copy(self.P_S0.reshape(-1)) # Copy
-       for t in range(self.T):
-           last *= self.Py[t]              # Element-wise multiply
-           self.gamma[t] = last.sum()
-           last /= self.gamma[t]
-           self.alpha[t,:] = last
-           self.P_ScS.step_forward(last)
-       return (np.log(self.gamma)).sum() # End of forward()
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        L : float
+            Average log (base e) likelihood per point of entire observation
+            sequence 
+
+        Bullet points
+        -------------
+
+        On entry:
+
+        * self       is an HMM
+
+        * self.Py    has been calculated
+
+        * self.T     is length of Y
+
+        * self.N     is number of states
+
+        Bullet points
+        -------------
+
+        On return:
+
+        * self.gamma[t] = Pr{y(t)=y(t)|y_0^{t-1}}
+        * self.alpha[t,i] = Pr{s(t)=i|y_0^t}
+        * return value is log likelihood of all data
+
+        """
+
+        # Ensure allocation and size of alpha and gamma
+        self.alpha = initialize(self.alpha,(self.T,self.N))
+        self.gamma = initialize(self.gamma,(self.T,))
+        last = np.copy(self.P_S0.reshape(-1)) # Copy
+        for t in range(self.T):
+            last *= self.Py[t]              # Element-wise multiply
+            self.gamma[t] = last.sum()
+            last /= self.gamma[t]
+            self.alpha[t,:] = last
+            self.P_ScS.step_forward(last)
+        return (np.log(self.gamma)).sum() # End of forward()
     def backward(self):
         """
+        Implements the Baum_Welch backwards pass through state conditional
+        likelihoods of the obserations.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        
+        Bullet points
+        -------------
+
         On entry:
-        self    is an HMM
-        y       is a sequence of observations
-        exp(PyGhist[t]) = Pr{y(t)=y(t)|y_0^{t-1}}
+
+        * self    is an HMM
+
+        * self.Py    has been calculated
+
+        Bullet points
+        -------------
+
         On return:
-        for each state i, beta[t,i] = Pr{y_{t+1}^T|s(t)=i}/Pr{y_{t+1}^T}
+
+        * for each state i, beta[t,i] = Pr{y_{t+1}^T|s(t)=i}/Pr{y_{t+1}^T}
+
         """
         # Ensure allocation and size of beta
         self.beta = initialize(self.beta,(self.T,self.N))
@@ -206,6 +332,27 @@ class HMM:
             self.P_ScS.step_back(last)
         return # End of backward()
     def train(self, y, N_iter=1, display=True):
+        '''Based on observations y, do N_iter iterations of model reestimation
+
+        Use Baum-Welch algorithm to search for maximum likelihood
+        model parameters.
+
+        Parameters
+        ----------
+        y : array_like
+            Sequence of integer observations
+        N_iter : int, optional
+            Number of iterations
+        display : bool, optional
+            If True, print the log likelihood per observation for each
+            iteration
+
+        Returns
+        -------
+        LLL : list
+            List of log likelihood per observation for each iteration
+
+        '''
         # Do (N_iter) BaumWelch iterations
         LLL = []
         for it in range(N_iter):
@@ -218,11 +365,22 @@ class HMM:
             self.reestimate(y)
         return LLL # End of train()
     def reestimate_s(self):
-        """ Reestimate state transition probabilities and initial
-        state probabilities.  Given the observation probabilities, ie,
-        self.state[s].Py[t], given alpha, beta, gamma, and Py, these
-        calcuations are independent of the observation model
-        calculations."""
+        """Reestimate state transition probabilities and initial
+        state probabilities.
+
+        Given the observation probabilities, ie, self.state[s].Py[t],
+        given alpha, beta, gamma, and Py, these calcuations are
+        independent of the observation model calculations.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        """
         u_sum = np.zeros((self.N,self.N),np.float64)
         for t in range(self.T-1):
             u_sum += np.outer(self.alpha[t]/self.gamma[t+1],
@@ -238,8 +396,17 @@ class HMM:
         self.P_ScS.normalize()
         return self.alpha # End of reestimate_s()
     def reestimate(self,y):
-        """ Reestimate all paramters.  In particular, reestimate observation
-        model.
+        """Reestimate all model paramters. In particular, reestimate
+        observation model.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
         """
         w = self.reestimate_s()
         if not type(y) == np.ndarray:
@@ -252,7 +419,18 @@ class HMM:
         return # End of reestimate()
     def decode(self,y):
         """Use the Viterbi algorithm to find the most likely state
-           sequence for a given observation sequence y"""
+           sequence for a given observation sequence y
+
+        Parameters
+        ----------
+        y : array_like
+            Sequence of observations
+
+        Returns
+        -------
+        ss : array_like
+            Maximum likelihood state sequence
+        """
         self.Py_calc(y)
         pred = np.zeros((self.T, self.N), np.int32) # Best predecessors
         ss = np.zeros((self.T, 1), np.int32)        # State sequence
@@ -270,7 +448,24 @@ class HMM:
         return ss.flat # End of viterbi
     # End of decode()
     def simulate(self,length,seed=3):
-        """generates a random sequence of observations of given length"""
+        """generates a random sequence of observations of given length
+
+        Parameters
+        ----------
+
+        length : int
+            Number of time steps to simulate
+        seed : int, optional
+            Seed for random number generator
+
+        Returns
+        -------
+
+        states : array_like
+            Sequence of states
+        outs : array_like
+            Sequence of observations
+        """
         random.seed(seed)
         # Set up cumulative distributions
         cum_init = np.cumsum(self.P_S0_ergodic[0])
@@ -291,25 +486,46 @@ class HMM:
         return (states,outs) # End of simulate()
     def link(self, From, To, P):
         """ Create (or remove) a link between state "From" and state "To".
+
         The strength of the link is a function of both the argument
         "P" and the existing P_ScS array.  Set P_ScS itself if you
         need to set exact values.  Use this method to modify topology
         before training.
 
+        Parameters
+        ----------
+        From : int
+        To : int
+        P : float
+
+        Returns
+        -------
+        None
+
         FixMe: No test coverage.  Broken for cython code
         """
         self.P_ScS[From,To] = P
         self.P_ScS[From,:] /= self.P_ScS[From,:].sum()
-    def dump_base(self):
-        print("dumping a %s with %d states"%(self.__class__,self.N))
-        print_Name_V(' P_S0        ',self.P_S0)
-        print_Name_V(' P_S0_ergodic',self.P_S0_ergodic)
-        print_Name_VV('P_ScS', self.P_ScS.values())
-        return #end of dump_base()
-    def dump(self):
-        self.dump_base()
-        print_Name_VV('P_YcS', self.P_YcS.values())
-        return #end of dump()
+    def __str__(self):
+        def print_V(V):
+            rv = ''
+            for x in V:
+                rv += '%-6.3f'%x
+            return rv + '\n'
+        def print_Name_V(name,V):
+            return name+' =' + print_V(V)
+        def print_Name_VV(name,VV):
+            rv = '  '+name+' =\n'
+            for V in VV:
+                rv += '   ' + print_V(V)
+            return rv
+
+        rv = "A %s with %d states\n"%(self.__class__,self.N)
+        rv += print_Name_V(' P_S0        ',self.P_S0)
+        rv += print_Name_V(' P_S0_ergodic',self.P_S0_ergodic)
+        rv += print_Name_VV('P_ScS', self.P_ScS.values())
+        rv += print_Name_VV('P_YcS', self.P_YcS.values())
+        return rv[:-1]
 
 def _test():
     import doctest
