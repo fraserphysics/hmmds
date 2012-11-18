@@ -15,11 +15,15 @@ sphinx/doctest, I will put the project on google_code under git and
 GPL3.  I will use a single brief LaTeX document instead of the text
 that SIAM owns to collect the figures.
 
-To do:
-
-1. Work on documentation
+Want to imitate numpy style documentation
 
 https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
+http://www.python.org/dev/peps/pep-0008/
+
+To do:
+
+1. Get source code into documentation.  Look at coding standards.  Try
+   pylint.
 
 2. Ask Guy or Aric to look at style.
 

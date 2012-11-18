@@ -1,5 +1,8 @@
-'''C.pyx: cython code for speed up.
+'''C.pyx: cython code for speed up.  This code is 18 times faster than
+the pure python in the module Scalar.py.
+
 '''
+#To build: python3 setup.py build_ext --inplace
 import Scalar, numpy as np, scipy.sparse as SS, warnings
 #warnings.simplefilter('ignore',SS.SparseEfficiencyWarning)
 # Imitate http://docs.cython.org/src/tutorial/numpy.html
@@ -14,7 +17,6 @@ class HMM(Scalar.HMM):
 
     @cython.boundscheck(False)
     def forward(self):
-        Scalar.HMM.forward.__doc__
         # Ensure allocation and size of alpha and gamma
         self.alpha = Scalar.initialize(self.alpha,(self.T,self.N))
         self.gamma = Scalar.initialize(self.gamma,(self.T,))
@@ -75,15 +77,6 @@ class HMM(Scalar.HMM):
         return (np.log(self.gamma)).sum() # End of forward()
     @cython.boundscheck(False)
     def backward(self):
-        HMM.Scalar.backward.__doc__
-        """
-        On entry:
-        self    is an HMM
-        y       is a sequence of observations
-        exp(PyGhist[t]) = Pr{y(t)=y(t)|y_0^{t-1}}
-        On return:
-        for each state i, beta[t,i] = Pr{y_{t+1}^T|s(t)=i}/Pr{y_{t+1}^T}
-        """
         # Ensure allocation and size of beta
         self.beta = Scalar.initialize(self.beta,(self.T,self.N))
 
@@ -137,7 +130,23 @@ class HMM(Scalar.HMM):
         return # End of backward()
     @cython.boundscheck(False)
     def reestimate_s(self):
-        HMM.Scalar.reestimate_s.__doc__
+        """Reestimate state transition probabilities and initial
+        state probabilities.
+
+        Given the observation probabilities, ie, self.state[s].Py[t],
+        given alpha, beta, gamma, and Py, these calcuations are
+        independent of the observation model calculations.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        alpha*beta : array_like
+            State probabilities give all observations
+
+        """
         cdef np.ndarray[DTYPE_t, ndim=1] wsum = np.zeros(self.N,np.float64)
         cdef double *_w = <double *>wsum.data
 

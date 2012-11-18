@@ -1,6 +1,10 @@
 Application Scripts
 =================================================================
-.. automodule:: stateplot
-   :members:
+MakeModel.py
+-------------
 .. automodule:: MakeModel
+   :members:
+StatePic.py
+-------------
+.. automodule:: StatePic
    :members:

@@ -1,11 +1,9 @@
-""" The script that makes the cover figure.  Invocation
+"""The script that makes the cover figure.  Since this uses
+matplotlib, it **cannot run under python3**.
 
-python stateplot.py derived_data/synthetic state figs/Statesintro.pdf
 """
-import string, sys, matplotlib as mpl
-mpl.use('PDF')
-import matplotlib.pyplot as plt
 
+import sys
 def main(argv=None):
     '''Call with arguments: data_dir, base_name, fig_name
 
@@ -17,6 +15,16 @@ def main(argv=None):
     fig_name, eg, figs/Statesintro.pdf.  Where the figure gets written
 
     '''
+
+    if sys.version_info < (3,0):
+        import matplotlib as mpl
+        mpl.use('PDF')
+        import matplotlib.pyplot as plt
+    else:
+       print('%s needs matplotlib.  However, no matplotlib for python %s'%(
+           sys.argv[0],sys.version_info,))
+       return -1
+
 
     if argv is None:                    # Usual case
         argv = sys.argv[1:]

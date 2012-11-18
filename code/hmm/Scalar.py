@@ -378,7 +378,8 @@ class HMM:
 
         Returns
         -------
-        None
+        alpha*beta : array_like
+            State probabilities give all observations
 
         """
         u_sum = np.zeros((self.N,self.N),np.float64)

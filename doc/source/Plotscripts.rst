@@ -1,4 +1,6 @@
 Plot Scripts
 =================================================================
-.. automodule:: StatePic
+stateplot.py
+-------------
+.. automodule:: stateplot
    :members:
