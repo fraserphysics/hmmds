@@ -18,8 +18,8 @@ class HMM(Scalar.HMM):
     @cython.boundscheck(False)
     def forward(self):
         # Ensure allocation and size of alpha and gamma
-        self.alpha = Scalar.initialize(self.alpha,(self.T,self.N))
-        self.gamma = Scalar.initialize(self.gamma,(self.T,))
+        self.alpha = Scalar.initialize(self.alpha,(self.n_y,self.n_states))
+        self.gamma = Scalar.initialize(self.gamma,(self.n_y,))
 
         # Setup direct access to numpy arrays
         cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
@@ -33,24 +33,24 @@ class HMM(Scalar.HMM):
         cdef int astride = Alpha.strides[0]
         cdef double *a
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Pscs = self.P_ScS
+        cdef np.ndarray[DTYPE_t, ndim=2] Pscs = self.P_SS
         cdef char *_ps = Pscs.data
         cdef int pstride0 = Pscs.strides[0]
         cdef int pstride1 = Pscs.strides[1]
         cdef double *ps
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.Py
+        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
         cdef int pystride = Py.strides[0]
         cdef char *_py = Py.data
         cdef double *py
 
         # Allocate vector of length N
-        cdef np.ndarray[DTYPE_t, ndim=1] Next = np.empty(self.N)
+        cdef np.ndarray[DTYPE_t, ndim=1] Next = np.empty(self.n_states)
         cdef double *_next = <double *>Next.data
 
         cdef int t,i,j
-        cdef int N = self.N
-        cdef int T = self.T
+        cdef int N = self.n_states
+        cdef int T = self.n_y
         cdef double *_tmp
         cdef double total
         # iterate
@@ -78,13 +78,13 @@ class HMM(Scalar.HMM):
     @cython.boundscheck(False)
     def backward(self):
         # Ensure allocation and size of beta
-        self.beta = Scalar.initialize(self.beta,(self.T,self.N))
+        self.beta = Scalar.initialize(self.beta,(self.n_y,self.n_states))
 
         # Setup direct access to numpy arrays
         cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
         cdef double *_gamma = <double *>gamma.data
 
-        cdef np.ndarray[DTYPE_t, ndim=1] last = np.ones(self.N)
+        cdef np.ndarray[DTYPE_t, ndim=1] last = np.ones(self.n_states)
         cdef double *_last = <double *>last.data
 
         cdef np.ndarray[DTYPE_t, ndim=2] Beta = self.beta
@@ -92,24 +92,24 @@ class HMM(Scalar.HMM):
         cdef int bstride = Beta.strides[0]
         cdef double *b
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Pscs = self.P_ScS
+        cdef np.ndarray[DTYPE_t, ndim=2] Pscs = self.P_SS
         cdef char *_ps = Pscs.data
         cdef int pstride = Pscs.strides[0]
         cdef double *ps
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.Py
+        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
         cdef int pystride = Py.strides[0]
         cdef char *_py = Py.data
         cdef double *py
 
         # Allocate vector of length N
-        cdef np.ndarray[DTYPE_t, ndim=1] Next = np.empty(self.N)
+        cdef np.ndarray[DTYPE_t, ndim=1] Next = np.empty(self.n_states)
         cdef double *_next = <double *>Next.data
 
         # iterate
         cdef int t,i,j
-        cdef int N = self.N
-        cdef int T = self.T
+        cdef int N = self.n_states
+        cdef int T = self.n_y
         cdef double *_tmp
         cdef double total
         for t in range(T-1,-1,-1):
@@ -133,7 +133,7 @@ class HMM(Scalar.HMM):
         """Reestimate state transition probabilities and initial
         state probabilities.
 
-        Given the observation probabilities, ie, self.state[s].Py[t],
+        Given the observation probabilities, ie, self.state[s].P_Y[t],
         given alpha, beta, gamma, and Py, these calcuations are
         independent of the observation model calculations.
 
@@ -147,11 +147,12 @@ class HMM(Scalar.HMM):
             State probabilities give all observations
 
         """
-        cdef np.ndarray[DTYPE_t, ndim=1] wsum = np.zeros(self.N,np.float64)
+        cdef np.ndarray[DTYPE_t, ndim=1] wsum = np.zeros(self.n_states,
+                                                         np.float64)
         cdef double *_w = <double *>wsum.data
 
         cdef np.ndarray[DTYPE_t, ndim=2] u_sum = np.zeros(
-            (self.N,self.N),np.float64)
+            (self.n_states,self.n_states),np.float64)
         cdef char *_u = u_sum.data
         cdef int ustride = u_sum.strides[0]
         cdef double *u
@@ -159,7 +160,7 @@ class HMM(Scalar.HMM):
         cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
         cdef double *_gamma = <double *>gamma.data
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.Py
+        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
         cdef int pystride = Py.strides[0]
         cdef char *_py = Py.data
         cdef double *py
@@ -176,8 +177,8 @@ class HMM(Scalar.HMM):
         cdef double *bt
 
         cdef int t,i,j
-        cdef int N = self.N
-        cdef int T = self.T
+        cdef int N = self.n_states
+        cdef int T = self.n_y
         for t in range(T-1):
             py = <double *>(_py+(t+1)*pystride)
             a = <double *>(_alpha+t*astride)
@@ -195,12 +196,12 @@ class HMM(Scalar.HMM):
         self.P_S0 = np.copy(self.alpha[0])
         for x in (self.P_S0_ergodic, self.P_S0):
             x /= x.sum()
-        self.P_ScS.inplace_elementwise_multiply(u_sum)
-        self.P_ScS.normalize()
+        self.P_SS.inplace_elementwise_multiply(u_sum)
+        self.P_SS.normalize()
         return self.alpha # End of reestimate_s()
 
-class PROB:
-    '''Replacement for Scalar.PROB that stores data in sparse matrix
+class Prob:
+    '''Replacement for Scalar.Prob that stores data in sparse matrix
     format.  P[a,b] is the probability of b given a.
     
     For pruning.  Drop x[i,j] if x[i,j] < threshold*max(A[i,:]) and
@@ -345,24 +346,24 @@ class PROB:
         _A.data = <char *>t
         
 def make_prob(x):
-    return PROB(x)
+    return Prob(x)
 
 class HMM_SPARSE(HMM):
     '''HMM code that uses sparse matrices for state to state and state to
     observation probabilities.  API matches Scalar.HMM
 
     '''
-    def __init__(self, P_S0, P_S0_ergodic, P_ScS, P_YcS):
-        Scalar.HMM.__init__(self, P_S0, P_S0_ergodic, P_ScS, P_YcS,
+    def __init__(self, P_S0, P_S0_ergodic, P_SS, P_YS):
+        Scalar.HMM.__init__(self, P_S0, P_S0_ergodic, P_SS, P_YS,
                             prob=make_prob)
 
     @cython.boundscheck(False)
-    def Py_calc(
+    def p_y_calc(
         self,    # HMM
         y        # A sequence of integer observations
         ):
         """
-        Allocate self.Py and assign values self.Py[t,i] = P(y(t)|s(t)=i)
+        Allocate self.P_Y and assign values self.P_Y[t,i] = P(y(t)|s(t)=i)
 
         Parameters
         ----------
@@ -373,12 +374,12 @@ class HMM_SPARSE(HMM):
         -------
         None
         """
-        # Check size and initialize self.Py
-        self.T = len(y)
-        self.Py = Scalar.initialize(self.Py,(self.T,self.N))
-        YcS = self.P_YcS
+        # Check size and initialize self.P_Y
+        self.n_y = len(y)
+        self.P_Y = Scalar.initialize(self.P_Y,(self.n_y,self.n_states))
+        YcS = self.P_YS
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.Py
+        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
         cdef int pystride = Py.strides[0]
         cdef char *_py = Py.data
         cdef double *py
@@ -393,7 +394,7 @@ class HMM_SPARSE(HMM):
         cdef np.ndarray[ITYPE_t, ndim=1] indptr = YcS.indptr
         cdef int *_indptr = <int *>indptr.data
 
-        cdef int T = self.T
+        cdef int T = self.n_y
         cdef int t,i,j,J
         for t in range(T):
             py = <double *>(_py+t*pystride)
@@ -401,7 +402,7 @@ class HMM_SPARSE(HMM):
             for j in range(_indptr[i],_indptr[i+1]):
                 J = _indices[j]
                 py[J] = _data[j]
-        return # End of Py_calc()
+        return # End of p_y_calc()
     @cython.boundscheck(False)
     def forward(self):
         """
@@ -425,11 +426,11 @@ class HMM_SPARSE(HMM):
 
         * self       is an HMM
 
-        * self.Py    has been calculated
+        * self.P_Y    has been calculated
 
-        * self.T     is length of Y
+        * self.n_y     is length of Y
 
-        * self.N     is number of states
+        * self.n_states     is number of states
 
         Bullet points
         -------------
@@ -442,8 +443,8 @@ class HMM_SPARSE(HMM):
 
         """
         # Ensure allocation and size of alpha and gamma
-        self.alpha = Scalar.initialize(self.alpha,(self.T,self.N))
-        self.gamma = Scalar.initialize(self.gamma,(self.T,))
+        self.alpha = Scalar.initialize(self.alpha,(self.n_y,self.n_states))
+        self.gamma = Scalar.initialize(self.gamma,(self.n_y,))
 
         # Setup direct access to numpy arrays
         cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
@@ -457,12 +458,12 @@ class HMM_SPARSE(HMM):
         cdef int astride = Alpha.strides[0]
         cdef double *a
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.Py
+        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
         cdef int pystride = Py.strides[0]
         cdef char *_py = Py.data
         cdef double *py
 
-        PSCS = self.P_ScS
+        PSCS = self.P_SS
         cdef np.ndarray[DTYPE_t, ndim=1] data = PSCS.data
         cdef double *_data = <double *>data.data
         cdef np.ndarray[ITYPE_t, ndim=1] indices = PSCS.indices
@@ -473,8 +474,8 @@ class HMM_SPARSE(HMM):
         cdef double *_next = <double *>tdata.data
 
         cdef int t,i,j
-        cdef int N = self.N
-        cdef int T = self.T
+        cdef int N = self.n_states
+        cdef int T = self.n_y
         cdef double *_tmp
         cdef double total
         # iterate
@@ -523,7 +524,7 @@ class HMM_SPARSE(HMM):
 
         * self    is an HMM
 
-        * self.Py    has been calculated
+        * self.P_Y    has been calculated
 
         Bullet points
         -------------
@@ -534,13 +535,13 @@ class HMM_SPARSE(HMM):
 
         """
         # Ensure allocation and size of beta
-        self.beta = Scalar.initialize(self.beta,(self.T,self.N))
+        self.beta = Scalar.initialize(self.beta,(self.n_y,self.n_states))
 
         # Setup direct access to numpy arrays
         cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
         cdef double *_gamma = <double *>gamma.data
 
-        cdef np.ndarray[DTYPE_t, ndim=1] last = np.ones(self.N)
+        cdef np.ndarray[DTYPE_t, ndim=1] last = np.ones(self.n_states)
         cdef double *_last = <double *>last.data
 
         cdef np.ndarray[DTYPE_t, ndim=2] Beta = self.beta
@@ -548,12 +549,12 @@ class HMM_SPARSE(HMM):
         cdef int bstride = Beta.strides[0]
         cdef double *b
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.Py
+        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
         cdef int pystride = Py.strides[0]
         cdef char *_py = Py.data
         cdef double *py
 
-        PSCS = self.P_ScS
+        PSCS = self.P_SS
         cdef np.ndarray[DTYPE_t, ndim=1] data = PSCS.data
         cdef double *_data = <double *>data.data
         cdef np.ndarray[ITYPE_t, ndim=1] indices = PSCS.indices
@@ -565,8 +566,8 @@ class HMM_SPARSE(HMM):
 
         # iterate
         cdef int t,i,j,J
-        cdef int N = self.N
-        cdef int T = self.T
+        cdef int N = self.n_states
+        cdef int T = self.n_y
         cdef double *_tmp
         cdef double total
         for t in range(T-1,-1,-1):

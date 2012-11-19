@@ -63,7 +63,7 @@ def main(argv=None):
 
     # Train the model
     mod = HMM(P_S0,P_S0_ergodic,P_ScS,P_YcS)
-    mod.train(Y,N_iter=niterations)
+    mod.train(Y,n_iter=niterations)
 
     # Strip alpha, beta, and Py, then save model in <model_file>
     mod.alpha = None
