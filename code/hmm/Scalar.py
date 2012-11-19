@@ -190,18 +190,18 @@ class HMM:
     it= 2 LLps=  -0.918
     it= 3 LLps=  -0.917
     >>> print(mod)
-    A <class '__main__.HMM'> with 3 states
-     P_S0         =0.000 0.963 0.037 
-     P_S0_ergodic =0.142 0.580 0.278 
-      P_SS =
-       0.000 1.000 0.000 
-       0.000 0.519 0.481 
-       0.512 0.488 0.000 
-      P_YS =
-       1.000 0.000 0.000 
-       0.000 0.335 0.665 
-       0.000 0.726 0.274 
-
+    <class '__main__.HMM'> with 3 states
+    P_S0         = [ 0.     0.963  0.037]
+    P_S0_ergodic = [ 0.142  0.58   0.278]
+    P_SS =
+    [[ 0.     1.     0.   ]
+     [ 0.     0.519  0.481]
+     [ 0.512  0.488  0.   ]]
+    P_YS =
+    [[ 1.     0.     0.   ]
+     [ 0.     0.335  0.665]
+     [ 0.     0.726  0.274]
+    
     """
     def __init__(
         self,         # HMM instance
@@ -513,24 +513,13 @@ class HMM:
         self.P_SS[from_,to_] = p
         self.P_SS[from_,:] /= self.P_SS[from_,:].sum()
     def __str__(self):
-        def print_v(V):
-            rv = ''
-            for x in V:
-                rv += '%-6.3f'%x
-            return rv + '\n'
-        def print_name_v(name, V):
-            return name+' =' + print_v(V)
-        def print_name_vv(name, VV):
-            rv = '  '+name+' =\n'
-            for V in VV:
-                rv += '   ' + print_v(V)
-            return rv
-
-        rv = "A %s with %d states\n"%(self.__class__, self.n_states)
-        rv += print_name_v(' P_S0        ', self.P_S0)
-        rv += print_name_v(' P_S0_ergodic', self.P_S0_ergodic)
-        rv += print_name_vv('P_SS', self.P_SS.values())
-        rv += print_name_vv('P_YS', self.P_YS.values())
+        np.set_printoptions(precision=3)
+        rv = "%s with %d states\n"%(self.__class__, self.n_states)
+        rv += 'P_S0         = %s\n'%self.P_S0
+        rv += 'P_S0_ergodic = %s\n'%self.P_S0_ergodic
+        rv += 'P_SS =\n%s\n'%self.P_SS.values()
+        rv += 'P_YS =\n%s'%self.P_YS.values()
+        np.set_printoptions(precision=8)
         return rv[:-1]
 
 def _test():

@@ -22,8 +22,7 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-1. Get source code into documentation.  Look at coding standards.  Try
-   pylint.
+1. Get source code into documentation.
 
 2. Ask Guy or Aric to look at style.
 
