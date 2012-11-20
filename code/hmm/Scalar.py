@@ -7,8 +7,8 @@ import numpy as np
 
 def initialize(x, shape, dtype=np.float64):
     if x == None or x.shape != shape:
-        return np.zeros(shape, dtype)
-    return x*0
+        return np.empty(shape, dtype)
+    return x
 ## ----------------------------------------------------------------------
 class Prob(np.ndarray):
     '''Subclass of ndarray for probability matrices.  P[a,b] is the
@@ -297,7 +297,7 @@ class HMM:
         return (np.log(self.gamma)).sum() # End of forward()
     def backward(self):
         """
-        Implements the Baum_Welch backwards pass through state conditional
+        Implements the Baum Welch backwards pass through state conditional
         likelihoods of the obserations.
 
         Parameters
@@ -387,7 +387,7 @@ class HMM:
 
         """
         u_sum = np.zeros((self.n_states, self.n_states), np.float64)
-        for t in range(self.n_y-1):
+        for t in np.where(self.gamma[1:]>0)[0]: # Skip segment boundaries
             u_sum += np.outer(self.alpha[t]/self.gamma[t+1],
                               self.P_Y[t+1]*self.beta[t+1, :])
         self.alpha *= self.beta
@@ -556,6 +556,31 @@ class HMM:
         ):
         '''Train on multiple sequences of observations
 
+        Parameters
+        ----------
+        ys : list
+            list of sequences of integer observations
+        n_iter : int, optional
+            Number of iterations
+        boost_w : array_like, optional
+            Weight of each observation for reestimation
+        display : bool, optional
+            If True, print the log likelihood per observation for each
+            segment and each iteration
+
+        Returns
+        -------
+        avgs : list
+            List of log likelihood per observation for each iteration
+
+        Examples
+        --------
+        Same model as used to demonstrate train().  Here simulated
+        data is broken into three independent segments for training.
+        For each iteration, "L[i]" gives the loglikelihood per data
+        point of segment "i".  Note that L[2] does not improve
+        monotonically but that the average over segments does.
+
         >>> P_S0 = np.array([1./3., 1./3., 1./3.])
         >>> P_S0_ergodic = np.array([1./7., 4./7., 2./7.])
         >>> P_SS = np.array([
@@ -569,14 +594,16 @@ class HMM:
         ...         [0, 2./3., 1./3.]
         ...         ])
         >>> mod = HMM(P_S0,P_S0_ergodic,P_SS,P_YS)
-        >>> S,Y = mod.simulate(500)
+        >>> S,Y = mod.simulate(600)
         >>> ys = []
-        >>> for i in range(3):
-        ...     ys.append(Y[100*i:100*(i+1)])
-        >>> A = mod.multi_train(ys,5)
+        >>> for i in [1,2,0]:
+        ...     ys.append(list(Y[200*i:200*(i+1)]))
+        >>> A = mod.multi_train(ys,3)
+        i=0: L[0]=-0.9162 L[1]=-0.9142 L[2]=-0.9275 avg=-0.9193117
+        i=1: L[0]=-0.9156 L[1]=-0.9137 L[2]=-0.9278 avg=-0.9190510
+        i=2: L[0]=-0.9153 L[1]=-0.9135 L[2]=-0.9280 avg=-0.9189398
 
         '''
-        
         t_seg, y_all = self.join_ys(ys)
         P_Y_all = self.P_Y
         n_seg = len(t_seg) - 1
@@ -588,10 +615,10 @@ class HMM:
         P_S0_all = np.empty((n_seg, self.n_states))
         #P_S0_all are state probabilities at the beginning of each segment
         for seg in range(n_seg):
-            P_S0_all[seg, :] = self.P_S0
+            P_S0_all[seg, :] = self.P_S0.copy()
         for i in range(n_iter):
             if display:
-                print("iteration %3d:"%i, end='')
+                print('i=%d: '%i, end='')
             tot = 0.0
             # Both forward() and backward() should operate on each
             # training segment and put the results in the
@@ -608,18 +635,18 @@ class HMM:
                 self.P_S0 = P_S0_all[seg, :]
                 LL = self.forward() #LogLikelihood
                 if display:
-                    print(" llps[%d,%d]=%7.4f "%(i,seg,LL/self.n_y), end='')
+                    print('L[%d]=%7.4f '%(seg,LL/self.n_y), end='')
                 tot += LL
                 self.backward()
-                P_S0_all[seg] = self.alpha[0] * self.beta[0]
-                if seg > 0: # Don't fit state transitions between segments
-                    self.beta[0] *= 0
+                self.P_S0 = self.alpha[0] * self.beta[0]
+                self.gamma[0] = -1 # Don't fit transitions between segments
             avgs[i] = tot/t_total
+            if i>0 and avgs[i-1] >= avgs[i]:
+                print('''
+WARNING training is not monotonic: avg[%d]=%f and avg[%d]=%f
+'''%(i-1,avgs[i-1],i,avgs[i]))
             if display:
-                print('avg=', "%11.8f"% avgs[i])
-            for t in range(len(gamma_all)):
-                if gamma_all[t] < -100:
-                    print("Small gamma_all at t=",t,"log=",gamma_all[t])
+                print('avg=%10.7f'% avgs[i])
             # Associate all of the alpha and beta segments with the
             # states and reestimate()
             self.alpha = alpha_all
@@ -630,10 +657,8 @@ class HMM:
                 self.alpha *= BoostW
             self.n_y = len(y_all)
             self.reestimate(y_all)
-            psum = np.zeros(self.n_states)
-            for seg in range(n_seg):
-                psum += alpha_all[t_seg[seg]]*beta_all[t_seg[seg]]
-            self.P_S0 = psum/psum.sum()
+        self.P_S0[:] = P_S0_all.sum(axis=0)
+        self.P_S0 /= self.P_S0.sum()
         return avgs
 class HMMc(HMM):
     '''Models that permit each state to be a member of
