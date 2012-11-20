@@ -26,9 +26,10 @@ To do:
 
 2. Ask Guy or Aric to look at style.
 
-3. Write code to analyze apnea data to make sure that you have basic
-    hmm class with enough flexibility to handle: Multiple sets of
-    training data; Custom output models; Decoding class sequences.
+3. Write code for decoding class sequences.
+
+4. Write variant module that uses Gaussian output model.  Goals: test
+   ability to generalize base class.  Illustrate generalization.
 
 # Local Variables:
 # mode: text
