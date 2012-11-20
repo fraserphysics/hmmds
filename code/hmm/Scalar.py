@@ -80,7 +80,7 @@ class Prob(np.ndarray):
         '''
         s = self.sum(axis=1)
         for i in range(self.shape[0]):
-            self[i,:] /= s[i]
+            self[i, :] /= s[i]
     def step_forward(self, a):
         '''
         Replace values of argument a with matrix product a*self
@@ -243,7 +243,7 @@ class HMM:
         # Check size and initialize self.P_Y
         self.n_y = len(y)
         self.P_Y = initialize(self.P_Y, (self.n_y, self.n_states))
-        self.P_Y[:,:] = self.P_YS.likelihoods(y)
+        self.P_Y[:, :] = self.P_YS.likelihoods(y)
         return # End of p_y_calc()
     def forward(self):
         """
@@ -292,7 +292,7 @@ class HMM:
             last *= self.P_Y[t]              # Element-wise multiply
             self.gamma[t] = last.sum()
             last /= self.gamma[t]
-            self.alpha[t,:] = last
+            self.alpha[t, :] = last
             self.P_SS.step_forward(last)
         return (np.log(self.gamma)).sum() # End of forward()
     def backward(self):
@@ -330,7 +330,7 @@ class HMM:
         last = np.ones(self.n_states)
         # iterate
         for t in range(self.n_y-1, -1, -1):
-            self.beta[t,:] = last
+            self.beta[t, :] = last
             last *= self.P_Y[t]
             last /= self.gamma[t]
             self.P_SS.step_back(last)
@@ -389,7 +389,7 @@ class HMM:
         u_sum = np.zeros((self.n_states, self.n_states), np.float64)
         for t in range(self.n_y-1):
             u_sum += np.outer(self.alpha[t]/self.gamma[t+1],
-                              self.P_Y[t+1]*self.beta[t+1,:])
+                              self.P_Y[t+1]*self.beta[t+1, :])
         self.alpha *= self.beta
         wsum = self.alpha.sum(axis=0)
         self.P_S0_ergodic = np.copy(wsum)
@@ -444,7 +444,7 @@ class HMM:
         nu = L_p_y[0] + L_s0
         for t in range(1, self.n_y):
             omega = L_scs.T + nu
-            pred[t,:] = omega.T.argmax(axis=0)   # Best predecessor
+            pred[t, :] = omega.T.argmax(axis=0)   # Best predecessor
             nu = pred[t, :].choose(omega.T) + L_p_y[t]
         last_s = np.argmax(nu)
         for t in range(self.n_y-1, -1, -1):
@@ -511,7 +511,7 @@ class HMM:
         FixMe: No test coverage.  Broken for cython code
         """
         self.P_SS[from_,to_] = p
-        self.P_SS[from_,:] /= self.P_SS[from_,:].sum()
+        self.P_SS[from_, :] /= self.P_SS[from_, :].sum()
     def __str__(self):
         np.set_printoptions(precision=3)
         rv = "%s with %d states\n"%(self.__class__, self.n_states)
@@ -521,7 +521,125 @@ class HMM:
         rv += 'P_YS =\n%s'%self.P_YS.values()
         np.set_printoptions(precision=8)
         return rv[:-1]
+    def join_ys(
+            self,    # HMM instance
+            ys       # List of observation sequences
+        ):
+        """For multiple y sequences allocate single self.P_Y and fill it
+        using self.p_y_calc().  Return information on sequence boundaries.
 
+        Parameters
+        ----------
+        ys : list
+            A list of observation sequences.  Default int, but must match
+            method self.P_Y() if subclassed
+
+        Returns
+        -------
+        t_seg : list
+            List of ints specifying endpoints of segments within self.P_Y
+
+        """
+        t_seg = [0] # List of segment boundaries in concatenated ys
+        y_all = []
+        for seg in ys:
+            y_all += list(seg)
+            t_seg.append(len(y_all))
+        self.p_y_calc(y_all)
+        return t_seg, y_all
+    def multi_train(
+            self,         # HMM instance
+            ys,           # List of observation sequences
+            n_iter=1,
+            boost_w=None, # Optional weight of each observation for reestimation
+            display=True
+        ):
+        '''Train on multiple sequences of observations
+
+        >>> P_S0 = np.array([1./3., 1./3., 1./3.])
+        >>> P_S0_ergodic = np.array([1./7., 4./7., 2./7.])
+        >>> P_SS = np.array([
+        ...         [0,   1,   0],
+        ...         [0,  .5,  .5],
+        ...         [.5, .5,   0]
+        ...         ],np.float64)
+        >>> P_YS = np.array([
+        ...         [1, 0,     0],
+        ...         [0, 1./3., 2./3.],
+        ...         [0, 2./3., 1./3.]
+        ...         ])
+        >>> mod = HMM(P_S0,P_S0_ergodic,P_SS,P_YS)
+        >>> S,Y = mod.simulate(500)
+        >>> ys = []
+        >>> for i in range(3):
+        ...     ys.append(Y[100*i:100*(i+1)])
+        >>> A = mod.multi_train(ys,5)
+
+        '''
+        
+        t_seg, y_all = self.join_ys(ys)
+        P_Y_all = self.P_Y
+        n_seg = len(t_seg) - 1
+        avgs = n_iter*[None] # Average log likelihood per step
+        t_total = t_seg[-1]
+        alpha_all = initialize(self.alpha, (t_total, self.n_states))
+        beta_all = initialize(self.beta, (t_total, self.n_states))
+        gamma_all = initialize(self.gamma, (t_total,))
+        P_S0_all = np.empty((n_seg, self.n_states))
+        #P_S0_all are state probabilities at the beginning of each segment
+        for seg in range(n_seg):
+            P_S0_all[seg, :] = self.P_S0
+        for i in range(n_iter):
+            if display:
+                print("iteration %3d:"%i, end='')
+            tot = 0.0
+            # Both forward() and backward() should operate on each
+            # training segment and put the results in the
+            # corresponding segement of the the alpha, beta and gamma
+            # arrays.
+            self.p_y_calc(y_all)
+            P_Y_all = self.P_Y
+            for seg in range(n_seg):
+                self.n_y = t_seg[seg+1] - t_seg[seg]
+                self.alpha = alpha_all[t_seg[seg]:t_seg[seg+1], :]
+                self.beta = beta_all[t_seg[seg]:t_seg[seg+1], :]
+                self.P_Y = P_Y_all[t_seg[seg]:t_seg[seg+1]]
+                self.gamma = gamma_all[t_seg[seg]:t_seg[seg+1]]
+                self.P_S0 = P_S0_all[seg, :]
+                LL = self.forward() #LogLikelihood
+                if display:
+                    print(" llps[%d,%d]=%7.4f "%(i,seg,LL/self.n_y), end='')
+                tot += LL
+                self.backward()
+                P_S0_all[seg] = self.alpha[0] * self.beta[0]
+                if seg > 0: # Don't fit state transitions between segments
+                    self.beta[0] *= 0
+            avgs[i] = tot/t_total
+            if display:
+                print('avg=', "%11.8f"% avgs[i])
+            for t in range(len(gamma_all)):
+                if gamma_all[t] < -100:
+                    print("Small gamma_all at t=",t,"log=",gamma_all[t])
+            # Associate all of the alpha and beta segments with the
+            # states and reestimate()
+            self.alpha = alpha_all
+            self.beta = beta_all
+            self.gamma = gamma_all
+            self.P_Y = P_Y_all
+            if boost_w != None:
+                self.alpha *= BoostW
+            self.n_y = len(y_all)
+            self.reestimate(y_all)
+            psum = np.zeros(self.n_states)
+            for seg in range(n_seg):
+                psum += alpha_all[t_seg[seg]]*beta_all[t_seg[seg]]
+            self.P_S0 = psum/psum.sum()
+        return avgs
+class HMMc(HMM):
+    '''Models that permit each state to be a member of
+    a class_ (not the python reserved word).
+
+    '''
 def _test():
     import doctest
     doctest.testmod()
