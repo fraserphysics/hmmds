@@ -347,18 +347,19 @@ class Prob:
         
 def make_prob(x):
     return Prob(x)
-
+#FixMe: Want class Discrete_Observationsx
 class HMM_SPARSE(HMM):
     '''HMM code that uses sparse matrices for state to state and state to
     observation probabilities.  API matches Scalar.HMM
 
     '''
-    def __init__(self, P_S0, P_S0_ergodic, P_SS, P_YS):
-        Scalar.HMM.__init__(self, P_S0, P_S0_ergodic, P_SS, P_YS,
+    def __init__(self, P_S0, P_S0_ergodic, P_YS, P_SS):
+        Scalar.HMM.__init__(self, P_S0, P_S0_ergodic, P_YS, P_SS,
                             prob=make_prob)
 
     @cython.boundscheck(False)
-    def p_y_calc(
+    def p_y_calc(  ####FixMe: Broken by new Scalar.py because y_mod is
+                   ####separate now
         self,    # HMM
         y        # A sequence of integer observations
         ):

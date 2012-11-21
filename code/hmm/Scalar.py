@@ -5,6 +5,9 @@
 import random
 import numpy as np
 
+# cum_rand generates random integers from a cumulative distribution
+cum_rand = lambda cum: np.searchsorted(cum, random.random())
+
 def initialize(x, shape, dtype=np.float64):
     if x == None or x.shape != shape:
         return np.empty(shape, dtype)
@@ -13,13 +16,11 @@ def initialize(x, shape, dtype=np.float64):
 class Prob(np.ndarray):
     '''Subclass of ndarray for probability matrices.  P[a,b] is the
     probability of b given a.  The class has additional methods and is
-    designed to enable further subclasses with speed improvements
-    implemented by uglier code.
+    designed to enable alternative implementations with speed
+    improvements implemented by uglier code.
 
     '''
     # See http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
-    def __init__(self, *args, **kwargs):
-        np.ndarray.__init__(self, *args, **kwargs)
     def assign_col(self, i, col):
         '''
         Replace column of self with data specified by the parameters
@@ -128,6 +129,82 @@ def make_prob(x):
     x = np.array(x)
     return Prob(x.shape, buffer=x.data)
 
+class Discrete_Observations:
+    '''The simplest observation model: A finite set of integers.
+
+    More complex observation models should provide the methods:
+    *calc*, *random_out*, *reestimate* necessary for the application.
+
+    Parameters
+    ----------
+    P_YS : array_like
+        Conditional probabilites P_YS[s,y]
+
+    '''
+    def __init__(self,P_YS):
+        self.P_YS = make_prob(P_YS)
+        self.cum_y = np.cumsum(self.P_YS, axis=1)
+        self.P_Y = None
+        return
+    def __str__(self):
+        return 'P_YS =\n%s'%(self.P_YS,)
+    def random_out(self,s):
+        ''' For simulation, draw a random observation given state s
+
+        Parameters
+        ----------
+        s : int
+            Index of state
+
+        Returns
+        -------
+        y : float
+            Random observation drawn from distribution conditioned on state s
+        '''
+        return cum_rand(self.cum_y[s])
+    def calc(self,y):
+        """
+        Calculate and return likelihoods: self.P_Y[t,i] = P(y(t)|s(t)=i)
+
+        Parameters
+        ----------
+        y : array_like
+            A sequence of integer observations
+
+        Returns
+        -------
+        P_Y : array_like, floats
+        """
+        n_y = len(y)
+        n_states = len(self.P_YS)
+        self.P_Y = initialize(self.P_Y, (n_y, n_states))
+        self.P_Y[:, :] = self.P_YS.likelihoods(y)
+        return self.P_Y
+    def reestimate(self,w,y):
+        """
+        Estimate new model parameters
+
+        Parameters
+        ----------
+        w : array
+            w[t,s] = Prob(state[t]=s) given data and old model
+        y : array
+            A sequence of integer observations
+
+        Returns
+        -------
+        None
+        """
+        n_y = len(y)
+        if not type(y) == np.ndarray:
+            y = np.array(y, np.int32)
+        assert(y.dtype == np.int32 and y.shape == (n_y,))
+        for yi in range(self.P_YS.shape[1]):
+            self.P_YS.assign_col(
+                yi, w.take(np.where(y==yi)[0], axis=0).sum(axis=0))
+        self.P_YS.normalize()
+        self.cum_y = np.cumsum(self.P_YS, axis=1)
+        return
 class HMM:
     """A Hidden Markov Model implementation.
 
@@ -143,10 +220,6 @@ class HMM:
         P_YS[a,b] = Prob(y(0)=b|s(0)=a)
     prob=make_prob : function, optional
         Function to make conditional probability matrix
-
-    Returns
-    -------
-    None
 
     Examples
     --------
@@ -165,7 +238,7 @@ class HMM:
     ...         [0, 1./3., 2./3.],
     ...         [0, 2./3., 1./3.]
     ...         ])
-    >>> mod = HMM(P_S0,P_S0_ergodic,P_SS,P_YS)
+    >>> mod = HMM(P_S0,P_S0_ergodic,P_YS,P_SS)
     >>> S,Y = mod.simulate(500)
     >>> Y = np.array(Y,np.int32)
     >>> E = mod.decode(Y)
@@ -207,8 +280,9 @@ class HMM:
         self,         # HMM instance
         P_S0,         # Initial distribution of states
         P_S0_ergodic, # Stationary distribution of states
-        P_SS,        # P_SS[a,b] = Prob(s(1)=b|s(0)=a)
-        P_YS,        # P_YS[a,b] = Prob(y(0)=b|s(0)=a)
+        P_YS,         # P_YS[a,b] = Prob(y(0)=b|s(0)=a)
+        P_SS,         # P_SS[a,b] = Prob(s(1)=b|s(0)=a)
+        y_mod=Discrete_Observations,
         prob=make_prob# Function to make conditional probability matrix
         ):
         """Builds a new Hidden Markov Model
@@ -217,34 +291,12 @@ class HMM:
         self.P_S0 = np.array(P_S0)
         self.P_S0_ergodic = np.array(P_S0_ergodic)
         self.P_SS = prob(P_SS)
-        self.P_YS = prob(P_YS)
-        self.P_Y = None
+        self.y_mod = y_mod(P_YS)
         self.alpha = None
         self.gamma = None
         self.beta = None
         self.n_y = None
         return # End of __init__()
-    def p_y_calc(
-        self,    # HMM
-        y        # A sequence of integer observations
-        ):
-        """
-        Allocate self.P_Y and assign values self.P_Y[t,i] = P(y(t)|s(t)=i)
-
-        Parameters
-        ----------
-        y : array_like
-            A sequence of integer observations
-
-        Returns
-        -------
-        None
-        """
-        # Check size and initialize self.P_Y
-        self.n_y = len(y)
-        self.P_Y = initialize(self.P_Y, (self.n_y, self.n_states))
-        self.P_Y[:, :] = self.P_YS.likelihoods(y)
-        return # End of p_y_calc()
     def forward(self):
         """
         Implements recursive calculation of state probabilities given
@@ -360,7 +412,8 @@ class HMM:
         # Do (n_iter) BaumWelch iterations
         LLL = []
         for it in range(n_iter):
-            self.p_y_calc(y)
+            self.P_Y = self.y_mod.calc(y)
+            self.n_y = len(self.P_Y)
             LLps = self.forward()/len(y) # log likelihood per step
             if display:
                 print("it= %d LLps= %7.3f"%(it, LLps))
@@ -406,7 +459,8 @@ class HMM:
 
         Parameters
         ----------
-        None
+        y : array
+           Time series of observations
 
         Returns
         -------
@@ -414,13 +468,7 @@ class HMM:
 
         """
         w = self.reestimate_s()
-        if not type(y) == np.ndarray:
-            y = np.array(y, np.int32)
-        assert(y.dtype == np.int32 and y.shape == (self.n_y,))
-        for yi in range(self.P_YS.shape[1]):
-            self.P_YS.assign_col(
-                yi, w.take(np.where(y==yi)[0], axis=0).sum(axis=0))
-        self.P_YS.normalize()
+        self.y_mod.reestimate(w,y)
         return # End of reestimate()
     def decode(self, y):
         """Use the Viterbi algorithm to find the most likely state
@@ -436,7 +484,8 @@ class HMM:
         ss : array_like
             Maximum likelihood state sequence
         """
-        self.p_y_calc(y)
+        self.P_Y = self.y_mod.calc(y)
+        self.n_y = len(self.P_Y)
         pred = np.zeros((self.n_y, self.n_states), np.int32) # Best predecessors
         ss = np.zeros((self.n_y, 1), np.int32)        # State sequence
         L_s0, L_scs, L_p_y = (np.log(np.maximum(x, 1e-30)) for x in
@@ -475,19 +524,15 @@ class HMM:
         # Set up cumulative distributions
         cum_init = np.cumsum(self.P_S0_ergodic[0])
         cum_tran = np.cumsum(self.P_SS.values(), axis=1)
-        cum_y = np.cumsum(self.P_YS.values(), axis=1)
         # Initialize lists
         outs = []
         states = []
-        def cum_rand(cum):
-            '''A little service function'''
-            return np.searchsorted(cum, random.random())
         # Select initial state
         i = cum_rand(cum_init)
         # Select subsequent states and call model to generate observations
         for t in range(length):
             states.append(i)
-            outs.append(cum_rand(cum_y[i]))
+            outs.append(self.y_mod.random_out(i))
             i = cum_rand(cum_tran[i])
         return (states, outs) # End of simulate()
     def link(self, from_, to_, p):
@@ -514,19 +559,23 @@ class HMM:
         self.P_SS[from_, :] /= self.P_SS[from_, :].sum()
     def __str__(self):
         np.set_printoptions(precision=3)
-        rv = "%s with %d states\n"%(self.__class__, self.n_states)
-        rv += 'P_S0         = %s\n'%self.P_S0
-        rv += 'P_S0_ergodic = %s\n'%self.P_S0_ergodic
-        rv += 'P_SS =\n%s\n'%self.P_SS.values()
-        rv += 'P_YS =\n%s'%self.P_YS.values()
+        rv = '''
+%s with %d states
+P_S0         = %s
+P_S0_ergodic = %s
+P_SS =
+%s
+%s''' % (self.__class__, self.n_states, self.P_S0, self.P_S0_ergodic,
+         self.P_SS.values(), self.y_mod
+         )
         np.set_printoptions(precision=8)
-        return rv[:-1]
+        return rv[1:-1]
     def join_ys(
             self,    # HMM instance
             ys       # List of observation sequences
         ):
-        """For multiple y sequences allocate single self.P_Y and fill it
-        using self.p_y_calc().  Return information on sequence boundaries.
+        """Concatenate and return multiple y sequences.  Also return
+        information on sequence boundaries within concatenated list.
 
         Parameters
         ----------
@@ -536,8 +585,12 @@ class HMM:
 
         Returns
         -------
+        n_seg : int
+            Number of component segments
         t_seg : list
-            List of ints specifying endpoints of segments within self.P_Y
+            List of ints specifying endpoints of segments within y_all
+        y_all : list
+            Concatenated list of observations
 
         """
         t_seg = [0] # List of segment boundaries in concatenated ys
@@ -545,8 +598,8 @@ class HMM:
         for seg in ys:
             y_all += list(seg)
             t_seg.append(len(y_all))
-        self.p_y_calc(y_all)
-        return t_seg, y_all
+        self.n_y = t_seg[-1]
+        return len(t_seg)-1, t_seg, y_all
     def multi_train(
             self,         # HMM instance
             ys,           # List of observation sequences
@@ -577,7 +630,7 @@ class HMM:
         --------
         Same model as used to demonstrate train().  Here simulated
         data is broken into three independent segments for training.
-        For each iteration, "L[i]" gives the loglikelihood per data
+        For each iteration, "L[i]" gives the log likelihood per data
         point of segment "i".  Note that L[2] does not improve
         monotonically but that the average over segments does.
 
@@ -593,7 +646,7 @@ class HMM:
         ...         [0, 1./3., 2./3.],
         ...         [0, 2./3., 1./3.]
         ...         ])
-        >>> mod = HMM(P_S0,P_S0_ergodic,P_SS,P_YS)
+        >>> mod = HMM(P_S0,P_S0_ergodic,P_YS,P_SS)
         >>> S,Y = mod.simulate(600)
         >>> ys = []
         >>> for i in [1,2,0]:
@@ -604,9 +657,7 @@ class HMM:
         i=2: L[0]=-0.9153 L[1]=-0.9135 L[2]=-0.9280 avg=-0.9189398
 
         '''
-        t_seg, y_all = self.join_ys(ys)
-        P_Y_all = self.P_Y
-        n_seg = len(t_seg) - 1
+        n_seg, t_seg, y_all = self.join_ys(ys)
         avgs = n_iter*[None] # Average log likelihood per step
         t_total = t_seg[-1]
         alpha_all = initialize(self.alpha, (t_total, self.n_states))
@@ -624,8 +675,7 @@ class HMM:
             # training segment and put the results in the
             # corresponding segement of the the alpha, beta and gamma
             # arrays.
-            self.p_y_calc(y_all)
-            P_Y_all = self.P_Y
+            P_Y_all = self.y_mod.calc(y_all)
             for seg in range(n_seg):
                 self.n_y = t_seg[seg+1] - t_seg[seg]
                 self.alpha = alpha_all[t_seg[seg]:t_seg[seg+1], :]
@@ -633,7 +683,7 @@ class HMM:
                 self.P_Y = P_Y_all[t_seg[seg]:t_seg[seg+1]]
                 self.gamma = gamma_all[t_seg[seg]:t_seg[seg+1]]
                 self.P_S0 = P_S0_all[seg, :]
-                LL = self.forward() #LogLikelihood
+                LL = self.forward() #Log Likelihood
                 if display:
                     print('L[%d]=%7.4f '%(seg,LL/self.n_y), end='')
                 tot += LL
