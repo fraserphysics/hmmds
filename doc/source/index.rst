@@ -10,6 +10,10 @@
 Welcome to HMM and Dynamical Systems's documentation
 =====================================================
 
+This code implements hidden Markov model methods in python3 and cython
+using numpy and scipy.  It is derived from the code used for the book
+"Hidden Markov Models and Dynamical Systems" by Andrew Fraser.
+
 .. toctree::
 
    HMM base class <Scalar>

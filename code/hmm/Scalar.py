@@ -43,11 +43,11 @@ class Prob(np.ndarray):
         Parameters
         ----------
         v : array_like
-            Column data
+            Time series of observations
 
         Returns
         -------
-        L : array_like
+        L : array
 
             Given T = len(v) and self.shape = (M,N), L.shape = (T,M)
             with the interpretation L[t,a] = Prob(v[t]|a)
@@ -60,7 +60,7 @@ class Prob(np.ndarray):
 
         Parameters
         ----------
-        a : array_like
+        a : array
 
         Returns
         -------
@@ -88,7 +88,7 @@ class Prob(np.ndarray):
 
         Parameters
         ----------
-        a : array_like
+        a : array
 
         Returns
         -------
@@ -101,7 +101,7 @@ class Prob(np.ndarray):
 
         Parameters
         ----------
-        a : array_like
+        a : array
 
         Returns
         -------
@@ -122,7 +122,7 @@ class Prob(np.ndarray):
 
         Returns
         -------
-        v : array_like
+        v : array
         '''
         return self
 def make_prob(x):
@@ -168,12 +168,12 @@ class Discrete_Observations:
 
         Parameters
         ----------
-        y : array_like
+        y : array
             A sequence of integer observations
 
         Returns
         -------
-        P_Y : array_like, floats
+        P_Y : array, floats
         """
         n_y = len(y)
         n_states = len(self.P_YS)
@@ -435,7 +435,7 @@ class HMM:
 
         Returns
         -------
-        alpha*beta : array_like
+        alpha*beta : array
             State probabilities give all observations
 
         """
@@ -481,13 +481,13 @@ class HMM:
 
         Returns
         -------
-        ss : array_like
+        ss : array
             Maximum likelihood state sequence
         """
         self.P_Y = self.y_mod.calc(y)
         self.n_y = len(self.P_Y)
-        pred = np.zeros((self.n_y, self.n_states), np.int32) # Best predecessors
-        ss = np.zeros((self.n_y, 1), np.int32)        # State sequence
+        pred = np.empty((self.n_y, self.n_states), np.int32) # Best predecessors
+        ss = np.empty((self.n_y, 1), np.int32)        # State sequence
         L_s0, L_scs, L_p_y = (np.log(np.maximum(x, 1e-30)) for x in
                              (self.P_S0, self.P_SS.values(), self.P_Y))
         nu = L_p_y[0] + L_s0
@@ -515,9 +515,9 @@ class HMM:
         Returns
         -------
 
-        states : array_like
+        states : list
             Sequence of states
-        outs : array_like
+        outs : list
             Sequence of observations
         """
         random.seed(seed)
@@ -615,7 +615,7 @@ P_SS =
             list of sequences of integer observations
         n_iter : int, optional
             Number of iterations
-        boost_w : array_like, optional
+        boost_w : array, optional
             Weight of each observation for reestimation
         display : bool, optional
             If True, print the log likelihood per observation for each

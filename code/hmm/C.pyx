@@ -143,8 +143,8 @@ class HMM(Scalar.HMM):
 
         Returns
         -------
-        alpha*beta : array_like
-            State probabilities give all observations
+        alpha*beta : array
+            State probabilities given all observations
 
         """
         cdef np.ndarray[DTYPE_t, ndim=1] wsum = np.zeros(self.n_states,
@@ -347,20 +347,28 @@ class Prob:
         
 def make_prob(x):
     return Prob(x)
-#FixMe: Want class Discrete_Observationsx
-class HMM_SPARSE(HMM):
-    '''HMM code that uses sparse matrices for state to state and state to
-    observation probabilities.  API matches Scalar.HMM
+class Discrete_Observations(Scalar.Discrete_Observations):
+    '''The simplest observation model: A finite set of integers.
+
+    Parameters
+    ----------
+    P_YS : array_like
+        Conditional probabilites P_YS[s,y]
 
     '''
-    def __init__(self, P_S0, P_S0_ergodic, P_YS, P_SS):
-        Scalar.HMM.__init__(self, P_S0, P_S0_ergodic, P_YS, P_SS,
-                            prob=make_prob)
-
+    def __init__(self,P_YS):
+        self.P_YS = make_prob(P_YS)
+        self.P_Y = None
+        return
+    def __str__(self):
+        return 'P_YS =\n%s'%(self.P_YS.todense(),)
+    def random_out(self,s):
+        ''' For simulation, draw a random observation given state s
+        '''
+        raise RuntimeError('Simulation not implemented for %s'%self.__class__)
     @cython.boundscheck(False)
-    def p_y_calc(  ####FixMe: Broken by new Scalar.py because y_mod is
-                   ####separate now
-        self,    # HMM
+    def calc(
+        self,    # Discrete_Observations instance
         y        # A sequence of integer observations
         ):
         """
@@ -368,16 +376,18 @@ class HMM_SPARSE(HMM):
 
         Parameters
         ----------
-        y : array_like
+        y : array
             A sequence of integer observations
 
         Returns
         -------
-        None
+        P_Y : array
+            Array of likelihoods of states.  P_Y.shape = (n_y, n_states)
         """
         # Check size and initialize self.P_Y
-        self.n_y = len(y)
-        self.P_Y = Scalar.initialize(self.P_Y,(self.n_y,self.n_states))
+        n_y = len(y)
+        n_states = self.P_YS.shape[0]
+        self.P_Y = Scalar.initialize(self.P_Y, (n_y, n_states))
         YcS = self.P_YS
 
         cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
@@ -395,7 +405,7 @@ class HMM_SPARSE(HMM):
         cdef np.ndarray[ITYPE_t, ndim=1] indptr = YcS.indptr
         cdef int *_indptr = <int *>indptr.data
 
-        cdef int T = self.n_y
+        cdef int T = n_y
         cdef int t,i,j,J
         for t in range(T):
             py = <double *>(_py+t*pystride)
@@ -403,7 +413,42 @@ class HMM_SPARSE(HMM):
             for j in range(_indptr[i],_indptr[i+1]):
                 J = _indices[j]
                 py[J] = _data[j]
-        return # End of p_y_calc()
+        return self.P_Y # End of p_y_calc()
+    def reestimate(self,w,y):
+        """
+        Estimate new model parameters.  Differs from version in Scalar
+        by not updating self.cum_y which simulation requires.
+
+        Parameters
+        ----------
+        w : array
+            w[t,s] = Prob(state[t]=s) given data and old model
+        y : array
+            A sequence of integer observations
+
+        Returns
+        -------
+        None
+        """
+        n_y = len(y)
+        if not type(y) == np.ndarray:
+            y = np.array(y, np.int32)
+        assert(y.dtype == np.int32 and y.shape == (n_y,))
+        for yi in range(self.P_YS.shape[1]):
+            self.P_YS.assign_col(
+                yi, w.take(np.where(y==yi)[0], axis=0).sum(axis=0))
+        self.P_YS.normalize()
+        return
+class HMM_SPARSE(HMM):
+    '''HMM code that uses sparse matrices for state to state and state to
+    observation probabilities.  API matches Scalar.HMM
+
+    '''
+    def __init__(self, P_S0, P_S0_ergodic, P_YS, P_SS,
+                 y_mod=Discrete_Observations, prob=make_prob):
+        Scalar.HMM.__init__(self, P_S0, P_S0_ergodic, P_YS, P_SS, y_mod,
+                            make_prob)
+
     @cython.boundscheck(False)
     def forward(self):
         """

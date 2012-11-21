@@ -22,11 +22,13 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-1. Get source code into documentation.
+1. Post on fraserphysics
 
 2. Ask Guy or Aric to look at style.
 
-3. Write code to analyze apnea data to make sure that you have basic
+3. Write code for using classification data
+
+4. Write code to analyze apnea data to make sure that you have basic
     hmm class with enough flexibility to handle: Multiple sets of
     training data; Custom output models; Decoding class sequences.
 
