@@ -22,16 +22,12 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-1. Post on fraserphysics
+1. Write code for using classification data
 
-2. Ask Guy or Aric to look at style.
-
-3. Write code for using classification data
-
-4. Write variant module that uses Gaussian output model.  Goals: test
+2. Write variant module that uses Gaussian output model.  Goals: test
    ability to generalize base class.  Illustrate generalization.
 
-5. Write code to analyze apnea data to make sure that you have basic
+3. Write code to analyze apnea data to make sure that you have basic
     hmm class with enough flexibility to handle: Multiple sets of
     training data; Custom output models; Decoding class sequences.
 

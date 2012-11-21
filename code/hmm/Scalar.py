@@ -158,7 +158,7 @@ class Discrete_Observations:
 
         Returns
         -------
-        y : float
+        y : int
             Random observation drawn from distribution conditioned on state s
         '''
         return cum_rand(self.cum_y[s])
@@ -205,6 +205,82 @@ class Discrete_Observations:
         self.P_YS.normalize()
         self.cum_y = np.cumsum(self.P_YS, axis=1)
         return
+
+class Class_y(Discrete_Observations):
+    '''Observation model with classification
+    
+    Parameters
+    ----------
+    pars : (P_YS,c2s)
+    P_YS : array
+        P_YS[s,y] is the probability of state s producing output y
+    c2s : dict
+        classification labels are keys and each value is a list states
+        contained in the classification.
+
+    '''
+    def __init__(self,pars):
+        P_YS,c2s = pars
+        self.P_YS = make_prob(P_YS)
+        self.cum_y = np.cumsum(self.P_YS, axis=1)
+        self.P_Y = None
+        self.g = None
+        n_states, card_y = P_YS.shape
+        n_class = len(c2s)
+        self.c2s = np.zeros((n_class, n_states), np.bool)
+        self.s2c = {}
+        for c in c2s:
+            for s in c2s[c]:
+                self.s2c[s] = c
+                self.c2s[c,s] = True
+        return
+    def __str__(self):
+        rv = '%s with c2s =\n%s\n'%(self.__class__,self.c2s.astype(np.int8))
+        np.set_printoptions(precision=3)
+        rv += 'P_YS =\n%s'%self.P_YS
+        np.set_printoptions(precision=8)
+        return rv
+    def random_out(self,s):
+        ''' For simulation, draw a random observation given state s
+
+        Parameters
+        ----------
+        s : int
+            Index of state
+
+        Returns
+        -------
+        y : int
+            Random observation drawn from distribution conditioned on state s
+        c : int
+            The (unique) classification corresponding to state s
+        '''
+        y = cum_rand(self.cum_y[s])
+        return y,self.s2c[s]
+    def calc(self,yc):
+        """
+        Calculate and return likelihoods: self.P_Y[t,i] =
+        P(y(t)|s(t)=i)*g(s,c[t])
+
+        Parameters
+        ----------
+        yc : array_like
+            A sequence of y,c pairs.  y[t] = yc[t][0] and c[t] = yc[t][1]
+
+        Returns
+        -------
+        P_Y : array, floats
+        """
+        y = yc[:,0]
+        c = yc[:,1]
+        n_y = len(y)
+        n_states = len(self.P_YS)
+        self.g = initialize(self.g,(n_y, n_states),np.bool)
+        self.g[:,:] = self.c2s[c,:]
+        self.P_Y = initialize(self.P_Y, (n_y, n_states))
+        self.P_Y[:, :] = self.P_YS.likelihoods(y)*self.g
+        return self.P_Y 
+        
 class HMM:
     """A Hidden Markov Model implementation.
 
@@ -720,7 +796,33 @@ def _test():
     doctest.testmod()
 
 if __name__ == "__main__":
-    _test()
+    #_test()
+    
+    P_YS = np.array([
+            [1./2, 1./2,     0],
+            [0,    1./3., 2./3.],
+            [0,    2./3., 1./3.]
+            ])
+    c2s = {0:[0,2],1:[1]}
+    P_S0 = np.array([1./3., 1./3., 1./3.])
+    P_S0_ergodic = np.array([1./7., 4./7., 2./7.])
+    P_SS = np.array([
+            [0,   1,   0],
+            [0,  .5,  .5],
+            [.5, .5,   0]
+            ],np.float64)
+    mod = HMM(P_S0,P_S0_ergodic,(P_YS,c2s),P_SS,Class_y,make_prob)
+    S,YC = mod.simulate(500)
+    YC = np.array(YC,np.int32)
+    E = mod.decode(YC)
+    Y = YC[:,0]
+    table = ['%3s, %3s, %3s'%('y','S','Decoded')]
+    table += ['%3d, %3d, %3d'%triple for triple in zip(Y,S,E[:10])]
+    for triple in table:
+        print(triple)
+    L = mod.train(YC,n_iter=4)
+    print(mod)
+
 
 #--------------------------------
 # Local Variables:
