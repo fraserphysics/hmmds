@@ -180,7 +180,8 @@ class Discrete_Observations:
         self.P_Y = initialize(self.P_Y, (n_y, n_states))
         self.P_Y[:, :] = self.P_YS.likelihoods(y)
         return self.P_Y
-    def reestimate(self,w,y):
+    def reestimate(self, # Discrete_Observations instance
+                   w, y):
         """
         Estimate new model parameters
 
@@ -219,7 +220,8 @@ class Class_y(Discrete_Observations):
         contained in the classification.
 
     '''
-    def __init__(self,pars):
+    def __init__(self, # Class_y instance
+                 pars):
         P_YS,c2s = pars
         self.P_YS = make_prob(P_YS)
         self.cum_y = np.cumsum(self.P_YS, axis=1)
@@ -240,7 +242,8 @@ class Class_y(Discrete_Observations):
         rv += 'P_YS =\n%s'%self.P_YS
         np.set_printoptions(precision=8)
         return rv
-    def random_out(self,s):
+    def random_out(self, # Class_y instance
+                   s):
         ''' For simulation, draw a random observation given state s
 
         Parameters
@@ -257,7 +260,8 @@ class Class_y(Discrete_Observations):
         '''
         y = cum_rand(self.cum_y[s])
         return y,self.s2c[s]
-    def calc(self,yc):
+    def calc(self, # Class_y instance
+             yc):
         """
         Calculate and return likelihoods: self.P_Y[t,i] =
         P(y(t)|s(t)=i)*g(s,c[t])
@@ -279,8 +283,26 @@ class Class_y(Discrete_Observations):
         self.g[:,:] = self.c2s[c,:]
         self.P_Y = initialize(self.P_Y, (n_y, n_states))
         self.P_Y[:, :] = self.P_YS.likelihoods(y)*self.g
-        return self.P_Y 
-        
+        return self.P_Y
+    def reestimate(self,  # Class_y instance
+                   w,yc):
+        """
+        Estimate new model parameters
+
+        Parameters
+        ----------
+        w : array
+            w[t,s] = Prob(state[t]=s) given data and old model
+        yc : array
+            A sequence of y,c pairs
+
+        Returns
+        -------
+        None
+        """
+        Discrete_Observations.reestimate(self, w, yc[:,0])
+        return
+
 class HMM:
     """A Hidden Markov Model implementation.
 
@@ -634,6 +656,7 @@ class HMM:
         self.P_SS[from_,to_] = p
         self.P_SS[from_, :] /= self.P_SS[from_, :].sum()
     def __str__(self):
+        save = np.get_printoptions
         np.set_printoptions(precision=3)
         rv = '''
 %s with %d states
@@ -644,7 +667,7 @@ P_SS =
 %s''' % (self.__class__, self.n_states, self.P_S0, self.P_S0_ergodic,
          self.P_SS.values(), self.y_mod
          )
-        np.set_printoptions(precision=8)
+        np.set_printoptions(save)
         return rv[1:-1]
     def join_ys(
             self,    # HMM instance
@@ -797,31 +820,45 @@ def _test():
 
 if __name__ == "__main__":
     #_test()
-    
-    P_YS = np.array([
-            [1./2, 1./2,     0],
-            [0,    1./3., 2./3.],
-            [0,    2./3., 1./3.]
-            ])
-    c2s = {0:[0,2],1:[1]}
-    P_S0 = np.array([1./3., 1./3., 1./3.])
-    P_S0_ergodic = np.array([1./7., 4./7., 2./7.])
+    np.set_printoptions(precision=3, suppress=True)
+    c2s = {
+        0:[0,1],
+        1:[2,3],
+        2:[4,5],
+        }
+    P_S0 = np.array([1./6., 1./6., 1./6, 1./6., 1./6, 1./6.])
     P_SS = np.array([
-            [0,   1,   0],
-            [0,  .5,  .5],
-            [.5, .5,   0]
+            [0.0, 0.5, 0.5, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.5, 0.5, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.5, 0.5, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.5, 0.5],
+            [0.5, 0.0, 0.0, 0.0, 0.0, 0.5],
+            [0.5, 0.5, 0.0, 0.0, 0.0, 0.0]
             ],np.float64)
-    mod = HMM(P_S0,P_S0_ergodic,(P_YS,c2s),P_SS,Class_y,make_prob)
-    S,YC = mod.simulate(500)
+    P_YS = np.array([
+            [0.4, 0.3, 0.3, 0.0, 0.0, 0.0],
+            [0.0, 0.4, 0.3, 0.3, 0.0, 0.0],
+            [0.0, 0.0, 0.4, 0.3, 0.3, 0.0],
+            [0.0, 0.0, 0.0, 0.4, 0.3, 0.3],
+            [0.3, 0.0, 0.0, 0.0, 0.4, 0.3],
+            [0.3, 0.3, 0.0, 0.0, 0.0, 0.4]
+            ],np.float64)
+    mod = HMM(P_S0, P_S0, (P_YS,c2s), P_SS, Class_y, make_prob)
+    S,YC = mod.simulate(1000)
     YC = np.array(YC,np.int32)
-    E = mod.decode(YC)
-    Y = YC[:,0]
-    table = ['%3s, %3s, %3s'%('y','S','Decoded')]
-    table += ['%3d, %3d, %3d'%triple for triple in zip(Y,S,E[:10])]
-    for triple in table:
-        print(triple)
-    L = mod.train(YC,n_iter=4)
+    p_s = 0.7*P_SS + 0.3/6
+    p_y = 0.7*P_YS + 0.3/6
+    mod = HMM(P_S0, P_S0, (p_y,c2s), p_s, Class_y, make_prob)
+    L = mod.train(YC,n_iter=20,display=False)
+    print('%2s: %6s'%(' i','LogLike/step'))
+    for i in [0,1,2,len(L)-2,len(L)-1]:
+        print('%2d: %6.3f'%(i,L[i]))
     print(mod)
+    E = mod.decode(YC[:5])
+    # Want E = mod.class_decode(YC[:5,0])
+    print('%3s, %3s, %3s'%('y','S','Decoded'))
+    for triple in zip(YC[:,0],S,E):
+        print('%3d, %3d, %3d'%triple)
 
 
 #--------------------------------
