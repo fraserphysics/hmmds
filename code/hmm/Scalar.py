@@ -230,7 +230,7 @@ class Class_y(Discrete_Observations):
         n_states, card_y = P_YS.shape
         n_class = len(c2s)
         self.c2s = np.zeros((n_class, n_states), np.bool)
-        self.s2c = {}
+        self.s2c = np.empty(n_states,dtype=np.int32)
         for c in c2s:
             for s in c2s[c]:
                 self.s2c[s] = c
@@ -618,22 +618,19 @@ class HMM:
         phi /= np.maximum(1.0e-300, np.dot(np.dot(c2s, phi), c2s))
         
         P_SS = self.P_SS # improve readability and speed
+        s1 = np.arange(self.n_states, dtype=np.int32) #Index for cs_cost -> phi
+        c1 = self.y_mod.s2c[s1] # Index for cs_cost -> phi
         # Main loop
         for t in range(1,n_t):
-            # cost for state pairs = outer((nu*c2s.*phi),P_Y[t]).*P_SS
-            s_cost = (P_SS.T*np.dot(nu,c2s)*phi).T*P_Y[t]
-            cost = np.dot(c2s, np.dot(s_cost, c2s.T)) # Cost for class pairs
-            pred[t] = cost.argmax(axis=0)
-            nu = np.choose(pred[t],cost)
+            # cost for state-state pairs = outer((nu*c2s.*phi),P_Y[t]).*P_SS
+            ss_cost = (P_SS.T*np.dot(nu,c2s)*phi).T*P_Y[t]
+            cs_cost = np.dot(c2s, ss_cost)    # Cost for class-state pairs
+            cc_cost = np.dot(cs_cost, c2s.T)  # Cost for class-class pairs
+            pred[t] = cc_cost.argmax(axis=0)  # Best predecessor for each class
+            nu = np.choose(pred[t], cc_cost)  # Class cost given best history
             nu /= nu.max()
-            # FixMe: Replace this double loop with vector operations
-            phi *= 0
-            for s0 in range(self.n_states):
-                c0 = self.y_mod.s2c[s0]
-                for s1 in range(self.n_states):
-                    c1 = self.y_mod.s2c[s1]
-                    if pred[t,c1] == c0:
-                        phi[s1] += s_cost[s0,s1]
+
+            phi = cs_cost[pred[t,c1],s1]
             phi /= np.maximum(1.0e-300, np.dot(np.dot(c2s, phi), c2s))
         # Backtrack
         seq = np.empty((n_t,),np.int32)
