@@ -223,7 +223,6 @@ class Class_y(Discrete_Observations):
     def __init__(self, # Class_y instance
                  pars):
         P_YS,c2s = pars
-        self.cs2_dict = c2s
         self.P_YS = make_prob(P_YS)
         self.cum_y = np.cumsum(self.P_YS, axis=1)
         self.P_Y = None
@@ -583,20 +582,16 @@ class HMM:
         ss : array
             Maximum likelihood state sequence
         """
-        self.P_Y = self.y_mod.calc(y)
-        self.n_y = len(self.P_Y)
+        P_Y = self.y_mod.calc(y)
+        self.n_y = len(P_Y)
         pred = np.empty((self.n_y, self.n_states), np.int32) # Best predecessors
-        ss = np.empty((self.n_y, 1), np.int32)        # State sequence
-        L_s0, L_scs, L_p_y = (np.log(np.maximum(x, 1e-30)) for x in
-                             (self.P_S0, self.P_SS.values(), self.P_Y))
-        nu = self.P_Y[0] * self.P_S0
+        ss = np.ones((self.n_y, 1), np.int32)       # State sequence
+        nu = P_Y[0] * self.P_S0
         for t in range(1, self.n_y):
-            cost = np.outer(nu,self.P_Y[t])*self.P_SS
-            #cost = (self.P_Y[t].T*nu).T*self.P_SS
-            best = cost.argmax(axis=0)
-            pred[t] = best  # Best predecessor
-            nu = np.choose(best,cost)
-            nu /= nu.max()
+            cost = (self.P_SS.T*nu).T*P_Y[t] # outer(nu,P_Y[t])*P_SS
+            pred[t] = cost.argmax(axis=0)    # Best predecessor
+            nu = np.choose(pred[t],cost)     # Cost of best paths to each state
+            nu /= nu.max()                   # Prevent underflow
         last_s = np.argmax(nu)
         for t in range(self.n_y-1, -1, -1):
             ss[t] = last_s
@@ -605,43 +600,47 @@ class HMM:
     # End of decode()
     def class_decode(
         self,  # HMM instance
-        y_mod, # Observation model.  This method needs y_mod.P_YS.calc(y),
-               # ymod.c2s=2d_bool_arrary, and y_mod.s2c=dict
         y      # Observations
         ):
         '''Find MAP class sequence
         '''
-        c2s = y_mod.c2s
-        n_c = len(y_mod.c2s)
+        c2s = self.y_mod.c2s
+        n_c = len(c2s)
         n_t = len(y)
-        P_Y = y_mod.P_YS.calc(y) # P_Y[t,s] = prob(Y=y[t]|state=s)
+        P_Y = self.y_mod.P_YS.likelihoods(y) # P_Y[t,s] = prob(Y=y[t]|state=s)
 
         # pred[t,c] best predecessor of class c at time t
         pred = np.empty((n_t,n_c),np.int32)
         phi = self.P_S0_ergodic * P_Y[0]
         # nu[k] propto prob(y_0^t|c_0^t) where c_0^t is best ending in k
-        nu = np.dot(y_mod.c2s,phi)
+        nu = np.dot(c2s,phi)
         # phi[s] prob(state=s|class=c[s],best_history)
-        phi /= np.minimum(1.0e-300,np.dot(nu,y_mod.c2s)) #Could have zeros
-
+        phi /= np.maximum(1.0e-300, np.dot(np.dot(c2s, phi), c2s))
+        
+        P_SS = self.P_SS # improve readability and speed
         # Main loop
         for t in range(1,n_t):
-            # Find best predecessor for each class
-            cost = np.dot(c2s,np.dot(
-                         np.outer(phi,P_Y[t])*self.P_SS,
-                         c2s.T))
-            best = cost.argmax(axis=0)
-            nu = np.choose(best,cost)
-            pred[t] = best # best[Cb] is best predecessor class of class Cb
+            # cost for state pairs = outer((nu*c2s.*phi),P_Y[t]).*P_SS
+            s_cost = (P_SS.T*np.dot(nu,c2s)*phi).T*P_Y[t]
+            cost = np.dot(c2s, np.dot(s_cost, c2s.T)) # Cost for class pairs
+            pred[t] = cost.argmax(axis=0)
+            nu = np.choose(pred[t],cost)
             nu /= nu.max()
-            phi = np.dot(np.dot(nu,c2s)*phi,self.P_SS)*P_Y[t]
+            # FixMe: Replace this double loop with vector operations
+            phi *= 0
+            for s0 in range(self.n_states):
+                c0 = self.y_mod.s2c[s0]
+                for s1 in range(self.n_states):
+                    c1 = self.y_mod.s2c[s1]
+                    if pred[t,c1] == c0:
+                        phi[s1] += s_cost[s0,s1]
             phi /= np.maximum(1.0e-300, np.dot(np.dot(c2s, phi), c2s))
-                    
         # Backtrack
         seq = np.empty((n_t,),np.int32)
-        seq[-1] = np.argmax(nu)
-        for t in range(n_t-1,0,-1):
-            seq[t-1] = pred[t,seq[t]]
+        last_c = np.argmax(nu)
+        for t in range(n_t-1,-1,-1):
+            seq[t] = last_c
+            last_c = pred[t, last_c]
         return seq
 
     def simulate(self, length, seed=3):
@@ -892,11 +891,12 @@ def _test():
     for i in [0,1,2,len(L)-2,len(L)-1]:
         print('%2d: %6.3f'%(i,L[i]))
     #print(mod)
-    E = mod.decode(YC[:11])
-    # Want E = mod.class_decode(YC[:5,0])
-    print('%3s, %3s, %3s'%('y','S','Decoded'))
-    for triple in zip(YC[:,0],S,E):
-        print('%3d, %3d, %3d'%triple)
+    #E = mod.decode(YC[:11])
+    #E = mod.class_decode(YC[:5,0])
+    E = mod.class_decode(YC[:,0])
+    print('%3s, %3s, %3s'%('y','C','Decoded'))
+    for (yc,e) in zip(YC,E):
+        print('%3d, %3d, %3d'%(yc[0],yc[1],e))
 
 
 if __name__ == "__main__":
