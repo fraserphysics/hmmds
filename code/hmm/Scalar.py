@@ -223,6 +223,7 @@ class Class_y(Discrete_Observations):
     def __init__(self, # Class_y instance
                  pars):
         P_YS,c2s = pars
+        self.cs2_dict = c2s
         self.P_YS = make_prob(P_YS)
         self.cum_y = np.cumsum(self.P_YS, axis=1)
         self.P_Y = None
@@ -588,17 +589,61 @@ class HMM:
         ss = np.empty((self.n_y, 1), np.int32)        # State sequence
         L_s0, L_scs, L_p_y = (np.log(np.maximum(x, 1e-30)) for x in
                              (self.P_S0, self.P_SS.values(), self.P_Y))
-        nu = L_p_y[0] + L_s0
+        nu = self.P_Y[0] * self.P_S0
         for t in range(1, self.n_y):
-            omega = L_scs.T + nu
-            pred[t, :] = omega.T.argmax(axis=0)   # Best predecessor
-            nu = pred[t, :].choose(omega.T) + L_p_y[t]
+            cost = np.outer(nu,self.P_Y[t])*self.P_SS
+            #cost = (self.P_Y[t].T*nu).T*self.P_SS
+            best = cost.argmax(axis=0)
+            pred[t] = best  # Best predecessor
+            nu = np.choose(best,cost)
+            nu /= nu.max()
         last_s = np.argmax(nu)
         for t in range(self.n_y-1, -1, -1):
             ss[t] = last_s
             last_s = pred[t,last_s]
         return ss.flat # End of viterbi
     # End of decode()
+    def class_decode(
+        self,  # HMM instance
+        y_mod, # Observation model.  This method needs y_mod.P_YS.calc(y),
+               # ymod.c2s=2d_bool_arrary, and y_mod.s2c=dict
+        y      # Observations
+        ):
+        '''Find MAP class sequence
+        '''
+        c2s = y_mod.c2s
+        n_c = len(y_mod.c2s)
+        n_t = len(y)
+        P_Y = y_mod.P_YS.calc(y) # P_Y[t,s] = prob(Y=y[t]|state=s)
+
+        # pred[t,c] best predecessor of class c at time t
+        pred = np.empty((n_t,n_c),np.int32)
+        phi = self.P_S0_ergodic * P_Y[0]
+        # nu[k] propto prob(y_0^t|c_0^t) where c_0^t is best ending in k
+        nu = np.dot(y_mod.c2s,phi)
+        # phi[s] prob(state=s|class=c[s],best_history)
+        phi /= np.minimum(1.0e-300,np.dot(nu,y_mod.c2s)) #Could have zeros
+
+        # Main loop
+        for t in range(1,n_t):
+            # Find best predecessor for each class
+            cost = np.dot(c2s,np.dot(
+                         np.outer(phi,P_Y[t])*self.P_SS,
+                         c2s.T))
+            best = cost.argmax(axis=0)
+            nu = np.choose(best,cost)
+            pred[t] = best # best[Cb] is best predecessor class of class Cb
+            nu /= nu.max()
+            phi = np.dot(np.dot(nu,c2s)*phi,self.P_SS)*P_Y[t]
+            phi /= np.maximum(1.0e-300, np.dot(np.dot(c2s, phi), c2s))
+                    
+        # Backtrack
+        seq = np.empty((n_t,),np.int32)
+        seq[-1] = np.argmax(nu)
+        for t in range(n_t-1,0,-1):
+            seq[t-1] = pred[t,seq[t]]
+        return seq
+
     def simulate(self, length, seed=3):
         """generates a random sequence of observations of given length
 
@@ -809,17 +854,10 @@ WARNING training is not monotonic: avg[%d]=%f and avg[%d]=%f
         self.P_S0[:] = P_S0_all.sum(axis=0)
         self.P_S0 /= self.P_S0.sum()
         return avgs
-class HMMc(HMM):
-    '''Models that permit each state to be a member of
-    a class_ (not the python reserved word).
-
-    '''
 def _test():
     import doctest
     doctest.testmod()
 
-if __name__ == "__main__":
-    #_test()
     np.set_printoptions(precision=3, suppress=True)
     c2s = {
         0:[0,1],
@@ -853,14 +891,16 @@ if __name__ == "__main__":
     print('%2s: %6s'%(' i','LogLike/step'))
     for i in [0,1,2,len(L)-2,len(L)-1]:
         print('%2d: %6.3f'%(i,L[i]))
-    print(mod)
-    E = mod.decode(YC[:5])
+    #print(mod)
+    E = mod.decode(YC[:11])
     # Want E = mod.class_decode(YC[:5,0])
     print('%3s, %3s, %3s'%('y','S','Decoded'))
     for triple in zip(YC[:,0],S,E):
         print('%3d, %3d, %3d'%triple)
 
 
+if __name__ == "__main__":
+    _test()
 #--------------------------------
 # Local Variables:
 # mode: python
