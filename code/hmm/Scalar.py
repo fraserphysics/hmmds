@@ -602,7 +602,85 @@ class HMM:
         self,  # HMM instance
         y      # Observations
         ):
-        '''Find MAP class sequence
+        '''
+        Calculate maximum a posterori probability (MAP) classification
+        sequence.
+
+        >>> from scipy.linalg import circulant
+        >>> np.set_printoptions(precision=3, suppress=True)
+        >>> c2s = {
+        ...     0:[0,1],
+        ...     1:[2,3],
+        ...     2:[4,5],
+        ...     }
+        >>> P_S0 = np.ones(6)/6.0
+        >>> P_SS = circulant([0,  0, 0, 0, .5, .5])
+        >>> P_YS = circulant([.4, 0, 0, 0, .3, .3])
+        >>> mod = HMM(P_S0, P_S0, (P_YS, c2s), P_SS, Class_y, make_prob)
+        >>> S,YC = mod.simulate(1000)
+        >>> YC = np.array(YC, np.int32)
+        >>> p_s = 0.7*P_SS + 0.3/6
+        >>> p_y = 0.7*P_YS + 0.3/6
+        >>> mod = HMM(P_S0, P_S0, (p_y, c2s), p_s, Class_y, make_prob)
+        >>> L = mod.train(YC, n_iter=20, display=False)
+
+        Maximum likelihood estimation (training) yeilds a model that
+        is similar to the model used to make the data.
+
+        >>> print(mod)
+        <class '__main__.HMM'> with 6 states
+        P_S0         = [ 0.  1.  0.  0.  0.  0.]
+        P_S0_ergodic = [ 0.184  0.161  0.151  0.177  0.174  0.153]
+        P_SS =
+        [[ 0.     0.485  0.515  0.     0.     0.   ]
+         [ 0.     0.     0.351  0.649  0.     0.   ]
+         [ 0.     0.     0.     0.484  0.516  0.   ]
+         [ 0.     0.     0.     0.     0.543  0.457]
+         [ 0.586  0.     0.     0.     0.     0.414]
+         [ 0.539  0.461  0.     0.     0.     0.   ]]
+        <class '__main__.Class_y'> with c2s =
+        [[1 1 0 0 0 0]
+         [0 0 1 1 0 0]
+         [0 0 0 0 1 1]]
+        P_YS =
+        [[ 0.439  0.281  0.28   0.     0.     0.   ]
+         [ 0.     0.362  0.314  0.324  0.     0.   ]
+         [ 0.     0.     0.418  0.305  0.277  0.   ]
+         [ 0.     0.     0.     0.384  0.283  0.333]
+         [ 0.282  0.     0.     0.     0.391  0.328]
+         [ 0.301  0.366  0.     0.     0.     0.333]
+
+        Here are some of the log liklihoods per observation from the
+        sequence of training iterations.  Note that they increase
+        monotonically and that at the end of the sequence the change
+        per iteration is less that a part in a thousand.
+
+        >>> for i in [0, 1, 2, len(L)-2, len(L)-1]:
+        ...     print('%2d: %6.3f'%(i, L[i]))
+         0: -1.972
+         1: -1.682
+         2: -1.657
+        18: -1.641
+        19: -1.641
+
+        Next, wedrop the simulated class data from YC and demonstrate
+        Viterbi decoding of the class sequence.  We designed the model
+        so that decoding would be good rather than perfect, but there
+        are no errors in this short sequence.  In the sequence below
+        we've printed the observation y[i], the simulated class c[i]
+        and the decoded class d[i], ie,
+
+        y[i]  c[i]  d[i]
+
+        >>> D = mod.class_decode(YC[:5,0])
+        >>> for (yc, d) in zip(YC, D):
+        ...     print('%3d, %3d, %3d'%(yc[0], yc[1], d))
+          2,   0,   0
+          3,   1,   1
+          0,   2,   2
+          2,   0,   0
+          1,   0,   0
+
         '''
         c2s = self.y_mod.c2s
         n_c = len(c2s)
@@ -850,51 +928,10 @@ WARNING training is not monotonic: avg[%d]=%f and avg[%d]=%f
         self.P_S0[:] = P_S0_all.sum(axis=0)
         self.P_S0 /= self.P_S0.sum()
         return avgs
+
 def _test():
     import doctest
     doctest.testmod()
-
-    np.set_printoptions(precision=3, suppress=True)
-    c2s = {
-        0:[0,1],
-        1:[2,3],
-        2:[4,5],
-        }
-    P_S0 = np.array([1./6., 1./6., 1./6, 1./6., 1./6, 1./6.])
-    P_SS = np.array([
-            [0.0, 0.5, 0.5, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.5, 0.5, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.5, 0.5, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.5, 0.5],
-            [0.5, 0.0, 0.0, 0.0, 0.0, 0.5],
-            [0.5, 0.5, 0.0, 0.0, 0.0, 0.0]
-            ],np.float64)
-    P_YS = np.array([
-            [0.4, 0.3, 0.3, 0.0, 0.0, 0.0],
-            [0.0, 0.4, 0.3, 0.3, 0.0, 0.0],
-            [0.0, 0.0, 0.4, 0.3, 0.3, 0.0],
-            [0.0, 0.0, 0.0, 0.4, 0.3, 0.3],
-            [0.3, 0.0, 0.0, 0.0, 0.4, 0.3],
-            [0.3, 0.3, 0.0, 0.0, 0.0, 0.4]
-            ],np.float64)
-    mod = HMM(P_S0, P_S0, (P_YS,c2s), P_SS, Class_y, make_prob)
-    S,YC = mod.simulate(1000)
-    YC = np.array(YC,np.int32)
-    p_s = 0.7*P_SS + 0.3/6
-    p_y = 0.7*P_YS + 0.3/6
-    mod = HMM(P_S0, P_S0, (p_y,c2s), p_s, Class_y, make_prob)
-    L = mod.train(YC,n_iter=20,display=False)
-    print('%2s: %6s'%(' i','LogLike/step'))
-    for i in [0,1,2,len(L)-2,len(L)-1]:
-        print('%2d: %6.3f'%(i,L[i]))
-    #print(mod)
-    #E = mod.decode(YC[:11])
-    #E = mod.class_decode(YC[:5,0])
-    E = mod.class_decode(YC[:,0])
-    print('%3s, %3s, %3s'%('y','C','Decoded'))
-    for (yc,e) in zip(YC,E):
-        print('%3d, %3d, %3d'%(yc[0],yc[1],e))
-
 
 if __name__ == "__main__":
     _test()
