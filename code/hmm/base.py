@@ -311,12 +311,14 @@ class HMM:
         >>> P_S0 = np.ones(6)/6.0
         >>> P_SS = circulant([0,  0, 0, 0, .5, .5])
         >>> P_YS = circulant([.4, 0, 0, 0, .3, .3])
-        >>> mod = HMM(P_S0, P_S0, (P_YS, c2s), P_SS, Class_y, make_prob)
+        >>> pars = (Discrete_Observations, P_YS, c2s)
+        >>> mod = HMM(P_S0, P_S0, pars, P_SS, Class_y, make_prob)
         >>> S,YC = mod.simulate(1000)
         >>> YC = np.array(YC, np.int32)
         >>> p_s = 0.7*P_SS + 0.3/6
         >>> p_y = 0.7*P_YS + 0.3/6
-        >>> mod = HMM(P_S0, P_S0, (p_y, c2s), p_s, Class_y, make_prob)
+        >>> pars = (Discrete_Observations, p_y, c2s)
+        >>> mod = HMM(P_S0, P_S0, pars, p_s, Class_y, make_prob)
         >>> L = mod.train(YC, n_iter=20, display=False)
 
         Maximum likelihood estimation (training) yeilds a model that
@@ -383,7 +385,7 @@ class HMM:
         P_SS = self.P_SS
         s1 = np.arange(self.n_states, dtype=np.int32) #Index for cs_cost -> phi
         c1 = self.y_mod.s2c[s1] # Index for cs_cost -> phi
-        P_Y = self.y_mod.P_YS.likelihoods(y) # P_Y[t,s] = prob(Y=y[t]|state=s)
+        P_Y = self.y_mod.y_mod.calc(y) # P_Y[t,s] = prob(Y=y[t]|state=s)
 
         # Do partial first iteration before loop
         pred = np.empty((n_t,n_c),np.int32)

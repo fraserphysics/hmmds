@@ -222,44 +222,29 @@ class Class_y(Discrete_Observations):
     '''
     def __init__(self, # Class_y instance
                  pars):
-        P_YS,c2s = pars
-        self.P_YS = make_prob(P_YS)
-        self.cum_y = np.cumsum(self.P_YS, axis=1)
+        y_class, y_pars, c2s = pars
+        self.y_mod = y_class(y_pars)
         self.P_Y = None
         self.g = None
-        n_states, card_y = P_YS.shape
+        states = {}  # Count states
+        for c in c2s:
+            for s in c2s[c]:
+                states[s] = True
+        n_states = len(states)
         n_class = len(c2s)
         self.c2s = np.zeros((n_class, n_states), np.bool)
-        self.s2c = np.empty(n_states,dtype=np.int32)
+        self.s2c = np.empty(n_states, dtype=np.int32)
         for c in c2s:
             for s in c2s[c]:
                 self.s2c[s] = c
                 self.c2s[c,s] = True
         return
     def __str__(self):
-        rv = '%s with c2s =\n%s\n'%(self.__class__,self.c2s.astype(np.int8))
-        np.set_printoptions(precision=3)
-        rv += 'P_YS =\n%s'%self.P_YS
-        np.set_printoptions(precision=8)
-        return rv
+        return('%s with c2s =\n%s\n%s'%(
+                self.__class__, self.c2s.astype(np.int8), self.y_mod))
     def random_out(self, # Class_y instance
                    s):
-        ''' For simulation, draw a random observation given state s
-
-        Parameters
-        ----------
-        s : int
-            Index of state
-
-        Returns
-        -------
-        y : int
-            Random observation drawn from distribution conditioned on state s
-        c : int
-            The (unique) classification corresponding to state s
-        '''
-        y = cum_rand(self.cum_y[s])
-        return y,self.s2c[s]
+        return self.y_mod.random_out(s), self.s2c[s]
     def calc(self, # Class_y instance
              yc):
         """
@@ -278,11 +263,10 @@ class Class_y(Discrete_Observations):
         y = yc[:,0]
         c = yc[:,1]
         n_y = len(y)
-        n_states = len(self.P_YS)
+        n_class, n_states = self.c2s.shape
         self.g = initialize(self.g,(n_y, n_states),np.bool)
         self.g[:,:] = self.c2s[c,:]
-        self.P_Y = initialize(self.P_Y, (n_y, n_states))
-        self.P_Y[:, :] = self.P_YS.likelihoods(y)*self.g
+        self.P_Y = self.y_mod.calc(y) * self.g
         return self.P_Y
     def reestimate(self,  # Class_y instance
                    w,yc):
@@ -300,7 +284,7 @@ class Class_y(Discrete_Observations):
         -------
         None
         """
-        Discrete_Observations.reestimate(self, w, yc[:,0])
+        self.y_mod.reestimate(w, yc[:,0])
         return
 
 #--------------------------------
