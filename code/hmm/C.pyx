@@ -1,9 +1,12 @@
 '''C.pyx: cython code for speed up.  This code is 18 times faster than
-the pure python in the module Scalar.py.
+the pure python in base.py and Scalar.py.
 
 '''
 #To build: python3 setup.py build_ext --inplace
-import Scalar, numpy as np, scipy.sparse as SS, warnings
+import Scalar
+import base
+import numpy as np
+import scipy.sparse as SS
 #warnings.simplefilter('ignore',SS.SparseEfficiencyWarning)
 # Imitate http://docs.cython.org/src/tutorial/numpy.html
 cimport cython, numpy as np
@@ -11,7 +14,7 @@ DTYPE = np.float64
 ITYPE = np.int32
 ctypedef np.float64_t DTYPE_t
 ctypedef np.int32_t ITYPE_t
-class HMM(Scalar.HMM):
+class HMM(base.HMM):
     '''A Cython subclass of HMM that implments methods forward, backward
     and reestimate-s for speed'''
 
@@ -129,7 +132,7 @@ class HMM(Scalar.HMM):
             _next = _tmp
         return # End of backward()
     @cython.boundscheck(False)
-    def reestimate_s(self):
+    def reestimate(self):
         """Reestimate state transition probabilities and initial
         state probabilities.
 
@@ -139,7 +142,7 @@ class HMM(Scalar.HMM):
 
         Parameters
         ----------
-        None
+        y : sequence
 
         Returns
         -------
@@ -198,7 +201,8 @@ class HMM(Scalar.HMM):
             x /= x.sum()
         self.P_SS.inplace_elementwise_multiply(u_sum)
         self.P_SS.normalize()
-        return self.alpha # End of reestimate_s()
+        self.y_mod.reestimate(self.alpha, y)
+        return # End of reestimate()
 
 class Prob:
     '''Replacement for Scalar.Prob that stores data in sparse matrix
@@ -349,6 +353,7 @@ def make_prob(x):
     return Prob(x)
 class Discrete_Observations(Scalar.Discrete_Observations):
     '''The simplest observation model: A finite set of integers.
+    Implemented with scipy sparse matrices.
 
     Parameters
     ----------
@@ -441,12 +446,12 @@ class Discrete_Observations(Scalar.Discrete_Observations):
         return
 class HMM_SPARSE(HMM):
     '''HMM code that uses sparse matrices for state to state and state to
-    observation probabilities.  API matches Scalar.HMM
+    observation probabilities.  API matches base.HMM
 
     '''
     def __init__(self, P_S0, P_S0_ergodic, P_YS, P_SS,
                  y_mod=Discrete_Observations, prob=make_prob):
-        Scalar.HMM.__init__(self, P_S0, P_S0_ergodic, P_YS, P_SS, y_mod,
+        base.HMM.__init__(self, P_S0, P_S0_ergodic, P_YS, P_SS, y_mod,
                             make_prob)
 
     @cython.boundscheck(False)
@@ -634,6 +639,7 @@ class HMM_SPARSE(HMM):
             _last = _next
             _next = _tmp
         return # End of backward()
+
 #--------------------------------
 # Local Variables:
 # mode: python

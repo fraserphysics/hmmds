@@ -382,7 +382,6 @@ class HMM:
         c2s = self.y_mod.c2s
         n_c = len(c2s)
         n_t = len(y)
-        P_SS = self.P_SS
         s1 = np.arange(self.n_states, dtype=np.int32) #Index for cs_cost -> phi
         c1 = self.y_mod.s2c[s1] # Index for cs_cost -> phi
         P_Y = self.y_mod.y_mod.calc(y) # P_Y[t,s] = prob(Y=y[t]|state=s)
@@ -395,7 +394,7 @@ class HMM:
 
         for t in range(1,n_t): # Main loop
             # cost for state-state pairs = outer((nu*c2s.*phi),P_Y[t]).*P_SS
-            ss_cost = (P_SS.T*np.dot(nu,c2s)*phi).T*P_Y[t]
+            ss_cost = (self.P_SS.T*np.dot(nu,c2s)*phi).T*P_Y[t]
             cs_cost = np.dot(c2s, ss_cost)    # Cost for class-state pairs
             cc_cost = np.dot(cs_cost, c2s.T)  # Cost for class-class pairs
             pred[t] = cc_cost.argmax(axis=0)  # Best predecessor for each class
@@ -432,16 +431,15 @@ class HMM:
             Sequence of observations
         """
         import random
-        # cum_rand generates random integers from a cumulative distribution
-        cum_rand = lambda cum: np.searchsorted(cum, random.random())
-
         random.seed(seed)
-        # Set up cumulative distributions
-        cum_init = np.cumsum(self.P_S0_ergodic[0])
-        cum_tran = np.cumsum(self.P_SS.values(), axis=1)
         # Initialize lists
         outs = []
         states = []
+        # Set up cumulative distributions
+        cum_init = np.cumsum(self.P_S0_ergodic[0])
+        cum_tran = np.cumsum(self.P_SS.values(), axis=1)
+        # cum_rand generates random integers from a cumulative distribution
+        cum_rand = lambda cum: np.searchsorted(cum, random.random())
         # Select initial state
         i = cum_rand(cum_init)
         # Select subsequent states and call model to generate observations

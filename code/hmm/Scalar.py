@@ -2,11 +2,7 @@
 
 """
 # Copyright (c) 2003, 2007, 2008, 2012 Andrew M. Fraser
-import random
 import numpy as np
-
-# cum_rand generates random integers from a cumulative distribution
-cum_rand = lambda cum: np.searchsorted(cum, random.random())
 
 def initialize(x, shape, dtype=np.float64):
     if x == None or x.shape != shape:
@@ -112,7 +108,6 @@ class Prob(np.ndarray):
         '''
         Produce values of self
 
-
         This is a hack to free subclasses from the requirement of self
         being an nd_array
 
@@ -160,8 +155,10 @@ class Discrete_Observations:
         -------
         y : int
             Random observation drawn from distribution conditioned on state s
+
         '''
-        return cum_rand(self.cum_y[s])
+        import random
+        return  np.searchsorted(self.cum_y[s],random.random())
     def calc(self,y):
         """
         Calculate and return likelihoods: self.P_Y[t,i] = P(y(t)|s(t)=i)
@@ -174,6 +171,7 @@ class Discrete_Observations:
         Returns
         -------
         P_Y : array, floats
+
         """
         n_y = len(y)
         n_states = len(self.P_YS)
@@ -212,11 +210,13 @@ class Class_y(Discrete_Observations):
     
     Parameters
     ----------
-    pars : (P_YS,c2s)
-    P_YS : array
-        P_YS[s,y] is the probability of state s producing output y
+    pars : (y_class, theta, c2s)
+    y_class : class
+        y_class(theta) should yield a model instance for observations wo class
+    theta : object
+        A python object that contains parameter[s] for the observation model
     c2s : dict
-        classification labels are keys and each value is a list states
+        classification labels are keys and each value is a list of states
         contained in the classification.
 
     '''
