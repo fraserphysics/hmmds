@@ -39,7 +39,7 @@ def main(argv=None):
         [.95,.95,0],  # Yellow
         [0,0,0]        # Black
         ]
-    fig = plt.figure(figsize=(5,5))
+    fig = plt.figure(figsize=(15,15))
     num = 0
     skiplist = [1,2,5,6]
     #The first loop is to graph each individual set of points, the second
@@ -66,7 +66,8 @@ def main(argv=None):
         ax.set_yticks([])
         # Next, graph the x and z coordinates, with a color and point-type
         #(in this case pixels)
-        ax.plot(xlist,zlist,color=plotcolor[b%7],marker=',',linestyle='[]')
+        ax.plot(xlist,zlist,color=plotcolor[b%7],marker=',',markersize=1,
+                linestyle='None')
         ax.set_xlim(-20,20)
         ax.set_ylim(0,50)
 
@@ -83,7 +84,8 @@ def main(argv=None):
             zlist.append(z)
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.plot(xlist,zlist,color=plotcolor[b%7],marker=',',linestyle='None')
+        ax.plot(xlist,zlist,color=plotcolor[b%7],marker=',',markersize=2,
+                linestyle='None')
     ax.set_xlim(-20,20)
     ax.set_ylim(0,50)
     fig.savefig(fig_name) #Make sure to save it as a .pdf
