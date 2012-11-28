@@ -6,6 +6,7 @@ TeX/*.log
 TeX/*.pdf
 doc/build
 derived_data
+!derived_data/apnea/r_times/*
 figs
 *.pyc
 code/hmm/*.c
