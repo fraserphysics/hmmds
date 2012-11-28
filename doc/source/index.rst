@@ -16,7 +16,8 @@ using numpy and scipy.  It is derived from the code used for the book
 
 .. toctree::
 
-   HMM base class <Scalar>
+   HMM base class <base>
+   Models of scalar observations <Scalar>
    Cython
    Lorenz
    Applications

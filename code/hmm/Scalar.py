@@ -34,7 +34,10 @@ class Prob(np.ndarray):
         '''
         self[:, i] = col
     def likelihoods(self, v):
-        '''likelihoods for vector of data
+        '''Likelihoods for vector of data
+
+        Given T = len(v) and self.shape = (M,N), return L with L.shape
+        = (T,M) and L[t,a] = Prob(v[t]|a)
 
         Parameters
         ----------
@@ -45,14 +48,16 @@ class Prob(np.ndarray):
         -------
         L : array
 
-            Given T = len(v) and self.shape = (M,N), L.shape = (T,M)
-            with the interpretation L[t,a] = Prob(v[t]|a)
-
         '''
         return self[:, v].T
+    def cost(self, nu, py):
+        ''' Efficient calculation of np.outer(nu, py)*self (where * is
+        element-wise)
+        '''
+        return (self.T*nu).T*py
     def inplace_elementwise_multiply(self, a):
         '''
-        Multiply self by argument
+        Replace self with product of self and argument
 
         Parameters
         ----------
@@ -121,14 +126,26 @@ class Prob(np.ndarray):
         '''
         return self
 def make_prob(x):
+    '''Make a Prob instance.
+
+    Used as an argument of HMM.__init__ so that one may use other
+    functions that create instances of other classes instead of Prob,
+    eg, one that uses sparse matrices.
+
+    Parameters
+    ----------
+    x : array_like
+        Conditional probabilites x[i,j] the probability of j given i
+
+    Returns
+    -------
+    p : Prob instance
+    '''
     x = np.array(x)
     return Prob(x.shape, buffer=x.data)
 
 class Discrete_Observations:
     '''The simplest observation model: A finite set of integers.
-
-    More complex observation models should provide the methods:
-    *calc*, *random_out*, *reestimate* necessary for the application.
 
     Parameters
     ----------
@@ -212,7 +229,8 @@ class Class_y(Discrete_Observations):
     ----------
     pars : (y_class, theta, c2s)
     y_class : class
-        y_class(theta) should yield a model instance for observations wo class
+        y_class(theta) should yield a model instance for observations without
+        class
     theta : object
         A python object that contains parameter[s] for the observation model
     c2s : dict
@@ -244,12 +262,26 @@ class Class_y(Discrete_Observations):
                 self.__class__, self.c2s.astype(np.int8), self.y_mod))
     def random_out(self, # Class_y instance
                    s):
+        '''Simulate.  Draw a random observation given state s.
+
+        Parameters
+        ----------
+        s : int
+            Index of state
+
+        Returns
+        -------
+        y, c : int, int
+            A tuple consisting of an observation and the class of the state
+        '''
         return self.y_mod.random_out(s), self.s2c[s]
     def calc(self, # Class_y instance
              yc):
         """
-        Calculate and return likelihoods: self.P_Y[t,i] =
-        P(y(t)|s(t)=i)*g(s,c[t])
+        Calculate and return likelihoods: P_Y[t,i] = P(y(t)|s(t)=i)*g(s,c[t])
+
+        g(s,c) is a gate function that is one if state s is in class c
+        and is zero otherwise.
 
         Parameters
         ----------
@@ -259,6 +291,7 @@ class Class_y(Discrete_Observations):
         Returns
         -------
         P_Y : array, floats
+
         """
         y = yc[:,0]
         c = yc[:,1]

@@ -1,5 +1,6 @@
-'''C.pyx: cython code for speed up.  This code is 18 times faster than
-the pure python in base.py and Scalar.py.
+'''C.pyx: cython code for speed up.  The HMM class is 17.9 times
+faster than the pure python in base.py and Scalar.py, and the
+HMM_SPARSE class is 16.4 times faster when the matrices have no zeros.
 
 '''
 #To build: python3 setup.py build_ext --inplace
@@ -132,7 +133,7 @@ class HMM(base.HMM):
             _next = _tmp
         return # End of backward()
     @cython.boundscheck(False)
-    def reestimate(self):
+    def reestimate(self, y):
         """Reestimate state transition probabilities and initial
         state probabilities.
 
@@ -213,7 +214,7 @@ class Prob:
     training to pruning threshold.
 
     '''
-    def __init__(self,x,threshold=-1):
+    def __init__(self, x, threshold=-1):
         self.threshold = threshold
         if SS.isspmatrix_csc(x):
             self.csc = x
@@ -258,6 +259,17 @@ class Prob:
             for j in range(self.indptr[i],self.indptr[i+1]):
                 J = self.indices[j]
                 self.data[j] *= A[J,i]
+    def cost(self, nu, py):
+        ''' Efficient calculation of np.outer(nu, py)*self (* is
+        element-wise).  Used in Viterbi decoding.
+        '''
+        n, m = self.shape
+        r = np.zeros(self.shape)
+        for i in range(m):
+            for j in range(self.indptr[i],self.indptr[i+1]):
+                J = self.indices[j]
+                r[J,i] = self.data[j] * nu[J] * py[i]
+        return r
     def normalize(self):
         '''Divide each row, self[j,:], by its sum.  Then prune based on
         threshold.
@@ -451,8 +463,7 @@ class HMM_SPARSE(HMM):
     '''
     def __init__(self, P_S0, P_S0_ergodic, P_YS, P_SS,
                  y_mod=Discrete_Observations, prob=make_prob):
-        base.HMM.__init__(self, P_S0, P_S0_ergodic, P_YS, P_SS, y_mod,
-                            make_prob)
+        base.HMM.__init__(self, P_S0, P_S0_ergodic, P_YS, P_SS, y_mod, prob)
 
     @cython.boundscheck(False)
     def forward(self):

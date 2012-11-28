@@ -2,7 +2,11 @@
  EG. python MakeModel.py data lorenz.4 m12s.4y
 '''
 
-import sys, os.path, pickle, random, numpy
+import sys
+import os.path
+import pickle
+import random
+import numpy
 
 from itertools import dropwhile
 
@@ -55,8 +59,8 @@ def main(argv=None):
     random.seed(7)
     P_S0 = randomP(numpy.zeros(nstates))
     P_S0_ergodic = randomP(numpy.zeros(nstates))
-    P_ScS = numpy.zeros((nstates,nstates))
-    P_YcS = numpy.zeros((nstates,cardy))
+    P_ScS = numpy.empty((nstates,nstates))
+    P_YcS = numpy.empty((nstates,cardy))
     for AA in (P_ScS,P_YcS):
         for A in AA:
             randomP(A)

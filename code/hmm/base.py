@@ -15,11 +15,13 @@ class HMM:
         Initial distribution of states
     P_S0_ergodic : array_like
         Stationary distribution of states
+    y_params : python object
+        Observation model parameters
     P_SS : array_like
         P_SS[a,b] = Prob(s(1)=b|s(0)=a)
-    P_YS : array_like
-        P_YS[a,b] = Prob(y(0)=b|s(0)=a)
-    prob=make_prob : function, optional
+    y_class : class
+       Observation model created by: y_class(y_params)
+    prob : function, optional
         Function to make conditional probability matrix
 
     Examples
@@ -81,9 +83,9 @@ class HMM:
         self,         # HMM instance
         P_S0,         # Initial distribution of states
         P_S0_ergodic, # Stationary distribution of states
-        P_YS,         # P_YS[a,b] = Prob(y(0)=b|s(0)=a)
+        y_params,     # Parameters of observation model
         P_SS,         # P_SS[a,b] = Prob(s(1)=b|s(0)=a)
-        y_mod=Discrete_Observations,
+        y_class=Discrete_Observations,
         prob=make_prob# Function to make conditional probability matrix
         ):
         """Builds a new Hidden Markov Model
@@ -92,7 +94,7 @@ class HMM:
         self.P_S0 = np.array(P_S0)
         self.P_S0_ergodic = np.array(P_S0_ergodic)
         self.P_SS = prob(P_SS)
-        self.y_mod = y_mod(P_YS)
+        self.y_mod = y_class(y_params)
         self.alpha = None
         self.gamma = None
         self.beta = None
@@ -100,8 +102,9 @@ class HMM:
         return # End of __init__()
     def forward(self):
         """
-        Implements recursive calculation of state probabilities given
-        observation probabilities.
+       Recursively calculate state probabilities
+
+       Requires that observation probabilities have already been calculated
 
         Parameters
         ----------
@@ -150,8 +153,7 @@ class HMM:
         return (np.log(self.gamma)).sum() # End of forward()
     def backward(self):
         """
-        Implements the Baum Welch backwards pass through state conditional
-        likelihoods of the obserations.
+        Baum Welch backwards pass through state conditional likelihoods
 
         Parameters
         ----------
@@ -169,6 +171,8 @@ class HMM:
         * self     is an HMM
 
         * self.P_Y has been calculated
+
+        * self.gamma has been calculated by forward
 
         Bullet points
         -------------
@@ -223,9 +227,11 @@ class HMM:
             self.reestimate(y)
         return LLL # End of train()
     def reestimate(self,y):
-        """Reestimate state transition probabilities and initial state
-        probabilities, then call y_mod.reestimate method to update
-        observation model parameters.
+        """Reestimate model parameters
+
+        Code here updates state transition probabilities and initial
+        state probabilities.  Contains a call to the y_mod.reestimate
+        method that updates observation model parameters.
 
         Parameters
         ----------
@@ -253,8 +259,8 @@ class HMM:
         self.y_mod.reestimate(self.alpha,y)
         return # End of reestimate()
     def decode(self, y):
-        """Use the Viterbi algorithm to find the most likely state
-           sequence for a given observation sequence y
+        """
+        Find the most likely state sequence for a given observation sequence
 
         Parameters
         ----------
@@ -273,7 +279,7 @@ class HMM:
         ss = np.ones((self.n_y, 1), np.int32)       # State sequence
         nu = P_Y[0] * self.P_S0
         for t in range(1, self.n_y):
-            cost = (self.P_SS.T*nu).T*P_Y[t] # outer(nu,P_Y[t])*P_SS
+            cost = self.P_SS.cost(nu, P_Y[t])# P_SS*outer(nu, P_Y[t])
             pred[t] = cost.argmax(axis=0)    # Best predecessor
             nu = np.choose(pred[t],cost)     # Cost of best paths to each state
             nu /= nu.max()                   # Prevent underflow
@@ -288,8 +294,10 @@ class HMM:
         y      # Observations
         ):
         '''
-        Calculate maximum a posterori probability (MAP) classification
-        sequence.
+        Find maximum likelihood classification sequence
+
+        Note that the observation class provided to HMM must, like
+        *Class_y*, have a c2s (class to state) array.
 
         Parameters
         ----------
@@ -299,7 +307,10 @@ class HMM:
         Returns
         -------
         cs : array
-            Maximum likelihood classification sequence
+            Estimated classification sequence
+
+        Examples
+        --------
 
         >>> from scipy.linalg import circulant
         >>> np.set_printoptions(precision=3, suppress=True)
@@ -393,8 +404,7 @@ class HMM:
         phi /= np.maximum(1.0e-300, np.dot(np.dot(c2s, phi), c2s))
 
         for t in range(1,n_t): # Main loop
-            # cost for state-state pairs = outer((nu*c2s.*phi),P_Y[t]).*P_SS
-            ss_cost = (self.P_SS.T*np.dot(nu,c2s)*phi).T*P_Y[t]
+            ss_cost = self.P_SS.cost(np.dot(nu, c2s)*phi, P_Y[t])
             cs_cost = np.dot(c2s, ss_cost)    # Cost for class-state pairs
             cc_cost = np.dot(cs_cost, c2s.T)  # Cost for class-class pairs
             pred[t] = cc_cost.argmax(axis=0)  # Best predecessor for each class
@@ -412,7 +422,8 @@ class HMM:
         return seq
 
     def simulate(self, length, seed=3):
-        """generates a random sequence of observations of given length
+        """
+        Generate a random sequence of observations of given length
 
         Parameters
         ----------
@@ -488,8 +499,10 @@ P_SS =
             self,    # HMM instance
             ys       # List of observation sequences
         ):
-        """Concatenate and return multiple y sequences.  Also return
-        information on sequence boundaries within concatenated list.
+        """Concatenate and return multiple y sequences.
+
+        Also return information on sequence boundaries within
+        concatenated list.
 
         Parameters
         ----------

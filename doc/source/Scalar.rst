@@ -1,4 +1,4 @@
-HMM Base Class Module
+Scalar Observation Models
 =================================================================
 Scalar.py
 -------------
