@@ -29,7 +29,7 @@ def ReadIn(FileName):
     d = {}
     # Get first record name by finding a line with len(parts) == 1
     line = fp.readline()
-    for i in xrange(len(line)):
+    for i in range(len(line)):
         if line[i] == '#': # drop comments, ie ' # words ...'
             line = line[:i]
             break
@@ -42,9 +42,10 @@ def ReadIn(FileName):
     # Read rest of the file
     lines = fp.readlines()
     if len(lines) < 4:
-        raise RuntimeError, "Less than 4 lines after record in file" + FileName
+        raise RuntimeError("Less than 4 lines after record in file: %s"%
+                           FileName)
     for line in lines:
-        for i in xrange(len(line)):
+        for i in range(len(line)):
             if line[i] == '#': # drop comments, ie ' # words ...'
                 line = line[:i]
                 break
@@ -69,7 +70,7 @@ def As_Ns_2_Nums(AN,S_min=10,val_A=1,val_N=0):
     """
     Nums = []
     num = {'A':val_A,'N':val_N}
-    for c in xrange(len(AN)):
+    for c in range(len(AN)):
         n = num[AN[c]]
         Nums.append(n)
         """
@@ -97,9 +98,9 @@ def R_times2Dev(data,w=1):
   
     # Create a list of jitters
     jitter = []
-    for i in xrange(w,len(data)-w):
+    for i in range(w,len(data)-w):
         sum = 0.0
-        for d in (range(-w,0)+range(1,w+1)):
+        for d in (list(range(-w,0))+list(range(1,w+1))):
             sum += data[i+d]
         T = sum/(2*w) # Expected time for data[i] if uniform
         P = (data[i+w] - data[i-w])/(2*w) # Avg pulse period
@@ -117,7 +118,7 @@ def R_times2Dev(data,w=1):
     t_new = jitter[0][0]
     j_new = jitter[0][1]
     i=0
-    for k in xrange(L):
+    for k in range(L):
         t = k/2.0
         if t > t_new:
             i += 1

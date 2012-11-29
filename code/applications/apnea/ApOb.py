@@ -58,7 +58,7 @@ def fetch_ann(Annotations,name):
         parts = F.readline().split()
     hour = 0
     letters = []
-    for line in F.xreadlines():
+    for line in F:
         parts = line.split()
         if len(parts) != 2:
             break
@@ -66,7 +66,7 @@ def fetch_ann(Annotations,name):
         hour += 1
         letters += parts[1]
     notes = []
-    for t in xrange(len(letters)):
+    for t in range(len(letters)):
         notes.append(Mark_dict[letters[t]])
     return numpy.array(notes)
 def fetch_annotations(Annotations,name):
@@ -75,7 +75,7 @@ def fetch_annotations(Annotations,name):
 def read_data(data_file):
     # Read in "data_file" as a 2-d array
     f = file(data_file, 'r')
-    data = [[float(x) for x in line.split()] for line in f.xreadlines()]
+    data = [[float(x) for x in line.split()] for line in f]
     return numpy.array(data).T
 
 def read_lphr(where,what,AR):
@@ -89,9 +89,9 @@ def read_lphr(where,what,AR):
     #raw = read_data(filename)[1]
     T = len(raw)
     Y = numpy.empty((T,AR+2))
-    for t in xrange(AR+2):
+    for t in range(AR+2):
         Y[t,:AR+1] = raw[-AR-1:]
-    for t in xrange(AR+2,T):
+    for t in range(AR+2,T):
         Y[t,:AR+1] = raw[-t:AR+1-t]
     raw.sort
     scale = raw[int(T*.8)]*2.0
@@ -123,15 +123,14 @@ def read_records(routines, # List of routines to read data
                 dats.append(routine(path,record))
             else:
                 dats.append(routine(path,record,arg))
-        T = min(map(lambda dat:len(dat), dats))
-        dats = map(lambda dat:dat[:T], dats)
+        T = min([len(dat) for dat in dats])
+        dats = [dat[:T] for dat in dats]
         if record is records[0]:
             Ys = [dats] 
-            Yall = map(lambda (dat):numpy.array(dat,copy=True), dats)
+            Yall = [numpy.array(dat,copy=True) for dat in dats]
         else:
             Ys.append(dats)
-            Yall = map(
-                 lambda (all,dat):numpy.concatenate((all,dat)),zip(Yall,dats))
+            Yall = [numpy.concatenate((all_dat[0],all_dat[1])) for all_dat in zip(Yall,dats)]
     return (Ys,Yall)
 
 def score(reference,test,records,verbose=False):
@@ -175,8 +174,8 @@ def doctor_M(M,Fudge):
     M.P_S0[0,0] = 1.0
     M.P_S0_ergodic *=0
     M.P_S0_ergodic[0,0] = 1.0
-    for i in xrange(M.N):
-        for j in xrange(M.N):
+    for i in range(M.N):
+        for j in range(M.N):
             if M.S2C[i] != M.S2C[j]:
                 M.P_ScS[i,j] *= 1e-6
         if not(Fudge is None) and  M.S2C[i] == 0:
@@ -206,7 +205,7 @@ class BASE(EXT.HMM):
     """
     def Py_w_class(self,Y):
         Py = self.Py_wo_class(Y[1:])
-        for t in xrange(self.T):
+        for t in range(self.T):
             C = Y[0][t]
             Py_t = numpy.zeros(self.N,numpy.float64)
             for s in self.C2S[C]:
@@ -229,12 +228,12 @@ class BASE(EXT.HMM):
         N = len(Ys[0]) # Number of components, eg 3 for [C,HR,Resp]
         Y_all = []     # Collection of N time series
         Tseg = [0,len(Ys[0][0])] # List of segment boundaries
-        for i in xrange(N):
+        for i in range(N):
             Y_all.append(numpy.array(Ys[0][i],copy=True))
         for Y in Ys[1:]:
             assert len(Y) is N
             Tseg.append(len(Y[0])+Tseg[-1])
-            for i in xrange(N):
+            for i in range(N):
                 Y_all[i] = numpy.concatenate((
                           Y_all[i], numpy.array(Y[i],copy=False)))
         self.T = len(Y_all[-1])
@@ -256,12 +255,12 @@ class Resp_HMM(BASE):
     def dump(self # Resp_HMM
              ):
         self.dump_base()
-        for i in xrange(self.N):
+        for i in range(self.N):
             Icov = self.Icov[i]
-            print ' For state %d:'%i
+            print(' For state %d:'%i)
             Scalar.print_Name_VV('Icov',Icov)
-            print '              mu  =',self.mu[i]
-            print '              norm =',self.norm[i]
+            print('              mu  =',self.mu[i])
+            print('              norm =',self.norm[i])
         return #end of dump()
     def randomize(self # Resp_HMM
              ):
@@ -269,7 +268,7 @@ class Resp_HMM(BASE):
         For each state i, draw a random number from N(0,cov[i]) and
         add it to mu[i].
         """
-        for i in xrange(self.N):
+        for i in range(self.N):
             cov = LAI(self.Icov[i])
             self.mu[i] = numpy.random.multivariate_normal(self.mu[i],cov)
     def Py_wo_class(self # Resp_HMM
@@ -284,8 +283,8 @@ class Resp_HMM(BASE):
             assert(self.Py.shape is (self.T,self.N))
         except:
             self.Py = numpy.zeros((self.T,self.N),numpy.float64)
-        for t in xrange(self.T):
-            for i in xrange(self.N):
+        for t in range(self.T):
+            for i in range(self.N):
                 d = numpy.mat(y[t]-self.mu[i]).T
                 dQd = d.T*numpy.mat(self.Icov[i])*d
                 dQd = min(float(dQd),300.0) # Underflow
@@ -310,9 +309,9 @@ class Resp_HMM(BASE):
         # Inverse Wishart prior parameters.  Without data sigma_sq = b/a
         a = 4
         b = 0.1
-        for i in xrange(self.N):
+        for i in range(self.N):
             rrsum = numpy.mat(numpy.zeros((Dim,Dim)))
-            for t in xrange(len(Y)):
+            for t in range(len(Y)):
                 r = Y[t]-self.mu[i]
                 rrsum += w[t,i]*numpy.outer(r,r)
             cov = (b*numpy.eye(Dim) + rrsum)/(a + wsum[i])
@@ -340,20 +339,20 @@ class HR_HMM(BASE):
     def dump(self # HR_HMM
              ):
         self.dump_base()
-        for i in xrange(self.N):
+        for i in range(self.N):
             A = self.A[i]
-            print ' For state %d:'%i
+            print(' For state %d:'%i)
             Scalar.print_Name_V(
                   '              A   ',A)
-            print '              Var  =',self.Var[i]
-            print '              norm =',self.norm[i]
+            print('              Var  =',self.Var[i])
+            print('              norm =',self.norm[i])
         return #end of dump()
     def randomize(self):
         """ Perturb the observation models for each state to break symmetry.
         For each state i, draw a random number from N(0,Var[i]) and
         add it to A[i,-1].
         """
-        for i in xrange(self.N):
+        for i in range(self.N):
             self.A[i,-1] += random.gauss(0,math.sqrt(self.Var[i]))
     def Py_wo_class(self, # HR_HMM
                     YL):
@@ -367,7 +366,7 @@ class HR_HMM(BASE):
         try:
             hr = y[:,0].reshape((self.T,))
         except:
-            print 'y=',y
+            print('y=',y)
             hr = y[:,0].reshape((self.T,))
         context = y[:,1:]
         d =  hr - numpy.inner(self.A,context)
@@ -376,7 +375,7 @@ class HR_HMM(BASE):
             assert(self.Py.shape is (self.T,self.N))
         except:
             self.Py = numpy.zeros((self.T,self.N),numpy.float64)
-        for i in xrange(self.N):
+        for i in range(self.N):
             z = numpy.minimum(d[i]*d[i]/(2*self.Var[i]),300.0)
             # Cap z to stop underflow
             self.Py[:,i] = numpy.exp(-z)*self.norm[i]
@@ -401,7 +400,7 @@ class HR_HMM(BASE):
         # Inverse Wishart prior parameters.  Without data, sigma = b/a
         a = 4
         b = 16
-        for i in xrange(self.N):
+        for i in range(self.N):
             HR = w.T[i]*Y.T[0]           # Tx1
             context = (w.T[i]*Y.T[1:]).T # Tx(Dim-1)
             A,resids,rank,s = LA.lstsq(context,HR)
@@ -427,18 +426,18 @@ class Both_HMM(BASE):
     def dump(self # Both_HMM
              ):
         self.dump_base()
-        print "S2C=",self.S2C
-        for i in xrange(self.N):
-            print ' For state %d:'%i
+        print("S2C=",self.S2C)
+        for i in range(self.N):
+            print(' For state %d:'%i)
             Icov = self.Resp.Icov[i]
             Scalar.print_Name_VV(' Icov',Icov)
-            print '              mu    =',self.Resp.mu[i]
-            print '              normR =',self.Resp.norm[i]
+            print('              mu    =',self.Resp.mu[i])
+            print('              normR =',self.Resp.norm[i])
             A = self.HR.A[i]
             Scalar.print_Name_V(
                   '              A    ',A)
-            print '              Var   =',self.HR.Var[i]
-            print '              normH =',self.HR.norm[i]
+            print('              Var   =',self.HR.Var[i])
+            print('              normH =',self.HR.norm[i])
         return #end of dump()
     def randomize(self # Both_HMM
              ):
@@ -479,7 +478,7 @@ class SB_HMM(Both_HMM):
         Both_HMM.__init__(self, P_S0, P_S0_ergodic, P_ScS, C2S, mu, Icov,
                           normR, A, Var, normH, Pow=Pow)
         S2C_dict = self.N*[None]
-        for s in xrange(self.N):
+        for s in range(self.N):
             S2C_dict[s] = {self.S2C[s]:True}
         self.S2C = S2C_dict
     def Py_w_class(self,   # SB_HMM
@@ -488,11 +487,11 @@ class SB_HMM(Both_HMM):
         S2C[i].has_key(C[t]).
         """
         Py = self.Py_wo_class(YL[1:])
-        for t in xrange(self.T):
+        for t in range(self.T):
             C = YL[0][t]
             Py_t = numpy.zeros(self.N,numpy.float64)
-            for s in xrange(self.N):
-                if self.S2C[s].has_key(C):
+            for s in range(self.N):
+                if C in self.S2C[s]:
                     Py_t[s] = Py[t,s]
             Py[t,:] = Py_t
         return Py
@@ -510,10 +509,10 @@ class SB_HMM(Both_HMM):
         permits it to model "peak" observations.  Each "peak"
         observation must fall in such a state.
         """
-        for i in xrange(home+1,home+N_isles+1):
+        for i in range(home+1,home+N_isles+1):
             self.link(home,i,.1)
             self.link(i,home,.1)
-        for i in xrange(home+N_isles+1,home+N_isles+1+N_peaks*2,2):
+        for i in range(home+N_isles+1,home+N_isles+1+N_peaks*2,2):
             self.link(home,i,.1)
             self.link(i,home,.1)
             self.link(i+1,i,.1)
@@ -530,7 +529,7 @@ class SH_HMM(HR_HMM,SB_HMM):
     def __init__(self, P_S0,P_S0_ergodic,P_ScS,C2S,A,Var,norm):
         HR_HMM.__init__(self, P_S0, P_S0_ergodic, P_ScS, C2S, A, Var, norm)
         S2C_dict = self.N*[None]
-        for s in xrange(self.N):
+        for s in range(self.N):
             S2C_dict[s] = {self.S2C[s]:True}
         self.S2C = S2C_dict
     def Py_w_class(self,YL):

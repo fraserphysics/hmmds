@@ -1,7 +1,12 @@
 """ respire.py
 
-python respire.py --Data_Dir=data --Annotations=data/summary_of_training\
- --ApOb_Dir=code/hmm/ApOb.py a01 a02 a03 ... x34 x35
+python3 respire.py r_times_dir summary_of_training resp_dir
+
+The following takes "real    4m59.623s"
+
+python3 respire.py ../../../raw_data/apnea/summary_of_training ../../../derived_data/apnea/r_times ../../../derived_data/apnea/ ../../../derived_data/apnea/respiration
+
+Will need ApOb.py in pythonpath
 
 Calculate high frequency periodograms for each record at 0.1 minute
 intervals.  Collect these vectors into three groups:
@@ -33,7 +38,37 @@ this program; if not, write to the Free Software Foundation, Inc.,
 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 """
-import scipy, scipy.linalg, math, sys, cinc2000, getopt, numpy.fft
+Mark_dict = {'N':0,'A':1}
+def fetch_ann(Annotations,name):
+    """ Like fetch_annotations, but shorter result.  Only one sample per
+    minute.  FixMe: use version in ApOb when it works.
+    """
+    import numpy as np
+    F = open(Annotations,'r')
+    parts = F.readline().split()
+    while len(parts) is 0 or parts[0] != name:
+        parts = F.readline().split()
+    hour = 0
+    letters = []
+    for line in F:
+        parts = line.split()
+        if len(parts) != 2:
+            break
+        assert (int(parts[0]) == hour),"hour wrong"
+        hour += 1
+        letters += parts[1]
+    notes = []
+    for t in range(len(letters)):
+        notes.append(Mark_dict[letters[t]])
+    return np.array(notes)
+def fetch_annotations(Annotations,name):
+    return fetch_ann(Annotations,name).repeat(SamPerMin) 
+
+import numpy as np
+import numpy.linalg as LA
+import math
+import sys
+from os.path import join
 
 SamPerMin = 10               # Samples per minute for output
 Dt_in = 0.5                  # Sampling interval of jitter in seconds
@@ -50,186 +85,155 @@ sigma = 50.0                 # Width of Gaussian window in samples.
                              # Easier to change sigma than Fw, etc
 
 # Calculate Gaussian window function
-Gw = scipy.zeros((Glength,),scipy.float64)
-for t in xrange(Glength):
+Gw = np.zeros((Glength,),np.float64)
+for t in range(Glength):
     Gw[t] = math.exp( -((t-Gl_2)**2)/(2*sigma**2) )
 
-def record2vecs(record_name,data_dir):
+def record2vecs(File):
     # Read the rr data (Note that it is sampled irregularly and
     # consists of the r-times in centiseconds) and return a high
     # frequency spectrogram.
-    name = data_dir + '/' + record_name + '.Rtimes'
+    import cinc2000
+    from numpy.fft import rfft, irfft
     data = []
-    File = open(name,'r')
-    for line in File.xreadlines():
+    for line in File:
         data.append(float(line)/100)
     File.close()
     # Now data[i] is an r-time in seconds.
     hrd = cinc2000.R_times2Dev(data)
     # hrd are heart rate deviations sampled at 2 Hz
-    pad = scipy.zeros(((Glength+len(hrd)),),scipy.float64)
+    pad = np.zeros(((Glength+len(hrd)),),np.float64)
     pad[Gl_2:len(hrd)+Gl_2] = hrd
     # Now pad is hrd with Gl_2 zeros before and after
-    N_out = len(hrd)/RDt
-    result = scipy.zeros((N_out,Fw/2),scipy.float64)
+    N_out = len(hrd)//RDt
+    result = np.zeros((N_out,Fw/2),np.float64)
     mags = []
-    for k in xrange(N_out):
+    for k in range(N_out):
         i = int(RDt*k)
         WD = Gw*pad[i:i+Glength] # Multiply data by window fuction
-        FT = numpy.fft.rfft(WD,n=Fw)
-        SP = scipy.conjugate(FT)*FT  # Periodogram
-        temp = numpy.fft.rfft(SP,n=Fw/2)
-        SP = numpy.fft.irfft(temp[0:int(0.1*Fw/2)],n=Fw/2)
+        FT = rfft(WD,n=Fw)
+        SP = np.conjugate(FT)*FT  # Periodogram
+        temp = rfft(SP,n=Fw//2)
+        SP = irfft(temp[0:int(0.1*Fw/2)],n=Fw/2)
         # Low pass filter in freq domain.  Pass below 0.1 Nyquist
         temp = SP.real[:Fw/2]
-        mag = math.sqrt(scipy.dot(temp,temp))
+        mag = math.sqrt(np.dot(temp,temp))
         result[k,:] = temp/mag
         mags.append(math.log(mag))
         # result[k,:] is a unit vector and a smoothed periodogram
     return [result,mags]
-
-opts,pargs = getopt.getopt(sys.argv[1:],'',[
-        'Annotations=',
-        'Data_Dir=',
-        'ApOb_Dir='
-        ])
-opt_dict ={}
-for opt in opts:
-    if len(opt) is 2:
-        opt_dict[opt[0]] = opt[1]
-    else:
-        opt_dict[opt[0]] = True 
-Annotations = opt_dict['--Annotations']
-Data_Dir = opt_dict['--Data_Dir']
-ApDat = Data_Dir+'/Apnea'
-ApOb_Dir = opt_dict['--ApOb_Dir']
-sys.path.append(ApOb_Dir)
-import ApOb
-
-C_vecs  = [] # Vectors from c records
-AA_vecs = [] # Vectors from a records in apnea time
-AN_vecs = [] # Vectors from a records in normal time
-vec_dict = {}
-
-# Read data from the records listed on the command line
-for name in pargs:
-    vecs,mags = record2vecs(name,ApDat)
-    vec_dict[name] = [vecs,mags]
-    if name[0] == 'b' or name[0] == 'x': # Not used for Fisher LDA
-        continue
-    if name[0] == 'c':
-        for vec in vecs[300:-60]:
-            C_vecs.append(vec)
-        continue
-    assert (name[0] is 'a'),'record %s is not a*, b*, c*, or x*'%name
-    Ap_notes = ApOb.fetch_annotations(Annotations,name)
-    # Now Ap_notes elements have form [time(minutes),Mark] where
-    # Mark=1 for Apnea and Mark=0 for Normal
-    #for t in xrange(min(len(vecs),SamPerMin*len(Ap_notes))):
-    for t in xrange(300,len(vecs)-300):
-        M = int(t/SamPerMin)
-        if mags[t] > CUT:
+def LDA(vec_dict, annotations, summary_dir):
+    #import ApOb
+    # Collect three classes of vectors
+    C_vecs  = [] # Vectors from c records
+    AA_vecs = [] # Vectors from a records in apnea time
+    AN_vecs = [] # Vectors from a records in normal time
+    for r, v in vec_dict.items():
+        vecs, mags = v
+        if r.startswith('b') or r.startswith('x'): # Not used for LDA
             continue
-        if Ap_notes[M] == 1:
-            AA_vecs.append(vecs[t])
-        elif Ap_notes[M] == 0:
-            AN_vecs.append(vecs[t])
-        else:
-            raise RuntimeError,'For %s, Ap_notes[%d][1]=%d'%(name, M,
-                                                             Ap_notes[M][1])
-# End of loop for reading records
-
-# Calculate mean and scatter of the three classes
-def mean_var(IN):
-    vecs = scipy.array(IN)
-    mean = scipy.sum(vecs,axis=0)/len(vecs)
-    d = scipy.transpose(vecs-mean)
-    var = scipy.inner(d,d)
-    return [mean,var,vecs,len(vecs)]
-C_mean,C_var,C_vecs,C_n = mean_var(C_vecs)
-AA_mean,AA_var,AA_vecs,AA_n = mean_var(AA_vecs)
-AN_mean,AN_var,AN_vecs,AN_n = mean_var(AN_vecs)
-
-print 'C_mean.shape=',C_mean.shape, 'C_var.shape=',C_var.shape, 'C_vecs.shape=',C_vecs.shape # FixMe: Remove this later
-
-# Calculate Sw, the within class scatter
-Sw = C_var + AA_var + AN_var
-
-# Calculate Sb, the between class scatter
-n = C_n + AA_n + AN_n
-mean = (C_n*C_mean + AA_n*AA_mean + AN_n*AN_mean)/n
-def Sb_t(tmean,tn,mean):
-    d = tmean-mean
-    return tn*scipy.outer(d,d)
-Sb = Sb_t(C_mean,C_n,mean)+Sb_t(AA_mean,AA_n,mean)+Sb_t(AN_mean,AN_n,mean)
-
-# Calculate a 2-d basis of linear discriminant vectors
-n = Sw.shape[0]
-vals,vecs = scipy.linalg.eigh(scipy.dot(scipy.linalg.inv(
-                        Sw+scipy.eye(n)*100),Sb))
-# Find largest two eigenvalues
-L = vals.tolist()
-i0 = L.index(max(vals))
-temp = vals[i0]
-vals[i0] = 0
-i1 = L.index(max(vals))
-vals[i0] = temp
-basis = scipy.zeros((n,2))
-basis[:,0] = vecs[:,i0]
-basis[:,1] = vecs[:,i1]
-
-# Write projections of the data to 'record.resp'
-for key in vec_dict.keys():
-    vecs,mags = vec_dict[key]
-    pairs = scipy.dot(vecs,basis)
-    name = ApDat + '/' + key + '.resp'
-    File = open(name,'w')
-    for i in xrange(len(pairs)):
-        print >>File,i/float(SamPerMin),pairs[i,0],pairs[i,1],mags[i]
-
-# Write files of information to characterize LDA
-File = open(Data_Dir+'/mean.resp','w')
-for i in xrange(len(C_mean)):
-    print >>File, i, C_mean[i], AN_mean[i], AA_mean[i], basis[i,0], basis[i,1]
-
-for name,data in [['C.resp',C_vecs],['AN.resp',AN_vecs],['AA.resp',AA_vecs],]:
-    dots = scipy.dot(data,basis)
-    File = open(Data_Dir+'/'+name,'w')
-    for i in xrange(dots.shape[0]):
-        print >>File, dots[i,0], dots[i,1]
-    File.close()
-
-# Old stuff for matplotlib
-# from pylab import *
-# figure(1)
-# plot(vals,'r-')
-# wvals,wvecs = eigh(Sw)
-# plot(wvals,'b-')
+        if r.startswith('c'):
+            for vec in vecs[300:-60]:
+                C_vecs.append(vec)
+            continue
+        Ap_notes = fetch_annotations(annotations, r)
+        # Now Ap_notes elements have form [time(minutes),Mark] where
+        # Mark=1 for Apnea and Mark=0 for Normal
+        for t in range(300,len(vecs)-300):
+            M = int(t/SamPerMin)
+            if mags[t] > CUT:
+                continue
+            if Ap_notes[M] == 1:
+                AA_vecs.append(vecs[t])
+            elif Ap_notes[M] == 0:
+                AN_vecs.append(vecs[t])
 
 
-# # Plot class averages and basis vectors
-# figure(2)
-# plot(basis[:,0],'r--')
-# plot(basis[:,1],'b--')
-# plot(C_mean[:],'r-')
-# plot(AA_mean[:],'g-')
-# plot(AN_mean[:],'b-')
+    # Calculate mean and scatter of the three classes
+    def mean_var(IN):
+        vecs = np.array(IN)
+        mean = np.sum(vecs,axis=0)/len(vecs)
+        d = np.transpose(vecs-mean)
+        var = np.inner(d, d)
+        return mean, var, vecs, len(vecs)
+    C_mean, C_var, C_vecs, C_n = mean_var(C_vecs)
+    AA_mean, AA_var, AA_vecs, AA_n = mean_var(AA_vecs)
+    AN_mean, AN_var, AN_vecs, AN_n = mean_var(AN_vecs)
 
-# # Make scatter plot of the three classes
-# figure(3)
-# def plot_dots(vecs,basis,style):
-#     dots = scipy.dot(vecs,basis)
-#     plot(dots[:,0],dots[:,1],style)
-# plot_dots(C_vecs,basis,'r,')
-# plot_dots(AA_vecs,basis,'g,')
-# plot_dots(AN_vecs,basis,'b,')
-# figure(4)
-# plot_dots(C_vecs,basis,'r,')
-# figure(5)
-# plot_dots(AA_vecs,basis,'g,')
-# figure(6)
-# plot_dots(AN_vecs,basis,'b,')
-# show()
+
+    # Calculate Sw, the within class scatter
+    Sw = C_var + AA_var + AN_var
+    # Calculate Sb, the between class scatter
+    n = C_n + AA_n + AN_n
+    mean = (C_n*C_mean + AA_n*AA_mean + AN_n*AN_mean)/n
+    def Sb_t(tmean,tn,mean):
+        d = tmean-mean
+        return tn*np.outer(d,d)
+    Sb = Sb_t(C_mean,C_n,mean)+Sb_t(AA_mean,AA_n,mean)+Sb_t(AN_mean,AN_n,mean)
+    # Calculate a 2-d basis of linear discriminant vectors
+    n = Sw.shape[0]
+    vals, vecs = LA.eigh(np.dot(LA.inv(
+                            Sw+np.eye(n)*100),Sb))
+    # Find largest two eigenvalues
+    i = np.argsort(vals)
+    basis = vecs[:,i[:2]]
+
+    # Write files of information to characterize LDA
+    open_file = lambda x: open(join(summary_dir, x), 'w')
+    File = open_file('mean.resp')
+    for i in range(len(C_mean)):
+        print('%5d %8.5f %8.5f %8.5f %8.5f %8.5f'%
+              (i, C_mean[i], AN_mean[i], AA_mean[i], basis[i,0], basis[i,1]),
+              file=File)
+
+    for name, data in (('C.resp',C_vecs),
+                       ('AN.resp',AN_vecs),
+                       ('AA.resp',AA_vecs)):
+        dots = np.dot(data, basis)
+        File = open_file(name)
+        for i in range(dots.shape[0]):
+            print('%8.5f %8.5f'%(dots[i,0], dots[i,1]), file=File)
+    return basis
+
+def main(argv=None):
+    
+    import argparse
+    import os
+
+    if argv is None:                    # Usual case
+        argv = sys.argv[1:]
+
+    parser = argparse.ArgumentParser(
+        description='Extract respiration information from r_times files')
+    parser.add_argument('Annotations', help='File of expert classifications')
+    parser.add_argument('In_Dir', help='Directory of r_times files to read')
+    parser.add_argument(
+        'Summary_Dir', help='Directory for files that illustrate LDA')
+    parser.add_argument(
+        'Resp_Dir', help='Directory of resp files to write')
+    parser.add_argument(
+        'records', nargs='*', help='List of record names to process')
+    args = parser.parse_args(argv)
+
+    # Read r_times data
+    records = os.listdir(args.In_Dir)
+    vec_dict = {}
+    for r in records:
+        vecs, mags = record2vecs(open(join(args.In_Dir, r), 'r'))
+        vec_dict[r] = [vecs,mags]
+    # Do linear discriminant analysis and write summary
+    basis = LDA(vec_dict, args.Annotations, args.Summary_Dir)
+    # Write "respiration: time series for each record
+    for r in records:
+        vecs, mags = vec_dict[r]
+        pairs = np.dot(vecs, basis)
+        File = open(join(args.Resp_Dir, r), 'w')
+        for i in range(len(pairs)):
+            print(i/float(SamPerMin),pairs[i,0],pairs[i,1],mags[i], file=File)
+    return 0
+        
+if __name__ == "__main__":
+    sys.exit(main())
 
 #Local Variables:
 #mode:python

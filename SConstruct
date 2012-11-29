@@ -15,6 +15,7 @@ http://www.scons.org/doc/HTML/scons-api/SCons.Scanner.LaTeX.LaTeX-class.html
 http://www.scons.org/wiki/LatexSupport
 '''
 
+from os.path import join
 def build_pdf_t(target, source, env):
     ''' Written for the fig2pdf Builder, this function runs fig2dev
     twice on an x-fig source.
@@ -44,16 +45,16 @@ PYTHON = 'env '+\
 PYTHON2 = 'env '+\
     ' SCONS_HORRIBLE_REGRESSION_TEST_HACK=no '+\
     ' python2.7 '
-CH  = lambda file: 'code/hmm/'+file
-CAS = lambda file: 'code/applications/synthetic/'+file
-CAA = lambda file: 'code/applications/apnea/'+file
-CPS = lambda file: 'code/plotscripts/'+file
-DDS = lambda file: 'derived_data/synthetic/'+file
-DDA = lambda file: 'derived_data/apnea/'+file
+CH  = lambda file: join('code/hmm/',file)
+CAS = lambda file: join('code/applications/synthetic/', file)
+CAA = lambda file: join('code/applications/apnea/', file)
+CPS = lambda file: join('code/plotscripts/', file)
+DDS = lambda file: join('derived_data/synthetic/', file)
+DDA = lambda file: join('derived_data/apnea/', file)
+RDA = lambda file: join('raw_data/apnea/', file)
 
 SConscript('SConscript', exports='PYTHON PYTHON2 CH CAS CPS DDS')
-SConscript('code/applications/apnea/SConscript',
-           exports='PYTHON PYTHON2 CH CAS CAA CPS DDA DDS')
+SConscript('code/applications/apnea/SConscript', exports='PYTHON DDA RDA')
 
 #---------------
 # Local Variables:
