@@ -1,0 +1,28 @@
+from os.path import join
+import os
+Import('PYTHON PYTHON2 CAA CH CAS CPS DDA DDS')
+
+root = lambda x: join(GetLaunchDir(), x)
+here = lambda x: join(root('code/applications/apnea'), x)
+r_times = root(DDA('r_times'))
+lp_hr = root(DDA('low_pass_heart_rate'))
+
+records_list = os.listdir(r_times)
+lp_hr_records = [join(root('derived_data/apnea/low_pass_heart_rate'), x)
+                 for x in records_list]
+r_time_records = [join(root('derived_data/apnea/r_times'), x)
+                 for x in records_list]
+
+records_string = ''
+for x in records_list:
+    records_string += '%s '%x
+env = Environment()
+env.Command(
+    lp_hr_records,
+    r_time_records+['rr2hr.py'],
+    PYTHON + ' %s %s %s '%(here('rr2hr.py'), r_times, lp_hr) + records_string
+    )
+
+#Local Variables:
+#mode:python
+#End:

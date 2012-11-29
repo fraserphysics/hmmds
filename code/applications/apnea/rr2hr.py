@@ -1,6 +1,6 @@
 """ rr2hr.py Translates r-time anotations to heart rate
 
-python rr2hr.py --Data_Dir=data a01 a02 a03 ... c09 c10
+python3 rr2hr.py r_times low_pass_heart_rate a01 a02 a03 ... c09 c10
 
 For each record R listed, read R.rtimes, calulate the lowpass filtered
 heart rate and write R.lphr.
@@ -23,24 +23,33 @@ heart rate and write R.lphr.
 # 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 """
-import scipy, numpy.fft as NF, math, sys, getopt
+import numpy as np
+import sys
+import getopt
+from os.path import join
+from numpy.fft import rfft, irfft
 SamPerMin = 10
 
-def record2lphr(record_name, data_dir):
-    # Read the rr data (Note that it is sampled irregularly and
-    # consists of the r-times in centiseconds) and return high
+def record2lphr(record_name, # eg 'a01'
+                r_times,     # path to directory of r_times
+                lp_hr        # path to directory of low pass heart rate data
+                ):
+    '''Read the r_times data (Note that it is sampled irregularly and
+     consists of the r-times in centiseconds), calculate the low pass
+     heart rate and write it to the lp_hr directory.
+    '''
     # frequency spectrogram.
     Tdata = []
-    File = open(data_dir + '/' + record_name + '.Rtimes','r')
-    for line in File.xreadlines():
+    File = open(join(r_times, record_name))
+    for line in File:
         Tdata.append(float(line)/100)
     File.close()
         # Now Tdata[i] is an r-time in seconds.
-    Ddata = scipy.zeros(len(Tdata)-1) # Difference between consecutive Rtimes,
+    Ddata = np.zeros(len(Tdata)-1) # Difference between consecutive Rtimes,
                                   # ie, rr-times
-    for i in xrange(len(Ddata)):
+    for i in range(len(Ddata)):
         Ddata[i] = Tdata[i+1] - Tdata[i]
-    sortedD = scipy.sort(Ddata)
+    sortedD = np.sort(Ddata)
     L = float(len(sortedD))
     ti = int(0.95*L)
     bi = int(0.05*L)
@@ -57,7 +66,7 @@ def record2lphr(record_name, data_dir):
     else:
         data = [[Tdata[0],rr]]
     # Assign good rr times for samples after first and before last
-    for i in xrange(len(Tdata)-2):
+    for i in range(len(Tdata)-2):
         rr = Tdata[i+1] - Tdata[i]
         if rr < top and rr > bottom:
             data.append([Tdata[i+1],rr])
@@ -74,13 +83,13 @@ def record2lphr(record_name, data_dir):
 
     TF = data[-1][0] # Time is measured in seconds
     L = int(2*TF)
-    hr = scipy.zeros(L)
+    hr = np.zeros(L)
     t_old = data[0][0]
     rr_old = data[0][1]
     t_new = data[1][0]
     rr_new = data[1][1]
     i=1
-    for k in xrange(L):
+    for k in range(L):
         t = k/2.0
         while t > t_new:
             i += 1
@@ -102,27 +111,37 @@ def record2lphr(record_name, data_dir):
     # Now, hr is heart rate sampled at 2HZ, and hrL is the same with
     # mean subtracted
 
-    HR = NF.rfft(hrL,131072) # 131072 is 18.2 Hrs at 2HZ
+    HR = rfft(hrL,131072) # 131072 is 18.2 Hrs at 2HZ
     HR[0:100] *=0 # Drop frequencies below (100*60)/65536=0.09/min
     HR[4000:] *=0 # and above (4000*60)/65536=3.66/min
-    hrL = NF.irfft(HR)
-    File = open(data_dir + '/' + record_name + '.lphr','w')
-    for i in xrange(0,L,(2*60)/SamPerMin):
-        print >>File, i/120.0, hr[i], hrL[i]
+    hrL = irfft(HR)
+    File = open(join(lp_hr, record_name),'w')
+    for i in range(0,L,(2*60)//SamPerMin):
+        print('%6.1f  %6.3f  %6.3f'%(i/120.0, hr[i], hrL[i]), file=File)
     # Time in minutes, Unfiltered hr in beats per minute, low pass hr
     File.close()
 
-opts,pargs = getopt.getopt(sys.argv[1:],'',['Data_Dir='])
-if len(opts) == 1:
-    if opts[0][0] == '--Data_Dir':
-        data_dir = opts[0][1]
-    else:
-        raise RuntimeError,'bad keyword argument %s'%opts[0][0]
-else:
-    data_dir = 'data/Apnea'
-# Process each record listed on the command line
-for name in pargs:
-    record2lphr(name,data_dir)
+def main(argv=None):
+    
+    import argparse
+
+    if argv is None:                    # Usual case
+        argv = sys.argv[1:]
+
+    parser = argparse.ArgumentParser(
+        description='Calculate low pass heart rate from r_times files')
+    parser.add_argument('In_Dir', help='Directory of r_times files to read')
+    parser.add_argument(
+        'Out_Dir', help='Directory of low pass heart rate files to write')
+    parser.add_argument(
+        'records', nargs='*', help='List of record names to process')
+    args = parser.parse_args(argv)
+    for r in args.records:
+        record2lphr(r, args.In_Dir, args.Out_Dir)
+    return 0
+        
+if __name__ == "__main__":
+    sys.exit(main())
 
 #Local Variables:
 #mode:python
