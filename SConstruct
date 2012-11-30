@@ -42,9 +42,10 @@ PYTHON = 'env '+\
     ' SCONS_HORRIBLE_REGRESSION_TEST_HACK=no '+\
     ' python3 '
 #Need python2 for plotting because matplotlib for python3 doesn't exist
-PYTHON2 = 'env '+\
+PYTHON2 = ('env '+\
+    ' PYTHONPATH=%s '+\
     ' SCONS_HORRIBLE_REGRESSION_TEST_HACK=no '+\
-    ' python2.7 '
+    ' python2.7 ')%('code/applications/apnea',)
 CH  = lambda file: join('code/hmm/',file)
 CAS = lambda file: join('code/applications/synthetic/', file)
 CAA = lambda file: join('code/applications/apnea/', file)
@@ -55,7 +56,7 @@ RDA = lambda file: join('raw_data/apnea/', file)
 
 SConscript('SConscript', exports='PYTHON PYTHON2 CH CAS CPS DDS')
 SConscript('code/applications/apnea/SConscript', exports='PYTHON DDA RDA')
-SConscript('code/plotscripts/SConscript', exports='PYTHON2 DDA')
+SConscript('code/plotscripts/SConscript', exports='PYTHON2 DDA RDA')
 
 #---------------
 # Local Variables:
