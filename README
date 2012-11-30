@@ -24,10 +24,16 @@ To do:
     hmm class with enough flexibility to handle: Multiple sets of
     training data; Custom output models; Decoding class sequences.
 
+    code/plotscripts/LDA.py
+    code/plotscripts/class1.py
+    code/hmm/PFsurvey.py
+
 2. Write variant module that uses Gaussian output model.  Goals: test
    ability to generalize base class.  Illustrate generalization.
 
 3. Move to google repository
+
+99. Move code/plotscripts/StatePic.py to code/applications/synthetic
 
 100. Get 2 axes rather than box for matplotlib plots
 

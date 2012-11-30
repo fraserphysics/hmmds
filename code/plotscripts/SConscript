@@ -1,11 +1,17 @@
 '''plotscripts/SConscript
+
+Scripts in this directory plot data that other code produced.  They
+should not write anything except the resulting plots.
 '''
-from os.path import join
 import os
-Import('PYTHON2 DDA RDA')
+import os.path
+from os.path import join
+Import('PYTHON2 DDA RDA')  # matplotlib does not run under python3
+
+this_file = (lambda x:x).func_code.co_filename
+here = lambda x: join(os.path.abspath(os.path.dirname(this_file)), x)
 
 root = lambda x: join(GetLaunchDir(), x)
-here = lambda x: join(root('code/plotscripts'), x)
 fig = lambda x: join(root('figs'), x)
 lp_hr = lambda x: root(DDA(join('low_pass_heart_rate', x)))
 r_times = lambda x: root(DDA(join('r_times', x)))

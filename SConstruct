@@ -13,6 +13,10 @@ Documentation of LaTeX scanner class at
 http://www.scons.org/doc/HTML/scons-api/SCons.Scanner.LaTeX.LaTeX-class.html
 
 http://www.scons.org/wiki/LatexSupport
+
+Goal: SConscript files in sub-directories should have functions for
+  paths to data in other directories passed.  The character "/" should
+  not appear in an SConscript file.
 '''
 
 from os.path import join

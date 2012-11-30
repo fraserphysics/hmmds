@@ -2,8 +2,10 @@ from os.path import join
 import os
 Import('PYTHON DDA RDA')
 
+this_file = (lambda x:x).func_code.co_filename
+here = lambda x: join(os.path.abspath(os.path.dirname(this_file)), x)
+
 root = lambda x: join(GetLaunchDir(), x)
-here = lambda x: join(root('code/applications/apnea'), x)
 r_times = root(DDA('r_times'))
 lp_hr = root(DDA('low_pass_heart_rate'))
 apnea = root(DDA(''))
@@ -12,9 +14,9 @@ respiration = root(DDA('respiration'))
 
 records_list = os.listdir(r_times)
 records = lambda path: [join(root(path), x) for x in records_list]
-r_time_records = records('derived_data/apnea/r_times')
-lp_hr_records = records('derived_data/apnea/low_pass_heart_rate')
-resp_records = records('derived_data/apnea/respiration')
+r_time_records = records(DDA('r_times'))
+lp_hr_records = records(DDA('low_pass_heart_rate'))
+resp_records = records(DDA('respiration'))
 
 records_string = ''
 for x in records_list:
