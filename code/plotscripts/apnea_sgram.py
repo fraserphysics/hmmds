@@ -16,7 +16,6 @@ def main(argv=None):
     '''
 
     '''
-    import cinc2000
     if sys.version_info < (3,0):
         import matplotlib as mpl
         mpl.use('PDF')
@@ -41,12 +40,15 @@ def main(argv=None):
 
     import argparse
     parser = argparse.ArgumentParser(
-        description='Make 4 figures illustrating apnea data')
+        description='''
+    Make 4 figures illustrating apnea data.  Note: cinc2000 must be in
+    PYTHONPATH''')
     parser.add_argument('a11_rtimes', help='path to rtimes/a11')
     parser.add_argument('a11_lphr', help='path to low_pass_heart_rate/a11')
     parser.add_argument('expert', help='path to summary_of_training')
     parser.add_argument('sgram', help='path to file sgram.pdf')
     args = parser.parse_args(argv)
+    import cinc2000
 
     HR_t = []
     HR = []  # The heart rate
@@ -69,13 +71,13 @@ def main(argv=None):
     Fs = float(120)      # samples per minute
     First = 4800-32      # 120*40
     Last =  27000+40     # 120*225
-    #Rxx, Rfreqs, Rbins, im = pylab.specgram(x[First:Last], NFFT=NFFT, Fs=Fs,
-    #              window=pylab.window_hanning, noverlap=NFFT/2)
-    #Rbins = Rbins + First/Fs
-    #p = Rxx*Rxx
-    #p = p.sum(axis=0)
-    #p = 1/np.sqrt(p)
-    #Rxx = Rxx*p
+    Rxx, Rfreqs, Rts = mpl.mlab.specgram(x[First:Last], NFFT=NFFT, Fs=Fs,
+                  noverlap=NFFT/2)
+    Rbins = Rts + First/Fs
+    p = Rxx*Rxx
+    p = p.sum(axis=0)
+    p = 1/np.sqrt(p)
+    Rxx = Rxx*p
 
     # Do the plotting
     fig = plt.figure(figsize=(10, 6)) # 2x Gnuplot size
@@ -94,25 +96,26 @@ def main(argv=None):
     # Plot respiration spectrogram
     ax2 = fig.add_subplot(3, 1, 2)
 
-    #Z = -10*np.log10(Rxx[:-10,:]) #FixMe: The yaxis is wrong
-    #Z =  np.flipud(Z)
-    #extent = np.amin(Rbins), np.amax(Rbins), np.amin(Rfreqs),\
-    #    np.amax(Rfreqs)/1.8
-    #Z = Z - Z.min()
-    #vmin = LOW*Z.max()
-    #vmax = HIGH*Z.max()
+    Z = -10*np.log10(Rxx[:-10,:]) #FixMe: The yaxis is wrong
+    Z =  np.flipud(Z)
+    extent = np.amin(Rbins), np.amax(Rbins), np.amin(Rfreqs),\
+        np.amax(Rfreqs)/1.8
+    Z = Z - Z.min()
+    vmin = LOW*Z.max()
+    vmax = HIGH*Z.max()
 
-    #pylab.imshow(Z, cmap, extent=extent)
-    #plt.hsv()
-    #G_CM   = pylab.cm.gray
+    #ax2.imshow(Z, cmap=mpl.cm.hsv, extent=extent)
+    ax2.imshow(Z, cmap=mpl.cm.hsv, aspect='auto')
 
     yrng = np.arange(0,35,10)
-    ax2.set_yticks(yrng)
-    ax2.set_yticklabels([ '$% 3.1f$' % x for x in yrng ])
-    ax2.set_xticks(xrng)
+    ax2.set_yticks([])
+    ax2.set_yticklabels([])
+    #ax2.set_yticks(yrng)
+    #ax2.set_yticklabels([ '$% 3.1f$' % x for x in yrng ])
+    #ax2.set_xticks(xrng)
     ax2.set_xticklabels([])
-    ax2.set_xlim(40,225)
-    ax2.set_ylim(-10,35)
+    #ax2.set_xlim(40,225)
+    #ax2.set_ylim(0,35)
 
     xrng = np.arange(50,250,50)
     yrng = np.arange(-1,2,2)
