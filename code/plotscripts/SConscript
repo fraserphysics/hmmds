@@ -1,0 +1,28 @@
+'''plotscripts/SConscript
+'''
+from os.path import join
+import os
+Import('PYTHON2 DDA')
+
+root = lambda x: join(GetLaunchDir(), x)
+here = lambda x: join(root('code/plotscripts'), x)
+fig = lambda x: join(root('figs'), x)
+lp_hr = lambda x: root(DDA(join('low_pass_heart_rate', x)))
+resp = lambda x: root(DDA(join('respiration', x)))
+seg = root(DDA('a03er_seg'))
+
+apnea_ts_figs = tuple(fig(x) for x in ('a03erA_plot.pdf', 'a03erN_plot.pdf',
+                            'a03HR_plot.pdf', 'ApneaNLD.pdf'))
+apnea_ts_files = (here('apnea_ts_plots.py'), seg) + tuple(lp_hr(x) for x in
+                                          ('a03', 'a01', 'a12'))
+env = Environment()
+env.Command(
+    apnea_ts_figs,
+    apnea_ts_files,
+    PYTHON2 + ((len(apnea_ts_figs)+len(apnea_ts_files))*' %s')%(
+        apnea_ts_files + apnea_ts_figs)
+    )
+
+#Local Variables:
+#mode:python
+#End:

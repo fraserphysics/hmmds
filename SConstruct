@@ -55,6 +55,7 @@ RDA = lambda file: join('raw_data/apnea/', file)
 
 SConscript('SConscript', exports='PYTHON PYTHON2 CH CAS CPS DDS')
 SConscript('code/applications/apnea/SConscript', exports='PYTHON DDA RDA')
+SConscript('code/plotscripts/SConscript', exports='PYTHON2 DDA')
 
 #---------------
 # Local Variables:

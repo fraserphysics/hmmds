@@ -29,6 +29,8 @@ To do:
 
 3. Move to google repository
 
+100. Get 2 axes rather than box for matplotlib plots
+
 # Local Variables:
 # mode: text
 # End:
