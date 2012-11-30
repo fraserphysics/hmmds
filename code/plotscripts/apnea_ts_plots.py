@@ -11,123 +11,180 @@ This is the first line of the data file a03.lphr and the fields:
 0.0   70.5882352941 2.88250231173
 time  lphr          bandpass hr
 """
-import matplotlib, sys, os.path, scipy
-matplotlib.use('PDF')
-import pylab
-seg, a01_lphr, a03_lphr, a12_lphr, a03erA_plot, a03erN_plot, a03erHR_plot,\
-    ApneaNLD = sys.argv[1:9]
+import sys
+import numpy as np
 
 def read_data(data_file):
     # Read in "data_file" as an array
     f = file(data_file, 'r')
     data = [[float(x) for x in line.split()] for line in f.xreadlines()]
     f.close()
-    return scipy.array(data).T
+    return np.array(data).T
 
-seg = read_data(seg)
-a01_lphr = read_data(a01_lphr)
-a03_lphr = read_data(a03_lphr)
-a12_lphr = read_data(a12_lphr)
+def plot_a(plt, seg, start, stop, xbounds, out_name):
+    fig = plt.figure() # figsize=(5,4)
+    
+    ax = fig.add_subplot(3,1,1)
+    ax.plot(seg[0,start:stop]/60,seg[1,start:stop]/1000,'k-')
+    ax.set_ylabel(r'$EEG$')
+    ax.set_xticks([])
+    yrng = np.arange(-10,31,10)
+    ax.set_yticks(yrng*1e-3)
+    ax.set_yticklabels([ '$% 2.0f$' % x for x in yrng ])
+    ax.set_ylim(-0.015,0.035)
+    ax.set_xlim(xbounds)
 
-params = {'axes.labelsize': 12,
-               'text.fontsize': 10,
-               'legend.fontsize': 10,
-               'text.usetex': True,
-               'xtick.labelsize': 11,
-               'ytick.labelsize': 11}
-pylab.rcParams.update(params)
+    ax = fig.add_subplot(3,1,2)
+    ax.plot(seg[0,start:stop]/60,seg[4,start:stop]/1000,'k-')
+    ax.set_ylabel(r'$ONR$')
+    ax.set_xticks([])
+    yrng = np.arange(-10,11,10)
+    ax.set_yticks(yrng)
+    ax.set_yticklabels([ '$% 2.0f$' % x for x in yrng ])
+    ax.set_ylim(-15,15)
+    ax.set_xlim(xbounds)
 
-pylab.subplot(2,1,1)
-pylab.plot(a01_lphr[0,:],a01_lphr[1,:],'k-')
-pylab.ylabel(r'$a01$HR')
-yrng = scipy.arange(40,101,20)
-pylab.yticks(yrng, [ '$% 3.0f$' % l for l in yrng ])
-xrng = range(115,126,5)
-pylab.xticks(xrng, [ '$%1d:%02d$' % (l/60,l%60) for l in xrng ])
-pylab.axis([115,125,40,100])
+    
+    ax = fig.add_subplot(3,1,3)
+    ax.plot(seg[0,start:stop]/60,seg[5,start:stop],'k-')
+    ax.set_ylabel(r'$SpO_2$')
+    xrng = range(58,60,1)
+    ax.set_xticks(xrng)
+    ax.set_xticklabels([ '$%1d:%02d$' % (x/60,x%60) for x in xrng ])
+    yrng = np.arange(60,101,15)
+    ax.set_yticks(yrng)
+    ax.set_yticklabels([ '$% 2.0f$' % x for x in yrng ])
+    ax.set_ylim(55,100)
+    ax.set_xlim(xbounds)
 
-pylab.subplot(2,1,2)
-pylab.plot(a12_lphr[0,:],a12_lphr[1,:],'k-')
-pylab.ylabel(r'$a12$HR')
-yrng = scipy.arange(40,81,20)
-pylab.yticks(yrng, [ '$% 3.0f$' % l for l in yrng ])
-xrng = scipy.arange(570,577,5)
-pylab.xticks(xrng, [ '$%1d:%02d$' % (l/60,l%60) for l in xrng ])
-pylab.axis([568,577,40,80])
+    fig.savefig(out_name)
 
-pylab.savefig(ApneaNLD)
-pylab.clf() # Clear figure window
+    return
 
-pylab.subplot(2,1,1)
-pylab.plot(a03_lphr[0,:],a03_lphr[1,:],'k-')
-pylab.ylabel(r'$HR$')
-yrng = scipy.arange(45,86,10)
-pylab.yticks(yrng, [ '$% 2.0f$' % l for l in yrng ])
-pylab.xticks([], visible=False)
-pylab.axis([55,65,40,90])
+def plot_b(plt, seg, a03_lphr, out_name):
+    fig = plt.figure() # figsize=(5,4)
+    bounds = [ 55, 65, 40, 90]
 
-pylab.subplot(2,1,2)
-pylab.plot(seg[0,:]/60,seg[5,:],'k-')
-pylab.ylabel(r'$SpO_2$')
-yrng = scipy.arange(60,101,10)
-pylab.yticks(yrng, [ '$% 2.0f$' % l for l in yrng ])
-xrng = scipy.arange(55,66,5)
-pylab.xticks(xrng, [ '$%1d:%02d$' % (l/60,l%60) for l in xrng ])
-pylab.axis(xmin=55,xmax=65)
+    ax = fig.add_subplot(2,1,1)
+    ax.plot(a03_lphr[0,:],a03_lphr[1,:],'k-')
+    ax.set_ylabel(r'$HR$')
+    yrng = np.arange(45,86,10)
+    ax.set_yticks(yrng)
+    ax.set_yticklabels([ '$% 2.0f$' % x for x in yrng ])
+    ax.set_xticks([])
+    ax.set_ylim(bounds[2],bounds[3])
+    ax.set_xlim(bounds[0],bounds[1])
 
-pylab.savefig(a03erHR_plot)
-pylab.clf() # Clear figure window
-pylab.subplot(3,1,1)
-pylab.plot(seg[0,120000:]/60,seg[1,120000:]/1000,'k-')
-pylab.ylabel(r'$EEG$')
-pylab.xticks([], visible=False)
-yrng = scipy.arange(-10,31,10)
-pylab.yticks(yrng*1e-3, [ '$% 2.0f$' % l for l in yrng ])
-pylab.axis([70,72,-.015,.035])
+    ax = fig.add_subplot(2,1,2)
+    ax.plot(seg[0,:]/60,seg[5,:],'k-')
+    ax.set_ylabel(r'$SpO_2$')
+    xrng = np.arange(55,66,5)
+    ax.set_xticks(xrng)
+    ax.set_xticklabels([ '$%1d:%02d$' % (x/60,x%60) for x in xrng ])
+    yrng = np.arange(60,101,10)
+    ax.set_yticks(yrng)
+    ax.set_yticklabels([ '$% 2.0f$' % x for x in yrng ])
+    ax.set_xticks([])
+    ax.set_xlim(bounds[0],bounds[1])
+    
+    fig.savefig(out_name)
+    return
+def plot_c(plt,
+           a01_lphr,
+           a12_lphr,
+           out_name):
+    fig = plt.figure() # figsize=(5,4)
+    
+    ax = fig.add_subplot(2,1,1)
+    ax.plot(a01_lphr[0,:],a01_lphr[1,:],'k-')
+    ax.set_ylabel(r'$a01HR$')
+    xrng = range(115,126,5)
+    ax.set_xticks(xrng)
+    ax.set_xticklabels([ '$%1d:%02d$' % (x/60,x%60) for x in xrng ])
+    yrng = np.arange(40,101,20)
+    ax.set_yticks(yrng)
+    ax.set_yticklabels([ '$% 3.0f$' % x for x in yrng ])
+    bounds = [115,125,40,100]
+    ax.set_ylim(bounds[2],bounds[3])
+    ax.set_xlim(bounds[0],bounds[1])
+    
+    ax = fig.add_subplot(2,1,2)
+    ax.plot(a12_lphr[0,:],a12_lphr[1,:],'k-')
+    ax.set_ylabel(r'$a12HR$')
+    xrng = np.arange(570,577,5)
+    ax.set_xticks(xrng)
+    ax.set_xticklabels([ '$%1d:%02d$' % (x/60,x%60) for x in xrng ])
+    yrng = np.arange(40,81,20)
+    ax.set_yticks(yrng)
+    ax.set_yticklabels([ '$% 3.0f$' % x for x in yrng ])
+    bounds = [568,577,40,80]
+    ax.set_ylim(bounds[2],bounds[3])
+    ax.set_xlim(bounds[0],bounds[1])
+    
+    fig.savefig(out_name)
+    return
 
-pylab.subplot(3,1,2)
-pylab.plot(seg[0,120000:]/60,seg[4,120000:]/1000,'k-')
-pylab.ylabel(r'$ONR$')
-pylab.xticks([], visible=False)
-yrng = scipy.arange(-10,11,10)
-pylab.yticks(yrng, [ '$% 2.0f$' % l for l in yrng ])
-pylab.axis([70,72,-15, 15])
+def main(argv=None):
+    '''
 
-pylab.subplot(3,1,3)
-pylab.plot(seg[0,120000:]/60,seg[5,120000:],'k-')
-pylab.ylabel(r'$SpO_2$')
-yrng = scipy.arange(60,101,15)
-pylab.yticks(yrng, [ '$% 2.0f$' % l for l in yrng ])
-xrng = range(70,73,1)
-pylab.xticks(xrng, [ '$%1d:%02d$' % (l/60,l%60) for l in xrng ])
-pylab.axis([70, 72, 55, 100])
+    '''
+    
+    if sys.version_info < (3,0):
+        import matplotlib as mpl
+        mpl.use('PDF')
+        import matplotlib.pyplot as plt
+    else:
+       print('%s needs matplotlib.  However, no matplotlib for python %s'%(
+           sys.argv[0],sys.version_info,))
+       return -1
 
-pylab.savefig(a03erN_plot)
-pylab.clf() # Clear figure window
+    params = {'axes.labelsize': 18,     # Plotting parameters for latex
+              'text.fontsize': 15,
+              'legend.fontsize': 15,
+              'text.usetex': True,
+              'font.family':'serif',
+              'font.serif':'Computer Modern Roman',
+              'xtick.labelsize': 15,
+              'ytick.labelsize': 15}
+    mpl.rcParams.update(params)
 
-pylab.subplot(3,1,1)
-pylab.plot(seg[0,45000:57005]/60,seg[1,45000:57005]/1000,'k-')
-pylab.ylabel(r'$EEG$')
-pylab.xticks([], visible=False)
-yrng = scipy.arange(-10,31,10)
-pylab.yticks(yrng*1e-3, [ '$% 2.0f$' % l for l in yrng ])
-pylab.axis([57.5, 59.5, -.015, .035])
+    if argv is None:                    # Usual case
+        argv = sys.argv[1:]
 
-pylab.subplot(3,1,2)
-pylab.plot(seg[0,45000:57005]/60,seg[4,45000:57005]/1000,'k-')
-pylab.ylabel(r'$ONR$')
-pylab.xticks([], visible=False)
-yrng = scipy.arange(-10,11,10)
-pylab.yticks(yrng, [ '$% 2.0f$' % l for l in yrng ])
-pylab.axis([57.5, 59.5, -15, 15])
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Make 4 figures illustrating apnea data')
+    parser.add_argument('--a03er_seg', help='path to a03er_seg',
+                        default='../../derived_data/apnea/a03er_seg')
+    parser.add_argument('--a03_lphr', help='path to low_pass_heart_rate/a03',
+                default='../../derived_data/apnea/low_pass_heart_rate/a03')
+    parser.add_argument('--a01_lphr', help='path to low_pass_heart_rate/a01',
+                default='../../derived_data/apnea/low_pass_heart_rate/a01')
+    parser.add_argument('--a12_lphr', help='path to low_pass_heart_rate/a12',
+                default='../../derived_data/apnea/low_pass_heart_rate/a12')
+    parser.add_argument('--a03erA_plot', help='path to file',
+                        default='a03erA_plot')
+    parser.add_argument('--a03erN_plot', help='path to file',
+                        default='a03erN_plot')
+    parser.add_argument('--a03HR_plot', help='path to file',
+                        default='a03HR_plot')
+    parser.add_argument('--ApneaNLD', help='path to file',
+                        default='ApneaNLD')
+    args = parser.parse_args(argv)
 
-pylab.subplot(3,1,3)
-pylab.plot(seg[0,45000:57005]/60,seg[5,45000:57005],'k-')
-pylab.ylabel(r'$SpO_2$')
-yrng = scipy.arange(60,101,15)
-pylab.yticks(yrng, [ '$% 2.0f$' % l for l in yrng ])
-xrng = range(58,60,1)
-pylab.xticks(xrng, [ '$%1d:%02d$' % (l/60,l%60) for l in xrng ])
-pylab.axis([57.5, 59.5, 55, 100])
+    seg = read_data(args.a03er_seg)
+    plot_a(plt, seg, 45000, 57005, (57.5, 59.5),
+           args.a03erA_plot) 
+    plot_a(plt, seg, 120000, 132001, (70,72), args.a03erN_plot) 
+    plot_b(plt, seg, read_data(args.a03_lphr), args.a03HR_plot)
+    plot_c(plt,
+           read_data(args.a01_lphr),
+           read_data(args.a12_lphr),
+           args.ApneaNLD)
 
-pylab.savefig(a03erA_plot)
+if __name__ == "__main__":
+    sys.exit(main())
+
+# Local Variables:
+# mode: python
+# End:

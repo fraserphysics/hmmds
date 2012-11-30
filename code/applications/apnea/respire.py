@@ -211,8 +211,6 @@ def main(argv=None):
         'Summary_Dir', help='Directory for files that illustrate LDA')
     parser.add_argument(
         'Resp_Dir', help='Directory of resp files to write')
-    parser.add_argument(
-        'records', nargs='*', help='List of record names to process')
     args = parser.parse_args(argv)
 
     # Read r_times data
