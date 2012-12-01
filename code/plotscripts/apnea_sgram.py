@@ -129,7 +129,7 @@ def main(argv=None):
     ax3.set_xticklabels([ '$%# 3i$' % l for l in xrng ])
 
     fig.savefig(args.sgram)
-
+    return 0
 
 if __name__ == "__main__":
     sys.exit(main())

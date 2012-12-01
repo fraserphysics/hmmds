@@ -8,15 +8,11 @@ here = lambda x: join(os.path.abspath(os.path.dirname(this_file)), x)
 root = lambda x: join(GetLaunchDir(), x)
 r_times = root(DDA('r_times'))
 lp_hr = root(DDA('low_pass_heart_rate'))
-apnea = root(DDA(''))
-annotations = root(RDA('summary_of_training'))
-respiration = root(DDA('respiration'))
 
 records_list = os.listdir(r_times)
 records = lambda path: [join(root(path), x) for x in records_list]
 r_time_records = records(DDA('r_times'))
 lp_hr_records = records(DDA('low_pass_heart_rate'))
-resp_records = records(DDA('respiration'))
 
 records_string = ''
 for x in records_list:
@@ -27,6 +23,10 @@ env.Command(
     r_time_records+['rr2hr.py'],
     PYTHON + ' %s %s %s '%(here('rr2hr.py'), r_times, lp_hr) + records_string
     )
+resp_records = records(DDA('respiration'))
+annotations = root(RDA('summary_of_training'))
+apnea = root(DDA(''))
+respiration = root(DDA('respiration'))
 env.Command(
     resp_records,
     r_time_records+['respire.py'],

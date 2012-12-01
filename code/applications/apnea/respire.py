@@ -137,15 +137,14 @@ def LDA(vec_dict, annotations, summary_dir):
                 C_vecs.append(vec)
             continue
         Ap_notes = fetch_annotations(annotations, r)
-        # Now Ap_notes elements have form [time(minutes),Mark] where
+        # Now Ap_notes[t] = Mark where t is in tenths of a minute and
         # Mark=1 for Apnea and Mark=0 for Normal
         for t in range(300,len(vecs)-300):
-            M = int(t/SamPerMin)
             if mags[t] > CUT:
                 continue
-            if Ap_notes[M] == 1:
+            if Ap_notes[t] == 1:
                 AA_vecs.append(vecs[t])
-            elif Ap_notes[M] == 0:
+            elif Ap_notes[t] == 0:
                 AN_vecs.append(vecs[t])
 
 
@@ -156,7 +155,7 @@ def LDA(vec_dict, annotations, summary_dir):
         d = np.transpose(vecs-mean)
         var = np.inner(d, d)
         return mean, var, vecs, len(vecs)
-    C_mean, C_var, C_vecs, C_n = mean_var(C_vecs)
+    C_mean,  C_var,  C_vecs,  C_n  = mean_var(C_vecs)
     AA_mean, AA_var, AA_vecs, AA_n = mean_var(AA_vecs)
     AN_mean, AN_var, AN_vecs, AN_n = mean_var(AN_vecs)
 
@@ -166,17 +165,17 @@ def LDA(vec_dict, annotations, summary_dir):
     # Calculate Sb, the between class scatter
     n = C_n + AA_n + AN_n
     mean = (C_n*C_mean + AA_n*AA_mean + AN_n*AN_mean)/n
-    def Sb_t(tmean,tn,mean):
+    def Sb_t(tmean, tn):
         d = tmean-mean
         return tn*np.outer(d,d)
-    Sb = Sb_t(C_mean,C_n,mean)+Sb_t(AA_mean,AA_n,mean)+Sb_t(AN_mean,AN_n,mean)
+    Sb = Sb_t(C_mean, C_n)+Sb_t(AA_mean, AA_n)+Sb_t(AN_mean, AN_n)
     # Calculate a 2-d basis of linear discriminant vectors
     n = Sw.shape[0]
     vals, vecs = LA.eigh(np.dot(LA.inv(
                             Sw+np.eye(n)*100),Sb))
     # Find largest two eigenvalues
     i = np.argsort(vals)
-    basis = vecs[:,i[:2]]
+    basis = vecs[:,i[-2:]]
 
     # Write files of information to characterize LDA
     open_file = lambda x: open(join(summary_dir, x), 'w')

@@ -18,13 +18,14 @@ r_times = lambda x: root(DDA(join('r_times', x)))
 resp = lambda x: root(DDA(join('respiration', x)))
 seg = root(DDA('a03er_seg'))
 
-apnea_ts_figs = tuple(fig(x) for x in ('a03erA_plot.pdf', 'a03erN_plot.pdf',
-                            'a03HR_plot.pdf', 'ApneaNLD.pdf'))
-apnea_ts_files = (here('apnea_ts_plots.py'), seg) + tuple(lp_hr(x) for x in
-                                          ('a03', 'a01', 'a12'))
 apnea_sgram_files = (here('apnea_sgram.py'), r_times('a11'), lp_hr('a11'),
                      root(RDA('summary_of_training')))
 env = Environment()
+
+apnea_ts_figs = tuple(
+    fig(x) for x in ('a03erA.pdf', 'a03erN.pdf', 'a03erHR.pdf', 'ApneaNLD.pdf'))
+apnea_ts_files = (here('apnea_ts_plots.py'), seg) + \
+    tuple(lp_hr(x) for x in ('a03', 'a01', 'a12'))
 env.Command(
     apnea_ts_figs,
     apnea_ts_files,
@@ -35,6 +36,15 @@ env.Command(
     fig('sgram.pdf'),
     apnea_sgram_files,
     PYTHON2 + (len(apnea_sgram_files)*' %s ')%apnea_sgram_files+fig('sgram.pdf')
+    )
+
+LDA_figs = tuple(fig(x) for x in ('LDA1.pdf', 'LDA2.pdf'))
+LDA_src = (here('LDA.py'),) + tuple(root(DDA(x)) for x in (
+        'mean.resp', 'AA.resp', 'AN.resp', 'C.resp'))
+env.Command(
+    LDA_figs,
+    LDA_src,
+    PYTHON2 + ((len(LDA_figs)+len(LDA_src))*' %s')%(LDA_src + LDA_figs)
     )
 
 #Local Variables:
