@@ -1,21 +1,18 @@
 """ ApOb.py
 
-Copyright (c) 2005, 2008 Andrew Fraser
-This file is part of HMM_DS_Code.
+Observation model classes for apnea data and utilities for reading the data.
 
-HMM_DS_Code is free software; you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation; either version 2 of the License, or (at your option) any later
-version.
+To be consistent with Scalar.Discrete_Observations a class must have
+the following methods:
 
-HMM_DS_Code is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-General Public License for more details.
+__init__(parameters)
 
-You should have received a copy of the GNU General Public License along with
-this program; if not, write to the Free Software Foundation, Inc.,
-59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+calc(y) where y is a sequence.  Returns P(s,y) likelihoods given states
+
+reestimate(w,y)
+
+join(ys) where ys is a list of sequences.  Returns concatenation of
+    sequences and boundary points within that of the components.
 
 The code in this file implements the apnea observation model class
 ApObModel which models the scalar time series of low frequency heart
@@ -23,19 +20,12 @@ rate variability via Gaussians with affine autoregressive means and
 the high frequency variability via a 2-d _respiration_ model that fits
 the power and maximum frequencey in a high-pass band.
 
-For training, the observation data y[t] has the form
 
-y[t][0] The scalar observation
-y[t][1] The context vector
-y[t][2] The classification (an integer)
+For the heart rate model, I store the data in three arrays:
 
-For testing, observation data y[t] has the form
-
-y[t][0] The scalar observation
-y[t][1] The context vector
-
-When training, if y[t][2] is not equal to Class, the probability is
-set to zero.
+observation: observation[i] is a scalar
+context:     context[i] is a vector
+class_:      class_[i] is an integer class
 
 """
 
@@ -48,7 +38,7 @@ import pickle, math, random, copy
 LAI = LA.inv
 
 Mark_dict = {'N':0,'A':1}
-def fetch_ann(Annotations,name):
+def fetch_ann(Annotations, name):
     """ Like fetch_annotations, but shorter result.  Only one sample per
     minute.
     """
@@ -68,7 +58,7 @@ def fetch_ann(Annotations,name):
     notes = []
     for t in range(len(letters)):
         notes.append(Mark_dict[letters[t]])
-    return numpy.array(notes)
+    return np.array(notes)
 def fetch_annotations(Annotations,name):
     return fetch_ann(Annotations,name).repeat(SamPerMin) 
 
@@ -76,19 +66,19 @@ def read_data(data_file):
     # Read in "data_file" as a 2-d array
     f = file(data_file, 'r')
     data = [[float(x) for x in line.split()] for line in f]
-    return numpy.array(data).T
+    return np.array(data).T
 
-def read_lphr(where,what,AR):
+def read_lphr(where, what, AR):
     """ Create numpy array suitable for HR_HMM.Py_wo_class.
     y[t,0]      heart rate
     y[t,1:AR+1] previous AR heart rates
     y[t,AR+1]   constant 1.0
     """
     filename = where%what
-    raw = numpy.flipud(read_data(filename)[1])
+    raw = np.flipud(read_data(filename)[1])
     #raw = read_data(filename)[1]
     T = len(raw)
-    Y = numpy.empty((T,AR+2))
+    Y = np.empty((T,AR+2))
     for t in range(AR+2):
         Y[t,:AR+1] = raw[-AR-1:]
     for t in range(AR+2,T):
@@ -127,10 +117,10 @@ def read_records(routines, # List of routines to read data
         dats = [dat[:T] for dat in dats]
         if record is records[0]:
             Ys = [dats] 
-            Yall = [numpy.array(dat,copy=True) for dat in dats]
+            Yall = [np.array(dat,copy=True) for dat in dats]
         else:
             Ys.append(dats)
-            Yall = [numpy.concatenate((all_dat[0],all_dat[1])) for all_dat in zip(Yall,dats)]
+            Yall = [np.concatenate((all_dat[0],all_dat[1])) for all_dat in zip(Yall,dats)]
     return (Ys,Yall)
 
 def score(reference,test,records,verbose=False):
@@ -138,8 +128,8 @@ def score(reference,test,records,verbose=False):
     classifications in "reference".
     """
     def report(reference,test,record):
-        A = numpy.array(fetch_ann(reference,record),numpy.bool)
-        B = numpy.array(fetch_ann(test,record),numpy.bool)
+        A = np.array(fetch_ann(reference,record),np.bool)
+        B = np.array(fetch_ann(test,record),np.bool)
         T = min(len(A),len(B))
         A = A[:T]
         B = B[:T]
@@ -147,10 +137,10 @@ def score(reference,test,records,verbose=False):
         FA = ((-A)*B).sum()     # Number of false alarms
         MD = (A*(-B)).sum()     # Number of missed detections
         AA = (A*B).sum()        # Number of true alarms
-        return numpy.array([NN,FA,MD,AA])
+        return np.array([NN,FA,MD,AA])
     if verbose:
         rv = 'rec  N->N N->A A->N  A->A   frac\n'
-        total = numpy.zeros(4,numpy.int32)
+        total = np.zeros(4,np.int32)
         for record in records:
             x = report(reference,test,record)
             total += x
@@ -160,7 +150,7 @@ def score(reference,test,records,verbose=False):
                 total[3],float(total[0]+total[3])/float(total.sum()))
         return rv
     else:
-        total = numpy.zeros(4,numpy.int32)
+        total = np.zeros(4,np.int32)
         for record in records:
             total += report(reference,test,record)
         return total
@@ -193,6 +183,83 @@ def read_mod(name,fudge,Pow):
         doctor_M(mod,fudge)
     return mod # End of read_mod()
 
+################ Begin 2012 work on output models ###############
+class Resp(Base):
+    """ Observation model for respiration signal.  
+    
+    """
+    def __init__(self, params):
+        mu, Icov, norm = params
+        self.mu=np.array(mu)      # n_states x 3
+        self.Icov=np.array(Icov)  # n_states x 3 x 3
+        self.norm=np.array(norm)  # n_states
+        self.n_states = len(self.norm)
+        assert(self.mu.shape == (self.n_states, 3))
+        assert(self.Icov.shape == (self.n_states, 3, 3))
+        return
+    def __str__(self # Resp
+                ):
+        save = np.get_printoptions
+        np.set_printoptions(precision=3)
+        rv = 'Model %s instance\n'
+        for i in range(self.n_states):
+            rv += 'For state %d:\n'%i
+            rv += ' Icov = \n%s'%self.Icov[i]
+            rv += ' mu = %s'%self.mu[i]
+            rv += ' norm = %f\n'%self.norm[i]
+        return rv
+    def calc(self, y):
+        """
+        Calculate and return likelihoods: self.P_Y[t,i] = P(y(t)|s(t)=i)
+
+        Parameters
+        ----------
+        y : array
+            A sequence of vector observations.  Shape = (n_y, 3)
+
+        Returns
+        -------
+        P_Y : array, floats
+            P_Y.shape = (n_y, n_states)
+
+        """
+        n_y = len(y)
+        self.P_Y = initialize(self.P_Y, (n_y, n_states))
+        for t in range(n_y):
+            for i in range(self.n_states):
+                d = (y[t]-self.mu[i])
+                dQd = np.dot(d, np.dot(self.Icov[i], d))
+                if dQd > 300: # Underflow
+                    self.P_Y[t,i] = 0
+                else:
+                    self.P_Y[t,i] = self.norm[i]*math.exp(-dQd/2)
+        return self.P_Y
+    def join(self, ys):
+        t_seg = np.array([0] + [len(seg) for seg in ys]).cumsum()
+        y_all = np.concatenate(ys)
+        return len(t_seg)-1, t_seg, y_all
+    def reestimate(self, # Resp instance
+                   w,    # w[t,i] = prob s(t) = i
+                   y):
+        n_y, Dim = t.shape
+        assert Dim == 3
+        assert n_y > 50
+        wsum = w.sum(axis=0)
+        self.mu = (np.inner(y.T, w.T)/wsum).T
+        # Inverse Wishart prior parameters.  Without data sigma_sq = b/a
+        a = 4
+        b = 0.1
+        for i in range(self.n_states):
+            rrsum = np.zeros((Dim,Dim))
+            for t in range(n_y):
+                r = Y[t]-self.mu[i]
+                rrsum += w[t,i]*np.outer(r, r)
+            cov = (b*np.eye(Dim) + rrsum)/(a + wsum[i])
+            det = LA.det(cov)
+            assert (det > 0.0)
+            self.Icov[i,:,:] = LAI(cov)
+            self.norm[i] = 1.0/(math.sqrt((2*math.pi)**Dim*det))
+        return
 ######### Begin model that stores class as separate array ##########
 class BASE(EXT.HMM):
     """ Common base for HR_HMM, Resp_HMM, and SB_HMM.  Key feature is that
@@ -207,7 +274,7 @@ class BASE(EXT.HMM):
         Py = self.Py_wo_class(Y[1:])
         for t in range(self.T):
             C = Y[0][t]
-            Py_t = numpy.zeros(self.N,numpy.float64)
+            Py_t = np.zeros(self.N,np.float64)
             for s in self.C2S[C]:
                 Py_t[s] = Py[t,s]
             Py[t,:] = Py_t
@@ -229,13 +296,13 @@ class BASE(EXT.HMM):
         Y_all = []     # Collection of N time series
         Tseg = [0,len(Ys[0][0])] # List of segment boundaries
         for i in range(N):
-            Y_all.append(numpy.array(Ys[0][i],copy=True))
+            Y_all.append(np.array(Ys[0][i],copy=True))
         for Y in Ys[1:]:
             assert len(Y) is N
             Tseg.append(len(Y[0])+Tseg[-1])
             for i in range(N):
-                Y_all[i] = numpy.concatenate((
-                          Y_all[i], numpy.array(Y[i],copy=False)))
+                Y_all[i] = np.concatenate((
+                          Y_all[i], np.array(Y[i],copy=False)))
         self.T = len(Y_all[-1])
         return self.Py_calc(Y_all),Y_all,Tseg,len(Ys)
 ############## Begin model for respiration only ####################
@@ -247,9 +314,9 @@ class Resp_HMM(BASE):
     """
     def __init__(self, P_S0,P_S0_ergodic,P_ScS,C2S,mu,Icov,norm):
         BASE.__init__(self,P_S0,P_S0_ergodic,P_ScS,P_YcS=None,C2S=C2S)
-        self.mu=numpy.array(mu)
-        self.Icov=numpy.array(Icov)
-        self.norm=numpy.array(norm)
+        self.mu=np.array(mu)
+        self.Icov=np.array(Icov)
+        self.norm=np.array(norm)
         self.Py_calc = None # Assign to Py_wo_class or Py_wo_class
         self.reestimate = None # Assign to reestimate_noC or reestimateC
     def dump(self # Resp_HMM
@@ -257,10 +324,10 @@ class Resp_HMM(BASE):
         self.dump_base()
         for i in range(self.N):
             Icov = self.Icov[i]
-            print(' For state %d:'%i)
+            print((' For state %d:'%i))
             Scalar.print_Name_VV('Icov',Icov)
-            print('              mu  =',self.mu[i])
-            print('              norm =',self.norm[i])
+            print(('              mu  =',self.mu[i]))
+            print(('              norm =',self.norm[i]))
         return #end of dump()
     def randomize(self # Resp_HMM
              ):
@@ -270,7 +337,7 @@ class Resp_HMM(BASE):
         """
         for i in range(self.N):
             cov = LAI(self.Icov[i])
-            self.mu[i] = numpy.random.multivariate_normal(self.mu[i],cov)
+            self.mu[i] = np.random.multivariate_normal(self.mu[i],cov)
     def Py_wo_class(self # Resp_HMM
              ,YL):
         """ Caclculate observation probabilities without Class.  Called by
@@ -282,11 +349,11 @@ class Resp_HMM(BASE):
         try:
             assert(self.Py.shape is (self.T,self.N))
         except:
-            self.Py = numpy.zeros((self.T,self.N),numpy.float64)
+            self.Py = np.zeros((self.T,self.N),np.float64)
         for t in range(self.T):
             for i in range(self.N):
-                d = numpy.mat(y[t]-self.mu[i]).T
-                dQd = d.T*numpy.mat(self.Icov[i])*d
+                d = np.mat(y[t]-self.mu[i]).T
+                dQd = d.T*np.mat(self.Icov[i])*d
                 dQd = min(float(dQd),300.0) # Underflow
                 self.Py[t,i] = self.norm[i]*math.exp(-dQd/2)
         return self.Py # End of Py_wo_class
@@ -299,22 +366,22 @@ class Resp_HMM(BASE):
         Y = YL[0]
         if not O_mod_only:
             self.reestimate_s() # Reestimate all except observation models
-        Y = numpy.array(Y,copy=False)  # TxDim array
+        Y = np.array(Y,copy=False)  # TxDim array
         T,Dim = Y.shape
         assert Dim == 3
         assert T > 50
         w = self.alpha*self.beta  # w[t,i] = prob s(t) = i
         wsum = w.sum(axis=0)
-        self.mu = (numpy.inner(Y.T,w.T)/wsum).T
+        self.mu = (np.inner(Y.T,w.T)/wsum).T
         # Inverse Wishart prior parameters.  Without data sigma_sq = b/a
         a = 4
         b = 0.1
         for i in range(self.N):
-            rrsum = numpy.mat(numpy.zeros((Dim,Dim)))
+            rrsum = np.mat(np.zeros((Dim,Dim)))
             for t in range(len(Y)):
                 r = Y[t]-self.mu[i]
-                rrsum += w[t,i]*numpy.outer(r,r)
-            cov = (b*numpy.eye(Dim) + rrsum)/(a + wsum[i])
+                rrsum += w[t,i]*np.outer(r,r)
+            cov = (b*np.eye(Dim) + rrsum)/(a + wsum[i])
             det = LA.det(cov)
             assert(det) > 0.0
             assert (LA.det(cov) > 0.0)
@@ -331,9 +398,9 @@ class HR_HMM(BASE):
     """
     def __init__(self, P_S0,P_S0_ergodic,P_ScS,C2S,A,Var,norm):
         BASE.__init__(self,P_S0,P_S0_ergodic,P_ScS,P_YcS=None,C2S=C2S)
-        self.A=numpy.array(A)
-        self.Var=numpy.array(Var)
-        self.norm=numpy.array(norm)
+        self.A=np.array(A)
+        self.Var=np.array(Var)
+        self.norm=np.array(norm)
         self.Py_calc = None # Assign to Py_wo_class or Py_wo_class
         self.reestimate = None # Assign to reestimate_noC or reestimateC
     def dump(self # HR_HMM
@@ -341,11 +408,11 @@ class HR_HMM(BASE):
         self.dump_base()
         for i in range(self.N):
             A = self.A[i]
-            print(' For state %d:'%i)
+            print((' For state %d:'%i))
             Scalar.print_Name_V(
                   '              A   ',A)
-            print('              Var  =',self.Var[i])
-            print('              norm =',self.norm[i])
+            print(('              Var  =',self.Var[i]))
+            print(('              norm =',self.norm[i]))
         return #end of dump()
     def randomize(self):
         """ Perturb the observation models for each state to break symmetry.
@@ -362,23 +429,23 @@ class HR_HMM(BASE):
         y = YL[0]
         # Check size and initialize self.Py
         self.T = len(y)
-        y = numpy.array(y,copy=False)
+        y = np.array(y,copy=False)
         try:
             hr = y[:,0].reshape((self.T,))
         except:
-            print('y=',y)
+            print(('y=',y))
             hr = y[:,0].reshape((self.T,))
         context = y[:,1:]
-        d =  hr - numpy.inner(self.A,context)
+        d =  hr - np.inner(self.A,context)
         # d[i,t] is hr[t] - A[i] dot context[t]
         try:
             assert(self.Py.shape is (self.T,self.N))
         except:
-            self.Py = numpy.zeros((self.T,self.N),numpy.float64)
+            self.Py = np.zeros((self.T,self.N),np.float64)
         for i in range(self.N):
-            z = numpy.minimum(d[i]*d[i]/(2*self.Var[i]),300.0)
+            z = np.minimum(d[i]*d[i]/(2*self.Var[i]),300.0)
             # Cap z to stop underflow
-            self.Py[:,i] = numpy.exp(-z)*self.norm[i]
+            self.Py[:,i] = np.exp(-z)*self.norm[i]
         return self.Py
     def reestimate_noC(self, #HR_HMM
                        YL,
@@ -389,14 +456,14 @@ class HR_HMM(BASE):
         Y = YL[0]
         if not O_mod_only:
             self.reestimate_s() # Reestimate all except observation models
-        Y = numpy.array(Y,copy=False)  # TxDim array
+        Y = np.array(Y,copy=False)  # TxDim array
         T,Dim = Y.shape
         w2 = self.alpha*self.beta # w2[t,i] = prob s(t) = i
         mask = w2 >= small        # Small weights confuse the residual
                                   # calculation in least_squares()
         w2 *= mask
         wsum = w2.sum(axis=0)
-        w = numpy.sqrt(w2)      # TxN array of weights
+        w = np.sqrt(w2)      # TxN array of weights
         # Inverse Wishart prior parameters.  Without data, sigma = b/a
         a = 4
         b = 16
@@ -404,8 +471,8 @@ class HR_HMM(BASE):
             HR = w.T[i]*Y.T[0]           # Tx1
             context = (w.T[i]*Y.T[1:]).T # Tx(Dim-1)
             A,resids,rank,s = LA.lstsq(context,HR)
-            z = HR-numpy.inner(context,A) # z[t] is a number
-            zz = float(numpy.inner(z,z))  # zz is a number
+            z = HR-np.inner(context,A) # z[t] is a number
+            zz = float(np.inner(z,z))  # zz is a number
             self.Var[i] = (b+zz)/(a+wsum[i])
             self.A[i,:] = A
             self.norm[i] = 1/math.sqrt(2*math.pi*self.Var[i])
@@ -426,18 +493,18 @@ class Both_HMM(BASE):
     def dump(self # Both_HMM
              ):
         self.dump_base()
-        print("S2C=",self.S2C)
+        print(("S2C=",self.S2C))
         for i in range(self.N):
-            print(' For state %d:'%i)
+            print((' For state %d:'%i))
             Icov = self.Resp.Icov[i]
             Scalar.print_Name_VV(' Icov',Icov)
-            print('              mu    =',self.Resp.mu[i])
-            print('              normR =',self.Resp.norm[i])
+            print(('              mu    =',self.Resp.mu[i]))
+            print(('              normR =',self.Resp.norm[i]))
             A = self.HR.A[i]
             Scalar.print_Name_V(
                   '              A    ',A)
-            print('              Var   =',self.HR.Var[i])
-            print('              normH =',self.HR.norm[i])
+            print(('              Var   =',self.HR.Var[i]))
+            print(('              normH =',self.HR.norm[i]))
         return #end of dump()
     def randomize(self # Both_HMM
              ):
@@ -449,7 +516,7 @@ class Both_HMM(BASE):
              ,YL):
         pyH = self.HR.Py_wo_class([YL[0]])
         pyR = self.Resp.Py_wo_class([YL[1]])
-        self.Py = pyR * (numpy.power(pyH,self.Pow))
+        self.Py = pyR * (np.power(pyH,self.Pow))
         self.T = len(self.Py)
         return self.Py
     def reestimate_noC(self, #Both_HMM
@@ -489,7 +556,7 @@ class SB_HMM(Both_HMM):
         Py = self.Py_wo_class(YL[1:])
         for t in range(self.T):
             C = YL[0][t]
-            Py_t = numpy.zeros(self.N,numpy.float64)
+            Py_t = np.zeros(self.N,np.float64)
             for s in range(self.N):
                 if C in self.S2C[s]:
                     Py_t[s] = Py[t,s]

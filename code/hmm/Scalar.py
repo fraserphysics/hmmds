@@ -153,7 +153,7 @@ class Discrete_Observations:
         Conditional probabilites P_YS[s,y]
 
     '''
-    def __init__(self,P_YS):
+    def __init__(self, P_YS):
         self.P_YS = make_prob(P_YS)
         self.cum_y = np.cumsum(self.P_YS, axis=1)
         self.P_Y = None
@@ -176,7 +176,7 @@ class Discrete_Observations:
         '''
         import random
         return  np.searchsorted(self.cum_y[s],random.random())
-    def calc(self,y):
+    def calc(self, y):
         """
         Calculate and return likelihoods: self.P_Y[t,i] = P(y(t)|s(t)=i)
 
@@ -195,6 +195,35 @@ class Discrete_Observations:
         self.P_Y = initialize(self.P_Y, (n_y, n_states))
         self.P_Y[:, :] = self.P_YS.likelihoods(y)
         return self.P_Y
+    def join(self, # Discrete_Observations instance
+             ys):
+        """Concatenate and return multiple y sequences.
+
+        Also return information on sequence boundaries within
+        concatenated list.
+
+        Parameters
+        ----------
+        ys : list
+            A list of observation sequences.  Default int, but must match
+            method self.P_Y() if subclassed
+
+        Returns
+        -------
+        n_seg : int
+            Number of component segments
+        t_seg : list
+            List of ints specifying endpoints of segments within y_all
+        y_all : list
+            Concatenated list of observations
+
+        """
+        t_seg = [0] # List of segment boundaries in concatenated ys
+        y_all = []
+        for seg in ys:
+            y_all += list(seg)
+            t_seg.append(len(y_all))
+        return len(t_seg)-1, t_seg, y_all
     def reestimate(self, # Discrete_Observations instance
                    w, y):
         """
@@ -293,8 +322,8 @@ class Class_y(Discrete_Observations):
         P_Y : array, floats
 
         """
-        y = yc[:,0]
-        c = yc[:,1]
+        y = [x[0] for x in yc]
+        c = [x[1] for x in yc]
         n_y = len(y)
         n_class, n_states = self.c2s.shape
         self.g = initialize(self.g,(n_y, n_states),np.bool)
@@ -302,7 +331,7 @@ class Class_y(Discrete_Observations):
         self.P_Y = self.y_mod.calc(y) * self.g
         return self.P_Y
     def reestimate(self,  # Class_y instance
-                   w,yc):
+                   w, yc):
         """
         Estimate new model parameters
 
@@ -317,7 +346,7 @@ class Class_y(Discrete_Observations):
         -------
         None
         """
-        self.y_mod.reestimate(w, yc[:,0])
+        self.y_mod.reestimate(w, [x[0] for x in yc])
         return
 
 #--------------------------------

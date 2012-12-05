@@ -495,38 +495,6 @@ P_SS =
          )
         np.set_printoptions(save)
         return rv[1:-1]
-    def join_ys(
-            self,    # HMM instance
-            ys       # List of observation sequences
-        ):
-        """Concatenate and return multiple y sequences.
-
-        Also return information on sequence boundaries within
-        concatenated list.
-
-        Parameters
-        ----------
-        ys : list
-            A list of observation sequences.  Default int, but must match
-            method self.P_Y() if subclassed
-
-        Returns
-        -------
-        n_seg : int
-            Number of component segments
-        t_seg : list
-            List of ints specifying endpoints of segments within y_all
-        y_all : list
-            Concatenated list of observations
-
-        """
-        t_seg = [0] # List of segment boundaries in concatenated ys
-        y_all = []
-        for seg in ys:
-            y_all += list(seg)
-            t_seg.append(len(y_all))
-        self.n_y = t_seg[-1]
-        return len(t_seg)-1, t_seg, y_all
     def multi_train(
             self,         # HMM instance
             ys,           # List of observation sequences
@@ -584,7 +552,7 @@ P_SS =
         i=2: L[0]=-0.9153 L[1]=-0.9135 L[2]=-0.9280 avg=-0.9189398
 
         '''
-        n_seg, t_seg, y_all = self.join_ys(ys)
+        n_seg, t_seg, y_all = self.y_mod.join(ys)
         avgs = n_iter*[None] # Average log likelihood per step
         t_total = t_seg[-1]
         alpha_all = initialize(self.alpha, (t_total, self.n_states))
@@ -632,7 +600,7 @@ WARNING training is not monotonic: avg[%d]=%f and avg[%d]=%f
             self.P_Y = P_Y_all
             if boost_w != None:
                 self.alpha *= BoostW
-            self.n_y = len(y_all)
+            self.n_y = len(P_Y_all)
             self.reestimate(y_all)
         self.P_S0[:] = P_S0_all.sum(axis=0)
         self.P_S0 /= self.P_S0.sum()
