@@ -338,7 +338,7 @@ class Prob:
         tdata.data = <char *>a
         _A.data = <char *>t
     def step_forward(self,A):
-        ''' Implements A[:] = self*A*self
+        ''' Implements A[:] = A*self
         '''
         cdef np.ndarray[DTYPE_t, ndim=1] _A = A
         cdef double *a = <double *>_A.data
@@ -386,7 +386,7 @@ class Discrete_Observations(Scalar.Discrete_Observations):
     @cython.boundscheck(False)
     def calc(
         self,    # Discrete_Observations instance
-        y        # A sequence of integer observations
+        y_       # A list with a sequence of integer observations
         ):
         """
         Allocate self.P_Y and assign values self.P_Y[t,i] = P(y(t)|s(t)=i)
@@ -402,6 +402,7 @@ class Discrete_Observations(Scalar.Discrete_Observations):
             Array of likelihoods of states.  P_Y.shape = (n_y, n_states)
         """
         # Check size and initialize self.P_Y
+        y = y_[0]
         n_y = len(y)
         n_states = self.P_YS.shape[0]
         self.P_Y = Scalar.initialize(self.P_Y, (n_y, n_states))
@@ -431,7 +432,7 @@ class Discrete_Observations(Scalar.Discrete_Observations):
                 J = _indices[j]
                 py[J] = _data[j]
         return self.P_Y # End of p_y_calc()
-    def reestimate(self,w,y):
+    def reestimate(self,w,y_):
         """
         Estimate new model parameters.  Differs from version in Scalar
         by not updating self.cum_y which simulation requires.
@@ -447,6 +448,7 @@ class Discrete_Observations(Scalar.Discrete_Observations):
         -------
         None
         """
+        y = y_[0]
         n_y = len(y)
         if not type(y) == np.ndarray:
             y = np.array(y, np.int32)

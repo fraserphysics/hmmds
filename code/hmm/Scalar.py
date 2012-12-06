@@ -157,6 +157,7 @@ class Discrete_Observations:
         self.P_YS = make_prob(P_YS)
         self.cum_y = np.cumsum(self.P_YS, axis=1)
         self.P_Y = None
+        self.dtype = [np.int32]
         return
     def __str__(self):
         return 'P_YS =\n%s'%(self.P_YS,)
@@ -176,13 +177,13 @@ class Discrete_Observations:
         '''
         import random
         return  (np.searchsorted(self.cum_y[s],random.random()),)
-    def calc(self, y):
+    def calc(self, y_):
         """
         Calculate and return likelihoods: self.P_Y[t,i] = P(y(t)|s(t)=i)
 
         Parameters
         ----------
-        y : list
+        y_ : list
             Has one element which is a sequence of integer observations
 
         Returns
@@ -190,10 +191,11 @@ class Discrete_Observations:
         P_Y : array, floats
 
         """
-        n_y = len(y[0])
+        y = y_[0]
+        n_y = len(y)
         n_states = len(self.P_YS)
         self.P_Y = initialize(self.P_Y, (n_y, n_states))
-        self.P_Y[:, :] = self.P_YS.likelihoods(y[0])
+        self.P_Y[:, :] = self.P_YS.likelihoods(y)
         return self.P_Y
     def join(self, # Discrete_Observations instance
              ys):
@@ -228,10 +230,13 @@ class Discrete_Observations:
                 y_all[i] += list(seg[i])
             t_seg.append(len(y_all[0]))
         for i in range(n_components):
-            y_all[i] = np.array(y_all[i])
+            y_all[i] = np.array(y_all[i], self.dtype[i])
         return len(t_seg)-1, t_seg, y_all
-    def reestimate(self, # Discrete_Observations instance
-                   w, y_):
+    def reestimate(self,      # Discrete_Observations instance
+                   w,         # Weights
+                   y_,        # Observations
+                   warn=True
+                   ):
         """
         Estimate new model parameters
 
@@ -239,8 +244,10 @@ class Discrete_Observations:
         ----------
         w : array
             w[t,s] = Prob(state[t]=s) given data and old model
-        y : array
-            A sequence of integer observations
+        y : list
+            y[0] is a sequence of integer observations
+        warn : bool
+            If True and y[0].dtype != np.int32, print warning
 
         Returns
         -------
@@ -250,6 +257,8 @@ class Discrete_Observations:
         n_y = len(y)
         if not (type(y) == np.ndarray and y.dtype == np.int32):
             y = np.array(y, np.int32)
+            if warn:
+                print('Warning: reformatted y in reestimate')
         assert(y.dtype == np.int32 and y.shape == (n_y,)),'''
                 y.dtype=%s, y.shape=%s'''%(y.dtype, y.shape)
         for yi in range(self.P_YS.shape[1]):
@@ -279,6 +288,7 @@ class Class_y(Discrete_Observations):
                  pars):
         y_class, y_pars, c2s = pars
         self.y_mod = y_class(y_pars)
+        self.dtype = [np.int32, np.int32]
         self.P_Y = None
         self.g = None
         states = {}  # Count states

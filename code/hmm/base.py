@@ -43,6 +43,7 @@ class HMM:
     ...         ])
     >>> mod = HMM(P_S0,P_S0_ergodic,P_YS,P_SS)
     >>> S,Y = mod.simulate(500)
+    >>> Y = (np.array(Y[0], np.int32),)
     >>> E = mod.decode(Y)
     >>> table = ['%3s, %3s, %3s'%('y','S','Decoded')]
     >>> table += ['%3d, %3d, %3d'%triple for triple in zip(Y[0], S, E[:10])]
@@ -324,6 +325,7 @@ class HMM:
         >>> pars = (Discrete_Observations, P_YS, c2s)
         >>> mod = HMM(P_S0, P_S0, pars, P_SS, Class_y, make_prob)
         >>> S,YC = mod.simulate(1000)
+        >>> YC = [np.array(YC[0], np.int32), np.array(YC[1], np.int32)]
         >>> p_s = 0.7*P_SS + 0.3/6
         >>> p_y = 0.7*P_YS + 0.3/6
         >>> pars = (Discrete_Observations, p_y, c2s)

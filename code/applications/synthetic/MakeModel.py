@@ -19,7 +19,7 @@ def read_data(data_dir, data_file):
     '''
     lines = skip_header(open(os.path.join(data_dir, data_file), 'r'))
     y = numpy.array([int(line)-1 for line in lines],numpy.int32)
-    return y, y.max()+1
+    return (y,), y.max()+1
 
 def randomP(A):
     """ Fill allocated array A with random normalized probability
