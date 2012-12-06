@@ -43,10 +43,9 @@ class HMM:
     ...         ])
     >>> mod = HMM(P_S0,P_S0_ergodic,P_YS,P_SS)
     >>> S,Y = mod.simulate(500)
-    >>> Y = np.array(Y,np.int32)
     >>> E = mod.decode(Y)
     >>> table = ['%3s, %3s, %3s'%('y','S','Decoded')]
-    >>> table += ['%3d, %3d, %3d'%triple for triple in zip(Y,S,E[:10])]
+    >>> table += ['%3d, %3d, %3d'%triple for triple in zip(Y[0], S, E[:10])]
     >>> for triple in table:
     ...     print(triple)
       y,   S, Decoded
@@ -219,7 +218,7 @@ class HMM:
         for it in range(n_iter):
             self.P_Y = self.y_mod.calc(y)
             self.n_y = len(self.P_Y)
-            LLps = self.forward()/len(y) # log likelihood per step
+            LLps = self.forward()/self.n_y # log likelihood per step
             if display:
                 print("it= %d LLps= %7.3f"%(it, LLps))
             LLL.append(LLps)
@@ -325,7 +324,6 @@ class HMM:
         >>> pars = (Discrete_Observations, P_YS, c2s)
         >>> mod = HMM(P_S0, P_S0, pars, P_SS, Class_y, make_prob)
         >>> S,YC = mod.simulate(1000)
-        >>> YC = np.array(YC, np.int32)
         >>> p_s = 0.7*P_SS + 0.3/6
         >>> p_y = 0.7*P_YS + 0.3/6
         >>> pars = (Discrete_Observations, p_y, c2s)
@@ -380,9 +378,9 @@ class HMM:
 
         y[i]  c[i]  d[i]
 
-        >>> D = mod.class_decode(YC[:5,0])
-        >>> for (yc, d) in zip(YC, D):
-        ...     print('%3d, %3d, %3d'%(yc[0], yc[1], d))
+        >>> D = mod.class_decode((YC[0][:5],))
+        >>> for (y, c, d) in zip(YC[0], YC[1], D):
+        ...     print('%3d, %3d, %3d'%(y, c, d))
           2,   0,   0
           3,   1,   1
           0,   2,   2
@@ -392,18 +390,18 @@ class HMM:
         '''
         c2s = self.y_mod.c2s
         n_c = len(c2s)
-        n_t = len(y)
+        n_y = len(y[0])
         s1 = np.arange(self.n_states, dtype=np.int32) #Index for cs_cost -> phi
         c1 = self.y_mod.s2c[s1] # Index for cs_cost -> phi
         P_Y = self.y_mod.y_mod.calc(y) # P_Y[t,s] = prob(Y=y[t]|state=s)
 
         # Do partial first iteration before loop
-        pred = np.empty((n_t,n_c),np.int32)
+        pred = np.empty((n_y,n_c),np.int32)
         phi = self.P_S0_ergodic * P_Y[0]
         nu = np.dot(c2s,phi)
         phi /= np.maximum(1.0e-300, np.dot(np.dot(c2s, phi), c2s))
 
-        for t in range(1,n_t): # Main loop
+        for t in range(1,n_y): # Main loop
             ss_cost = self.P_SS.cost(np.dot(nu, c2s)*phi, P_Y[t])
             cs_cost = np.dot(c2s, ss_cost)    # Cost for class-state pairs
             cc_cost = np.dot(cs_cost, c2s.T)  # Cost for class-class pairs
@@ -414,9 +412,9 @@ class HMM:
                                          # class sequence ending in c[s])
             phi /= np.maximum(1.0e-300, np.dot(np.dot(c2s, phi), c2s))
         # Backtrack
-        seq = np.empty((n_t,),np.int32)
+        seq = np.empty((n_y,),np.int32)
         last_c = np.argmax(nu)
-        for t in range(n_t-1,-1,-1):
+        for t in range(n_y-1,-1,-1):
             seq[t] = last_c
             last_c = pred[t, last_c]
         return seq
@@ -458,7 +456,14 @@ class HMM:
             states.append(i)
             outs.append(self.y_mod.random_out(i))
             i = cum_rand(cum_tran[i])
-        return (states, outs) # End of simulate()
+        # Take "transpose" of outs.  Observations are lists of time series 
+        outs_T = []
+        for x in outs[0]:
+            outs_T.append([x])
+        for t in range(1,len(outs)):
+            for i in range(len(outs_T)):
+                outs_T[i].append(outs[t][i])
+        return (states, outs_T) # End of simulate()
     def link(self, from_, to_, p):
         """ Create (or remove) a link between state "from_" and state "to_".
 
@@ -545,7 +550,7 @@ P_SS =
         >>> S,Y = mod.simulate(600)
         >>> ys = []
         >>> for i in [1,2,0]:
-        ...     ys.append(list(Y[200*i:200*(i+1)]))
+        ...     ys.append([x[200*i:200*(i+1)] for x in Y])
         >>> A = mod.multi_train(ys,3)
         i=0: L[0]=-0.9162 L[1]=-0.9142 L[2]=-0.9275 avg=-0.9193117
         i=1: L[0]=-0.9156 L[1]=-0.9137 L[2]=-0.9278 avg=-0.9190510

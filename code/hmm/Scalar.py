@@ -175,25 +175,25 @@ class Discrete_Observations:
 
         '''
         import random
-        return  np.searchsorted(self.cum_y[s],random.random())
+        return  (np.searchsorted(self.cum_y[s],random.random()),)
     def calc(self, y):
         """
         Calculate and return likelihoods: self.P_Y[t,i] = P(y(t)|s(t)=i)
 
         Parameters
         ----------
-        y : array
-            A sequence of integer observations
+        y : list
+            Has one element which is a sequence of integer observations
 
         Returns
         -------
         P_Y : array, floats
 
         """
-        n_y = len(y)
+        n_y = len(y[0])
         n_states = len(self.P_YS)
         self.P_Y = initialize(self.P_Y, (n_y, n_states))
-        self.P_Y[:, :] = self.P_YS.likelihoods(y)
+        self.P_Y[:, :] = self.P_YS.likelihoods(y[0])
         return self.P_Y
     def join(self, # Discrete_Observations instance
              ys):
@@ -220,12 +220,18 @@ class Discrete_Observations:
         """
         t_seg = [0] # List of segment boundaries in concatenated ys
         y_all = []
+        n_components = len(ys[0])
+        for i in range(n_components):
+            y_all.append([])
         for seg in ys:
-            y_all += list(seg)
-            t_seg.append(len(y_all))
+            for i in range(n_components):
+                y_all[i] += list(seg[i])
+            t_seg.append(len(y_all[0]))
+        for i in range(n_components):
+            y_all[i] = np.array(y_all[i])
         return len(t_seg)-1, t_seg, y_all
     def reestimate(self, # Discrete_Observations instance
-                   w, y):
+                   w, y_):
         """
         Estimate new model parameters
 
@@ -240,10 +246,12 @@ class Discrete_Observations:
         -------
         None
         """
+        y = y_[0]
         n_y = len(y)
-        if not type(y) == np.ndarray:
+        if not (type(y) == np.ndarray and y.dtype == np.int32):
             y = np.array(y, np.int32)
-        assert(y.dtype == np.int32 and y.shape == (n_y,))
+        assert(y.dtype == np.int32 and y.shape == (n_y,)),'''
+                y.dtype=%s, y.shape=%s'''%(y.dtype, y.shape)
         for yi in range(self.P_YS.shape[1]):
             self.P_YS.assign_col(
                 yi, w.take(np.where(y==yi)[0], axis=0).sum(axis=0))
@@ -303,7 +311,7 @@ class Class_y(Discrete_Observations):
         y, c : int, int
             A tuple consisting of an observation and the class of the state
         '''
-        return self.y_mod.random_out(s), self.s2c[s]
+        return self.y_mod.random_out(s)[0], self.s2c[s]
     def calc(self, # Class_y instance
              yc):
         """
@@ -322,13 +330,12 @@ class Class_y(Discrete_Observations):
         P_Y : array, floats
 
         """
-        y = [x[0] for x in yc]
-        c = [x[1] for x in yc]
+        y, c = yc
         n_y = len(y)
         n_class, n_states = self.c2s.shape
         self.g = initialize(self.g,(n_y, n_states),np.bool)
         self.g[:,:] = self.c2s[c,:]
-        self.P_Y = self.y_mod.calc(y) * self.g
+        self.P_Y = self.y_mod.calc((y,)) * self.g
         return self.P_Y
     def reestimate(self,  # Class_y instance
                    w, yc):
@@ -346,7 +353,7 @@ class Class_y(Discrete_Observations):
         -------
         None
         """
-        self.y_mod.reestimate(w, [x[0] for x in yc])
+        self.y_mod.reestimate(w, (yc[0],))
         return
 
 #--------------------------------
