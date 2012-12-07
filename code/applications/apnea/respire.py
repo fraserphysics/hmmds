@@ -2,11 +2,7 @@
 
 python3 respire.py r_times_dir summary_of_training resp_dir
 
-The following takes "real    4m59.623s"
-
-python3 respire.py ../../../raw_data/apnea/summary_of_training ../../../derived_data/apnea/r_times ../../../derived_data/apnea/ ../../../derived_data/apnea/respiration
-
-Will need ApOb.py in pythonpath
+This code takes "real    4m59.623s" to process all of the CINC2000 data
 
 Calculate high frequency periodograms for each record at 0.1 minute
 intervals.  Collect these vectors into three groups:
@@ -20,50 +16,25 @@ From these three groups, calculate two Fisher LDA basis vectors.
 For each sample time for each record, project the corresponding vector
 onto the Fisher basis and write the result to data/'record'.resp2
 
-Copyright (c) 2005, 2008 Andrew Fraser
-This file is part of HMM_DS_Code.
-
-HMM_DS_Code is free software; you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation; either version 2 of the License, or (at your option) any later
-version.
-
-HMM_DS_Code is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with
-this program; if not, write to the Free Software Foundation, Inc.,
-59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
 """
-Mark_dict = {'N':0,'A':1}
-def fetch_ann(Annotations,name):
-    """ Like fetch_annotations, but shorter result.  Only one sample per
-    minute.  FixMe: use version in ApOb when it works.
-    """
-    import numpy as np
-    F = open(Annotations,'r')
-    parts = F.readline().split()
-    while len(parts) is 0 or parts[0] != name:
-        parts = F.readline().split()
-    hour = 0
-    letters = []
-    for line in F:
-        parts = line.split()
-        if len(parts) != 2:
-            break
-        assert (int(parts[0]) == hour),"hour wrong"
-        hour += 1
-        letters += parts[1]
-    notes = []
-    for t in range(len(letters)):
-        notes.append(Mark_dict[letters[t]])
-    return np.array(notes)
-def fetch_annotations(Annotations,name):
-    return fetch_ann(Annotations,name).repeat(SamPerMin) 
+# Copyright (c) 2005, 2008, 2012 Andrew Fraser
+# This file is part of HMM_DS_Code.
 
+# HMM_DS_Code is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 2 of the License, or (at your option) any later
+# version.
+
+# HMM_DS_Code is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+from ApOb import fetch_annotations
 import numpy as np
 import numpy.linalg as LA
 import math
