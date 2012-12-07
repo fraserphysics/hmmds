@@ -29,8 +29,10 @@ To do:
     code/plotscripts/class1.py
     code/hmm/PFsurvey.py
 
-2. Write variant module that uses Gaussian output model.  Goals: test
-   ability to generalize base class.  Illustrate generalization.
+2. Write variant module that uses Gaussian output model.  Goal:
+   Illustrate ability to generalize base class
+
+3. Make two distribution targets: HMMpy and HMM_DS
 
 4. Move to google repository
 

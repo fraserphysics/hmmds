@@ -40,7 +40,9 @@ env.Command(
 
 LDA_figs = tuple(fig(x) for x in ('LDA1.pdf', 'LDA2.pdf'))
 LDA_src = (here('LDA.py'),) + tuple(root(DDA(x)) for x in (
-        'mean.resp', 'AA.resp', 'AN.resp', 'C.resp'))
+        'mean.resp', 'AA.resp', 'AN.resp', 'C.resp')) # FixMe: Depends
+                                                      # on contents of
+                                                      # DDA(respiration)
 env.Command(
     LDA_figs,
     LDA_src,

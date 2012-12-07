@@ -25,7 +25,6 @@ def main(argv=None):
            sys.argv[0],sys.version_info,))
        return -1
 
-
     if argv is None:                    # Usual case
         argv = sys.argv[1:]
 
