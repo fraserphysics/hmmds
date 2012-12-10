@@ -307,6 +307,13 @@ class Class_y(Discrete_Observations):
     def __str__(self):
         return('%s with c2s =\n%s\n%s'%(
                 self.__class__, self.c2s.astype(np.int8), self.y_mod))
+    def set_dtype(self, dtype):
+        '''Necessary if data for self.y_mod.calc and self.y_mod.join is not
+        np.int32.
+
+        '''
+        self.dtype = dtype
+        return
     def random_out(self, # Class_y instance
                    s):
         '''Simulate.  Draw a random observation given state s.
@@ -321,9 +328,9 @@ class Class_y(Discrete_Observations):
         y, c : int, int
             A tuple consisting of an observation and the class of the state
         '''
-        return self.y_mod.random_out(s)[0], self.s2c[s]
+        return self.s2c[s], self.y_mod.random_out(s)[0]
     def calc(self, # Class_y instance
-             yc):
+             cy):
         """
         Calculate and return likelihoods: P_Y[t,i] = P(y(t)|s(t)=i)*g(s,c[t])
 
@@ -340,7 +347,7 @@ class Class_y(Discrete_Observations):
         P_Y : array, floats
 
         """
-        y, c = yc
+        c, y = cy
         n_y = len(y)
         n_class, n_states = self.c2s.shape
         self.g = initialize(self.g,(n_y, n_states),np.bool)
@@ -348,7 +355,7 @@ class Class_y(Discrete_Observations):
         self.P_Y = self.y_mod.calc((y,)) * self.g
         return self.P_Y
     def reestimate(self,  # Class_y instance
-                   w, yc):
+                   w, cy):
         """
         Estimate new model parameters
 
@@ -356,14 +363,14 @@ class Class_y(Discrete_Observations):
         ----------
         w : array
             w[t,s] = Prob(state[t]=s) given data and old model
-        yc : array
-            A sequence of y,c pairs
+        cy : list
+            c,y = cy; Where c/y is an array of classifications/observations
 
         Returns
         -------
         None
         """
-        self.y_mod.reestimate(w, (yc[0],))
+        self.y_mod.reestimate(w, cy[1:])
         return
 
 #--------------------------------

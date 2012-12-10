@@ -31,6 +31,7 @@ small = 1e-25
 SamPerMin = 10 # Samples per minute.
 
 from Scalar import Discrete_Observations # join method gets used
+from Scalar import Class_y
 import numpy as np
 import math
 import numpy.linalg as LA
@@ -84,7 +85,8 @@ def read_expert(path, arg=None):
     fetch_annotations('../raw_data/apnea/summary_of_training', 'a01')
 
     '''
-    return fetch_annotations(*os.path.split(path))
+    import os.path
+    return [fetch_annotations(*os.path.split(path))]
 
 def read_data(data_file):
     '''Read in "data_file" as a 2-d array
@@ -99,8 +101,7 @@ def read_data(data_file):
         data[i,j] is the jth number on the ith line
 
     '''
-    f = file(data_file, 'r')
-    data = [[float(x) for x in line.split()] for line in f]
+    data = [[float(x) for x in line.split()] for line in open(data_file, 'r')]
     return np.array(data).T
 
 def read_lphr(path, AR):
@@ -126,20 +127,19 @@ def read_lphr(path, AR):
         context[t, 0] = 1, and context[t, s] = hr[t-s] for s in [1,AR]
 
     """
-    raw = np.flipud(read_data(path)[1])
-    #raw = read_data(filename)[1]
+    raw = read_data(path)[1]
     n_y = len(raw)
     hr = np.empty(n_y)
     context = np.empty((n_y,AR+1))
-    for t in range(AR+1):
-        context[t, :] = raw[t]  # I don't know what's right for this
-        context[t, 1:t-1] = raw[t-1:-1:-1]
+    for t in range(AR+2):
+        context[t, :] = raw[0]  # No real data before t=0.  Is this OK?
+        context[t, 0:min(AR+1,t+1)] = raw[:t+1][::-1][0:min(AR+1,t+1)]
         hr[t] = raw[t]
-    for t in range(AR+1,n_y):
-        context[t, 1:] = raw[t-1:t-AR:-1]
+    for t in range(AR+2,10):
+        context[t,1:] = raw[t-1:t-AR-1:-1]
         hr[t] = raw[t]
     raw.sort()
-    scale = 2.0/raw[int(T*.8)]
+    scale = 2.0/raw[int(n_y*.8)]
     hr *= scale
     context *= scale
     context[:,0] = 1
@@ -169,21 +169,69 @@ def read_records(
         args,     # (AR, None), (AR,) or (None,)
         records   # List of records to process, eg, ['a01','a02',...]
         ):
-    """Read the records specified.  Return dict of observation lists for
-       class Heart_Rate, class Resp or class Both, ie each entry in
-       the dict should be (hr, context), or (resp,) or (hr, context,
-       resp) respectively.
+    """Read the records specified.  Return dict of observation lists.
+       Each list should be suitable for the join() or calc() methods
+       of an observation model.
 
     """
+    from os.path import join
     assert len(readers) == len(paths)
     assert len(readers) == len(args)
     rv = {}
     for name in records:
         rv[name] = []
+        lengths = []
         for reader, path, arg in zip(readers, paths, args):
-            rv[name] += reader(join(path, name), arg)
+            x = reader(join(path, name), arg)
+            lengths.append(len(x[0]))
+            rv[name] += x
+        L = min(lengths)
+        for i in range(len(rv[name])):
+            rv[name][i] = rv[name][i][:L]
     return rv
 
+def build_data(y_mod, args):
+    '''Make dict of observation lists.
+
+    args.expert   Path to file of expert markings
+    args.resp_dir Directory of respiration data
+    args.hr_dir   Directory of low pass heart rate data
+    args.record   List of records
+
+    For each record in args.record, make a list suitable for the
+    join() and calc() methods of y_mod.  Data locations are specified
+    by a combination of args.expert, args.resp_dir, and args.hr_dir
+    appropriate for the class of y_mod.
+
+    '''
+    y_class = y_mod.__class__
+    if y_class is Class_y:
+        readers = [read_expert]
+        paths = [args.expert]
+        args_ = [None]
+        y_mod = y_mod.y_mod
+        y_class = y_mod.__class__
+    else:
+        assert args.expert is None
+        readers = []
+        paths = []
+        args_ = []
+    if y_class is Heart_Rate or y_class is Both:
+        if y_class is Heart_Rate:
+            assert args.resp_dir is None
+            AR = y_mod.A.shape[1] - 1
+        else:
+            AR = y_mod.hr_mod.A.shape[1] - 1
+        readers.append(read_lphr)
+        paths.append(args.hr_dir)
+        args_.append(AR)
+    if y_class is Resp or y_class is Both:
+        if y_class is Resp:
+            assert args.hr_dir is None
+        readers.append(read_resp)
+        paths.append(args.resp_dir)
+        args_.append(None)
+    return read_records(readers, paths, args_, args.record)
 class Resp(Discrete_Observations):
     """ Observation model for respiration signal.
 
@@ -257,7 +305,7 @@ class Resp(Discrete_Observations):
         for i in range(self.n_states):
             rrsum = np.zeros((Dim,Dim))
             for t in range(n_y):
-                r = Y[t]-self.mu[i]
+                r = y[t]-self.mu[i]
                 rrsum += w[t,i]*np.outer(r, r)
             cov = (b*np.eye(Dim) + rrsum)/(a + wsum[i])
             det = LA.det(cov)
@@ -352,8 +400,8 @@ and Respiration component:
                    w,    # w[t,i] = prob s(t) = i
                    y):
         hr, context, resp = y
-        self.hr_mod.reestimate((hr, context))
-        self.resp_mod.reestimate((resp,))
+        self.hr_mod.reestimate(w,(hr, context))
+        self.resp_mod.reestimate(w,(resp,))
         return
 
 #Local Variables:

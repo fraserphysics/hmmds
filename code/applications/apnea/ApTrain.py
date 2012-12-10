@@ -58,45 +58,14 @@ def main(argv=None):
     import ApOb
     import Scalar
     mod = pickle.load(args.mod_in)
-    y_mod = mod.y_mod
-    y_class = y_mod.__class__
-    if y_class is Scalar.Class_y:
-        readers = [ApOb.read_expert]
-        paths = [args.expert]
-        args_ = [None]
-        y_mod = y_mod.y_mod
-        y_class = y_mod.__class__
-    else:
-        assert args.expert is None
-        readers = []
-        paths = []
-        args_ = []
-    if y_class is ApOb.Heart_Rate or y_class is ApOb.Both:
-        if y_class is ApOb.Heart_Rate:
-            assert args.resp_dir is None
-            AR = len(y_mod.A)
-        else:
-            AR = len(y_mod.hr_mod.A)
-        readers.append(ApOb.read_lphr)
-        paths.append(args.hr_dir)
-        args_.append(AR)
-    if y_class is ApOb.Resp or y_class is ApOb.Both:
-        if y_class is ApOb.Resp:
-            assert args.hr_dir is None
-        readers.append(ApOb.read_resp)
-        paths.appendargs.resp_dir)
-        args_.append(None)
-    data_dict = ApOb.read_records(readers, paths, args_, args.record)
+    data_dict = ApOb.build_data(mod.y_mod, args)
     mod.multi_train(data_dict.values(), args.iterations)
     pickle.dump(mod,open(args.mod_out,'w'))
     return 0
 
-def _test():
-    import doctest
-    doctest.testmod()
-
 if __name__ == "__main__":
-    _test()
+    sys.exit(main())
+
 #Local Variables:
 #mode:python
 #End:

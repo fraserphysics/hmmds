@@ -324,13 +324,13 @@ class HMM:
         >>> P_YS = circulant([.4, 0, 0, 0, .3, .3])
         >>> pars = (Discrete_Observations, P_YS, c2s)
         >>> mod = HMM(P_S0, P_S0, pars, P_SS, Class_y, make_prob)
-        >>> S,YC = mod.simulate(1000)
-        >>> YC = [np.array(YC[0], np.int32), np.array(YC[1], np.int32)]
+        >>> S,CY = mod.simulate(1000)
+        >>> CY = [np.array(CY[0], np.int32), np.array(CY[1], np.int32)]
         >>> p_s = 0.7*P_SS + 0.3/6
         >>> p_y = 0.7*P_YS + 0.3/6
         >>> pars = (Discrete_Observations, p_y, c2s)
         >>> mod = HMM(P_S0, P_S0, pars, p_s, Class_y, make_prob)
-        >>> L = mod.train(YC, n_iter=20, display=False)
+        >>> L = mod.train(CY, n_iter=20, display=False)
 
         Maximum likelihood estimation (training) yeilds a model that
         is similar to the model used to make the data.
@@ -380,8 +380,8 @@ class HMM:
 
         y[i]  c[i]  d[i]
 
-        >>> D = mod.class_decode((YC[0][:5],))
-        >>> for (y, c, d) in zip(YC[0], YC[1], D):
+        >>> D = mod.class_decode((CY[1][:5],))
+        >>> for (c, y, d) in zip(CY[0], CY[1], D):
         ...     print('%3d, %3d, %3d'%(y, c, d))
           2,   0,   0
           3,   1,   1
