@@ -24,7 +24,7 @@ To do:
     hmm class with enough flexibility to handle: Multiple sets of
     training data; Custom output models; Decoding class sequences.
 
-    ApTrain.py -> mod_A mod_C mod_C
+    ApTrain.py -> mod_A2
     code/hmm/DoubleClassify.py
     code/plotscripts/class1.py
     code/hmm/PFsurvey.py

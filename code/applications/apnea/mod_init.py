@@ -2,7 +2,7 @@
 CINC2000 data.
 
 Argument     Usual Value
-
+-----------------------------------------------------------------
 HR_dir       derived_data/apnea/low_pass_heart_rate 
 
 Resp_Dir     derived_data/apnea/respiration
@@ -10,20 +10,7 @@ Resp_Dir     derived_data/apnea/respiration
 Expert       raw_data/apnea/summary_of_training
 
 Model_Dir    derived_data/apnea
-
-This script makes the following models for internal use:
-
-base_s1_ar2:    One state, AR order 2, fit to all of the data
-
-base_s1_resp:   One state, Resp model, fit to all of the data
-
-base_s1_ar4:    One state, AR order 4, fit to all of the data
-
-base_n1_a1_ar2: One normal state and one apnea state, fit to all of
-                the data and use classification
-base_n1_a1_ar4: One normal state and one apnea state, fit to all of
-                the data and use classification
-
+=================================================================
 This script writes the following five models to "Model_Dir"
 
 init_A2:        Two state, no class, AR=4.
@@ -35,7 +22,7 @@ init_H:         Two class, topology in Fig 6.9a. Resp and AR=2
 init_M:         Two class, topology in Fig 6.9b. Resp and AR=4
 
 init_L:         Two class, topology in Fig 6.9b. Resp and AR=4 
-
+=================================================================
 Everything is hard coded with "magic" numbers.  From the text, I copy
 the following specifications:
 
@@ -87,6 +74,34 @@ def main(argv=None):
     from base import HMM
     import Scalar
     import ApOb
+    import pickle
+    def randomize(mod, args):
+        '''Initialize a model with asymmetric parameters by simulating a
+        random but consistent state sequence and fitting actual data
+        assuming that sequence.
+
+        '''
+        y_mod = mod.y_mod
+        n_seg, segs, data = y_mod.join(
+            list(ApOb.build_data(mod.y_mod, args).values()))
+        n_y = len(data[0])
+        if y_mod.__class__ is Scalar.Class_y:
+            c_series = data[0]
+            s_t = mod.state_simulate(n_y, mask=y_mod.c2s[c_series])
+        else:
+            s_t = mod.state_simulate(n_y)
+        s_t = np.array(s_t, np.int32)
+        alpha = np.zeros((n_y, mod.n_states))
+        t = np.arange(n_y)
+        alpha[t,s_t] = 1
+        mod.alpha = alpha
+        mod.beta = alpha.copy()
+        mod.gamma = np.ones(n_y)
+        mod.P_Y = np.ones((n_y, mod.n_states))
+        for b in segs[1:-1]:
+            mod.gamma[b] = -1
+        mod.reestimate(data)
+        return
     # Set up lists of records by the groups used for training
     all_records = os.listdir(hr_dir)
     a_records = [x for x in all_records if x.startswith('a')]
@@ -96,33 +111,67 @@ def main(argv=None):
     med_records = MED.split()
     high_records = HIGH.split()
 
-    # Create models that have each of the kinds of observation model
-    # that I will use later.  If the observation model has
-    # classification, the HMM has two states and if not, it has only
-    # one state.  These models train in a single pass through the
-    # data.
-    P_SS = np.ones((1,1,1), np.float64)
-    P_S0 = np.ones((1,1), np.float64)
-    Var = np.empty((1,1))
-    norm = np.empty((1,1))
-    y_ar2 = (np.empty((1,3)), Var, norm)
-    y_ar4 = (np.empty((1,5)), Var, norm)
-    mu = np.empty((1,3))
-    Icov = np.empty((1,3,3))
-    y_resp = (mu, Icov, norm)
-    y_both = lambda x : ( ApOb.Both,
-                          (
-                              x,         # hr_params
-                              y_resp     # resp_params
-                          ),
-                          {0:[0], 1:[1]} # c2s
-                      )
-    base_s1_resp = HMM(P_S0, P_S0, y_resp, P_SS, ApOb.Resp)
-    base_s1_ar2 = HMM(P_S0, P_S0, y_ar2, P_SS, ApOb.Heart_Rate)
-    base_s1_ar4 = HMM(P_S0, P_S0, y_ar4, P_SS, ApOb.Heart_Rate)
-    base_n1_a1_ar2_resp = HMM(P_S0, P_S0, y_both(y_ar2), P_SS, Scalar.Class_y)
-    base_n1_a1_ar4_resp = HMM(P_S0, P_S0, y_both(y_ar4), P_SS, Scalar.Class_y)
-    for mod in (base_n1_a1_ar2_resp, base_n1_a1_ar4_resp):
+    # Create raw models.  P_SS* (and c2s if applicable) give the right
+    # topology.  Space for the output model parameters is allocated.
+    # Initial values of those parameters will be given later.
+    resp_n = lambda n: (np.empty((n,3)), np.empty((n,3,3)), np.empty((n,1)))
+    ar_m_n = lambda m, n: (np.empty((n, m+1)), np.empty((n,1)), np.empty((n,1)))
+    
+    P_SS_1 = np.ones((1,1), np.float64)
+    P_S0_1 = np.ones((1,), np.float64)
+    P_SS_2 = np.ones((2,2), np.float64)/2
+    P_S0_2 = np.ones((2,), np.float64)/2
+
+    mod_A2 = HMM(P_S0_2, P_S0_2, (ar_m_n(4, 2), resp_n(2)), P_SS_2, ApOb.Both)
+    mod_C1 = HMM(P_S0_1, P_S0_1, (ar_m_n(4, 1), resp_n(1)), P_SS_1, ApOb.Both)
+
+    #    1  2  3  4  5  6  7  8  9  10 11 12 13 14
+    P_SS_69a = Scalar.Prob((14,14), dtype=np.float64, buffer=np.array([
+        [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], #1
+        [1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0], #2
+        [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], #3
+        [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], #4
+        [0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0], #5
+        [0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0], #6
+        [0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0], #7
+        [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0], #8
+        [0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0], #9
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0], #10
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0], #11
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1], #12
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0], #13
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1]  #14
+    ]))
+    P_SS_69a.normalize()
+    P_S0_14 = np.ones(14)/14
+    c2s = {0:np.arange(7, dtype=np.int32), 1:np.arange(7, 14, dtype=np.int32)}
+    mod_H = HMM(P_S0_14, P_S0_14,
+                (ApOb.Both, (ar_m_n(2, 14), resp_n(14)), c2s),
+                P_SS_69a, Scalar.Class_y)
+    #    1  2  3  4  5  6  7  8  9  10
+    P_SS_69b = Scalar.Prob((10, 10), dtype=np.float64, buffer=np.array([
+        [1, 1, 0, 0, 0, 0, 0, 0, 0, 0], #1
+        [1, 1, 1, 1, 1, 0, 1, 0, 0, 0], #2
+        [0, 1, 1, 0, 0, 0, 0, 0, 0, 0], #3
+        [0, 1, 0, 1, 0, 1, 0, 0, 0, 0], #4
+        [0, 1, 0, 0, 1, 0, 0, 0, 0, 0], #5
+        [0, 0, 0, 1, 0, 1, 0, 0, 0, 0], #6
+        [0, 1, 0, 0, 0, 0, 1, 1, 1, 0], #7
+        [0, 0, 0, 0, 0, 0, 1, 1, 0, 0], #8
+        [0, 0, 0, 0, 0, 0, 1, 0, 1, 1], #9
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 1]  #10
+    ]))
+    P_SS_69b.normalize()
+    P_S0_10 = np.ones(10)/10
+    c2s = {0:np.arange(6, dtype=np.int32), 1:np.arange(6, 10, dtype=np.int32)}
+    mod_M = HMM(P_S0_10, P_S0_10,
+                (ApOb.Both, (ar_m_n(4, 10), resp_n(10)), c2s), 
+                P_SS_69b, Scalar.Class_y)
+    mod_L = HMM(P_S0_10, P_S0_10,
+                (ApOb.Both, (ar_m_n(4, 10), resp_n(10)), c2s), 
+                P_SS_69b, Scalar.Class_y)
+
+    for mod in (mod_L, mod_M, mod_H):
         mod.y_mod.set_dtype([np.int32, np.float64, np.float64, np.float64])
 
     # Class for args instances for reading data
@@ -138,42 +187,36 @@ def main(argv=None):
                 self.expert, self.resp_dir, self.hr_dir, self.record))
 
     # Train each of the five base models with a single pass through
-    # the appropriate data
+    # the appropriate data with a randomly chosen state sequence
     marked = a_records + b_records + c_records
-    for model, args in (
-            (base_n1_a1_ar4_resp,
-             ARGS(marked, hr_dir=hr_dir, resp_dir=resp_dir,
-                  expert=expert)),
-            (base_n1_a1_ar4_resp,
-             ARGS(marked, hr_dir=hr_dir, resp_dir=resp_dir,
-                  expert=expert)),
-            (base_s1_ar2, ARGS(all_records, hr_dir=hr_dir)),
-            (base_s1_ar4, ARGS(all_records, hr_dir=hr_dir)),
-            (base_s1_resp, ARGS(all_records, resp_dir=resp_dir)),
-          ):
-        y_dict = ApOb.build_data(model.y_mod, args)
-        n_seg, segs, data = model.y_mod.join(list(y_dict.values()))
-        n_y = len(data[0])
-        n_states = model.n_states
-        if n_states == 1:
-            w = np.ones((n_y, 1))
-        else:
-            w = np.empty((n_y, 2))
-            w[:,0] = data[0]
-            w[:,1] = 1 - data[0]
-        model.y_mod.reestimate(w, data)
-
+    for model, args, name in (
+            (mod_A2,
+             ARGS(a_records, hr_dir=hr_dir, resp_dir=resp_dir),
+             'init_A2'),
+            (mod_C1,
+             ARGS(c_records, hr_dir=hr_dir, resp_dir=resp_dir),
+             'mod_C1'),
+            (mod_H,
+             ARGS(high_records, hr_dir=hr_dir, resp_dir=resp_dir,
+                  expert=expert),
+             'init_H'),
+            (mod_M,
+             ARGS(med_records, hr_dir=hr_dir, resp_dir=resp_dir, expert=expert),
+             'init_M'),
+            (mod_L,
+             ARGS(low_records, hr_dir=hr_dir, resp_dir=resp_dir, expert=expert),
+             'init_L'),
+        ):
+        randomize(model, args)
+        model.alpha = None
+        model.beta = None
+        model.gamma = None
+        model.P_Y = None
+        pickle.dump(model, open(os.path.join(model_dir, name), 'wb'))
     return 0
 
 if __name__ == "__main__":
-    #hr_dir, resp_dir, expert, model_dir
-    argv = (
-        '../../../derived_data/apnea/low_pass_heart_rate',
-        '../../../derived_data/apnea/respiration',
-        '../../../raw_data/apnea/summary_of_training',
-        '../../../derived_data/apnea/'
-        )
-    sys.exit(main(argv))
+    sys.exit(main())
     
 #Local Variables:
 #mode:python

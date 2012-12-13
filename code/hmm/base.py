@@ -258,7 +258,7 @@ class HMM:
         self.P_SS.normalize()
         self.y_mod.reestimate(self.alpha,y)
         return # End of reestimate()
-    def decode(self, y):
+    def decode(self, y, P_Y=None):
         """
         Find the most likely state sequence for a given observation sequence
 
@@ -266,6 +266,8 @@ class HMM:
         ----------
         y : array_like
             Sequence of observations
+        P_Y : array_like
+            Array of probabilities of observations
 
         Returns
         -------
@@ -273,7 +275,8 @@ class HMM:
             Maximum likelihood state sequence
 
         """
-        P_Y = self.y_mod.calc(y)
+        if P_Y is None:
+            P_Y = self.y_mod.calc(y)
         self.n_y = len(P_Y)
         pred = np.empty((self.n_y, self.n_states), np.int32) # Best predecessors
         ss = np.ones((self.n_y, 1), np.int32)       # State sequence
@@ -420,7 +423,31 @@ class HMM:
             seq[t] = last_c
             last_c = pred[t, last_c]
         return seq
+    def state_simulate(self, length, mask=None, seed=3):
+        ''' Generate a random sequence of states
 
+        Parameters
+        ----------
+
+        length : int
+            Number of time steps to simulate
+        mask : array/None
+            If mask.shape[t, i] is False, state i is forbidden at time t
+        seed : int, optional
+            Seed for random number generator
+
+        Returns
+        -------
+
+        states : list
+            Sequence of states
+        '''
+        import numpy.random
+        numpy.random.seed(seed)
+        P_Y = numpy.random.random((length, self.n_states))
+        if mask is not None:
+            P_Y *= mask
+        return self.decode(None, P_Y) # End of state_simulate()
     def simulate(self, length, seed=3):
         """
         Generate a random sequence of observations of given length

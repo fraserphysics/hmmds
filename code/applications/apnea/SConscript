@@ -33,6 +33,15 @@ env.Command(
     PYTHON + ' %s %s %s %s %s '%(here('respire.py'), annotations, r_times,
                                  apnea, respiration)
     )
+initial_models = tuple(root(DDA(x)) for x in
+                  ('init_A2', 'mod_C1', 'init_H', 'init_M', 'init_L'))
+args = (here('mod_init.py'), root(DDA('low_pass_heart_rate')),
+        root(DDA('respiration')), root(RDA('summary_of_training')),)
+env.Command(
+    initial_models,
+    args,
+    PYTHON + (len(args)*' %s ')%args + root(DDA(''))
+    )
 
 #Local Variables:
 #mode:python
