@@ -57,10 +57,10 @@ def main(argv=None):
     import pickle
     import ApOb
     import Scalar
-    mod = pickle.load(args.mod_in)
+    mod = pickle.load(open(args.mod_in, 'rb'))
     data_dict = ApOb.build_data(mod.y_mod, args)
-    mod.multi_train(data_dict.values(), args.iterations)
-    pickle.dump(mod,open(args.mod_out,'w'))
+    mod.multi_train(list(data_dict.values()), args.iterations)
+    pickle.dump(mod, open(args.mod_out, 'wb'))
     return 0
 
 if __name__ == "__main__":

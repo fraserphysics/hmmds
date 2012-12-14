@@ -32,6 +32,7 @@ SamPerMin = 10 # Samples per minute.
 
 from Scalar import Discrete_Observations # join method gets used
 from Scalar import Class_y
+from Scalar import initialize
 import numpy as np
 import math
 import numpy.linalg as LA
@@ -250,6 +251,7 @@ class Resp(Discrete_Observations):
         self.dtype = [np.float64]
         assert(self.mu.shape == (self.n_states, 3))
         assert(self.Icov.shape == (self.n_states, 3, 3))
+        self.P_Y = None
         return
     def __str__(self # Resp
                 ):
@@ -280,7 +282,7 @@ class Resp(Discrete_Observations):
         """
         y = y_[0]
         n_y = len(y)
-        self.P_Y = initialize(self.P_Y, (n_y, n_states))
+        self.P_Y = initialize(self.P_Y, (n_y, self.n_states))
         for t in range(n_y):
             for i in range(self.n_states):
                 d = (y[t]-self.mu[i])
@@ -326,6 +328,7 @@ class Heart_Rate(Resp):
         self.norm=np.array(norm)
         self.n_states = len(self.norm)
         self.dtype = [np.float64]*2
+        self.P_Y = None
     def __str__(self # Heart_Rate
                 ):
         save = np.get_printoptions
@@ -342,7 +345,7 @@ class Heart_Rate(Resp):
         hr = y[0]
         context = y[1]
         n_y = len(hr)
-        self.P_Y = initialize(self.P_Y, (n_y, n_states))
+        self.P_Y = initialize(self.P_Y, (n_y, self.n_states))
         d =  hr - np.inner(self.A,context)
         for i in range(self.n_states):
             z = np.minimum(d[i]*d[i]/(2*self.Var[i]),300.0)

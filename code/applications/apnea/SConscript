@@ -8,6 +8,8 @@ here = lambda x: join(os.path.abspath(os.path.dirname(this_file)), x)
 root = lambda x: join(GetLaunchDir(), x)
 r_times = root(DDA('r_times'))
 lp_hr = root(DDA('low_pass_heart_rate'))
+respiration = root(DDA('respiration'))
+expert = root(RDA('summary_of_training'))
 
 records_list = os.listdir(r_times)
 records = lambda path: [join(root(path), x) for x in records_list]
@@ -17,6 +19,11 @@ lp_hr_records = records(DDA('low_pass_heart_rate'))
 records_string = ''
 for x in records_list:
     records_string += '%s '%x
+a_records_string = ''
+for x in records_list:
+    if x.startswith('a'):
+        a_records_string += '%s '%x
+    
 env = Environment()
 env.Command(
     lp_hr_records,
@@ -35,13 +42,39 @@ env.Command(
     )
 initial_models = tuple(root(DDA(x)) for x in
                   ('init_A2', 'mod_C1', 'init_H', 'init_M', 'init_L'))
-args = (here('mod_init.py'), root(DDA('low_pass_heart_rate')),
-        root(DDA('respiration')), root(RDA('summary_of_training')),)
+args = (here('mod_init.py'), lp_hr, respiration, expert)
 env.Command(
     initial_models,
     args,
     PYTHON + (len(args)*' %s ')%args + root(DDA(''))
     )
+env.Command(
+    root(DDA('mod_H')),
+    root(DDA('init_H')),
+    PYTHON + ('%s --hr_dir=%s --resp_dir=%s --expert=%s --iterations=20 ' +
+     '%s %s a06 b01 a11 a10 a17 a18 a05 b03 a16 a20 a09 a14 a07 a19 b02 a02 a08 a13 a03 a01 a04 a12 a15')%(here('ApTrain.py'), lp_hr, respiration, expert,
+                            root(DDA('init_H')), root(DDA('mod_H'))))
+env.Command(
+    root(DDA('mod_M')),
+    root(DDA('init_M')),
+    PYTHON + ('%s --hr_dir=%s --resp_dir=%s --expert=%s --iterations=20 ' +
+     '%s %s c07 c08 b04 a06 b01 a11')%(here('ApTrain.py'), lp_hr, respiration, expert,
+                            root(DDA('init_M')), root(DDA('mod_M'))))
+env.Command(
+    root(DDA('mod_L')),
+    root(DDA('init_L')),
+    PYTHON + ('%s --hr_dir=%s --resp_dir=%s --expert=%s --iterations=20 ' +
+     '%s %s c04 c09 c03 c10 c02 c06 c05 c01 c07 c08 b04')%(here('ApTrain.py'), lp_hr, respiration, expert,
+                            root(DDA('init_L')), root(DDA('mod_L'))))
+env.Command(
+    root(DDA('mod_A2')),
+    root(DDA('init_A2')),
+    PYTHON + ('%s --hr_dir=%s --resp_dir=%s --iterations=20 %s %s %s'%(
+        here('ApTrain.py'), lp_hr, respiration,
+        root(DDA('init_A2')),  # Initial model
+        root(DDA('mod_A2')),   # Trained model
+        a_records_string       # List of records to train on
+    ))) # FixMe: This is not monotonic
 
 #Local Variables:
 #mode:python

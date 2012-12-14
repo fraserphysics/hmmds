@@ -347,12 +347,13 @@ class Class_y(Discrete_Observations):
         P_Y : array, floats
 
         """
-        c, y = cy
-        n_y = len(y)
+        c = cy[0]
+        y = cy[1:]
+        n_y = len(c)
         n_class, n_states = self.c2s.shape
         self.g = initialize(self.g,(n_y, n_states),np.bool)
         self.g[:,:] = self.c2s[c,:]
-        self.P_Y = self.y_mod.calc((y,)) * self.g
+        self.P_Y = self.y_mod.calc(y) * self.g
         return self.P_Y
     def reestimate(self,  # Class_y instance
                    w, cy):
