@@ -15,7 +15,7 @@ This script writes the following five models to "Model_Dir"
 
 init_A2:        Two state, no class, AR=4.
 
-mod_C1:         One state, no class, AR-4.  Make with one pass in this script
+mod_C1:         One state, no class, AR=4.  Make with one pass in this script
 
 init_H:         Two class, topology in Fig 6.9a. Resp and AR=2
 

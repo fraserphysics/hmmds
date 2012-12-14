@@ -136,7 +136,7 @@ def read_lphr(path, AR):
         context[t, :] = raw[0]  # No real data before t=0.  Is this OK?
         context[t, 0:min(AR+1,t+1)] = raw[:t+1][::-1][0:min(AR+1,t+1)]
         hr[t] = raw[t]
-    for t in range(AR+2,10):
+    for t in range(AR+2, n_y):
         context[t,1:] = raw[t-1:t-AR-1:-1]
         hr[t] = raw[t]
     raw.sort()
@@ -260,7 +260,7 @@ class Resp(Discrete_Observations):
         rv = 'Model %s instance\n'%self.__class__
         for i in range(self.n_states):
             rv += 'For state %d:\n'%i
-            rv += ' Icov = \n%s'%self.Icov[i]
+            rv += ' Icov = \n%s\n'%self.Icov[i]
             rv += ' mu = %s'%self.mu[i]
             rv += ' norm = %f\n'%self.norm[i]
         np.set_printoptions(save)
