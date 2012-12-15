@@ -100,6 +100,24 @@ class HMM:
         self.beta = None
         self.n_y = None
         return # End of __init__()
+    def P_Y_calc(self, y):
+        '''Calculate the observation probabilities.
+
+        Also store result in self and assign self.n_y.
+
+        Parameters
+        ----------
+        y : list
+            List of sequences of observation components.
+
+        Returns
+        -------
+        P_Y : array
+            1-d numpy array of probabilities.
+        '''
+        self.P_Y = self.y_mod.calc(y)
+        self.n_y = len(self.P_Y)
+        return self.P_Y
     def forward(self):
         """
        Recursively calculate state probabilities
@@ -217,8 +235,7 @@ class HMM:
         # Do (n_iter) BaumWelch iterations
         LLL = []
         for it in range(n_iter):
-            self.P_Y = self.y_mod.calc(y)
-            self.n_y = len(self.P_Y)
+            self.P_Y_calc(y)
             LLps = self.forward()/self.n_y # log likelihood per step
             if display:
                 print("it= %d LLps= %7.3f"%(it, LLps))
@@ -276,8 +293,7 @@ class HMM:
 
         """
         if P_Y is None:
-            P_Y = self.y_mod.calc(y)
-        self.n_y = len(P_Y)
+            P_Y = self.P_Y_calc(y)
         pred = np.empty((self.n_y, self.n_states), np.int32) # Best predecessors
         ss = np.ones((self.n_y, 1), np.int32)       # State sequence
         nu = P_Y[0] * self.P_S0
@@ -445,6 +461,7 @@ class HMM:
         import numpy.random
         numpy.random.seed(seed)
         P_Y = numpy.random.random((length, self.n_states))
+        self.n_y = length
         if mask is not None:
             P_Y *= mask
         return self.decode(None, P_Y) # End of state_simulate()
@@ -604,7 +621,7 @@ P_SS =
             # training segment and put the results in the
             # corresponding segement of the the alpha, beta and gamma
             # arrays.
-            P_Y_all = self.y_mod.calc(y_all)
+            P_Y_all = self.P_Y_calc(y_all)
             for seg in range(n_seg):
                 self.n_y = t_seg[seg+1] - t_seg[seg]
                 self.alpha = alpha_all[t_seg[seg]:t_seg[seg+1], :]

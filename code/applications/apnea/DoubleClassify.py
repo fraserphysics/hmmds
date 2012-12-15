@@ -51,7 +51,12 @@ def main(argv=None):
 
     Amod = pickle.load(open(args.Amodel, 'rb'))
     BCmod = pickle.load(open(args.BCmodel, 'rb'))
+    Lmod = pickle.load(open(args.Lmodel, 'rb'))
+    Mmod = pickle.load(open(args.Mmodel, 'rb'))
+    Hmod = pickle.load(open(args.Hmodel, 'rb'))
     data_dict = ApOb.build_data(Amod.y_mod, args) # data [hr, context, resp]
+    # Need h_data because AR order for Hmod is different
+    h_data = ApOb.build_data(Hmod.y_mod, args, use_class=False)
     for record in args.record:
         data = data_dict[record]
         lp = data[0]              # Scalar low pass heart rate time series
@@ -63,37 +68,70 @@ def main(argv=None):
         peaks = []
         for t in range(W,T-W):
             s = lp[t-W:t+W].argmax()
-            if s == 0 and lp[s+t] > 0:
-                peaks.append(lp[s+t])
+            if s == W and lp[t] > 0:
+                peaks.append(lp[t])
         peaks.sort()
         R = peaks[int(.74*len(peaks))]/L1
         # Calculate the log likelihood ratio
-        Amod.y_mod.calc(data)
+        Amod.P_Y_calc(data)
         A = Amod.forward()
-        BCmod.y_mod.calc(data)
-        print('BCmod=%s'%(BCmod,))
+        BCmod.P_Y_calc(data)
         BC = BCmod.forward()
         llr = (A - BC)/T
 
         stat = R + .5*llr          # Was 0.5
         if stat < 2.39:            # Was 2.39
             Name = 'Low'
+            model = Lmod
         elif stat > 2.55:          # Was 2.55
             Name = 'High'
+            model = Hmod
+            data = h_data[record]
         else:
             Name = 'Medium'
-        print('%5s # %-10s stat= %6.3f llr= %6.3f R= %6.3f L1=% 6.3f'%(
-            record, Name, stat, llr, R, L1))
+            model = Mmod
+        print('%3s # %-6s stat= %6.3f llr= %6.3f R= %6.3f'%(
+            record, Name, stat, llr, R),end='')
+        if args.Single:
+            print('')
+            continue
+        Cseq = (model.class_decode(data) - 0.5)*2.0 # +/- 1
+        sam_min = 10  # Samples per minute
+        min_hour = 60
+        sam_hour = 60*sam_min
+        for h in range(0, len(Cseq)//sam_hour+1):
+            print('\n%-2d   '%h, end='')
+            for m in range(0, 60):
+                tot = 0
+                for d in range(sam_min):
+                    t = d + sam_min * m + sam_hour * h
+                    if t >= len(Cseq):
+                        break
+                    tot += Cseq[t] 
+                if t > len(Cseq):
+                    break
+                if tot > 0:
+                    print('A',end='')
+                else:
+                    print('N',end='')
+        print('\n',end='')
 
     return 0
         
 if __name__ == "__main__":
     import os
-    args = [os.path.join('/home/andy/projects/hmmds3/derived_data/apnea',x)
+    dda=lambda x: os.path.join('/home/andy/projects/hmmds3/derived_data/apnea',x)
+    args = ['--Lmodel', dda('mod_L'), '--Mmodel', dda('mod_M'),
+                   '--Hmodel', dda('mod_H')]
+    #args += ['--Single']
+    args += [dda(x)
             for x in ('mod_A2', 'mod_C1', 'low_pass_heart_rate', 'respiration')]
-    args = args + ['a0%d'%x for x in range(1,2)]
-    print('args=%s'%(args,))
-    sys.exit(main(args))
+    args += ['a0%d'%x for x in range(1,10)]
+    args += ['a%d'%x for x in range(10,21)]
+    args+= ['b0%d'%x for x in range(1,5)]
+    args += ['c0%d'%x for x in range(1,10)]
+    args += ['x%d'%x for x in range(10,32)]
+    sys.exit(main())
 #Local Variables:
 #mode:python
 #End:

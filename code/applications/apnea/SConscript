@@ -74,7 +74,20 @@ env.Command(
         root(DDA('init_A2')),  # Initial model
         root(DDA('mod_A2')),   # Trained model
         a_records_string       # List of records to train on
-    ))) # FixMe: This is not monotonic
+    )))
+com_str = PYTHON + here('DoubleClassify.py')
+com_str += ' --Lmodel=%s '%root(DDA('mod_L')) + '--Mmodel=%s '%root(DDA('mod_M'))
+com_str += ' --Hmodel=%s --Single'%root(DDA('mod_H'))
+com_str +=  ' %s %s %s %s '%(root(DDA('mod_A2')), root(DDA('mod_C1')),
+                             root(DDA('low_pass_heart_rate')), root(DDA('respiration')))
+#com_str +=  (4*' %s ')%(DDA(x) for x in
+#             ('mod_A2', 'mod_C1', 'low_pass_heart_rate', 'respiration'))
+env.Command(
+    root(DDA('pass1_report')),
+    list([root(DDA(x))
+          for x in ('mod_L', 'mod_M', 'mod_H', 'mod_A2', 'mod_C1')]),
+    com_str + records_string + '|tee %s'%root(DDA('pass1_report'))
+    )
 
 #Local Variables:
 #mode:python

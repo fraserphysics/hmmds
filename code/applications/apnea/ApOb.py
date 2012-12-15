@@ -128,7 +128,7 @@ def read_lphr(path, AR):
         context[t, 0] = 1, and context[t, s] = hr[t-s] for s in [1,AR]
 
     """
-    raw = read_data(path)[1]
+    raw = read_data(path)[2]
     n_y = len(raw)
     hr = np.empty(n_y)
     context = np.empty((n_y,AR+1))
@@ -191,7 +191,7 @@ def read_records(
             rv[name][i] = rv[name][i][:L]
     return rv
 
-def build_data(y_mod, args):
+def build_data(y_mod, args, use_class=True):
     '''Make dict of observation lists.
 
     args.expert   Path to file of expert markings
@@ -207,9 +207,14 @@ def build_data(y_mod, args):
     '''
     y_class = y_mod.__class__
     if y_class is Class_y:
-        readers = [read_expert]
-        paths = [args.expert]
-        args_ = [None]
+        if use_class:
+            readers = [read_expert]
+            paths = [args.expert]
+            args_ = [None]
+        else:
+            readers = []
+            paths = []
+            args_ = []
         y_mod = y_mod.y_mod
         y_class = y_mod.__class__
     else:
