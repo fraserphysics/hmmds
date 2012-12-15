@@ -48,6 +48,12 @@ env.Command(
     LDA_src,
     PYTHON2 + ((len(LDA_figs)+len(LDA_src))*' %s')%(LDA_src + LDA_figs)
     )
+env.Command(
+    fig('pass1.pdf'),
+    [here('class1.py'), root(DDA('pass1_report'))],
+    PYTHON2 + ' %s %s %s'%(here('class1.py'), root(DDA('pass1_report')),
+                           fig('pass1.pdf')) 
+    )
 
 #Local Variables:
 #mode:python
