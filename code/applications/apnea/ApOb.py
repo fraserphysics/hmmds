@@ -412,6 +412,34 @@ and Respiration component:
         self.resp_mod.reestimate(w,(resp,))
         return
 
+
+class fudge_pow(Both):
+    '''Variant of class "Both" with parameters fudge and pow.
+
+    "fudge" multiplies all probabilities for normal states, and the
+    heart rate component of the likelihood is raised to power "pow"
+
+    '''
+    def __init__(self, both, fudge, pow_, s2c):
+        self.hr_mod = both.hr_mod
+        self.resp_mod = both.resp_mod
+        self.n_states = both.hr_mod.n_states
+        self.dtype = both.dtype
+        self.P_Y = both.P_Y
+        self.fudge = fudge
+        self.pow = pow_
+        self.s2c = s2c
+    def calc(self,  # fudge_pow instance
+             y
+             ):
+        hr, context, resp = y
+        self.P_Y = self.hr_mod.calc((hr, context))**self.pow
+        self.P_Y *= self.resp_mod.calc((resp,))
+        for s in range(self.n_states):
+            if self.s2c[s] == 0:
+                self.P_Y[:, s] *= self.fudge
+        return self.P_Y
+
 #Local Variables:
 #mode:python
 #End:

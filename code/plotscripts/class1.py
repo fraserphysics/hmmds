@@ -58,13 +58,13 @@ def main(argv=None):
     sym = {'a':'rs', 'b':'go', 'c':'bD', 'x':'mx'}
     for key in ('a', 'b', 'c', 'x'):
             ax.plot(data[key]['llr'], data[key]['R'], sym[key], label=key)
-    x = np.array([-1.9,7.8])
-    y = 2.39-.5*x
-    ax.plot(x, y, 'm-', label=r'$R+\frac{llr}{2}=2.39$')
-    y = 2.55-.5*x
-    ax.plot(x, y, 'k-', label=r'$R+\frac{llr}{2}=2.55$')
+    x = np.array([-2.0, 3.0])
+    y = 1.8-.5*x
+    ax.plot(x, y, 'm-', label=r'$R+\frac{llr}{2}=1.8$')
+    y = 2.6-.5*x
+    ax.plot(x, y, 'k-', label=r'$R+\frac{llr}{2}=2.6$')
     ax.legend(loc='lower right')
-    fig.savefig(fig_name) #Make sure to save it as a .pdf
+    fig.savefig(fig_name)
     return 0
 
 if __name__ == "__main__":

@@ -4,13 +4,7 @@ For each of the records, first estimate a classification (apnea,
 borderline, or normal) for the entire record, then classify (normal or
 apnea) each minute in the record.
 
-EG: python DoubleClassify.py --Amodel=data/mod_A --BCmodel=data/mod_C
-           --Lmodel=data/mod_L 2.2 --Mmodel=data/mod_M 1.15
-           --Hmodel=data/mod_H 1.05 --Annotations=data/summary_of_training
-           --Dpath=data/Apnea --Results=data/reportTrain data/scoreTrain
-           x01 x02 x03 x04 x05 x06 ...  x34 x35
-
-Copyright (c) 2005, 2008 Andrew Fraser
+Copyright (c) 2005, 2008, 2012 Andrew Fraser
 This file is part of HMM_DS_Code.
 
 
@@ -23,8 +17,6 @@ import sys
 def main(argv=None):
     
     import argparse
-    #import scipy.signal
-
     if argv is None:                    # Usual case
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(
@@ -44,7 +36,6 @@ def main(argv=None):
     parser.add_argument('--Hmodel', help='For records that have high score')
     parser.add_argument('--expert', type=str,
                        help='Path to file of expert annotations')
-    parser.add_argument('--Results',  nargs=2, help="I don't know about this")
     parser.add_argument('record', type=str, nargs='*',
                        help='Record names, eg, a01 a02 ... c09')
     args = parser.parse_args(argv)
@@ -80,10 +71,10 @@ def main(argv=None):
         llr = (A - BC)/T
 
         stat = R + .5*llr          # Was 0.5
-        if stat < 2.39:            # Was 2.39
+        if stat < 1.8:             # Was 2.39
             Name = 'Low'
             model = Lmod
-        elif stat > 2.55:          # Was 2.55
+        elif stat > 2.6:           # Was 2.55
             Name = 'High'
             model = Hmod
             data = h_data[record]
@@ -119,19 +110,8 @@ def main(argv=None):
     return 0
         
 if __name__ == "__main__":
-    import os
-    dda=lambda x: os.path.join('/home/andy/projects/hmmds3/derived_data/apnea',x)
-    args = ['--Lmodel', dda('mod_L'), '--Mmodel', dda('mod_M'),
-                   '--Hmodel', dda('mod_H')]
-    #args += ['--Single']
-    args += [dda(x)
-            for x in ('mod_A2', 'mod_C1', 'low_pass_heart_rate', 'respiration')]
-    args += ['a0%d'%x for x in range(1,10)]
-    args += ['a%d'%x for x in range(10,21)]
-    args+= ['b0%d'%x for x in range(1,5)]
-    args += ['c0%d'%x for x in range(1,10)]
-    args += ['x%d'%x for x in range(10,32)]
     sys.exit(main())
+
 #Local Variables:
 #mode:python
 #End:

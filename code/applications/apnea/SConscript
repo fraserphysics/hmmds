@@ -58,7 +58,7 @@ env.Command(
     root(DDA('mod_M')),
     root(DDA('init_M')),
     PYTHON + ('%s --hr_dir=%s --resp_dir=%s --expert=%s --iterations=20 ' +
-     '%s %s c07 c08 b04 a06 b01 a11')%(here('ApTrain.py'), lp_hr, respiration, expert,
+     '%s %s c07 c08 b04 a06 b01 ')%(here('ApTrain.py'), lp_hr, respiration, expert,
                             root(DDA('init_M')), root(DDA('mod_M'))))
 env.Command(
     root(DDA('mod_L')),
