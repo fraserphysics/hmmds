@@ -59,10 +59,12 @@ def main(argv=None):
     for key in ('a', 'b', 'c', 'x'):
             ax.plot(data[key]['llr'], data[key]['R'], sym[key], label=key)
     x = np.array([-2.0, 3.0])
-    y = 1.8-.5*x
-    ax.plot(x, y, 'm-', label=r'$R+\frac{llr}{2}=1.8$')
-    y = 2.6-.5*x
-    ax.plot(x, y, 'k-', label=r'$R+\frac{llr}{2}=2.6$')
+    low_line = 1.82
+    high_line = 2.6
+    y = low_line-.5*x
+    ax.plot(x, y, 'm-', label=r'$R+\frac{llr}{2}=%4.2f$'%low_line)
+    y = high_line-.5*x
+    ax.plot(x, y, 'k-', label=r'$R+\frac{llr}{2}=%4.2f$'%high_line)
     ax.legend(loc='lower right')
     fig.savefig(fig_name)
     return 0

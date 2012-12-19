@@ -71,7 +71,7 @@ def main(argv=None):
         llr = (A - BC)/T
 
         stat = R + .5*llr          # Was 0.5
-        if stat < 1.8:             # Was 2.39
+        if stat < 1.85:            # Was 2.39
             Name = 'Low'
             model = Lmod
         elif stat > 2.6:           # Was 2.55
