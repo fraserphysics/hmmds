@@ -9,9 +9,6 @@ This file is part of HMM_DS_Code.
 
 
 """
-import numpy as np
-import ApOb
-import pickle
 import sys
 
 def main(argv=None):
@@ -29,6 +26,10 @@ def main(argv=None):
                        help='Path to low pass heart rate data files')
     parser.add_argument('resp_dir', type=str,
                        help='Path to respiration data files')
+    parser.add_argument('low_line', type=float,
+                       help='Boundary between Low and Medium on first pass')
+    parser.add_argument('high_line', type=float,
+                       help='Boundary between Medium and High on first pass')
     parser.add_argument('--Single', action='store_true',
               help='Only do the first pass classification')
     parser.add_argument('--Lmodel', help='For records that have low score')
@@ -40,14 +41,21 @@ def main(argv=None):
                        help='Record names, eg, a01 a02 ... c09')
     args = parser.parse_args(argv)
 
+    import numpy as np
+    import ApOb
+    import pickle
+
     Amod = pickle.load(open(args.Amodel, 'rb'))
     BCmod = pickle.load(open(args.BCmodel, 'rb'))
-    Lmod = pickle.load(open(args.Lmodel, 'rb'))
-    Mmod = pickle.load(open(args.Mmodel, 'rb'))
-    Hmod = pickle.load(open(args.Hmodel, 'rb'))
+    if not args.Single:
+        load = lambda x: pickle.load(open(x, 'rb'))
+        Lmod = load(args.Lmodel)
+        Mmod = load(args.Mmodel)
+        Hmod = load(args.Hmodel)
     data_dict = ApOb.build_data(Amod.y_mod, args) # data [hr, context, resp]
     # Need h_data because AR order for Hmod is different
-    h_data = ApOb.build_data(Hmod.y_mod, args, use_class=False)
+    if not args.Single:
+        h_data = ApOb.build_data(Hmod.y_mod, args, use_class=False)
     for record in args.record:
         data = data_dict[record]
         lp = data[0]              # Scalar low pass heart rate time series
@@ -70,17 +78,20 @@ def main(argv=None):
         BC = BCmod.forward()
         llr = (A - BC)/T
 
-        stat = R + .5*llr          # Was 0.5
-        if stat < 1.85:            # Was 2.39
+        stat = R + .5*llr           # Was 0.5
+        if stat < args.low_line:    # Was 2.39
             Name = 'Low'
-            model = Lmod
-        elif stat > 2.6:           # Was 2.55
+            if not args.Single:
+                model = Lmod
+        elif stat > args.high_line: # Was 2.55
             Name = 'High'
-            model = Hmod
-            data = h_data[record]
+            if not args.Single:
+                model = Hmod
+                data = h_data[record]
         else:
             Name = 'Medium'
-            model = Mmod
+            if not args.Single:
+                model = Mmod
         print('%3s # %-6s stat= %6.3f llr= %6.3f R= %6.3f'%(
             record, Name, stat, llr, R),end='')
         if args.Single:

@@ -1,13 +1,12 @@
 """ DoubleClassify.py command_options list_of_data_files
 
-EG: python DoubleClassify.py --Model=mod --Annotations=reference
---Dpath=data/Apnea --Power 0.5 2.65 0.1 --Fudge .8 1.61 .05 a06 b01 ...
-
 Copyright (c) 2005, 2008, 2012 Andrew Fraser
 This file is part of HMM_DS_Code you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
 Foundation; either version 3 of the License, or (at your option) any later
 version.
+
+ToDo: Get records from arg/s that specify pass1_report and High/Medium/Low
 """
 
 import sys
@@ -54,11 +53,7 @@ def main(argv=None):
     return 0
         
 if __name__ == "__main__":
-    argv = [
-        'mod_H', 'summary_of_training', 'low_pass_heart_rate',
-        'respiration', '3.5', '9.05', '1.0', '0.4', '1.01', '.2'
-    ] + list(['a%02d'%x for x in range(1,21)])
-    sys.exit(main(argv))
+    sys.exit(main())
 
 #Local Variables:
 #mode:python

@@ -2,6 +2,9 @@ from os.path import join
 import os
 Import('PYTHON DDA RDA')
 
+low_line = '1.82'
+high_line = '2.60'
+
 this_file = (lambda x:x).func_code.co_filename
 here = lambda x: join(os.path.abspath(os.path.dirname(this_file)), x)
 
@@ -75,18 +78,28 @@ env.Command(
         root(DDA('mod_A2')),   # Trained model
         a_records_string       # List of records to train on
     )))
-com_str = PYTHON + here('DoubleClassify.py')
-com_str += ' --Lmodel=%s '%root(DDA('mod_L')) + '--Mmodel=%s '%root(DDA('mod_M'))
-com_str += ' --Hmodel=%s --Single'%root(DDA('mod_H'))
-com_str +=  ' %s %s %s %s '%(root(DDA('mod_A2')), root(DDA('mod_C1')),
-                             root(DDA('low_pass_heart_rate')), root(DDA('respiration')))
-#com_str +=  (4*' %s ')%(DDA(x) for x in
-#             ('mod_A2', 'mod_C1', 'low_pass_heart_rate', 'respiration'))
+
+# Make pass1_report
+cmd_tuple = (PYTHON, here('DoubleClassify.py'), '--Single',
+             root(DDA('mod_A2')),
+             root(DDA('mod_C1')), lp_hr, respiration, low_line, high_line,
+             records_string, '|tee %s'%root(DDA('pass1_report')))
 env.Command(
     root(DDA('pass1_report')),
-    list([root(DDA(x))
-          for x in ('mod_L', 'mod_M', 'mod_H', 'mod_A2', 'mod_C1')]),
-    com_str + records_string + '|tee %s'%root(DDA('pass1_report'))
+    [here('DoubleClassify.py')]+list(
+        [root(DDA(x)) for x in ('mod_A2', 'mod_C1')]),
+    ('%s '*len(cmd_tuple))%cmd_tuple
+    )
+
+# Do pf survey
+cmd_list = [PYTHON, here('PFsurvey.py'), root(DDA('mod_H')), expert, lp_hr,
+            respiration, '6.0', '8.05', '.5', '0.5', '0.81', '.1'] + \
+            list(['a%02d'%x for x in range(1,21)]) + \
+            ['|tee %s'%root(DDA('pf_H'))]
+env.Command(
+    root(DDA('pf_H')),
+    [here('PFsurvey.py'), root(DDA('mod_H'))],
+    ('%s '*len(cmd_list))%tuple(cmd_list)
     )
 
 #Local Variables:
