@@ -1,4 +1,4 @@
-""" DoubleClassify.py command_options list_of_data_files
+""" PFsurvey.py
 
 Copyright (c) 2005, 2008, 2012 Andrew Fraser
 This file is part of HMM_DS_Code you can redistribute it and/or modify it under
@@ -11,6 +11,22 @@ ToDo: Get records from arg/s that specify pass1_report and High/Medium/Low
 
 import sys
 
+def read_records(report):
+    '''Read the pass_1 report (specified by report[0]) and select record
+    names, eg, "a01", for which the group name, eg, "High" matches
+    report[1] and that have classification data (no "x" files).
+
+    '''
+    records = []
+    for line in open(report[0], 'r'):
+        parts = line.split()
+        if parts[2] != report[1]:
+            continue
+        if parts[0].startswith('x'):
+            continue
+        records.append(parts[0])
+    records.sort() # For easier reading and debugging
+    return records
 def main(argv=None):
     
     import argparse
@@ -29,13 +45,15 @@ def main(argv=None):
                        help='Path to low pass heart rate data files')
     parser.add_argument('resp_dir', type=str,
                        help='Path to respiration data files')
+    parser.add_argument('report', type=str, nargs=2,
+      help='Path to pass1_report and record group: "High", "Medium", or "Low"')
     parser.add_argument('power', type=float, nargs=3,
               help='from, to, step for study.  Suggest 0.5 2.65 0.1')
     parser.add_argument('fudge', type=float, nargs=3,
               help='from, to, step for study.  Suggest 0.8 1.61 .05')
-    parser.add_argument('record', type=str, nargs='*',
-                       help='Record names, eg, a01 a02 ... a20')
     args = parser.parse_args(argv)
+
+    args.record = read_records(args.report)
     model = pickle.load(open(args.model, 'rb'))
     y_mod_0 = model.y_mod.y_mod
     n_seg, segs, data_class = model.y_mod.join(list(ApOb.build_data(
