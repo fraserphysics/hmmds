@@ -98,22 +98,22 @@ cmd_build = lambda mod, group, power, fudge, target: [
     '%4.2f'%power[0], '%4.2f'%power[1], '%4.2f'%power[2],
     '%4.2f'%fudge[0], '%4.2f'%fudge[1], '%4.2f'%fudge[2],
     '|tee %s'%root(DDA(target))]
-# Survey for "High" group.  Choose near 6.8 & 0.65
-cmd_list = cmd_build('mod_H', 'High', (6.6, 7.25, .1), (.62, .675, .01),'pf_H')
+# Survey for "High" group.   6.8 & 0.64 .8124 on watcher
+cmd_list = cmd_build('mod_H', 'High', (6.4, 7.2, .1), (.57, .67, .01),'pf_H')
 env.Command(
     root(DDA('pf_H')),
     [here('PFsurvey.py'), root(DDA('mod_H'))],
     ('%s '*len(cmd_list))%tuple(cmd_list)
     )
-# Survey for "Medium" group.  Want plot to help choose
-cmd_list = cmd_build('mod_M', 'Medium', (.5, 4.6, 1.0), (0.5, 4.6, 1.0), 'pf_M')
+# Survey for "Medium" group.  1.0 & 3.0 .9286 on watcher
+cmd_list = cmd_build('mod_M', 'Medium', (0.0, 3.1, 0.5), (1.5, 6.1, 1.0), 'pf_M')
 env.Command(
     root(DDA('pf_M')),
     [here('PFsurvey.py'), root(DDA('mod_M'))],
     ('%s '*len(cmd_list))%tuple(cmd_list)
     )
-# Survey for "Low" group.  Choose 0.5 & 2.5
-cmd_list = cmd_build('mod_L', 'Low', (0, 1.6, 0.5), (2.0, 3.6, 0.5), 'pf_L')
+# Survey for "Low" group.  Choose 0.5 & 2.5. OK on watcher and orr.
+cmd_list = cmd_build('mod_L', 'Low', (0, 2.6, 0.5), (1.5, 3.6, 0.5), 'pf_L')
 env.Command(
     root(DDA('pf_L')),
     [here('PFsurvey.py'), root(DDA('mod_L'))],
