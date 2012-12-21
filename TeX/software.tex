@@ -1684,12 +1684,9 @@ included the data in the source package.  If you want to build the
 data, simply remove data/PFsurveyH, make data/PFsurveyH and copy it to
 data/PFsurvey.
 \begin{figure}
-  \centering{\plotsize%
-    \def\pow{Pow}%
-    \def\fudge{Fudge}%
-    \def\x#1{\mbox{\hbox{$#1$}}}%
-    \def\y#1{\mbox{\lower2.0ex\hbox{$#1$}}}%
-%    \input{figs/PFsurvey.pdf_t}
+  \centering{
+    \resizebox{1.0\textwidth}{!}{
+      \includegraphics[trim = 40mm 10mm 10mm 10mm ]{pf_H.pdf}}
   }
   \caption[The response of classification performance to changes in \emph{Pow} and \emph{Fudge}]%
   {The response of classification performance to changes in \emph{Pow}

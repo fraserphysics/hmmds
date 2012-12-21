@@ -98,15 +98,15 @@ cmd_build = lambda mod, group, power, fudge, target: [
     '%4.2f'%power[0], '%4.2f'%power[1], '%4.2f'%power[2],
     '%4.2f'%fudge[0], '%4.2f'%fudge[1], '%4.2f'%fudge[2],
     '|tee %s'%root(DDA(target))]
-# Survey for "High" group.   6.8 & 0.64 .8124 on watcher
-cmd_list = cmd_build('mod_H', 'High', (6.4, 7.2, .1), (.57, .67, .01),'pf_H')
+# Survey for "High" group.  6.8&0.64 .8124 on watcher, 6.0&0.7 .8129 on orr
+cmd_list = cmd_build('mod_H', 'High', (1.0, 8.1, 1), (.5, 1.01, .1),'pf_H')
 env.Command(
     root(DDA('pf_H')),
     [here('PFsurvey.py'), root(DDA('mod_H'))],
     ('%s '*len(cmd_list))%tuple(cmd_list)
     )
-# Survey for "Medium" group.  1.0 & 2.5 .9292 on watcher
-cmd_list = cmd_build('mod_M', 'Medium', (0.0, 3.1, 0.5), (1.5, 5.9, 10.5), 'pf_M')
+# Survey for "Medium" group.  1.0 & 2.5 .9292 on watcher, 1.5 & 1.6 .9095 orr
+cmd_list = cmd_build('mod_M', 'Medium', (0.0, 3.1, 0.5), (1.0, 2.3, .1), 'pf_M')
 env.Command(
     root(DDA('pf_M')),
     [here('PFsurvey.py'), root(DDA('mod_M'))],

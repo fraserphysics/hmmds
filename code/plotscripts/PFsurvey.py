@@ -2,7 +2,7 @@
 
 python PFsurvey.py PFdata PFplot
 """
-Debug = True
+Debug = False
 import numpy as np
 def read_data(data_file):
     x_dict = {}
@@ -67,17 +67,17 @@ def main(argv=None):
         params['text.usetex'] = False
     mpl.rcParams.update(params)
 
-    fig = plt.figure(figsize=(8, 4))
+    fig = plt.figure(figsize=(9, 6))
     #ax = fig.gca(projection='3d')
-    ax = fig.add_subplot(1, 1, 1, projection='3d', elev=30, azim=-115)
+    ax = fig.add_subplot(1, 1, 1, projection='3d', azim=-60, elev=30)
     ax.set_xlabel('Power')
-    #ax.set_xlim(-2, 9)
     ax.set_ylabel('Fudge')
+    ax.set_zlabel('Frac. Right')
     #ax.set_ylim(1.4, 3.2)
     xs, ys, zs = read_data(data_file)
     X, Y = np.meshgrid(xs, ys)
-    surf = ax.plot_surface(X, Y, zs, rstride=1, cstride=1,
-                   cmap=mpl.cm.jet, linewidth=0, antialiased=False)
+    surf = ax.plot_surface(X, Y, zs, rstride=1, cstride=1, cmap=mpl.cm.hsv,
+                           linewidth=1)
     #ax.set_zlim(.85, 0.9)
     if Debug:
         plt.show()
@@ -87,7 +87,7 @@ def main(argv=None):
 
 if __name__ == "__main__":
     args = ['pf_M', 'pf_M.pdf']
-    sys.exit(main(args))
+    sys.exit(main())
 # Local Variables:
 # mode: python
 # End:

@@ -54,7 +54,13 @@ env.Command(
     PYTHON2 + ' %s %s %s'%(here('class1.py'), root(DDA('pass1_report')),
                            fig('pass1.pdf')) 
     )
-
+cmd_list = [PYTHON2, here('PFsurvey.py'), root(DDA('pf_H')), fig('pf_H.pdf')]
+env.Command(
+    fig('pf_H.pdf'),
+    [here('PFsurvey.py'), root(DDA('pf_H'))],
+    ('%s '*len(cmd_list))%tuple(cmd_list)
+    )
+ 
 #Local Variables:
 #mode:python
 #End:
