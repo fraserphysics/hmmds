@@ -105,8 +105,8 @@ env.Command(
     [here('PFsurvey.py'), root(DDA('mod_H'))],
     ('%s '*len(cmd_list))%tuple(cmd_list)
     )
-# Survey for "Medium" group.  1.0 & 3.0 .9286 on watcher
-cmd_list = cmd_build('mod_M', 'Medium', (0.0, 3.1, 0.5), (1.5, 6.1, 1.0), 'pf_M')
+# Survey for "Medium" group.  1.0 & 2.5 .9292 on watcher
+cmd_list = cmd_build('mod_M', 'Medium', (0.0, 3.1, 0.5), (1.5, 5.9, 10.5), 'pf_M')
 env.Command(
     root(DDA('pf_M')),
     [here('PFsurvey.py'), root(DDA('mod_M'))],
