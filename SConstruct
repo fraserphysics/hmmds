@@ -1,4 +1,4 @@
-'''SConstruct: Derived from eos project
+''' Master file for scons, a software build tool.
 
 Need the following to work with scipy
 >export SCONS_HORRIBLE_REGRESSION_TEST_HACK=yes
@@ -30,7 +30,7 @@ def build_pdf_t(target, source, env):
     x_fig = str(source[0])
     x_pdf = str(target[0])
     x_pdf_t = str(target[1])
-    subprocess.call(['fig2dev','-L','pdftex',x_fig,x_pdf])
+    subprocess.call(['fig2dev', '-L', 'pdftex', x_fig, x_pdf])
     subprocess.call(['fig2dev', '-L', 'pdftex_t', '-p', x_pdf, x_fig, x_pdf_t])
     return None
 
@@ -39,28 +39,37 @@ def build_pdf_t(target, source, env):
 "source", are lists of SCons Nodes.'''
 fig2pdf = Builder(
     action=build_pdf_t, src_suffix='.fig', suffix='.pdf',
-    emitter=lambda target,source,env:([target[0],str(target[0])+'_t'],source))
+    emitter=lambda target, source, env: ([target[0], str(target[0])+'_t'],
+                                         source))
 
-PYTHON = 'env '+\
-    ' PYTHONPATH=code/applications/synthetic:code/hmm '+\
-    ' SCONS_HORRIBLE_REGRESSION_TEST_HACK=no '+\
-    ' python3 '
+CH  = lambda file: join(GetLaunchDir(),'code/hmm/',file)
+CAS = lambda file: join(GetLaunchDir(),'code/applications/synthetic/', file)
+CAA = lambda file: join(GetLaunchDir(),'code/applications/apnea/', file)
+CPS = lambda file: join(GetLaunchDir(),'code/plotscripts/', file)
+DDS = lambda file: join(GetLaunchDir(),'derived_data/synthetic/', file)
+DDA = lambda file: join(GetLaunchDir(),'derived_data/apnea/', file)
+RDA = lambda file: join(GetLaunchDir(),'raw_data/apnea/', file)
+FIG = lambda file: join(GetLaunchDir(),'figs', file)
+
+PYTHON = 'env PYTHONPATH=code/applications/synthetic:code/hmm python3 '
+PYTHON = 'env PYTHONPATH=%s:%s python3 '%(CAS(''),CH(''))
 #Need python2 for plotting because matplotlib for python3 doesn't exist
-PYTHON2 = ('env '+\
-    ' PYTHONPATH=%s '+\
-    ' SCONS_HORRIBLE_REGRESSION_TEST_HACK=no '+\
-    ' python2.7 ')%('code/applications/apnea',)
-CH  = lambda file: join('code/hmm/',file)
-CAS = lambda file: join('code/applications/synthetic/', file)
-CAA = lambda file: join('code/applications/apnea/', file)
-CPS = lambda file: join('code/plotscripts/', file)
-DDS = lambda file: join('derived_data/synthetic/', file)
-DDA = lambda file: join('derived_data/apnea/', file)
-RDA = lambda file: join('raw_data/apnea/', file)
+PYTHON2 = 'env PYTHONPATH=%s python2.7 '%(CAA(''))
 
-SConscript('SConscript', exports='PYTHON PYTHON2 CH CAS CPS DDS')
-SConscript('code/applications/apnea/SConscript', exports='PYTHON DDA RDA')
-SConscript('code/plotscripts/SConscript', exports='PYTHON2 DDA RDA')
+SConscript(CAS('SConscript'), exports='PYTHON CH DDS')
+SConscript(CAA('SConscript'), exports='PYTHON DDA RDA')
+SConscript(CPS('SConscript'), exports='PYTHON2 DDA DDS RDA FIG')
+
+swe=Environment()
+swe.PDF('TeX/software.tex')
+swe['TEXINPUTS'] = ['figs','TeX']
+
+env=Environment()
+env.Command(
+    CH('C.cpython-32mu.so'),
+    (CH('Scalar.py'), CH('C.pyx')),
+    'cd %s; python3 setup.py build_ext --inplace'%CH('')
+    )
 
 #---------------
 # Local Variables:

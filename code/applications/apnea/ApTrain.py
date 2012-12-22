@@ -50,10 +50,16 @@ def main(argv=None):
                        help='File from which to read initial model')
     parser.add_argument('mod_out', type=str,
                        help='Write trained model to this file')
-    parser.add_argument('record', type=str, nargs='*',
-                       help='Record names, eg, a01 a02 ... c09')
+    parser.add_argument(
+        '--pass1', type=str, nargs=2,
+        help='Path to pass1_report and group, eg, pass1_report Medium')
+    parser.add_argument('--record', type=str, nargs='*',
+                       help='Record names, eg, a01 a02 ... a20')
     args = parser.parse_args(argv)
 
+    if args.pass1:
+        import PFsurvey
+        args.record = PFsurvey.read_records(args.pass1)
     import pickle
     import ApOb
     import Scalar

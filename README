@@ -20,23 +20,16 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-1. Write code to analyze apnea data to make sure that you have basic
-    hmm class with enough flexibility to handle: Multiple sets of
-    training data; Custom output models; Decoding class sequences.
-
-    ApTrain.py -> mod_A2
-    code/hmm/DoubleClassify.py
-    code/plotscripts/class1.py
-    code/hmm/PFsurvey.py
+1. Understand gamma=0 bug
 
 2. Write variant module that uses Gaussian output model.  Goal:
    Illustrate ability to generalize base class
 
 3. Make two distribution targets: HMMpy and HMM_DS
 
-4. Move to google repository
+4. Do LANL release procedure
 
--2. Move code/plotscripts/StatePic.py to code/applications/synthetic
+5. Move to google repository
 
 -1. Get 2 axes rather than box for matplotlib plots and kill boxes on legends
 
