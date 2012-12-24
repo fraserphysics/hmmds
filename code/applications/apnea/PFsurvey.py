@@ -1,13 +1,13 @@
 """ PFsurvey.py
 
-Copyright (c) 2005, 2008, 2012 Andrew Fraser
 This file is part of HMM_DS_Code you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
 Foundation; either version 3 of the License, or (at your option) any later
 version.
 
-ToDo: Get records from arg/s that specify pass1_report and High/Medium/Low
 """
+
+# Copyright (c) 2005, 2008, 2012 Andrew Fraser
 
 import sys
 
@@ -51,6 +51,8 @@ def main(argv=None):
               help='from, to, step for study.  Suggest 0.5 2.65 0.1')
     parser.add_argument('fudge', type=float, nargs=3,
               help='from, to, step for study.  Suggest 0.8 1.61 .05')
+    parser.add_argument('out', type=str,
+                        help='Location to put result')
     args = parser.parse_args(argv)
 
     args.record = read_records(args.report)
@@ -62,12 +64,13 @@ def main(argv=None):
     data = data_class[1:]
     # data [class, hr, context, resp]
     s2c = model.y_mod.s2c
+    out = open(args.out, 'w')
     for power in np.arange(*args.power):
         for fudge in np.arange(*args.fudge):
             model.y_mod.y_mod = ApOb.fudge_pow(y_mod_0, fudge, power, s2c)
             errors = model.class_decode(data) ^ data_class[0]
             frac_right = 1.0 - errors.sum()/n_y
-            print('%5.3f  %5.3f  %6.4f'%(power,fudge,frac_right))
+            print('%5.3f  %5.3f  %6.4f'%(power,fudge,frac_right), file=out)
     return 0
         
 if __name__ == "__main__":

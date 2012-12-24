@@ -1,36 +1,27 @@
 '''SConscript
 '''
 
-import os.path
-Import('PYTHON CH DDS')
-
-this_file = (lambda x:x).func_code.co_filename
-here = lambda x: os.path.join(os.path.abspath(os.path.dirname(this_file)), x)
+Import('CH DDS KEY BUILD')
 
 env=Environment()
+env.args = {}
 
-cmd = lambda x: ('%s '*len(x))%x
+target = (DDS('lorenz.xyz'), DDS('lorenz.4'))
+source = ('lorenz.py',)
+env.args[KEY(target)] = ('--L', '20000', '--levels', '4', '--quantfile',
+                        DDS('lorenz.4'), '--xyzfile', DDS('lorenz.xyz'))
+env.Command(target, source, BUILD)
 
-cmd_tuple = (PYTHON, here('lorenz.py'), '--L=20000', '--levels=4',
-     '--quantfile=%s'%DDS('lorenz.4'), '--xyzfile=%s'%DDS('lorenz.xyz'))
-env.Command(
-    (DDS('lorenz.xyz'), DDS('lorenz.4')),
-    here('lorenz.py'),
-    cmd(cmd_tuple)
-    )
+target = (DDS('m12s.4y'),)
+source = ('MakeModel.py', CH('C.cpython-32mu.so'), CH('Scalar.py'),
+          CH('base.py'), DDS('lorenz.4'))
+env.args[KEY(target)]=('500', DDS(''), 'lorenz.4', 'm12s.4y')
+env.Command(target, source, BUILD )
 
-env.Command(
-    DDS('m12s.4y'),
-    (CH('C.cpython-32mu.so'), CH('Scalar.py'), CH('base.py'),
-     here('MakeModel.py'), DDS('lorenz.4')),
-    cmd((PYTHON, here('MakeModel.py'), '500', DDS(''), 'lorenz.4', 'm12s.4y'))
-    )
-
-env.Command(
-    [DDS('states')]+[DDS('state%s'%x) for x in range(12)],
-    (here('StatePic.py'), DDS('lorenz.4'), DDS('lorenz.xyz'), DDS('m12s.4y')),
-    cmd((PYTHON, here('StatePic.py'), DDS(''), 'lorenz.4 lorenz.xyz m12s.4y')) 
-    )
+target = [DDS('states')]+[DDS('state%s'%x) for x in range(12)]
+source = ('StatePic.py', DDS('lorenz.4'), DDS('lorenz.xyz'), DDS('m12s.4y'))
+env.args[KEY(target)] = (DDS(''), 'lorenz.4', 'lorenz.xyz','m12s.4y')
+env.Command(target, source, BUILD)
 
 #---------------
 # Local Variables:

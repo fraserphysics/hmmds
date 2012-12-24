@@ -20,16 +20,14 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-1. Understand gamma=0 bug
-
-2. Write variant module that uses Gaussian output model.  Goal:
+1. Write variant module that uses Gaussian output model.  Goal:
    Illustrate ability to generalize base class
 
-3. Make two distribution targets: HMMpy and HMM_DS
+2. Make two distribution targets: HMMpy and HMM_DS
 
-4. Do LANL release procedure
+3. Do LANL release procedure
 
-5. Move to google repository
+4. Move to google repository
 
 -1. Get 2 axes rather than box for matplotlib plots and kill boxes on legends
 

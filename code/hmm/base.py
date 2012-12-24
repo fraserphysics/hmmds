@@ -1,13 +1,13 @@
-""" Scalar.py: Implements basic HMM algorithms.  Default observation
+''' Scalar.py: Implements basic HMM algorithms.  Default observation
 models are defined in the "Scalar" module.
 
-"""
+'''
 # Copyright (c) 2003, 2007, 2008, 2012 Andrew M. Fraser
 import numpy as np
 from Scalar import initialize, Prob, Discrete_Observations, Class_y, make_prob
 
 class HMM:
-    """A Hidden Markov Model implementation.
+    '''A Hidden Markov Model implementation.
 
     Parameters
     ----------
@@ -78,7 +78,7 @@ class HMM:
      [ 0.     0.335  0.665]
      [ 0.     0.726  0.274]
     
-    """
+    '''
     def __init__(
         self,         # HMM instance
         P_S0,         # Initial distribution of states
@@ -88,8 +88,8 @@ class HMM:
         y_class=Discrete_Observations,
         prob=make_prob# Function to make conditional probability matrix
         ):
-        """Builds a new Hidden Markov Model
-        """
+        '''Builds a new Hidden Markov Model
+        '''
         self.n_states = len(P_S0)
         self.P_S0 = np.array(P_S0)
         self.P_S0_ergodic = np.array(P_S0_ergodic)
@@ -119,10 +119,10 @@ class HMM:
         self.n_y = len(self.P_Y)
         return self.P_Y
     def forward(self):
-        """
-       Recursively calculate state probabilities
+        '''
+        Recursively calculate state probabilities
 
-       Requires that observation probabilities have already been calculated
+        Requires that observation probabilities have already been calculated
 
         Parameters
         ----------
@@ -156,7 +156,7 @@ class HMM:
         * self.alpha[t,i] = Pr{s(t)=i|y_0^t}
         * return value is log likelihood of all data
 
-        """
+        '''
 
         # Ensure allocation and size of alpha and gamma
         self.alpha = initialize(self.alpha, (self.n_y, self.n_states))
@@ -170,7 +170,7 @@ class HMM:
             self.P_SS.step_forward(last)
         return (np.log(self.gamma)).sum() # End of forward()
     def backward(self):
-        """
+        '''
         Baum Welch backwards pass through state conditional likelihoods
 
         Parameters
@@ -199,7 +199,7 @@ class HMM:
 
         * for each state i, beta[t,i] = Pr{y_{t+1}^T|s(t)=i}/Pr{y_{t+1}^T}
 
-        """
+        '''
         # Ensure allocation and size of beta
         self.beta = initialize(self.beta, (self.n_y, self.n_states))
         last = np.ones(self.n_states)
@@ -244,7 +244,7 @@ class HMM:
             self.reestimate(y)
         return LLL # End of train()
     def reestimate(self,y):
-        """Reestimate model parameters
+        '''Reestimate model parameters
 
         Code here updates state transition probabilities and initial
         state probabilities.  Contains a call to the y_mod.reestimate
@@ -259,7 +259,7 @@ class HMM:
         -------
         None
 
-        """
+        '''
         u_sum = np.zeros((self.n_states, self.n_states), np.float64)
         for t in np.where(self.gamma[1:]>0)[0]: # Skip segment boundaries
             u_sum += np.outer(self.alpha[t]/self.gamma[t+1],
@@ -276,7 +276,7 @@ class HMM:
         self.y_mod.reestimate(self.alpha,y)
         return # End of reestimate()
     def decode(self, y, P_Y=None):
-        """
+        '''
         Find the most likely state sequence for a given observation sequence
 
         Parameters
@@ -291,7 +291,7 @@ class HMM:
         ss : array
             Maximum likelihood state sequence
 
-        """
+        '''
         if P_Y is None:
             P_Y = self.P_Y_calc(y)
         pred = np.empty((self.n_y, self.n_states), np.int32) # Best predecessors
@@ -466,7 +466,7 @@ class HMM:
             P_Y *= mask
         return self.decode(None, P_Y) # End of state_simulate()
     def simulate(self, length, seed=3):
-        """
+        '''
         Generate a random sequence of observations of given length
 
         Parameters
@@ -484,7 +484,7 @@ class HMM:
             Sequence of states
         outs : list
             Sequence of observations
-        """
+        '''
         import random
         random.seed(seed)
         # Initialize lists
@@ -511,7 +511,7 @@ class HMM:
                 outs_T[i].append(outs[t][i])
         return (states, outs_T) # End of simulate()
     def link(self, from_, to_, p):
-        """ Create (or remove) a link between state "from_" and state "to_".
+        ''' Create (or remove) a link between state "from_" and state "to_".
 
         The strength of the link is a function of both the argument
         "p" and the existing P_SS array.  Set P_SS itself if you
@@ -529,7 +529,7 @@ class HMM:
         None
 
         FixMe: No test coverage.  Broken for cython code
-        """
+        '''
         self.P_SS[from_,to_] = p
         self.P_SS[from_, :] /= self.P_SS[from_, :].sum()
     def __str__(self):
@@ -634,7 +634,7 @@ P_SS =
                     print('L[%d]=%7.4f '%(seg,LL/self.n_y), end='')
                 tot += LL
                 self.backward()
-                self.P_S0 = self.alpha[0] * self.beta[0]
+                P_S0_all[seg, :] = self.alpha[0] * self.beta[0]
                 self.gamma[0] = -1 # Don't fit transitions between segments
             avgs[i] = tot/t_total
             if i>0 and avgs[i-1] >= avgs[i]:

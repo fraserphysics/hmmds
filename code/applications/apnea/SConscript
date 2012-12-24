@@ -1,14 +1,10 @@
 from os.path import join
 import os
-Import('PYTHON DDA RDA')
+Import('DDA RDA KEY BUILD')
 
 low_line = '1.82'
 high_line = '2.60'
 
-this_file = (lambda x:x).func_code.co_filename
-here = lambda x: join(os.path.abspath(os.path.dirname(this_file)), x)
-
-root = lambda x: join(GetLaunchDir(), x)
 apnea = DDA('')
 r_times = DDA('r_times')
 lp_hr = DDA('low_pass_heart_rate')
@@ -17,104 +13,74 @@ expert = RDA('summary_of_training')
 
 records_list = os.listdir(r_times)
 a_records = [x for x in records_list if x.startswith('a')]
-records = lambda path: [join(root(path), x) for x in records_list]
+records = lambda path: [join(path, x) for x in records_list]
 r_time_records = records(r_times)
 lp_hr_records = records(lp_hr)
 respiration_records = records(respiration)
 
-cmd = lambda x: ('%s '*len(x))%x
-
 env = Environment()
+env.args = {}
 
-cmd_tuple = tuple([PYTHON, here('rr2hr.py'), r_times, lp_hr] + records_list)
-env.Command(
-    lp_hr_records,                # Target
-    r_time_records+['rr2hr.py'],  # Source
-    cmd(cmd_tuple)                # Command
-    )
+target = lp_hr_records
+source = ['rr2hr.py'] + r_time_records
+env.args[KEY(target)] = [r_times, lp_hr] + records_list
+env.Command(target, source, BUILD)
 
-cmd_tuple = (PYTHON, here('respire.py'), expert, r_times, apnea, respiration)
-env.Command(
-    records(respiration),
-    r_time_records+['respire.py'],
-    cmd(cmd_tuple)    
-    )
+target = respiration_records
+source = ['respire.py'] + r_time_records
+env.args[KEY(target)] = (expert, r_times, apnea, respiration)
+env.Command(target, source, BUILD)
 
-cmd_tuple = (PYTHON, here('mod_init.py'), lp_hr, respiration, expert, DDA(''))
-env.Command(
-    tuple(DDA(x) for x in ('init_A2', 'mod_C1', 'init_H', 'init_M', 'init_L')),
-    (here('mod_init.py'), lp_hr, respiration),
-    cmd(cmd_tuple)
-    )
+target = tuple(DDA(x) for x in ('init_A2', 'mod_C1', 'init_H', 'init_M',
+                                'init_L'))
+source = ['mod_init.py'] + lp_hr_records + respiration_records
+env.args[KEY(target)] = (lp_hr, respiration, expert, DDA(''))
+env.Command(target, source, BUILD)
 
-cmd_tuple = tuple([
-    PYTHON, here('ApTrain.py'), '--hr_dir=%s'%lp_hr, '--resp_dir=%s'%respiration,
-    '--iterations=20', DDA('init_A2'), DDA('mod_A2'), '--record'] + a_records)
-env.Command(
-    DDA('mod_A2'),
-    DDA('init_A2'),
-    cmd(cmd_tuple)
-)
+target = (DDA('mod_A2'),)
+source = ('ApTrain.py', DDA('init_A2'))
+env.args[KEY(target)] = [
+    '--hr_dir', lp_hr, '--resp_dir', respiration, '--iterations', '20',
+    DDA('init_A2'), DDA('mod_A2'), '--record'] + a_records
+env.Command(target, source, BUILD)
 
-cmd_tuple = tuple([
-    PYTHON, here('DoubleClassify.py'), '--Single', DDA('mod_A2'), DDA('mod_C1'),
-    lp_hr, respiration, low_line, high_line] + records_list + 
-    ['|tee %s'%DDA('pass1_report')])
-env.Command(
-    root(DDA('pass1_report')),
-    [here('DoubleClassify.py'), DDA('mod_A2'), DDA('mod_C1')],
-    cmd(cmd_tuple)
-    )
+target = (DDA('pass1_report'),)
+source = ('DoubleClassify.py', DDA('mod_A2'), DDA('mod_C1'))
+env.args[KEY(target)] = tuple([
+    '--Single', '--report', DDA('pass1_report'), DDA('mod_A2'),
+    DDA('mod_C1'), lp_hr, respiration, low_line, high_line] + records_list)
+env.Command(target, source, BUILD)
 
-#FixMe: at iteration 19 train of mod_L fails
-train_cmd = lambda init, mod, group: (
-    PYTHON, here('ApTrain.py'), '--hr_dir=%s'%lp_hr, '--resp_dir=%s'%respiration,
-    '--expert=%s'%expert, '--iterations=15', DDA(init), DDA(mod),
+def train_cmd(init, mod, group):
+    target = (DDA(mod),)
+    source = ('ApTrain.py', DDA(init))
+    env.args[KEY(target)] = ('--hr_dir', lp_hr, '--resp_dir', respiration,
+    '--expert', expert, '--iterations', '20', DDA(init), DDA(mod),
     '--pass1', DDA('pass1_report'), group)
+    env.Command(target, source, BUILD)
 
-env.Command(
-    root(DDA('mod_L')),
-    root(DDA('init_L')),
-    cmd(train_cmd('init_L', 'mod_L', 'Low'))
-)
-
-env.Command(
-    root(DDA('mod_M')),
-    root(DDA('init_M')),
-    cmd(train_cmd('init_M', 'mod_M', 'Medium'))
-)
-
-env.Command(
-    root(DDA('mod_H')),
-    root(DDA('init_H')),
-    cmd(train_cmd('init_H', 'mod_H', 'High'))
-)
+train_cmd('init_L', 'mod_L', 'Low')
+train_cmd('init_M', 'mod_M', 'Medium')
+train_cmd('init_H', 'mod_H', 'High')
 
 # Do pf surveys for groups "High", "Medium", and "Low"
-survey_cmd = lambda mod, group, power, fudge, target: tuple([
-    PYTHON, here('PFsurvey.py'), root(DDA(mod)), expert, lp_hr, respiration,
-    root(DDA('pass1_report')), group,
-    '%4.2f'%power[0], '%4.2f'%power[1], '%4.2f'%power[2],
-    '%4.2f'%fudge[0], '%4.2f'%fudge[1], '%4.2f'%fudge[2],
-    '|tee %s'%root(DDA(target))])
+def survey_cmd(mod, group, power, fudge, target_):
+    import os.path
+    target = (DDA(target_),)
+    source = ('PFsurvey.py', DDA(mod))
+    env.args[KEY(target)] = (
+        DDA(mod), expert, lp_hr, respiration, DDA('pass1_report'), group, 
+        '%4.2f'%power[0], '%4.2f'%power[1], '%4.2f'%power[2],
+        '%4.2f'%fudge[0], '%4.2f'%fudge[1], '%4.2f'%fudge[2],
+        DDA(target_))
+    env.Command(target, source, BUILD)
+
 # Survey for "High" group.  6.8&0.64 .8124 on watcher, 6.0&0.7 .8129 on orr
-env.Command(
-    root(DDA('pf_H')),
-    [here('PFsurvey.py'), root(DDA('mod_H'))],
-    cmd(survey_cmd('mod_H', 'High', (1.0, 8.1, 1), (.5, 1.01, .1),'pf_H'))
-    )
+survey_cmd('mod_H', 'High', (1.0, 8.1, 1), (.5, 1.01, .1), 'pf_H')
 # Survey for "Medium" group.  1.0 & 2.5 .9292 on watcher, 1.5 & 1.6 .9095 orr
-env.Command(
-    root(DDA('pf_M')),
-    [here('PFsurvey.py'), root(DDA('mod_M'))],
-    cmd(survey_cmd('mod_M', 'Medium', (0.0, 3.1, 0.5), (1.0, 2.3, .1), 'pf_M'))
-    )
+survey_cmd('mod_M', 'Medium', (0.0, 3.1, 0.5), (1.0, 2.3, .1), 'pf_M')
 # Survey for "Low" group.  Choose 0.5 & 2.5. OK on watcher and orr.
-env.Command(
-    root(DDA('pf_L')),
-    [here('PFsurvey.py'), root(DDA('mod_L'))],
-    cmd(survey_cmd('mod_L', 'Low', (0, 2.6, 0.5), (1.5, 3.6, 0.5), 'pf_L'))
-    )
+survey_cmd('mod_L', 'Low', (0, 2.6, 0.5), (1.5, 3.6, 0.5), 'pf_L')
 
 #Local Variables:
 #mode:python

@@ -4,6 +4,8 @@ For each of the records, first estimate a classification (apnea,
 borderline, or normal) for the entire record, then classify (normal or
 apnea) each minute in the record.
 
+Or if --Single, just do the first pass.
+
 Copyright (c) 2005, 2008, 2012 Andrew Fraser
 This file is part of HMM_DS_Code.
 
@@ -32,6 +34,8 @@ def main(argv=None):
                        help='Boundary between Medium and High on first pass')
     parser.add_argument('--Single', action='store_true',
               help='Only do the first pass classification')
+    parser.add_argument('--report', type=str,
+                        help='Location of report to write')
     parser.add_argument('--Lmodel', help='For records that have low score')
     parser.add_argument('--Mmodel', help='For records that have medium score')
     parser.add_argument('--Hmodel', help='For records that have high score')
@@ -45,6 +49,7 @@ def main(argv=None):
     import ApOb
     import pickle
 
+    report = open(args.report, 'w')
     Amod = pickle.load(open(args.Amodel, 'rb'))
     BCmod = pickle.load(open(args.BCmodel, 'rb'))
     if not args.Single:
@@ -93,16 +98,16 @@ def main(argv=None):
             if not args.Single:
                 model = Mmod
         print('%3s # %-6s stat= %6.3f llr= %6.3f R= %6.3f'%(
-            record, Name, stat, llr, R),end='')
+            record, Name, stat, llr, R), end='', file=report)
         if args.Single:
-            print('')
+            print('', file=report)
             continue
         Cseq = (model.class_decode(data) - 0.5)*2.0 # +/- 1
         sam_min = 10  # Samples per minute
         min_hour = 60
         sam_hour = 60*sam_min
         for h in range(0, len(Cseq)//sam_hour+1):
-            print('\n%-2d   '%h, end='')
+            print('\n%-2d   '%h, end='', file=report)
             for m in range(0, 60):
                 tot = 0
                 for d in range(sam_min):
@@ -115,8 +120,8 @@ def main(argv=None):
                 if tot > 0:
                     print('A',end='')
                 else:
-                    print('N',end='')
-        print('\n',end='')
+                    print('N',end='', file=report)
+        print('\n',end='', file=report)
 
     return 0
         

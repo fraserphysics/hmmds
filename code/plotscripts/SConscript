@@ -3,73 +3,51 @@
 Scripts in this directory plot data that other code produced.  They
 should not write anything except the resulting plots.
 '''
-import os
-import os.path
+Import('DDA DDS RDA FIG KEY BUILD2')
+
 from os.path import join
-Import('PYTHON2 DDA DDS RDA FIG')  # matplotlib does not run under python3
-
-this_file = (lambda x:x).func_code.co_filename
-here = lambda x: join(os.path.abspath(os.path.dirname(this_file)), x)
-
 root = lambda x: join(GetLaunchDir(), x)
 lp_hr = lambda x: DDA(join('low_pass_heart_rate', x))
 r_times = lambda x: DDA(join('r_times', x))
 resp = lambda x: DDA(join('respiration', x))
-seg = DDA('a03er_seg')
-
-cmd = lambda x: ('%s '*len(x))%x
 
 env = Environment()
+env.args = {}
 
-apnea_ts_figs = tuple(
-    FIG(x) for x in ('a03erA.pdf', 'a03erN.pdf', 'a03erHR.pdf', 'ApneaNLD.pdf'))
-apnea_ts_src = (here('apnea_ts_plots.py'), seg) + \
-    tuple(lp_hr(x) for x in ('a03', 'a01', 'a12'))
-env.Command(
-    apnea_ts_figs,
-    apnea_ts_src,
-    cmd((PYTHON2,) + apnea_ts_src + apnea_ts_figs)
-    )
+target = tuple(FIG(x) for x in
+               ('a03erA.pdf', 'a03erN.pdf', 'a03erHR.pdf', 'ApneaNLD.pdf'))
+source = ('apnea_ts_plots.py', DDA('a03er_seg')) + tuple(
+    lp_hr(x) for x in ('a03', 'a01', 'a12'))
+env.args[KEY(target)] = source[1:] + target
+env.Command(target, source, BUILD2)
 
-apnea_sgram_files = (here('apnea_sgram.py'), r_times('a11'), lp_hr('a11'),
-                     RDA('summary_of_training'))
-env.Command(
-    FIG('sgram.pdf'),
-    apnea_sgram_files,
-    cmd((PYTHON2,) + apnea_sgram_files +(FIG('sgram.pdf'),))
-    )
+target = (FIG('sgram.pdf'),)
+source = ('apnea_sgram.py', r_times('a11'), lp_hr('a11'),
+          RDA('summary_of_training'))
+env.args[KEY(target)] = source[1:] + target
+env.Command(target, source, BUILD2)
 
-LDA_figs = (FIG('LDA1.pdf'), FIG('LDA2.pdf'))
-LDA_src = (here('LDA.py'),) + tuple(root(DDA(x)) for x in (
-        'mean.resp', 'AA.resp', 'AN.resp', 'C.resp')) # FixMe: Depends
-                                                      # on contents of
-                                                      # DDA(respiration)
-env.Command(
-    LDA_figs,
-    LDA_src,
-    cmd((PYTHON2,) + LDA_src + LDA_figs)
-    )
+target = (FIG('LDA1.pdf'), FIG('LDA2.pdf'))
+source = ('LDA.py',) + tuple(DDA(x) for x in
+                       ('mean.resp', 'AA.resp', 'AN.resp', 'C.resp'))
+env.args[KEY(target)] = source[1:] + target
+env.Command(target, source, BUILD2)
 
-env.Command(
-    FIG('pass1.pdf'),
-    [here('class1.py'), root(DDA('pass1_report'))],
-    cmd((PYTHON2, here('class1.py'), DDA('pass1_report'), FIG('pass1.pdf')))
-    )
+target = (FIG('pass1.pdf'),)
+source = ('class1.py', DDA('pass1_report'))
+env.args[KEY(target)] = source[1:] + target
+env.Command(target, source, BUILD2)
 
-env.Command(
-    FIG('pf_H.pdf'),
-    [here('PFsurvey.py'), root(DDA('pf_H'))],
-    cmd((PYTHON2, here('PFsurvey.py'), DDA('pf_H'), FIG('pf_H.pdf')))
-    )
- 
-STATEDATA = [DDS('states')]+[DDS('state%s'%x) for x in range(12)]
-env.Command(
-    FIG('Statesintro.pdf'),        # target
-    ['stateplot.py']+STATEDATA,    # sources
-    cmd((PYTHON2, here('stateplot.py'), DDS(''), 'state',
-         FIG('Statesintro.pdf')))
-    
-    )
+target = (FIG('pf_H.pdf'),)
+source = ('PFsurvey.py', DDA('pf_H'))
+env.args[KEY(target)] = source[1:] + target
+env.Command(target, source, BUILD2)
+
+target = (FIG('Statesintro.pdf'),)
+source = ['stateplot.py', DDS('states')]+[DDS('state%s'%x) for x in range(12)]
+env.args[KEY(target)] = (DDS(''), 'state', FIG('Statesintro.pdf'))
+env.Command(target, source, BUILD2)
+
 #Local Variables:
 #mode:python
 #End:

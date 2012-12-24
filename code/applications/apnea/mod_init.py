@@ -23,7 +23,8 @@ init_M:         Two class, topology in Fig 6.9b. Resp and AR=4
 
 init_L:         Two class, topology in Fig 6.9b. Resp and AR=4 
 =================================================================
-Everything is hard coded with "magic" numbers.  From the text, I copy
+
+Everything is hard coded with "magic" values.  From the book, I copy
 the following specifications:
 
 mod_A2: A two state HMM with AR-4 models for the lprh (low pass heart
@@ -44,19 +45,9 @@ mod_M: Topology in Fig 6.9b.  Used if first pass stat is between 2.39
 mod_L: Topology in Fig 6.9b.  Used if first pass stat is below 2.39.
        AR order 4.
 
-Found AR orders by looking in hmmdsbook/code/Apnea/Makefile.  Also
-found the following three lists:
+Found AR orders by looking in hmmdsbook/code/Apnea/Makefile.
+
 '''
-
-LOW  = '''c04 c09 c03 c10 c02 c06
-          c05 c01 c07 c08 b04'''
-
-MED  = '''c07 c08 b04 a06 b01 a11'''
-
-HIGH = '''a06 b01 a11 a10 a17 a18
-          a05 b03 a16 a20 a09 a14
-          a07 a19 b02 a02 a08 a13
-          a03 a01 a04 a12 a15'''
 
 import sys
 def main(argv=None):
@@ -101,15 +92,13 @@ def main(argv=None):
         for b in segs[1:-1]:
             mod.gamma[b] = -1
         mod.reestimate(data)
+        mod.P_S0 = mod.P_S0_ergodic
         return
     # Set up lists of records by the groups used for training
     all_records = os.listdir(hr_dir)
     a_records = [x for x in all_records if x.startswith('a')]
     b_records = [x for x in all_records if x.startswith('b')]
     c_records = [x for x in all_records if x.startswith('c')]
-    low_records = LOW.split()
-    med_records = MED.split()
-    high_records = HIGH.split()
 
     # Create raw models.  P_SS* (and c2s if applicable) give the right
     # topology.  Space for the output model parameters is allocated.
@@ -174,8 +163,9 @@ def main(argv=None):
     for mod in (mod_L, mod_M, mod_H):
         mod.y_mod.set_dtype([np.int32, np.float64, np.float64, np.float64])
 
-    # Class for args instances for reading data
     class ARGS:
+        '''Class for args instances for reading data
+        '''
         def __init__(self, record, expert=None, resp_dir=None, hr_dir=None):
             self.record = record
             self.expert = expert
@@ -197,17 +187,18 @@ def main(argv=None):
              ARGS(c_records, hr_dir=hr_dir, resp_dir=resp_dir),
              'mod_C1'),
             (mod_H,
-             ARGS(high_records, hr_dir=hr_dir, resp_dir=resp_dir,
+             ARGS(a_records, hr_dir=hr_dir, resp_dir=resp_dir,
                   expert=expert),
              'init_H'),
-            (mod_M,
-             ARGS(med_records, hr_dir=hr_dir, resp_dir=resp_dir, expert=expert),
+            (mod_M, ARGS(a_records + b_records + c_records, hr_dir=hr_dir,
+                         resp_dir=resp_dir, expert=expert),
              'init_M'),
             (mod_L,
-             ARGS(low_records, hr_dir=hr_dir, resp_dir=resp_dir, expert=expert),
+             ARGS(c_records, hr_dir=hr_dir, resp_dir=resp_dir, expert=expert),
              'init_L'),
         ):
         randomize(model, args)
+        # Drop big arrays to save memory/disk
         model.alpha = None
         model.beta = None
         model.gamma = None
