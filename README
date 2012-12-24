@@ -20,14 +20,15 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-1. Write variant module that uses Gaussian output model.  Goal:
-   Illustrate ability to generalize base class
+1. Make two distribution targets: HMMpy and HMM_DS
 
-2. Make two distribution targets: HMMpy and HMM_DS
+2. Clean up LaTeX document.
 
 3. Do LANL release procedure
 
 4. Move to google repository
+
+5. Make the rest of the figures in the book
 
 -1. Get 2 axes rather than box for matplotlib plots and kill boxes on legends
 

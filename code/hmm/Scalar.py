@@ -1,4 +1,4 @@
-""" Scalar.py: Implements scalar observation models.
+""" Scalar.py: Implements scalar observation models for hmms in base.py.
 
 """
 # Copyright (c) 2003, 2007, 2008, 2012 Andrew M. Fraser
@@ -12,8 +12,8 @@ def initialize(x, shape, dtype=np.float64):
 class Prob(np.ndarray):
     '''Subclass of ndarray for probability matrices.  P[a,b] is the
     probability of b given a.  The class has additional methods and is
-    designed to enable alternative implementations with speed
-    improvements implemented by uglier code.
+    designed to enable alternative implementations that run faster or
+    in less memory but may be implemented by uglier code.
 
     '''
     # See http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
@@ -128,7 +128,7 @@ class Prob(np.ndarray):
 def make_prob(x):
     '''Make a Prob instance.
 
-    Used as an argument of HMM.__init__ so that one may use other
+    Used as an argument of base.HMM.__init__ so that one may use other
     functions that create instances of other classes instead of Prob,
     eg, one that uses sparse matrices.
 
@@ -140,6 +140,7 @@ def make_prob(x):
     Returns
     -------
     p : Prob instance
+
     '''
     x = np.array(x)
     return Prob(x.shape, buffer=x.data)
@@ -153,7 +154,8 @@ class Discrete_Observations:
         Conditional probabilites P_YS[s,y]
 
     '''
-    def __init__(self, P_YS):
+    def __init__(self,  # Discrete_Observations instance
+                 P_YS):
         self.P_YS = make_prob(P_YS)
         self.cum_y = np.cumsum(self.P_YS, axis=1)
         self.P_Y = None
@@ -161,7 +163,8 @@ class Discrete_Observations:
         return
     def __str__(self):
         return 'P_YS =\n%s'%(self.P_YS,)
-    def random_out(self,s):
+    def random_out(self, # Discrete_Observations instance
+                   s):
         ''' For simulation, draw a random observation given state s
 
         Parameters
@@ -177,7 +180,8 @@ class Discrete_Observations:
         '''
         import random
         return  (np.searchsorted(self.cum_y[s],random.random()),)
-    def calc(self, y_):
+    def calc(self, # Discrete_Observations instance
+             y_):
         """
         Calculate and return likelihoods: self.P_Y[t,i] = P(y(t)|s(t)=i)
 
@@ -202,7 +206,8 @@ class Discrete_Observations:
         """Concatenate and return multiple y sequences.
 
         Also return information on sequence boundaries within
-        concatenated list.
+        concatenated list.  Code also works on more complex subclasses
+        for which each y has more than one component.
 
         Parameters
         ----------
@@ -268,6 +273,96 @@ class Discrete_Observations:
         self.cum_y = np.cumsum(self.P_YS, axis=1)
         return
 
+class Gauss(Discrete_Observations):
+    '''Scalar Gaussian observation model
+
+    The probability of obsrevation y given state s is:
+    P(y|s) = 1/\sqrt(2\pi sigma2[s]) exp(-(y-mu[s])^2/(2sigma2[s])
+
+    Parameters
+    ----------
+    mu : array_like
+        array of means; a value for each state
+    sigma2 : array_like
+        array of variances; a value for each state
+
+    '''
+    def __init__(self,  # Gauss observation model instance
+                 pars
+    ):
+        mu, sigma2 = pars
+        self.mu = np.array(mu, np.float64)
+        self.sigma2 = np.array(sigma2, np.float64)
+        self.sigma = np.sqrt(self.sigma2)
+        self.norm = 1/np.sqrt(2*np.pi*self.sigma2)
+        self.dtype = [np.float64]
+        return
+    def __str__(self):
+        return '    mu=%s\nsigma2=%s '%(self.mu, self.sigma2)
+    def random_out(self, # Gauss observation model instance 
+                   s):
+        ''' For simulation, draw a random observation given state s
+
+        Parameters
+        ----------
+        s : int
+            Index of state
+
+        Returns
+        -------
+        y : float
+            Random observation drawn from distribution conditioned on state s
+
+        '''
+        import random
+        return  (random.gauss(self.mu[s], self.sigma[s]),)
+    def calc(self, # Gauss observation model instance 
+             y_
+         ):
+        """
+        Calculate and return likelihoods: self.P_Y[t,i] = P(y(t)|s(t)=i)
+
+        Parameters
+        ----------
+        y_ : list
+            Has one element which is a sequence of float observations
+
+        Returns
+        -------
+        P_Y : array, floats
+
+        """
+        y = np.array(y_[0])
+        d = self.mu - y.reshape((-1, 1))
+        self.P_Y = np.exp(-d*d/(2*self.sigma2))*self.norm
+        return self.P_Y
+    def reestimate(self,      # Gauss observation model instance 
+                   w,         # Weights
+                   y_,        # Observations
+                   warn=True
+               ):
+        """
+        Estimate new model parameters
+
+        Parameters
+        ----------
+        w : array
+            w[t,s] = Prob(state[t]=s) given data and old model
+        y : list
+            y[0] is a sequence of scalar float observations
+
+        Returns
+        -------
+        None
+        """
+        y = y_[0]
+        wsum = w.sum(axis=0)
+        self.mu = (w.T * y).sum(axis=1)/wsum
+        d = (self.mu - y.reshape((-1, 1)))*np.sqrt(w)
+        self.sigma2 = (d*d).sum(axis=0)/wsum
+        self.sigma = np.sqrt(self.sigma2)
+        self.norm = 1/np.sqrt(2*np.pi*self.sigma2)
+        return
 class Class_y(Discrete_Observations):
     '''Observation model with classification
     
@@ -373,7 +468,27 @@ class Class_y(Discrete_Observations):
         """
         self.y_mod.reestimate(w, cy[1:])
         return
+def _test():
+    import base
+    P_S0 = [0.67, 0.33]
+    P_SS = [
+        [0.93, 0.07],
+        [0.13, 0.87]]
+    mu = [-1.0, 1.0]
+    var = np.ones(2)
+    model = base.HMM(P_S0, P_S0, (mu, var), P_SS, Gauss)
+    S, Y = model.simulate(100)
+    Y = np.array(Y, np.float64)
+    E = model.decode(Y)
+    P_SS = np.ones((2,2))/2
+    mu = [-2, 2]
+    var = np.ones(2)*4
+    model = base.HMM(P_S0, P_S0, (mu, var), P_SS, Gauss)
+    model.train(Y, n_iter=15)
+    print('trained model:\n%s'%model)
 
+if __name__ == "__main__":
+    _test()
 #--------------------------------
 # Local Variables:
 # mode: python

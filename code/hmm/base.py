@@ -171,7 +171,9 @@ class HMM:
         return (np.log(self.gamma)).sum() # End of forward()
     def backward(self):
         '''
-        Baum Welch backwards pass through state conditional likelihoods
+        Baum Welch backwards pass through state conditional likelihoods.
+
+        Calculates values of self.beta which "reestimate()" needs.
 
         Parameters
         ----------
@@ -599,8 +601,8 @@ P_SS =
         ...     ys.append([x[200*i:200*(i+1)] for x in Y])
         >>> A = mod.multi_train(ys,3)
         i=0: L[0]=-0.9162 L[1]=-0.9142 L[2]=-0.9275 avg=-0.9193117
-        i=1: L[0]=-0.9156 L[1]=-0.9137 L[2]=-0.9278 avg=-0.9190510
-        i=2: L[0]=-0.9153 L[1]=-0.9135 L[2]=-0.9280 avg=-0.9189398
+        i=1: L[0]=-0.9122 L[1]=-0.9082 L[2]=-0.9252 avg=-0.9152414
+        i=2: L[0]=-0.9112 L[1]=-0.9080 L[2]=-0.9249 avg=-0.9147362
 
         '''
         n_seg, t_seg, y_all = self.y_mod.join(ys)
