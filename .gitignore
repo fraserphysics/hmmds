@@ -13,3 +13,6 @@ figs
 code/hmm/*.c
 code/hmm/build
 code/hmm/*.so
+/code/applications/synthetic/build/temp.linux-x86_64-3.2/lor_C.o
+/code/applications/synthetic/lor_C.c
+/code/applications/synthetic/lor_C.cpython-32mu.so

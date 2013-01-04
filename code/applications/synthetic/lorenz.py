@@ -34,6 +34,7 @@ def F(x,t,s,b,r):
         x[0]*x[1]-b*x[2]
         ])
 def Lsteps(IC,      # IC[0:3] is the initial condition
+           f,       # Function that evaluates derivitive
            s, b, r, # These are the Lorenz parameters
            T_step,  # The time between returned samples
            N_steps  # N_steps The number of returned samples
@@ -60,7 +61,7 @@ def Lsteps(IC,      # IC[0:3] is the initial condition
     '''
     from scipy.integrate import odeint
     t = np.arange(N_steps,dtype=float)*T_step
-    return odeint(F, np.array(IC), t, args=(s,b,r))
+    return odeint(f, np.array(IC), t, args=(s,b,r))
 def main(argv=None):
     '''Writes time series to files specified by options --xyzfile and or
     --quantfile.  If neither is specified, simpy runs doctest.
@@ -115,13 +116,31 @@ def main(argv=None):
                        help='Write quantized data to this file')
     parser.add_argument('--xyzfile', type=argparse.FileType('w'),
                        help='Write x,y,z data to this file')
+    parser.add_argument('--time', action='store_true',
+                       help='Do some timing tests')
     args = parser.parse_args(argv)
     args_d = args.__dict__
-    if args.xyzfile==None and args.quantfile==None:
+    if args.time:
+        import time
+        from lor_C import Lsteps as Csteps
+        from lor_C import f_lor
+        t0 = time.time()
+        N = 2000
+        xyz = Lsteps(np.array(args.IC),F,args.s,args.b,args.r,args.dt,N)
+        t1 = time.time()
+        xyz = Lsteps(np.array(args.IC),f_lor,args.s,args.b,args.r,args.dt,N)
+        t2 = time.time()
+        xyz = Csteps(np.array(args.IC),args.s,args.b,args.r,args.dt,N)
+        t3 = time.time()
+        print('''%6.4f seconds for odeint with python F
+%6.4f seconds for odeint with cython F
+%6.4f seconds for cython rk4'''%(
+                t1-t0, t2-t1, t3-t2))
+    elif args.xyzfile==None and args.quantfile==None:
         import doctest
         doctest.testmod()
     else:
-        xyz = Lsteps(np.array(args.IC),args.s,args.b,args.r,args.dt,args.L)
+        xyz = Lsteps(np.array(args.IC),F,args.s,args.b,args.r,args.dt,args.L)
         for v in xyz:
             print((3*'%6.3f ')%tuple(v),file=args.xyzfile) 
             print('%d'%int(np.ceil(v[0]/10+2)),file=args.quantfile)     

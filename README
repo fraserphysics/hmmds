@@ -1,3 +1,34 @@
+HMMDS3 provides python3 code that implements the following algorithms
+for hidden Markov models:
+
+Forward: Recursive estimation of state probabilities at each time t,
+         given observation likelihoods for times 1 to t
+
+Backward: Combined with Forward, provides estimates of state
+          probabilities at each time given _all_ of the observation
+          likelihoods
+
+Train: Implements Baum Welch algorithm which finds a local maximum of
+       likelihood of model parameters
+
+Decode: Implements Viterbi algorithm for finding the most probable
+        state sequence
+
+Implementations of the above algrithms are independent of the
+observation model.  HMMDS3 enables users to implement any observation
+model by writing code for a class that provides methods for
+calculating the likelihood of an observation given a state and for
+reestimating model parameters given observations and state
+likelihoods.
+
+HMMDS3 includes implementations of the following observation models:
+
+Discrete: Integers in a finite range
+
+Gauss: Floats with state dependent mean and variance
+
+Class_Y: Observations that can include classification data
+
 I (Andy Fraser) started this project on 2012-10-31.  I will rewrite
 the code for my book "Hidden Markov Models and Dynamical Systems"
 using the following tools: python3, numpy, scipy, sphinx, doctest, qt4
@@ -20,15 +51,21 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-1. Make two distribution targets: HMMpy and HMM_DS
+1. Make Fig 5.6.  Study speed/simplicity of ode integrators.  Try:
+   A. cython rk4.
+   B. scipy odeint with F in python
+   C. scipy odeint with F in cython
 
-2. Clean up LaTeX document.
+2. From single source (HMMDS3) make two distribution tarballs: HMMpy
+   and HMM_DS
 
-3. Do LANL release procedure
+3. Clean up LaTeX document.
 
-4. Move to google repository
+4. Do LANL release procedure
 
-5. Make the rest of the figures in the book
+5. Move to google repository
+
+6. Make the rest of the figures in the book
 
 -1. Get 2 axes rather than box for matplotlib plots and kill boxes on legends
 
