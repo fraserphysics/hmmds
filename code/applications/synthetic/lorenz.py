@@ -16,7 +16,7 @@ Here are the fuctions that the original version of this module provided:
 Lsteps, Ltan_steps, Ltan_one
 
 >>> IC = np.array([0.1,0.3,2.0])
->>> x = Lsteps(IC,10.0,8.0/3,28.0,0.01,4)
+>>> x = Lsteps(IC,F,10.0,8.0/3,28.0,0.01,4)
 >>> for y in x:
 ...     print('%5.2f %5.2f %5.2f'%tuple(y))
  0.10  0.30  2.00
@@ -127,10 +127,13 @@ def main(argv=None):
         t0 = time.time()
         N = 2000
         xyz = Lsteps(np.array(args.IC),F,args.s,args.b,args.r,args.dt,N)
+        print(xyz[10])
         t1 = time.time()
         xyz = Lsteps(np.array(args.IC),f_lor,args.s,args.b,args.r,args.dt,N)
+        print(xyz[10])
         t2 = time.time()
         xyz = Csteps(np.array(args.IC),args.s,args.b,args.r,args.dt,N)
+        print(xyz[10])
         t3 = time.time()
         print('''%6.4f seconds for odeint with python F
 %6.4f seconds for odeint with cython F

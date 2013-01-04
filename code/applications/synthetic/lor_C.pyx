@@ -43,32 +43,30 @@ cdef lor_step(
     double *x_f, # Storage for final position
     double t,    # Time (not used)
     double s, double b, double r, # Parameters
-    double *k_1, # Storage for intermediate result
-    double *k_2, # Storage for intermediate result
-    double *k_3, # Storage for intermediate result
-    double *k_4, # Storage for intermediate result
-    double *y_dot# Storage for intermediate result
 ):
-
-    f_lor_c(x_i,t,s,b,r,y_dot)
+    ''' Implements a fourth order Runge Kutta step using f_lor() for
+        the vector field.
+        '''
+    cdef double k[5][3] # Storage for intermediate results.
+    f_lor_c(x_i,t,s,b,r,k[0])
     for i in range(3):
-        k_1[i] = h*y_dot[i]
-        x_f[i] = x_i[i] + k_1[i]/2
+        k[1][i] = h*k[0][i]
+        x_f[i] = x_i[i] + k[1][i]/2
 
-    f_lor_c(x_f,t,s,b,r,y_dot)
+    f_lor_c(x_f,t,s,b,r,k[0])
     for i in range(3):
-        k_2[i] = h*y_dot[i]
-        x_f[i] = x_i[i] + k_2[i]/2
+        k[2][i] = h*k[0][i]
+        x_f[i] = x_i[i] + k[2][i]/2
 
-    f_lor_c(x_f,t,s,b,r,y_dot)
+    f_lor_c(x_f,t,s,b,r,k[0])
     for i in range(3):
-        k_3[i] = h*y_dot[i]
-        x_f[i] = x_i[i] + k_3[i]
+        k[3][i] = h*k[0][i]
+        x_f[i] = x_i[i] + k[3][i]
 
-    f_lor_c(x_f,t,s,b,r,y_dot)
+    f_lor_c(x_f,t,s,b,r,k[0])
     for i in range(3):
-        k_4[i] = h*y_dot[i]
-        x_f[i] = x_i[i] + (k_1[i] + 2 * k_2[i] + 2 * k_3[i] + k_4[i])/6
+        k[4][i] = h*k[0][i]
+        x_f[i] = x_i[i] + (k[1][i] + 2 * k[2][i] + 2 * k[3][i] + k[4][i])/6
     return
 
 tmp = np.empty(3)
@@ -88,35 +86,29 @@ def Lsteps(IC,      # IC[0:3] is the initial condition
            T_step,  # The time between returned samples
            N_steps  # N_steps The number of returned samples
            ):
-    rv = np.empty((N_steps, 3))
-    k_np = np.empty(21)
-    cdef np.ndarray[DTYPE_t, ndim=1] k_ = k_np
-    cdef double *k_pt = <double *> k_.data
-    cdef double *k[7]
-    cdef int i
-    for i in range(7):
-        k[i] = &k_pt[i*3]
-    cdef double t = 0
-    cdef double h = T_step
+    rv = np.empty((N_steps, 3))               # Storage for result
     cdef np.ndarray[DTYPE_t, ndim=2] _rv = rv
-    cdef double *rv_p = <double *>_rv.data
-    cdef double *x_i
-    cdef double *x_f
+    cdef double *rv_p = <double *>_rv.data    # C like pointer to result
     rv[0,:] = IC
+
+    scratch = np.empty(6)
+    cdef np.ndarray[DTYPE_t, ndim=1] _scratch = scratch
+    cdef double *scratch_p = <double *>_scratch.data # temporary data
+    cdef double t = 0, *x_i, *x_f, *x_p
+    cdef int i, j, N
+    N = max(1,(T_step/0.005))
+    cdef double h = T_step/N
     for i in range(1,N_steps):
-        x_i = <double *> (&rv_p[(i-1)*3])
-        x_f = k[5]
-        lor_step(x_i, h/10, x_f, t, s, b, r, k[0], k[1], k[2], k[3], k[4])
-        for j in range(4):
-            x_i = k[5]
-            x_f = k[6]
-            lor_step(x_i, h/10, x_f, t, s, b, r, k[0], k[1], k[2], k[3], k[4])
-            x_i = k[6]
-            x_f = k[5]
-            lor_step(x_i, h/10, x_f, t, s, b, r, k[0], k[1], k[2], k[3], k[4])
-        x_i = k[5]
-        x_f = <double *> (&rv_p[i*3])
-        lor_step(x_i, h/10, x_f, t, s, b, r, k[0], k[1], k[2], k[3], k[4])
+        x_i = scratch_p
+        x_f = scratch_p+3
+        for j in range(3):
+            x_i[j] = rv_p[(i-1)*3+j]
+        for j in range(N-1):
+            lor_step(x_i, h, x_f, t, s, b, r)
+            x_p = x_f
+            x_f = x_i
+            x_i = x_p
+        lor_step(x_i, h, <double *> (&rv_p[i*3]), t, s, b, r)
     return rv
 
 #--------------------------------
