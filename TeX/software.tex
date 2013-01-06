@@ -1409,11 +1409,8 @@ data/LikeLor.  I use gnuplot and LikeLor.gpt to make
 Fig.~\ref{fig:LikeLor} from the data.  Note: To make this figure you
 need to have at least two gigabytes of RAM.
 \begin{figure}[htbp]
-  \centering{\plotsize%
-    \def\Nstates{$n_{\text{states}}$}%
-    \def\h{$\hat h(\mathcal{B},F,\mu||\theta)$ (nats)}%
-    \def\bits{$\hat h$ (bits)}%
-%    \input{figs/LikeLor.pdf_t}
+  \centering{
+    \resizebox{\textwidth}{!}{\includegraphics{LikeLor.pdf}}
   }
   \caption[Entropy gap, $\hat
   \delta_{\mu||\theta}$ vs number of states in HMMs]%

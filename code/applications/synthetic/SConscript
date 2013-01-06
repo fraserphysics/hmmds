@@ -2,7 +2,7 @@
 '''
 
 Import('CH DDS KEY BUILD')
-
+# BUILD forks a command 'python3 source[0] env.args[KEY]'
 env=Environment()
 env.args = {}
 
@@ -21,6 +21,12 @@ env.Command(target, source, BUILD )
 target = [DDS('states')]+[DDS('state%s'%x) for x in range(12)]
 source = ('StatePic.py', DDS('lorenz.4'), DDS('lorenz.xyz'), DDS('m12s.4y'))
 env.args[KEY(target)] = (DDS(''), 'lorenz.4', 'lorenz.xyz','m12s.4y')
+env.Command(target, source, BUILD)
+
+target = (DDS('H_study'),)
+source = ('cross_entropy.py',)
+env.args[KEY(target)] = ('--resultfile', target[0], '--exponents', '-2.0',
+                         '3.0', '0.5')
 env.Command(target, source, BUILD)
 
 #---------------

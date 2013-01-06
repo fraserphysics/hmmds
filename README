@@ -51,10 +51,8 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-1. Make Fig 5.6.  Study speed/simplicity of ode integrators.  Try:
-   A. cython rk4.
-   B. scipy odeint with F in python
-   C. scipy odeint with F in cython
+1. Revise code/hmm/C.pyx using what you've learned in
+   code/applications/synthetic/lor_C.pyx
 
 2. From single source (HMMDS3) make two distribution tarballs: HMMpy
    and HMM_DS
@@ -69,6 +67,7 @@ To do:
 
 -1. Get 2 axes rather than box for matplotlib plots and kill boxes on legends
 
+-2. Remember bug in argparse that makes empty file at default argument
 # Local Variables:
 # mode: text
 # End:

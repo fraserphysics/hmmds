@@ -38,6 +38,11 @@ source = ('class1.py', DDA('pass1_report'))
 env.args[KEY(target)] = source[1:] + target
 env.Command(target, source, BUILD2)
 
+target = (FIG('LikeLor.pdf'),)
+source = ('like_lor.py', DDS('H_study'))
+env.args[KEY(target)] = source[1:] + target
+env.Command(target, source, BUILD2)
+
 target = (FIG('pf_H.pdf'),)
 source = ('PFsurvey.py', DDA('pf_H'))
 env.args[KEY(target)] = source[1:] + target
