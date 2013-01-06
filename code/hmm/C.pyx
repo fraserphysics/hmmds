@@ -10,6 +10,7 @@ import numpy as np
 import scipy.sparse as SS
 #warnings.simplefilter('ignore',SS.SparseEfficiencyWarning)
 # Imitate http://docs.cython.org/src/tutorial/numpy.html
+# http://docs.cython.org/src/userguide/memoryviews.html
 cimport cython, numpy as np
 DTYPE = np.float64
 ITYPE = np.int32
@@ -25,112 +26,71 @@ class HMM(base.HMM):
         self.alpha = Scalar.initialize(self.alpha,(self.n_y,self.n_states))
         self.gamma = Scalar.initialize(self.gamma,(self.n_y,))
 
-        # Setup direct access to numpy arrays
-        cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
-        cdef double *_gamma = <double *>gamma.data
+        # Make views of numpy arrays
+        cdef DTYPE_t [:] gamma = self.gamma
+        cdef DTYPE_t [:,:] alpha = self.alpha
+        cdef DTYPE_t [:,:] P_SS = self.P_SS
+        cdef DTYPE_t [:,:] P_Y = self.P_Y
 
-        cdef np.ndarray[DTYPE_t, ndim=1] last = np.copy(self.P_S0.reshape(-1))
-        cdef double *_last = <double *>last.data
+        # Make double buffer for calculations
+        cdef double *_next, *_last
+        scratch = np.empty((2,self.n_states))
+        scratch[0,:] = self.P_S0
+        cdef DTYPE_t [:, :] next_last = scratch
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Alpha = self.alpha
-        cdef char *_alpha = Alpha.data
-        cdef int astride = Alpha.strides[0]
-        cdef double *a
-
-        cdef np.ndarray[DTYPE_t, ndim=2] Pscs = self.P_SS
-        cdef char *_ps = Pscs.data
-        cdef int pstride0 = Pscs.strides[0]
-        cdef int pstride1 = Pscs.strides[1]
-        cdef double *ps
-
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
-        cdef int pystride = Py.strides[0]
-        cdef char *_py = Py.data
-        cdef double *py
-
-        # Allocate vector of length N
-        cdef np.ndarray[DTYPE_t, ndim=1] Next = np.empty(self.n_states)
-        cdef double *_next = <double *>Next.data
-
-        cdef int t,i,j
+        cdef int t, i, j
         cdef int N = self.n_states
         cdef int T = self.n_y
-        cdef double *_tmp
-        cdef double total
+
         # iterate
         for t in range(T):
-            py = <double *>(_py+t*pystride)
+            _last = &next_last[t%2,0]
+            _next = &next_last[(t+1)%2,0]
             for i in range(N):
-                _last[i] = _last[i]*py[i]
-            total = 0
+                _last[i] = _last[i]*P_Y[t,i]
+            gamma[t] = 0
             for i in range(N):
-                total += _last[i]
-            _gamma[t] = total
-            a = <double *>(_alpha+t*astride)
+                gamma[t] += _last[i]
             for i in range(N):
-                _last[i] /= total
-                a[i] = _last[i]
+                _last[i] /= gamma[t]
+                alpha[t,i] = _last[i]
             for i in range(N):
                 _next[i] = 0
                 for j in range(N):
-                    ps = <double *>(_ps + j*pstride0+i*pstride1)
-                    _next[i] += _last[j] *  ps[0]
-            _tmp = _last
-            _last = _next
-            _next = _tmp
+                    _next[i] += _last[j] * P_SS[j,i]
         return (np.log(self.gamma)).sum() # End of forward()
     @cython.boundscheck(False)
     def backward(self):
         # Ensure allocation and size of beta
         self.beta = Scalar.initialize(self.beta,(self.n_y,self.n_states))
 
-        # Setup direct access to numpy arrays
-        cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
-        cdef double *_gamma = <double *>gamma.data
+        # Make views of numpy arrays
+        cdef DTYPE_t [:] gamma = self.gamma
+        cdef DTYPE_t [:,:] beta = self.beta
+        cdef DTYPE_t [:,:] P_SS = self.P_SS
+        cdef DTYPE_t [:,:] P_Y = self.P_Y
 
-        cdef np.ndarray[DTYPE_t, ndim=1] last = np.ones(self.n_states)
-        cdef double *_last = <double *>last.data
+        # Make double buffer for calculations
+        cdef double *_next, *_last
+        scratch = np.ones((2,self.n_states))
+        scratch[0,:] = self.P_S0
+        cdef DTYPE_t [:, :] next_last = scratch
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Beta = self.beta
-        cdef char *_beta = Beta.data
-        cdef int bstride = Beta.strides[0]
-        cdef double *b
-
-        cdef np.ndarray[DTYPE_t, ndim=2] Pscs = self.P_SS
-        cdef char *_ps = Pscs.data
-        cdef int pstride = Pscs.strides[0]
-        cdef double *ps
-
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
-        cdef int pystride = Py.strides[0]
-        cdef char *_py = Py.data
-        cdef double *py
-
-        # Allocate vector of length N
-        cdef np.ndarray[DTYPE_t, ndim=1] Next = np.empty(self.n_states)
-        cdef double *_next = <double *>Next.data
-
-        # iterate
         cdef int t,i,j
         cdef int N = self.n_states
         cdef int T = self.n_y
-        cdef double *_tmp
-        cdef double total
+
+        # iterate
         for t in range(T-1,-1,-1):
-            py = <double *>(_py+t*pystride)
-            b = <double *>(_beta+t*bstride)
+            _last = &next_last[t%2,0]
+            _next = &next_last[(t+1)%2,0]
             for i in range(N):
-                b[i] = _last[i]
-                _last[i] *= py[i]/_gamma[t]
+                beta[t,i] = _last[i]
+                _last[i] *= P_Y[t,i]/gamma[t]
             for i in range(N):
-                total = 0
-                ps = <double *>(_ps + i*pstride)
+                _next[i] = 0
                 for j in range(N):
-                    total += ps[j] * _last[j]
-                _next[i] = total
-            _tmp = _last
-            _last = _next
-            _next = _tmp
+                    _next[i] += P_SS[i,j] * _last[j]
         return # End of backward()
     @cython.boundscheck(False)
     def reestimate(self, y):
@@ -151,56 +111,39 @@ class HMM(base.HMM):
             State probabilities given all observations
 
         """
-        cdef np.ndarray[DTYPE_t, ndim=1] wsum = np.zeros(self.n_states,
-                                                         np.float64)
-        cdef double *_w = <double *>wsum.data
 
-        cdef np.ndarray[DTYPE_t, ndim=2] u_sum = np.zeros(
+        cdef np.ndarray[DTYPE_t, ndim=1] wsum = np.zeros(
+            self.n_states, np.float64)
+        cdef np.ndarray[DTYPE_t, ndim=2] usum = np.zeros(
             (self.n_states,self.n_states),np.float64)
-        cdef char *_u = u_sum.data
-        cdef int ustride = u_sum.strides[0]
-        cdef double *u
 
-        cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
-        cdef double *_gamma = <double *>gamma.data
-
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
-        cdef int pystride = Py.strides[0]
-        cdef char *_py = Py.data
-        cdef double *py
-
-        cdef np.ndarray[DTYPE_t, ndim=2] Alpha = self.alpha
-        cdef char *_alpha = Alpha.data
-        cdef int astride = Alpha.strides[0]
-        cdef double *a
-
-        cdef np.ndarray[DTYPE_t, ndim=2] Beta = self.beta
-        cdef char *_beta = Beta.data
-        cdef int bstride = Beta.strides[0]
-        cdef double *b
-        cdef double *bt
+        # Make views of numpy arrays
+        cdef DTYPE_t [:] gamma = self.gamma
+        cdef DTYPE_t [:,:] alpha = self.alpha
+        cdef DTYPE_t [:,:] beta = self.beta
+        cdef DTYPE_t [:,:] P_Y = self.P_Y
+        cdef DTYPE_t [:] _wsum = wsum
+        cdef DTYPE_t [:,:] _usum = usum
 
         cdef int t,i,j
         cdef int N = self.n_states
         cdef int T = self.n_y
+
         for t in range(T-1):
-            py = <double *>(_py+(t+1)*pystride)
-            a = <double *>(_alpha+t*astride)
-            b = <double *>(_beta+(t+1)*bstride)
-            bt = <double *>(_beta+t*bstride)
+            if gamma[t] == 0:
+                continue       # Skip over segment boundaries
             for i in range(N):
-                u = <double *>(_u+i*ustride)
                 for j in range(N):
-                    u[j] += a[i]*b[j]*py[j]/_gamma[t+1]
-                a[i] *= bt[i]
-                _w[i] += a[i]
+                    _usum[i,j] += alpha[t,i]*beta[t+1,j]*P_Y[t+1,j]/gamma[t+1]
+                alpha[t,i] *= beta[t,i]
+                _wsum[i] += alpha[t,i]
         #Alpha[T-1,:] *= Beta[T-1,:] but Beta[T-1,:] = 1
         wsum += self.alpha[T-1]
         self.P_S0_ergodic = np.copy(wsum)
         self.P_S0 = np.copy(self.alpha[0])
         for x in (self.P_S0_ergodic, self.P_S0):
             x /= x.sum()
-        self.P_SS.inplace_elementwise_multiply(u_sum)
+        self.P_SS.inplace_elementwise_multiply(usum)
         self.P_SS.normalize()
         self.y_mod.reestimate(self.alpha, y)
         return # End of reestimate()
