@@ -32,6 +32,10 @@ def randomP(A):
     A /= sum
     return A
 
+#from hmm.base import HMM
+#from hmm.C import HMM_SPARSE as HMM
+from hmm.C import HMM
+
 def main(argv=None):
     '''Call with arguments: n, data_dir, data_file, model_file
     
@@ -50,10 +54,7 @@ def main(argv=None):
     nstates = 12
     n, data_dir, data_file, model_file = argv
     niterations = int(n) # maximum number of iterations
-    #from Scalar import HMM
-    #from C import HMM_SPARSE as HMM
-    from C import HMM
-
+    
     Y, cardy = read_data(data_dir, data_file)
 
     random.seed(7)
@@ -74,7 +75,7 @@ def main(argv=None):
     mod.beta = None
     mod.Py = None
     f = open(os.path.join(data_dir, model_file), 'wb')
-    pickle.dump(mod, f)
+    pickle.dump(mod, f, fix_imports=False)
     f.close()
     return 0
 

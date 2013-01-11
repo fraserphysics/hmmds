@@ -55,11 +55,11 @@ class Model:
         t = dok_matrix((self.n_states, self.n_states))
         t.update(pairs)
 
-        from C import Prob as sparse_prob
+        from hmm.C import Prob as sparse_prob
         self.P_SS = sparse_prob(t)
         self.P_SS.normalize()
 
-        from Scalar import Prob
+        from hmm.Scalar import Prob
         self.P_YS = Prob((self.n_states, 4))
         self.P_YS[:,:] = safe
         for state, y in states.values():

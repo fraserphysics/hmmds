@@ -62,7 +62,6 @@ def main(argv=None):
         args.record = PFsurvey.read_records(args.pass1)
     import pickle
     import ApOb
-    import Scalar
     mod = pickle.load(open(args.mod_in, 'rb'))
     data_dict = ApOb.build_data(mod.y_mod, args)
     mod.multi_train(list(data_dict.values()), args.iterations)

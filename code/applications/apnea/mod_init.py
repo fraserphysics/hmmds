@@ -62,8 +62,8 @@ def main(argv=None):
 
     import os
     import numpy as np
-    from base import HMM
-    import Scalar
+    from hmm.base import HMM
+    from hmm import Scalar
     import ApOb
     import pickle
     def randomize(mod, args):

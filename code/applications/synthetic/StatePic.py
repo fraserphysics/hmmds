@@ -7,7 +7,11 @@ EG. ${PYTHON} ${P}/StatePic.py ${D} lorenz.4 m12s.4y lorenz.xyz m12s.4y
 2. data_dir/states that has a single decoded state trajectory
 """
 
-import sys, os.path, pickle, numpy
+import sys
+import os.path
+import pickle
+import numpy
+from hmm import C
 from MakeModel import read_data, skip_header
 
 def main(argv=None):

@@ -51,6 +51,15 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
+0. Make code/hmm a "package" with __init__.py and incorporate tests
+   (nose?)  for each function and method.  See:
+   https://github.com/numpy/numpy/blob/master/doc/TESTS.rst.txt
+   https://nose.readthedocs.org/en/latest/
+
+   0.0 Write remaining tests in code/hmm/tests/test_base.py
+   0.1 Write tests for C.pyx and cover parts of Scalar.py not covered
+       by test_base.py
+
 1. Revise code/hmm/C.pyx using what you've learned in
    code/applications/synthetic/lor_C.pyx
 

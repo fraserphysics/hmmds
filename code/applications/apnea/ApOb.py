@@ -30,9 +30,9 @@ parameter.
 small = 1e-25
 SamPerMin = 10 # Samples per minute.
 
-from Scalar import Discrete_Observations # join method gets used
-from Scalar import Class_y
-from Scalar import initialize
+from hmm.Scalar import Discrete_Observations # join method gets used
+from hmm.Scalar import Class_y
+from hmm.Scalar import initialize
 import numpy as np
 import math
 import numpy.linalg as LA

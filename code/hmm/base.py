@@ -4,7 +4,8 @@ models are defined in the "Scalar" module.
 '''
 # Copyright (c) 2003, 2007, 2008, 2012 Andrew M. Fraser
 import numpy as np
-from Scalar import initialize, Prob, Discrete_Observations, Class_y, make_prob
+from hmm.Scalar import initialize, Prob, Discrete_Observations, Class_y
+from hmm.Scalar import make_prob
 
 class HMM:
     '''A Hidden Markov Model implementation.
@@ -100,7 +101,8 @@ class HMM:
         self.beta = None
         self.n_y = None
         return # End of __init__()
-    def P_Y_calc(self, y):
+    def P_Y_calc(self, # HMM instance
+                 y):
         '''Calculate the observation probabilities.
 
         Also store result in self and assign self.n_y.
@@ -118,7 +120,8 @@ class HMM:
         self.P_Y = self.y_mod.calc(y)
         self.n_y = len(self.P_Y)
         return self.P_Y
-    def forward(self):
+    def forward(self # HMM instance
+            ):
         '''
         Recursively calculate state probabilities
 
@@ -169,7 +172,8 @@ class HMM:
             self.alpha[t, :] = last
             self.P_SS.step_forward(last)
         return (np.log(self.gamma)).sum() # End of forward()
-    def backward(self):
+    def backward(self # HMM instance
+    ):
         '''
         Baum Welch backwards pass through state conditional likelihoods.
 
@@ -212,7 +216,8 @@ class HMM:
             last /= self.gamma[t]
             self.P_SS.step_back(last)
         return # End of backward()
-    def train(self, y, n_iter=1, display=True):
+    def train(self,  # HMM instance
+              y, n_iter=1, display=True):
         '''Based on observations y, do n_iter iterations of model reestimation
 
         Use Baum-Welch algorithm to search for maximum likelihood
@@ -245,7 +250,8 @@ class HMM:
             self.backward()
             self.reestimate(y)
         return LLL # End of train()
-    def reestimate(self,y):
+    def reestimate(self,  # HMM instance
+                   y):
         '''Reestimate model parameters
 
         Code here updates state transition probabilities and initial
@@ -277,7 +283,8 @@ class HMM:
         self.P_SS.normalize()
         self.y_mod.reestimate(self.alpha,y)
         return # End of reestimate()
-    def decode(self, y, P_Y=None):
+    def decode(self,  # HMM instance
+               y, P_Y=None):
         '''
         Find the most likely state sequence for a given observation sequence
 
@@ -315,7 +322,7 @@ class HMM:
         y      # Observations
         ):
         '''
-        Find maximum likelihood classification sequence
+        Tries to find maximum likelihood class sequence.
 
         Note that the observation class provided to HMM must, like
         *Class_y*, have a c2s (class to state) array.
@@ -367,7 +374,7 @@ class HMM:
          [ 0.     0.     0.     0.     0.543  0.457]
          [ 0.586  0.     0.     0.     0.     0.414]
          [ 0.539  0.461  0.     0.     0.     0.   ]]
-        <class 'Scalar.Class_y'> with c2s =
+        <class 'hmm.Scalar.Class_y'> with c2s =
         [[1 1 0 0 0 0]
          [0 0 1 1 0 0]
          [0 0 0 0 1 1]]
@@ -378,7 +385,7 @@ class HMM:
          [ 0.     0.     0.     0.384  0.283  0.333]
          [ 0.282  0.     0.     0.     0.391  0.328]
          [ 0.301  0.366  0.     0.     0.     0.333]
-        
+
         Here are some of the log liklihoods per observation from the
         sequence of training iterations.  Note that they increase
         monotonically and that at the end of the sequence the change
@@ -411,6 +418,42 @@ class HMM:
           1,   0,   0
 
         '''
+        from hmm.Scalar import ClassHistory
+        P_Y = self.y_mod.y_mod.calc(y)
+        old_list = [ClassHistory(tuple(),           # Empty history
+                                 self.P_S0_ergodic, # phi
+                                 0.0,               # score
+                                 self.y_mod.c2s, self.P_SS)]
+        for t in range(len(y[0])):
+            new_list = []
+            for history in old_list:
+                new_list.extend(history.fork(P_Y[t]))
+            assert len(new_list) > 0
+            new_list.sort(key=lambda x: x.score)
+            scores = np.array(list([x.score for x in new_list]))
+            i = max(len(scores)-3*self.n_states,           # 3 histories/state
+                    np.searchsorted(scores, scores[-1]-14) # or down by 1e-6
+            )
+            old_list = new_list[i:]
+            # Now get at least one history for each allowed state
+            def allowed_states(_list):
+                allowed = np.zeros(self.n_states, dtype=np.bool)
+                for history in _list:
+                    allowed += history.phi > 0
+                return allowed
+            possible = allowed_states(new_list)
+            sum_possible = possible.sum()
+            found = allowed_states(old_list)
+            sum_found = found.sum()
+            while sum_found < sum_possible:
+                i -= 1
+                temp = found + (new_list[i].phi > 0)
+                if temp.sum() > sum_found:
+                    old_list.append(new_list[i])
+                    found = temp
+                    sum_found = temp.sum()
+        return new_list[-1].path
+    def broken_decode(self, y): # Implements algorithm from first edition
         c2s = self.y_mod.c2s
         n_c = len(c2s)
         n_y = len(y[0])
@@ -441,7 +484,9 @@ class HMM:
             seq[t] = last_c
             last_c = pred[t, last_c]
         return seq
-    def state_simulate(self, length, mask=None, seed=3):
+    def state_simulate(
+            self,  # HMM instance
+            length, mask=None, seed=3):
         ''' Generate a random sequence of states
 
         Parameters
@@ -467,7 +512,9 @@ class HMM:
         if mask is not None:
             P_Y *= mask
         return self.decode(None, P_Y) # End of state_simulate()
-    def simulate(self, length, seed=3):
+    def simulate(
+            self,  # HMM instance
+            length, seed=3):
         '''
         Generate a random sequence of observations of given length
 
@@ -512,7 +559,9 @@ class HMM:
             for i in range(len(outs_T)):
                 outs_T[i].append(outs[t][i])
         return (states, outs_T) # End of simulate()
-    def link(self, from_, to_, p):
+    def link(
+            self,    # HMM instance
+            from_, to_, p):
         ''' Create (or remove) a link between state "from_" and state "to_".
 
         The strength of the link is a function of both the argument
@@ -534,7 +583,9 @@ class HMM:
         '''
         self.P_SS[from_,to_] = p
         self.P_SS[from_, :] /= self.P_SS[from_, :].sum()
-    def __str__(self):
+    def __str__(
+            self   # HMM instance
+    ):
         save = np.get_printoptions
         np.set_printoptions(precision=3)
         rv = '''

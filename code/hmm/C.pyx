@@ -4,8 +4,8 @@ HMM_SPARSE class is 16.4 times faster when the matrices have no zeros.
 
 '''
 #To build: python3 setup.py build_ext --inplace
-import Scalar
-import base
+from hmm import Scalar
+from hmm import base
 import numpy as np
 import scipy.sparse as SS
 #warnings.simplefilter('ignore',SS.SparseEfficiencyWarning)

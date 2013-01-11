@@ -43,6 +43,7 @@ fig2pdf = Builder(
                                          source))
 
 from os.path import join
+C  = lambda file: join(GetLaunchDir(),'code/',file)
 CH  = lambda file: join(GetLaunchDir(),'code/hmm/',file)
 CAS = lambda file: join(GetLaunchDir(),'code/applications/synthetic/', file)
 CAA = lambda file: join(GetLaunchDir(),'code/applications/apnea/', file)
@@ -52,7 +53,11 @@ DDA = lambda file: join(GetLaunchDir(),'derived_data/apnea/', file)
 RDA = lambda file: join(GetLaunchDir(),'raw_data/apnea/', file)
 FIG = lambda file: join(GetLaunchDir(),'figs', file)
 
-ENV = {'PYTHONPATH':'%s:%s:%s'%(CAS(''), CH(''), CAA(''))}
+#  CH('') required by pickle in
+#  code/applications/synthetic/MakeModel.py hmm.C.HMM instance has
+#  C.HMM as value of self.__class__ but hmm.base.HMM instatnce has
+#  hmm.base.HMM as value of self.__class__ ?
+ENV = {'PYTHONPATH':'%s:%s:%s:%s'%(CAS(''), C(''), CH(''), CAA(''))}
 
 def KEY(target):
     '''Constuct a key from the first target.  The key gets used to find
