@@ -21,6 +21,21 @@ class Prob(np.ndarray):
 
     '''
     # See http://docs.scipy.org/doc/numpy/user/basics.subclassing.html
+    def normalize(self):
+        '''
+        Make each row a proability that sums to one
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        '''
+        s = self.sum(axis=1)
+        for i in range(self.shape[0]):
+            self[i, :] /= s[i]
     def assign_col(self, i, col):
         '''
         Replace column of self with data specified by the parameters
@@ -72,21 +87,6 @@ class Prob(np.ndarray):
         None
         '''
         self *= a
-    def normalize(self):
-        '''
-        Make each row a proability that sums to one
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        '''
-        s = self.sum(axis=1)
-        for i in range(self.shape[0]):
-            self[i, :] /= s[i]
     def step_forward(self, a):
         '''
         Replace values of argument a with matrix product a*self

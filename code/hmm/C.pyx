@@ -8,6 +8,8 @@ from hmm import Scalar
 from hmm import base
 import numpy as np
 import scipy.sparse as SS
+import warnings
+warnings.simplefilter('ignore', SS.SparseEfficiencyWarning)
 #warnings.simplefilter('ignore',SS.SparseEfficiencyWarning)
 # Imitate http://docs.cython.org/src/tutorial/numpy.html
 # http://docs.cython.org/src/userguide/memoryviews.html
@@ -21,7 +23,8 @@ class HMM(base.HMM):
     and reestimate-s for speed'''
 
     @cython.boundscheck(False)
-    def forward(self):
+    def forward(self # HMM
+    ):
         # Ensure allocation and size of alpha and gamma
         self.alpha = Scalar.initialize(self.alpha,(self.n_y,self.n_states))
         self.gamma = Scalar.initialize(self.gamma,(self.n_y,))
@@ -60,7 +63,8 @@ class HMM(base.HMM):
                     _next[i] += _last[j] * P_SS[j,i]
         return (np.log(self.gamma)).sum() # End of forward()
     @cython.boundscheck(False)
-    def backward(self):
+    def backward(self # HMM
+    ):
         # Ensure allocation and size of beta
         self.beta = Scalar.initialize(self.beta,(self.n_y,self.n_states))
 
@@ -93,7 +97,8 @@ class HMM(base.HMM):
                     _next[i] += P_SS[i,j] * _last[j]
         return # End of backward()
     @cython.boundscheck(False)
-    def reestimate(self, y):
+    def reestimate(self, # HMM
+                   y):
         """Reestimate state transition probabilities and initial
         state probabilities.
 
@@ -157,7 +162,8 @@ class Prob:
     training to pruning threshold.
 
     '''
-    def __init__(self, x, threshold=-1):
+    def __init__(self, # Prob
+                 x, threshold=-1):
         self.threshold = threshold
         if SS.isspmatrix_csc(x):
             self.csc = x
@@ -172,18 +178,21 @@ class Prob:
         self.tcol = np.empty(N)  # Scratch space step_back
         self.trow = np.empty(M)  # Scratch space step_forward
         self.normalize()
-    def values(self):
+    def values(self # Prob
+    ):
         ''' Return dense version of matrix
         '''
         return self.csc.todense()
-    def assign_col(self,i,col):
+    def assign_col(self, # Prob
+                   i,col):
         '''Implements self[:,i]=col.  Very slow because finding each csc[j,i]
         is slow.  However, this is not used in a loop over T.
         '''
         N,M = self.shape
         for j in range(N):
             self.csc[j,i] = col[j]
-    def likelihoods(self,v):
+    def likelihoods(self, # Prob
+                    v):
         '''Returns L with L[t,j]=self[j,v[t]], ie, the state likelihoods for
         observations v.
         '''
@@ -196,13 +205,15 @@ class Prob:
                 J = self.indices[j]
                 L[t,J] = self.data[j]
         return L
-    def inplace_elementwise_multiply(self,A):
+    def inplace_elementwise_multiply(self, # Prob
+                                     A):
         N,M = self.shape
         for i in range(M):
             for j in range(self.indptr[i],self.indptr[i+1]):
                 J = self.indices[j]
                 self.data[j] *= A[J,i]
-    def cost(self, nu, py):
+    def cost(self,  # Prob
+             nu, py):
         ''' Efficient calculation of np.outer(nu, py)*self (* is
         element-wise).  Used in Viterbi decoding.
         '''
@@ -213,7 +224,8 @@ class Prob:
                 J = self.indices[j]
                 r[J,i] = self.data[j] * nu[J] * py[i]
         return r
-    def normalize(self):
+    def normalize(self # Prob
+    ):
         '''Divide each row, self[j,:], by its sum.  Then prune based on
         threshold.
 
@@ -256,7 +268,8 @@ class Prob:
                     print('Prune')
             L = self.indptr[i+1]
             self.indptr[i+1] = k
-    def step_back(self,A):
+    def step_back(self, # Prob
+                  A):
         ''' Implements A[:] = self*A
         '''
         cdef np.ndarray[DTYPE_t, ndim=1] _A = A
@@ -280,7 +293,8 @@ class Prob:
                 t[J] += _data[j]*a[i]
         tdata.data = <char *>a
         _A.data = <char *>t
-    def step_forward(self,A):
+    def step_forward(self, # Prob
+                A):
         ''' Implements A[:] = A*self
         '''
         cdef np.ndarray[DTYPE_t, ndim=1] _A = A
@@ -316,13 +330,16 @@ class Discrete_Observations(Scalar.Discrete_Observations):
         Conditional probabilites P_YS[s,y]
 
     '''
-    def __init__(self,P_YS):
+    def __init__(self, # Discrete_Observations
+                 P_YS):
         self.P_YS = make_prob(P_YS)
         self.P_Y = None
         return
-    def __str__(self):
+    def __str__(self # Discrete_Observations
+                 ):
         return 'P_YS =\n%s'%(self.P_YS.todense(),)
-    def random_out(self,s):
+    def random_out(self, # Discrete_Observations
+                 s):
         ''' For simulation, draw a random observation given state s
         '''
         raise RuntimeError('Simulation not implemented for %s'%self.__class__)
@@ -375,7 +392,8 @@ class Discrete_Observations(Scalar.Discrete_Observations):
                 J = _indices[j]
                 py[J] = _data[j]
         return self.P_Y # End of p_y_calc()
-    def reestimate(self,w,y_):
+    def reestimate(self, # Discrete_Observations
+                 w,y_):
         """
         Estimate new model parameters.  Differs from version in Scalar
         by not updating self.cum_y which simulation requires.
@@ -406,12 +424,15 @@ class HMM_SPARSE(HMM):
     observation probabilities.  API matches base.HMM
 
     '''
-    def __init__(self, P_S0, P_S0_ergodic, P_YS, P_SS,
-                 y_mod=Discrete_Observations, prob=make_prob):
+    def __init__(
+            self,      # HMM_SPARSE
+            P_S0, P_S0_ergodic, P_YS, P_SS,
+            y_mod=Discrete_Observations, prob=make_prob):
         base.HMM.__init__(self, P_S0, P_S0_ergodic, P_YS, P_SS, y_mod, prob)
 
     @cython.boundscheck(False)
-    def forward(self):
+    def forward(self # HMM_SPARSE
+    ):
         """
         Implements recursive calculation of state probabilities given
         observation probabilities.
@@ -511,7 +532,8 @@ class HMM_SPARSE(HMM):
         return (np.log(self.gamma)).sum() # End of forward()
 
     @cython.boundscheck(False)
-    def backward(self):
+    def backward(self # HMM_SPARSE
+    ):
         """
         Implements the Baum_Welch backwards pass through state conditional
         likelihoods of the obserations.
