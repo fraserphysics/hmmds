@@ -153,7 +153,8 @@ class HMM(base.HMM):
         self.y_mod.reestimate(self.alpha, y)
         return # End of reestimate()
 
-class Prob:
+# class name must start with 'csc' to get SS.csc_matrix.__init__() to work
+class cscProb(SS.csc_matrix):
     '''Replacement for Scalar.Prob that stores data in sparse matrix
     format.  P[a,b] is the probability of b given a.
     
@@ -162,36 +163,28 @@ class Prob:
     training to pruning threshold.
 
     '''
-    def __init__(self, # Prob
+    def __init__(self, # cscProb
                  x, threshold=-1):
+        SS.csc_matrix.__init__(self, x)
         self.threshold = threshold
-        if SS.isspmatrix_csc(x):
-            self.csc = x
-        else:
-            self.csc = SS.csc_matrix(x)
-        self.data = self.csc.data
-        self.indptr = self.csc.indptr
-        self.indices= self.csc.indices
-        self.data = self.csc.data
-        self.shape = x.shape
-        N,M = x.shape
+        N,M = self.shape
         self.tcol = np.empty(N)  # Scratch space step_back
         self.trow = np.empty(M)  # Scratch space step_forward
         self.normalize()
-    def values(self # Prob
+    def values(self # cscProb
     ):
         ''' Return dense version of matrix
         '''
-        return self.csc.todense()
-    def assign_col(self, # Prob
+        return self.todense()
+    def assign_col(self, # cscProb
                    i,col):
         '''Implements self[:,i]=col.  Very slow because finding each csc[j,i]
         is slow.  However, this is not used in a loop over T.
         '''
         N,M = self.shape
         for j in range(N):
-            self.csc[j,i] = col[j]
-    def likelihoods(self, # Prob
+            self[j,i] = col[j]
+    def likelihoods(self, # cscProb
                     v):
         '''Returns L with L[t,j]=self[j,v[t]], ie, the state likelihoods for
         observations v.
@@ -205,14 +198,14 @@ class Prob:
                 J = self.indices[j]
                 L[t,J] = self.data[j]
         return L
-    def inplace_elementwise_multiply(self, # Prob
+    def inplace_elementwise_multiply(self, # cscProb
                                      A):
         N,M = self.shape
         for i in range(M):
             for j in range(self.indptr[i],self.indptr[i+1]):
                 J = self.indices[j]
                 self.data[j] *= A[J,i]
-    def cost(self,  # Prob
+    def cost(self,  # cscProb
              nu, py):
         ''' Efficient calculation of np.outer(nu, py)*self (* is
         element-wise).  Used in Viterbi decoding.
@@ -224,7 +217,7 @@ class Prob:
                 J = self.indices[j]
                 r[J,i] = self.data[j] * nu[J] * py[i]
         return r
-    def normalize(self # Prob
+    def normalize(self # cscProb
     ):
         '''Divide each row, self[j,:], by its sum.  Then prune based on
         threshold.
@@ -268,7 +261,7 @@ class Prob:
                     print('Prune')
             L = self.indptr[i+1]
             self.indptr[i+1] = k
-    def step_back(self, # Prob
+    def step_back(self, # cscProb
                   A):
         ''' Implements A[:] = self*A
         '''
@@ -293,7 +286,7 @@ class Prob:
                 t[J] += _data[j]*a[i]
         tdata.data = <char *>a
         _A.data = <char *>t
-    def step_forward(self, # Prob
+    def step_forward(self, # cscProb
                 A):
         ''' Implements A[:] = A*self
         '''
@@ -319,7 +312,7 @@ class Prob:
         _A.data = <char *>t
         
 def make_prob(x):
-    return Prob(x)
+    return cscProb(x)
 class Discrete_Observations(Scalar.Discrete_Observations):
     '''The simplest observation model: A finite set of integers.
     Implemented with scipy sparse matrices.
@@ -334,6 +327,7 @@ class Discrete_Observations(Scalar.Discrete_Observations):
                  P_YS):
         self.P_YS = make_prob(P_YS)
         self.P_Y = None
+        self.dtype = [np.int32]
         return
     def __str__(self # Discrete_Observations
                  ):
@@ -419,19 +413,21 @@ class Discrete_Observations(Scalar.Discrete_Observations):
                 yi, w.take(np.where(y==yi)[0], axis=0).sum(axis=0))
         self.P_YS.normalize()
         return
-class HMM_SPARSE(HMM):
+class HMM_SPARSE(base.HMM):
     '''HMM code that uses sparse matrices for state to state and state to
     observation probabilities.  API matches base.HMM
 
     '''
     def __init__(
             self,      # HMM_SPARSE
+            #P_S0, P_S0_ergodic, P_YS, P_SS,
+            #y_mod=Discrete_Observations, prob=make_prob):
             P_S0, P_S0_ergodic, P_YS, P_SS,
-            y_mod=Discrete_Observations, prob=make_prob):
+            y_mod=Scalar.Discrete_Observations, prob=Scalar.make_prob):
         base.HMM.__init__(self, P_S0, P_S0_ergodic, P_YS, P_SS, y_mod, prob)
 
     @cython.boundscheck(False)
-    def forward(self # HMM_SPARSE
+    def xforward(self # HMM_SPARSE
     ):
         """
         Implements recursive calculation of state probabilities given
@@ -532,7 +528,7 @@ class HMM_SPARSE(HMM):
         return (np.log(self.gamma)).sum() # End of forward()
 
     @cython.boundscheck(False)
-    def backward(self # HMM_SPARSE
+    def xbackward(self # HMM_SPARSE
     ):
         """
         Implements the Baum_Welch backwards pass through state conditional
