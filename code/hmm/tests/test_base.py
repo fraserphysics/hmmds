@@ -20,9 +20,12 @@ P_SS = circulant([0,  0, 0, 0, .5, .5])
 P_YS = circulant([.4, 0, 0, 0, .3, .3])
 class TestHMM:
     def __init__(self):
-        self.mod = HMM(P_S0,P_S0_ergodic,P_YS,P_SS)
-        self.Cmod = C.HMM(P_S0,P_S0_ergodic,P_YS,P_SS)
-        self.Smod = C.HMM_SPARSE(P_S0,P_S0_ergodic,P_YS,P_SS)
+        self.mod = HMM(
+            P_S0.copy(), P_S0_ergodic.copy(), P_YS.copy(), P_SS.copy())
+        self.Cmod = C.HMM(
+            P_S0.copy(), P_S0_ergodic.copy(), P_YS.copy(), P_SS.copy())
+        self.Smod = C.HMM_SPARSE(
+            P_S0.copy(), P_S0_ergodic.copy(), P_YS.copy(), P_SS.copy())
         self.mods = (self.mod, self.Cmod, self.Smod)
         self.S,Y = self.mod.simulate(1000)
         Y = (np.array(Y[0], np.int32),)
@@ -40,15 +43,13 @@ class TestHMM:
         L = mod.train(self.Y,n_iter=10, display=False)
         for i in range(1,len(L)):
             assert_(L[i-1] < L[i])
-        assert_allclose(mod.y_mod.P_YS, P_YS, atol=0.08)
-        assert_allclose(mod.P_SS, P_SS, atol=0.2)
+        assert_allclose(mod.y_mod.P_YS.values(), P_YS, atol=0.08)
+        assert_allclose(mod.P_SS.values(), P_SS, atol=0.2)
         return L
     def test_train(self):
         Ls= []
         for mod in self.mods:
             Ls.append(self.train(mod))
-        for i in range(len(Ls[0])):
-            print('%d %6.3f %6.3f %6.3f'%(i, Ls[0][i], Ls[1][i], Ls[2][i]))
         return
     def multi_train(self, mod):
         ys = []

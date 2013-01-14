@@ -56,9 +56,8 @@ To do:
    https://github.com/numpy/numpy/blob/master/doc/TESTS.rst.txt
    https://nose.readthedocs.org/en/latest/
 
-   0.0 Write remaining tests in code/hmm/tests/test_base.py
-   0.1 Write tests for C.pyx and cover parts of Scalar.py not covered
-       by test_base.py
+   0.0 Make sparse multi_train pass tests
+   0.1 Beautify sparse forward and backward in C.pyx and remove boundscheck
 
 1. Revise code/hmm/C.pyx using what you've learned in
    code/applications/synthetic/lor_C.pyx

@@ -265,51 +265,41 @@ class cscProb(SS.csc_matrix):
                   A):
         ''' Implements A[:] = self*A
         '''
-        cdef np.ndarray[DTYPE_t, ndim=1] _A = A
-        cdef double *a = <double *>_A.data
-        cdef np.ndarray[DTYPE_t, ndim=1] data = self.data
-        cdef double *_data = <double *>data.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indices = self.indices
-        cdef int *_indices = <int *>indices.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indptr = self.indptr
-        cdef int *_indptr = <int *>indptr.data
-        cdef np.ndarray[DTYPE_t, ndim=1] tdata = self.tcol
-        cdef double *t = <double *>tdata.data
+        cdef DTYPE_t [:] A_ = A
+        cdef DTYPE_t [:] data = self.data
+        cdef ITYPE_t [:] indices = self.indices
+        cdef ITYPE_t [:] indptr = self.indptr
+        cdef DTYPE_t [:] t = self.tcol
         cdef int N = self.shape[0]
         cdef int M = self.shape[1]
         cdef int i,j,J
         for j in range(M):
             t[j] = 0
         for i in range(N):
-            for j in range(_indptr[i],_indptr[i+1]):
-                J = _indices[j]
-                t[J] += _data[j]*a[i]
-        tdata.data = <char *>a
-        _A.data = <char *>t
+            for j in range(indptr[i],indptr[i+1]):
+                J = indices[j]
+                t[J] += data[j]*A_[i]
+        for i in range(N):
+            A_[i] = t[i]
     def step_forward(self, # cscProb
                 A):
         ''' Implements A[:] = A*self
         '''
-        cdef np.ndarray[DTYPE_t, ndim=1] _A = A
-        cdef double *a = <double *>_A.data
-        cdef np.ndarray[DTYPE_t, ndim=1] data = self.data
-        cdef double *_data = <double *>data.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indices = self.indices
-        cdef int *_indices = <int *>indices.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indptr = self.indptr
-        cdef int *_indptr = <int *>indptr.data
-        cdef np.ndarray[DTYPE_t, ndim=1] tdata = self.trow
-        cdef double *t = <double *>tdata.data
+        cdef DTYPE_t [:] A_ = A
+        cdef DTYPE_t [:] data = self.data
+        cdef ITYPE_t [:] indices = self.indices
+        cdef ITYPE_t [:] indptr = self.indptr
+        cdef DTYPE_t [:] t = self.trow
         cdef int N = self.shape[0]
         cdef int M = self.shape[1]
         cdef int i,j,J
         for i in range(N):
             t[i] = 0
-            for j in range(_indptr[i],_indptr[i+1]):
-                J = _indices[j]
-                t[i] += _data[j]*a[J]
-        tdata.data = <char *>a
-        _A.data = <char *>t
+            for j in range(indptr[i],indptr[i+1]):
+                J = indices[j]
+                t[i] += data[j]*A_[J]
+        for i in range(N):
+            A_[i] = t[i]
         
 def make_prob(x):
     return cscProb(x)
@@ -337,7 +327,7 @@ class Discrete_Observations(Scalar.Discrete_Observations):
         ''' For simulation, draw a random observation given state s
         '''
         raise RuntimeError('Simulation not implemented for %s'%self.__class__)
-    @cython.boundscheck(False)
+    #@cython.boundscheck(False)
     def calc(
         self,    # Discrete_Observations instance
         y_       # A list with a sequence of integer observations
@@ -359,32 +349,22 @@ class Discrete_Observations(Scalar.Discrete_Observations):
         y = y_[0]
         n_y = len(y)
         n_states = self.P_YS.shape[0]
-        self.P_Y = Scalar.initialize(self.P_Y, (n_y, n_states))
-        YcS = self.P_YS
+        self.P_Y = np.zeros((n_y, n_states), dtype=DTYPE)
+        #Scalar.initialize(self.P_Y, (n_y, n_states))#Causes occasional failure
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
-        cdef int pystride = Py.strides[0]
-        cdef char *_py = Py.data
-        cdef double *py
-
-        cdef np.ndarray[ITYPE_t, ndim=1] Y = y
-        cdef int *_y = <int *>Y.data
-
-        cdef np.ndarray[DTYPE_t, ndim=1] data = YcS.data
-        cdef double *_data = <double *>data.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indices = YcS.indices
-        cdef int *_indices = <int *>indices.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indptr = YcS.indptr
-        cdef int *_indptr = <int *>indptr.data
+        cdef DTYPE_t [:,:] P_Y = self.P_Y
+        cdef ITYPE_t [:] Y = y
+        cdef DTYPE_t [:] data = self.P_YS.data
+        cdef ITYPE_t [:] indices = self.P_YS.indices
+        cdef ITYPE_t [:] indptr = self.P_YS.indptr
 
         cdef int T = n_y
         cdef int t,i,j,J
         for t in range(T):
-            py = <double *>(_py+t*pystride)
-            i = _y[t]
-            for j in range(_indptr[i],_indptr[i+1]):
-                J = _indices[j]
-                py[J] = _data[j]
+            i = Y[t]
+            for j in range(indptr[i],indptr[i+1]):
+                J = indices[j]
+                P_Y[t,J] = data[j]
         return self.P_Y # End of p_y_calc()
     def reestimate(self, # Discrete_Observations
                  w,y_):
@@ -420,14 +400,12 @@ class HMM_SPARSE(base.HMM):
     '''
     def __init__(
             self,      # HMM_SPARSE
-            #P_S0, P_S0_ergodic, P_YS, P_SS,
-            #y_mod=Discrete_Observations, prob=make_prob):
             P_S0, P_S0_ergodic, P_YS, P_SS,
-            y_mod=Scalar.Discrete_Observations, prob=Scalar.make_prob):
-        base.HMM.__init__(self, P_S0, P_S0_ergodic, P_YS, P_SS, y_mod, prob)
+            y_class=Discrete_Observations, prob=make_prob):
+        base.HMM.__init__(self, P_S0, P_S0_ergodic, P_YS, P_SS, y_class, prob)
 
-    @cython.boundscheck(False)
-    def xforward(self # HMM_SPARSE
+    #@cython.boundscheck(False)
+    def forward(self # HMM_SPARSE
     ):
         """
         Implements recursive calculation of state probabilities given
@@ -527,8 +505,8 @@ class HMM_SPARSE(base.HMM):
             _next = _tmp
         return (np.log(self.gamma)).sum() # End of forward()
 
-    @cython.boundscheck(False)
-    def xbackward(self # HMM_SPARSE
+    #@cython.boundscheck(False)
+    def backward(self # HMM_SPARSE
     ):
         """
         Implements the Baum_Welch backwards pass through state conditional
