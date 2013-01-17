@@ -77,7 +77,6 @@ class HMM(base.HMM):
         # Make double buffer for calculations
         cdef double *_next, *_last
         scratch = np.ones((2,self.n_states))
-        scratch[0,:] = self.P_S0
         cdef DTYPE_t [:, :] next_last = scratch
 
         cdef int t,i,j
@@ -327,7 +326,7 @@ class Discrete_Observations(Scalar.Discrete_Observations):
         ''' For simulation, draw a random observation given state s
         '''
         raise RuntimeError('Simulation not implemented for %s'%self.__class__)
-    #@cython.boundscheck(False)
+    @cython.boundscheck(False)
     def calc(
         self,    # Discrete_Observations instance
         y_       # A list with a sequence of integer observations
@@ -404,12 +403,14 @@ class HMM_SPARSE(base.HMM):
             y_class=Discrete_Observations, prob=make_prob):
         base.HMM.__init__(self, P_S0, P_S0_ergodic, P_YS, P_SS, y_class, prob)
 
-    #@cython.boundscheck(False)
+    @cython.boundscheck(False)
     def forward(self # HMM_SPARSE
     ):
         """
         Implements recursive calculation of state probabilities given
         observation probabilities.
+
+        Like HMM.forward except that self.P_SS is sparse.
 
         Parameters
         ----------
@@ -448,69 +449,51 @@ class HMM_SPARSE(base.HMM):
         self.alpha = Scalar.initialize(self.alpha,(self.n_y,self.n_states))
         self.gamma = Scalar.initialize(self.gamma,(self.n_y,))
 
-        # Setup direct access to numpy arrays
-        cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
-        cdef double *_gamma = <double *>gamma.data
+        # Make views of numpy arrays
+        cdef DTYPE_t [:] gamma = self.gamma
+        cdef DTYPE_t [:,:] alpha = self.alpha
+        cdef DTYPE_t [:,:] P_Y = self.P_Y
 
-        cdef np.ndarray[DTYPE_t, ndim=1] last = np.copy(self.P_S0.reshape(-1))
-        cdef double *_last = <double *>last.data
+        cdef DTYPE_t [:] data = self.P_SS.data
+        cdef ITYPE_t [:] indices = self.P_SS.indices
+        cdef ITYPE_t [:] indptr = self.P_SS.indptr
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Alpha = self.alpha
-        cdef char *_alpha = Alpha.data
-        cdef int astride = Alpha.strides[0]
-        cdef double *a
+        # Make double buffer for calculations
+        cdef double *_next, *_last
+        scratch = np.empty((2,self.n_states))
+        scratch[0,:] = self.P_S0
+        cdef DTYPE_t [:, :] next_last = scratch
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
-        cdef int pystride = Py.strides[0]
-        cdef char *_py = Py.data
-        cdef double *py
-
-        PSCS = self.P_SS
-        cdef np.ndarray[DTYPE_t, ndim=1] data = PSCS.data
-        cdef double *_data = <double *>data.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indices = PSCS.indices
-        cdef int *_indices = <int *>indices.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indptr = PSCS.indptr
-        cdef int *_indptr = <int *>indptr.data
-        cdef np.ndarray[DTYPE_t, ndim=1] tdata = PSCS.trow
-        cdef double *_next = <double *>tdata.data
-
-        cdef int t,i,j
+        cdef int t, i, j, J
         cdef int N = self.n_states
         cdef int T = self.n_y
-        cdef double *_tmp
-        cdef double total
+
         # iterate
         for t in range(T):
-            py = <double *>(_py+t*pystride)
+            _last = &next_last[t%2,0]
+            _next = &next_last[(t+1)%2,0]
+            gamma[t] = 0
             for i in range(N):
-                _last[i] = _last[i]*py[i]
-            total = 0
+                _last[i] = _last[i]*P_Y[t,i]
+                gamma[t] += _last[i]
             for i in range(N):
-                total += _last[i]
-            _gamma[t] = total
-            a = <double *>(_alpha+t*astride)
+                _last[i] /= gamma[t]
+                alpha[t,i] = _last[i]
             for i in range(N):
-                _last[i] /= total
-                a[i] = _last[i]
-
-            for i in range(N):  # Block for next = last*self
                 _next[i] = 0
-                for j in range(_indptr[i],_indptr[i+1]):
-                    J = _indices[j]
-                    _next[i] += _data[j]*_last[J]
-
-            _tmp = _last
-            _last = _next
-            _next = _tmp
+                for j in range(indptr[i],indptr[i+1]):
+                    J = indices[j]
+                    _next[i] += data[j]*_last[J]
         return (np.log(self.gamma)).sum() # End of forward()
 
-    #@cython.boundscheck(False)
+    @cython.boundscheck(False)
     def backward(self # HMM_SPARSE
     ):
         """
         Implements the Baum_Welch backwards pass through state conditional
         likelihoods of the obserations.
+
+        Like HMM.backward except that self.P_SS is sparse.
 
         Parameters
         ----------
@@ -540,56 +523,36 @@ class HMM_SPARSE(base.HMM):
         # Ensure allocation and size of beta
         self.beta = Scalar.initialize(self.beta,(self.n_y,self.n_states))
 
-        # Setup direct access to numpy arrays
-        cdef np.ndarray[DTYPE_t, ndim=1] gamma = self.gamma
-        cdef double *_gamma = <double *>gamma.data
+        # Make views of numpy arrays
+        cdef DTYPE_t [:] gamma = self.gamma
+        cdef DTYPE_t [:,:] beta = self.beta
+        cdef DTYPE_t [:,:] P_Y = self.P_Y
 
-        cdef np.ndarray[DTYPE_t, ndim=1] last = np.ones(self.n_states)
-        cdef double *_last = <double *>last.data
+        cdef DTYPE_t [:] data = self.P_SS.data
+        cdef ITYPE_t [:] indices = self.P_SS.indices
+        cdef ITYPE_t [:] indptr = self.P_SS.indptr
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Beta = self.beta
-        cdef char *_beta = Beta.data
-        cdef int bstride = Beta.strides[0]
-        cdef double *b
+        # Make double buffer for calculations
+        cdef double *_next, *_last
+        scratch = np.ones((2,self.n_states))
+        cdef DTYPE_t [:, :] next_last = scratch
 
-        cdef np.ndarray[DTYPE_t, ndim=2] Py = self.P_Y
-        cdef int pystride = Py.strides[0]
-        cdef char *_py = Py.data
-        cdef double *py
-
-        PSCS = self.P_SS
-        cdef np.ndarray[DTYPE_t, ndim=1] data = PSCS.data
-        cdef double *_data = <double *>data.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indices = PSCS.indices
-        cdef int *_indices = <int *>indices.data
-        cdef np.ndarray[ITYPE_t, ndim=1] indptr = PSCS.indptr
-        cdef int *_indptr = <int *>indptr.data
-        cdef np.ndarray[DTYPE_t, ndim=1] tdata = PSCS.tcol
-        cdef double *_next = <double *>tdata.data
-
-        # iterate
-        cdef int t,i,j,J
+        cdef int t, i, j, J
         cdef int N = self.n_states
         cdef int T = self.n_y
-        cdef double *_tmp
-        cdef double total
+
+        # iterate
         for t in range(T-1,-1,-1):
-            py = <double *>(_py+t*pystride)
-            b = <double *>(_beta+t*bstride)
+            _last = &next_last[t%2,0]
+            _next = &next_last[(t+1)%2,0]
             for i in range(N):
-                b[i] = _last[i]
-                _last[i] *= py[i]/_gamma[t]
-
-            for j in range(N):
-                _next[j] = 0
+                beta[t,i] = _last[i]
+                _last[i] *= P_Y[t,i]/gamma[t]
+                _next[i] = 0
             for i in range(N):
-                for j in range(_indptr[i],_indptr[i+1]):
-                    J = _indices[j]
-                    _next[J] += _data[j]*_last[i]
-
-            _tmp = _last
-            _last = _next
-            _next = _tmp
+                for j in range(indptr[i],indptr[i+1]):
+                    J = indices[j]
+                    _next[J] += data[j]*_last[i]
         return # End of backward()
 
 #--------------------------------

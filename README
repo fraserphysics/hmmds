@@ -51,31 +51,25 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-0. Make code/hmm a "package" with __init__.py and incorporate tests
-   (nose?)  for each function and method.  See:
-   https://github.com/numpy/numpy/blob/master/doc/TESTS.rst.txt
-   https://nose.readthedocs.org/en/latest/
-
-   0.0 Make sparse multi_train pass tests
-   0.1 Beautify sparse forward and backward in C.pyx and remove boundscheck
-
-1. Revise code/hmm/C.pyx using what you've learned in
-   code/applications/synthetic/lor_C.pyx
+1. Clean up LaTeX document.  Describe error.  Notify SIAM.
 
 2. From single source (HMMDS3) make two distribution tarballs: HMMpy
    and HMM_DS
 
-3. Clean up LaTeX document.
+3. Do LANL release procedure
 
-4. Do LANL release procedure
+4. Move to google repository
 
-5. Move to google repository
-
-6. Make the rest of the figures in the book
+5. Make the rest of the figures in the book
 
 -1. Get 2 axes rather than box for matplotlib plots and kill boxes on legends
 
 -2. Remember bug in argparse that makes empty file at default argument
+
+-3. Get __module__ or something like it to include "hmm/" so that
+    pickle works without including  "/home/andy/..../hmm/" in
+    PYTHONPATH
+
 # Local Variables:
 # mode: text
 # End:

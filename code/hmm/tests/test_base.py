@@ -58,8 +58,8 @@ class TestHMM:
         L = mod.multi_train(ys, n_iter=10, display=False)
         for i in range(1,len(L)):
             assert_(L[i-1] < L[i])
-        assert_allclose(mod.y_mod.P_YS, P_YS, atol=0.08)
-        assert_allclose(mod.P_SS, P_SS, atol=0.2)
+        assert_allclose(mod.y_mod.P_YS.values(), P_YS, atol=0.08)
+        assert_allclose(mod.P_SS.values(),       P_SS, atol=0.2)
     def test_multi_train(self):
         for mod in self.mods:
             self.multi_train(mod)
