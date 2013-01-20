@@ -68,43 +68,17 @@
 \frontmatter
 \maketitle
 
-\section*{Quick Start}
-\label{chap:quick}
-
-After fetching the file \emph{webhmmds.tar.bz2}, you can type the
-following in a terminal window to unpack the software and build this
-document:
-\begin{verbatim}
->tar -xjf webhmmds.tar.bz2
->cd webhmmds
->make TeX/software.pdf
-\end{verbatim}
-If rather than typing \texttt{make TeX/software.pdf} you simply typed
-\texttt{make}, you would build a version of the book.  In either case
-the build process would take several hours and it might fail if your
-environment doesn't match mine.  If you have more than one processor
-and more than four GB of RAM, typing \texttt{make -j10
-  TeX/software.pdf} might reduce the build time to less than an hour.
-
-If you want to see a particular figure built, for example the cover
-\emph{fig/Statesintro.pdf}, try:
-\begin{verbatim}
->tar -xjf webhmmds.tar.bz2
->cd webhmmds
->make fig/Statesintro.pdf
-\end{verbatim}
-
 \chapter{Preface}
 \label{chap:preface}
 
-This document describes the software I used to produce \emph{Hidden
-  Markov models and dynamical systems}, hereinafter \emph{the book}.
-When I started working on the book, I decided to structure it as a
-software project using version control to help with collaboration keep
-track of changes.  I used and gnu \emph{make} to control building the
-figures and formatting the text.  I hoped that using the structure of
-a software project would produce a single package that achieved the
-following goals:
+This document describes \emph{hmmmds3}, a revision of the software I
+used to produce \emph{Hidden Markov Models and Dynamical Systems},
+hereinafter \emph{the book}.  When I started working on the book, I
+decided to structure it as a software project using version control to
+help with collaboration and keep track of changes.  I used gnu
+\emph{make} to control building the figures and formatting the text.
+I hoped that using the structure of a software project would produce a
+single package that achieved the following goals:
 \begin{itemize}
 \item Keep a record of all techniques
 \item Allow readers to read, run, modify, and redistribute the code
@@ -112,111 +86,55 @@ following goals:
 \item Make formatting techniques available to other authors
 \end{itemize}
 
-Here is a list all of the directories in this the \emph{webhmmds}
-project and some of the key files:
+\section*{Changes}
+\label{sec:changes}
+
+A preliminary version of Release 1.0 of the hmmds3 produced the
+figures in this draft document.  When I release the software, each
+figure in the book will map to a figure in this document.  Below, I
+list the major differences between hmmds3 and the software that I
+actually used to produce the book:
 \begin{description}
-\item[Makefile:] Controls the building of data files and figures and
-  formatting \LaTeX.  Typing ``make TeX/software.pdf'' produces this
-  document, and simply typing ``make'' produces a version of the book.
-\item[TeX/] \LaTeX source files for the book and this document
-\item[figs/] A directory to hold the derived *.pdf and *.pdf\_t
-  figure files.  None of the figure files are included; they must be
-  built using the software.
-\item[code/] Programs for processing data and making figures
-  \begin{description}
-  \item[hmm/] Modules that contain subclasses of the basic HMM class.
-    The basic HMM class is part of a separate project called
-    \emph{chestnut}.  I include that part of \emph{chestnut} here for
-    convenience.
-  \item[plotscripts/] Scripts that read from the \emph{data} directory
-    and write figures to the \emph{figs} directory
-  \item[python/] Scripts that read from the \emph{data} directory do
-    manipulations and write results to the \emph{data} directory
-  \item[xfigs/] Drawings made using the tool \emph{xfig}
-  \end{description}
-\item[data/] Source and derived data files.  I only distribute derived
-  files that require many hours of cpu time to produce.  I report the
-  cpu time required for my 1 GHZ 64 bit Athlon PC.
-  \begin{description}
-  \item[Apnea/] The *.Rtimes files contain the time in centiseconds of
-    estimates of the time that each heartbeat occurred.  I derived
-    these files from PhysioNet's data using their WFDB software. 
-  \item[LP5.DAT:] D.~Y.~Tang's laser measurements
-  \item[PFsurvey:] Data for Fig.~6.10 in the book (takes more than two
-    days to make)
-  \item[Save\_Hview\_T\_100, Save\_Hview\_T\_118, and
-    Save\_Hview\_T\_119:] Data saved from the old version of the GUI
-    program \emph{code/python/Hview.py}.  The new version makes
-    similar data but the pictures are not quite as nice
-  \item[a03er\_seg:] Data for Figs.~6.1-6.3 derived from PhysioNet
-    files using WFDB software
-  \item[summary\_of\_training and event-2-answers:] Expert annotations
-    for each minute of the ECG data.  I fetched these files from
-    PhysioNet.
-  \item[gutenberg-19355:] H.\,L.\, Menken's \emph{A book of Prefaces}
-  \end{description}
+\item[Error described and addressed:] The algorithm for decoding
+  \emph{class} sequences described in Chapter 6 of the book does not
+  work in general.  In designing the flawed algorithm, I imitated the
+  Viterbi algorithm which finds the best \emph{state} sequence with
+  complexity that is \emph{linear} in the number of time steps.  In
+  the book, I claimed that my algorithm was also linear in the number
+  time steps and that it finds the best \emph{classification}
+  sequence.  While the complexity is linear, the flawed algorithm may
+  fail to find the best sequence, and in fact it may fail to find a
+  \emph{possible} sequence.  For details, see
+  Section~\ref{sec:V4Class} of this document.
+\item[Test Suite:] I have written tests using the variant of the
+  \emph{Nose testing system} that numpy uses.  Those tests are part of
+  the new distribution.  That system revealed to me the error of the
+  previous item.
+\item[Favor Pretty Code Over Pretty Pictures:] Karl Hegbloom and I
+  wrote complex code to make the book pretty.  In this version, I
+  sacrifice appearance of the plots if that lets me write simpler
+  code.  I do not recommend the formatting techniques of this version
+  to other authors because the results are not very pretty.  Neither do
+  I recommend the techniques of the first version because \emph{they}
+  were too complex.
+\item[Python3:] Most of the new code runs under python3
+  exclusively.  The major exceptions are plotting scripts that use
+  matplotlib and run under python2 because matplotlib is not
+  compatible with python3 yet.
+\item[Numpy, Scipy, Cython, \ldots] The new and improved tools that
+  have been created since I started the first version combined with
+  things I've learned about writing code has produced much clearer
+  code.
+\item[Sphinx:] I use sphinx to format documentation embedded in the
+  source.
+\item[Matplotlib and Xfig:] I make all of the figures with matplotlib
+  and xfig rather than the mix of tools including gnuplot that Karl
+  and I used for the book.  My code that uses matplotlib is ugly.
+  While I take some credit for that ugliness, I don't recommend
+  matplotlib with any enthusiasm over gnuplot.
+\item[Scons:] I've switched from gnu-make to scons for building.  I
+  don't recommend scons over gnu make with any enthusiasm either.
 \end{description}
-
-In a number of ways, the project did not develop as I had imagined,
-and I don't have a single package that achieves all of the goals.  I
-wrote the \emph{webhmmds} package --of which document is a part-- after
-submitting the final manuscript of the book to SIAM.  The code uses
-the new \emph{numpy} and \emph{scipy} packages which did not exist
-when I started writing the book.  Although it does not exactly
-reproduce the results in the book, I believe that my new code is
-easier to read than the old code and that it reflects a little bit
-more experience with Python.  In short I recommend it.
-
-I have the following four groups of files: 1.~A CVS repository called
-\emph{hmmdsbook} that contains both the \LaTeX for the first draft of
-the book and software that I used to process the data for the figures;
-2.~An SVN repository called \emph{tex\_hmmds} that contains the
-processed data from \emph{hmmdsbook}, revised \LaTeX, and revised
-plotting scripts to make the manuscript that I submitted to SIAM;
-3.~\emph{Fraser-SIAM.rar} a \emph{Roshal ARchive} of the result of
-SIAM's editorial work on the manuscript (which I cannot distribute);
-4.~An SVN repository called \emph{webhmmds} that contains new code for
-processing the data and up to date \LaTeX source files.
-
-Here are some notes on the goals and the code:
-\begin{description}
-\item[Keep a record of all techniques:] The \emph{hmmdsbook} files
-  were useful for producing the current \emph{webhmmds} package.  For most
-  programs I only had to upgrade from the obsolete Numeric and
-  numarray packages to numpy and scipy.
-\item[Allow readers to read, run, and modify the code:]  The new code
-  runs, and I think it would be pretty easy to read or modify.
-\item[Allow readers to verify results:] Unfortunately the results of
-  the new code do not match the results in the book.  In part this is
-  due to the fact that the restructured code does not make the same
-  sequence of calls to \emph{random} as the old code.  It also
-  reflects less time spent tweaking parameters.  While suspicious readers
-  may examine the old \emph{hmmdsbook} package, they will find it
-  harder to read and more difficult to run than the newer code.
-\item[Make formatting techniques available to other authors:] Karl
-  Hegbloom helped me work with the SIAM macros and the required
-  Mathtime and Mathtime Plus fonts.  While I don't think we learned
-  anything that generalizes, readers may examine the \emph{tex\_hmmds}
-  package.
-\end{description}
-
-The remainder of this document contains a version of each figure in
-the book.  While the book explains the mathematics behind the
-algorithms, this document provides software implementation details.
-I've copied the Chapter and Section organization as the book to make
-it easy to move between the book and this document.
-
-\section*{Execution time}
-
-I have built the book on the following PCs
-\begin{description}
-\item[Eight core 2.8GHz 64 bit Intel Xeon] On this machine which had
-  8GB RAM and ran Ubuntu 8.04, issuing ``time make -j8'' produced the
-  entire book in 74 minutes using five hours and one minute of
-  individual cpu time.
-\end{description}
-In the following sections, I report the time required by a single
-cpu for my 1 GHZ 64 bit Athlon PC.
 
 \section*{Copyright and License}
 
@@ -239,31 +157,9 @@ General Public License as published by the Free Software Foundation,
 
 \section*{To Do}
 \begin{description}
-\item[Write Fast Code] Write new versions of algorithms\_*.py that are
-  in \textit{core} now.  One new version to accept sparse matrices and
-  another written in C.
-\item[Laser Model] Find a stable period five orbit and get better
-  versions of Figs.~\ref{fig:LaserLogLike}, \ref{fig:LaserStates} and
-  \ref{fig:LaserForecast}.  Here is an approach:
-  \begin{itemize}
-  \item Find  range of radii from one of the two unstable fixed points
-    from which orbit takes 5 oscillations on other side and then
-    returns original side
-  \item Calculate map $M:X_2\otimes X_3\mapsto X_2\otimes X_3$ at
-    $X_1=0$ in neighborhood of first crossing of $X_1=0$ plane
-  \item Minimize the distance between the first and second crossing
-  \item Calculate the stability of the fixed point
-  \end{itemize}
-
-\item[Cover Figure] Find a model that produces some dots for every
-  state in Fig.~\ref{fig:Statesintro}.  (This is not a high priority.)
-\item[Extend Fig.~\ref{fig:LikeLor}] Write code that makes more
-  efficient use of memory and extend the plot to $10^8$.  (This is not
-  a high priority.)
-\item[Update Makefile] Since Damian Eads is dropping the Chestnut
-  project, I have incorporated the code into this project.  I should
-  modify the Makefile so that appropriate targets depend on the newly
-  included code.  (This is not a high priority.)
+\item[Class-Decode:] Study ad-hoc algorithm and make sure figs from
+  Chapter 6 are OK
+\item[Make all of the figures] 
 \end{description}
 
 \mainmatter
@@ -287,7 +183,7 @@ the file data/LaserLP5.  The optimization takes about 6 minutes.  The
 script Laser\_plots.py makes figs/LaserLP5.pdf from data/LaserLP5.
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{figs/LaserLP5.pdf}}
+%    \resizebox{\textwidth}{!}{\includegraphics{LaserLP5.pdf}}
   }
   \caption[Laser intensity measurements.]%
   {Laser intensity measurements.  The trace labeled \emph{Laser} is a
@@ -304,40 +200,13 @@ script Laser\_plots.py makes figs/LaserLP5.pdf from data/LaserLP5.
   \label{fig:LaserLP5}
 \end{figure}
 
-Following Karl Hegbloom, I define a utility named run\_gnuplot in the
-file Makefile.  The utility operates on a list of arguments
-consisting of a file containing gnuplot commands, data files, and the
-names of figure files to be written.  In Makefile, I use run\_gnuplot
-every time that I need the gnuplot utility for making a figure.
-Henceforth, I when I write ``the script foo.gpt makes foobar.pdf from
-data/foo'', I mean that I use the Makefile utility run\_gnuplot to
-call the utility gnuplot with arguments that make the files
-figs/foo.pdf and figs.foo.pdf\_t from the information in the file
-data/foo.  The file figs/foo.pdf\_t contains \LaTeX commands for the
-text in the figure and the file figs/foo.pdf contains the rest of the
-figure.  In the \LaTeX source, writing
-\texttt{$\backslash$input\{figs/foo.pdf\_t\}} invokes the figure.  An
-advantage of the method is that you can define new \LaTeX commands in
-the source and use them in the figure.  When I started rewriting the
-software to make it easier to read, I hoped to avoid gnuplot and
-run\_gnuplot because the commands are hard to read.  I found that I
-needed them for plotting response surfaces like
-Fig.~\ref{fig:LaserLogLike}.  Once I decided to use them for response
-surfaces, I decided to continue use them for other plots because I
-already had the scripts and because the resulting plots look good.
-
-The program Laser\_data.py also makes data/LaserLogLike for
-Fig.~\ref{fig:LaserLogLike}.  The program takes about 33 minutes to
-maximize the likelihood of parameters for an extended Kalman filter.
-The script LaserLogLike.gpt makes LaserLogLike.pdf from
-data/LaserLogLike.
 \begin{figure}[htbp]
   \centering{\plotsize%
     \def\l#1{\mbox{\lower1.5ex\hbox{$#1$}}}%
     \def\s{\mbox{\kern2.0em\lower2.0ex\hbox{$s$}}}%
     \def\b{\mbox{\lower1.5ex\hbox{$b$}}}%
     \def\LogLikely{$\log\left(P(\ts{y}{1}{250}|\theta) \right)$}%
-%    \input{figs/LaserLogLike.pdf_t}
+%    \input{LaserLogLike.pdf_t}
   }
   \caption{Log likelihood as function of $s$ and $b$.  Other parameters were
     taken from the vector $\hat \theta$ that maximizes the likelihood
@@ -350,7 +219,7 @@ data for Figs.\ref{fig:LaserStates}, \ref{fig:LaserForecast}, and
 \ref{fig:LaserHist} are made in less than a minute.
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{figs/LaserStates.pdf}}
+%    \resizebox{\textwidth}{!}{\includegraphics{LaserStates.pdf}}
   }
   \caption[State trajectory $\ts{\hat
     x}{1}{250}$.]%
@@ -369,7 +238,7 @@ I hope to rework the optimization code yet again to find a stable
 period five orbit that matches the data.
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{figs/LaserForecast.pdf}}
+%    \resizebox{\textwidth}{!}{\includegraphics{LaserForecast.pdf}}
   }
   \caption[Forecast observation sequence.]%
   {Forecast observation sequence.  I set the noise terms $\eta$ and
@@ -402,8 +271,8 @@ Fig.~\ref{fig:dhmm} too.  In his words:
 
 \begin{figure}[htbp]
   \centering{
-%    %\resizebox{\textwidth}{!}{\input figs/Markov_mm.pdf_t }
-%    \input{figs/Markov_mm.pdf_t}
+    \resizebox{\textwidth}{!}{\input Markov_mm.pdf_t }
+%    \input{Markov_mm.pdf_t}
   }
   \caption[A Markov model.]{A Markov model}
   \label{fig:mm}
@@ -411,7 +280,7 @@ Fig.~\ref{fig:dhmm} too.  In his words:
 
 \begin{figure}[htbp]
   \centering{
-%    \input{figs/Markov_dhmm.pdf_t}
+    \input{Markov_dhmm.pdf_t}
   }
   \caption[A hidden Markov model.]{A hidden Markov model}
   \label{fig:dhmm}
@@ -420,17 +289,13 @@ Fig.~\ref{fig:dhmm} too.  In his words:
 \subsection{Example: Quantized Lorenz Time Series}
 \label{sec:QuantizedLorenz}
 
-I used the \emph{gsl}, gnu scientific library, to integrate the Lorenz
-system and make the data for
-Figs.~\ref{fig:TSintro}-\ref{fig:Statesintro}.  Although I used SWIG
-to connect the gsl to python for the book, I use scipy.weave for the
-newer software now (see code/python/lorenz.py).  It seems simpler.  To
-translate data into a Fig.~\ref{fig:TSintro}, I called pylab from the
-script code/plotscripts/TSintro.py.  I have not found pylab to be much
-easier to use than gnuplot.
+I used \emph{scipy.odeint} or the fourth order Runge Kutta formula
+implemented in cython, to integrate the Lorenz system and make the
+data for Figs.~\ref{fig:TSintro}-\ref{fig:Statesintro}.  I have not
+found matplotlib to be much easier to use than gnuplot.
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{figs/TSintro.pdf}}
+%    \resizebox{\textwidth}{!}{\includegraphics{TSintro.pdf}}
   }
   \caption[Generating the observations $\ts{y}{1}{40}$.]%
   {Generating the observations $\ts{y}{1}{40}$.  The curve in the
@@ -443,10 +308,10 @@ easier to use than gnuplot.
     $\ceil{u}$ is the least integer greater than or equal to $u$.  }
   \label{fig:TSintro} 
 \end{figure}
-I use gnuplot to make STSintro from data/states for Fig.~\ref{fig:STSintro}.
+
  \begin{figure}[htbp]
    \centering{\plotsize%
-%     \input{figs/STSintro.pdf_t}
+%     \input{STSintro.pdf_t}
 }
    \caption{A plot of the state sequence found by Viterbi decoding a quantized
      time series from the Lorenz system.  Here the number of the
@@ -458,12 +323,7 @@ I use gnuplot to make STSintro from data/states for Fig.~\ref{fig:STSintro}.
    \label{fig:STSintro}
  \end{figure}
 
-Figure~\ref{fig:Statesintro} is picture on the cover.  My son Adrian
-wrote stateplot.py which makes the figure from data in the files
-data/state0 -- data/state11 and data/lorenz.xyz.  To create the state
-data files I used the HMM component of the \emph{chestnut} package
-(see http://mloss.org/software/view/153/).  Training the model,
-m12s.4y and decoding the states takes five minutes
+ Figure~\ref{fig:Statesintro} is the picture on the cover fo the book.
 %%% This is a large color figure on a page by itself. (butterfly)
 %%%
  \begin{figure}[htb]
@@ -485,7 +345,7 @@ the actual table of words is the result of the new code
 (po\_speech.py), the explanations do not match the word groups.  Using
 different seeds for the random number generator produces different
 groupings.  For now, each run takes 52 minutes.  In the future, I will
-write the core routines in C which will reduce the time by an order of
+write the core routines in cython which will reduce the time by an order of
 magnitude.
 \begin{table}[htb]
   \caption[Words most frequently associated with each state.]%
@@ -524,7 +384,7 @@ magnitude.
 Figures~\ref{fig:dhmm_net} and \ref{fig:nonmm} are xfig drawings.
 \begin{figure}[htbp]
   \centering{
-%    \input{figs/Markov_dhmm_net.pdf_t}
+    \input{Markov_dhmm_net.pdf_t}
   }
   \caption[Bayes net schematic for a hidden Markov model.]%
   {Bayes net schematic for a hidden Markov model.  The drawn edges
@@ -538,7 +398,7 @@ Figures~\ref{fig:dhmm_net} and \ref{fig:nonmm} are xfig drawings.
 
 \begin{figure}[htbp]
   \centering{
-%    \input{figs/nonmm.pdf_t}
+    \input{nonmm.pdf_t}
   }
   \caption[An HMM that cannot be represented by a
   Markov model.]%
@@ -617,7 +477,7 @@ commands defined in the file software.tex.
         new $\alpha$'s\\%
         Eqn.~2.7
       \end{minipage}}%
-%    \input{figs/forward.pdf_t}
+    \input{forward.pdf_t}
   }
   \vspace{5 em}
   \caption[Dependency relations in the forward
@@ -677,7 +537,7 @@ file software.tex.
         \end{tabbing}
       \end{minipage}
     }
-    \caption[Pseudocode for the Viterbi Algorithm.]%
+    \caption[Pseudocode for the Viterbi Algorithm]%
     {Pseudocode for the Viterbi Algorithm}
     \label{fig:viterbi}
   \end{center}
@@ -733,7 +593,7 @@ defined in software.tex.
         \qquad$+ \nu(B(s,t),t-1)$.
       \end{minipage}}
     %%
-%    \input{figs/viterbiB.pdf_t} 
+    \input{viterbiB.pdf_t} 
   }
   \vspace{7em}
   \caption[Dependency relations in the Viterbi algorithm.]%
@@ -750,7 +610,7 @@ defined in software.tex.
 Figure~\ref{fig:sequenceMAP} is an xfig drawing.
 \begin{figure}[htbp]
   \centering{\plotsize%
-%    \input{figs/sequenceMAP.pdf_t} 
+    \input{sequenceMAP.pdf_t} 
   }  
   \caption{HMM used to illustrate that the maximum \apost\ sequence of states is
     not the same as the sequence of maximum \apost\ states.}
@@ -890,13 +750,10 @@ Fig.~\ref{fig:train} is also obscure straight \LaTeX.
 \subsubsection{Multiple Maxima}
 \label{sec:MultiMax}
 
-It takes three hours and 36 minutes for TrainChar.py to make the data
-for Fig.~\ref{fig:TrainChar}.  I use gnuplot with TrainChar.gpt to
-make TrainChar.pdf from data/TrainChar.
 \begin{figure}
   \centering{\plotsize%
     \def\llps{$\frac{\log \left( P \left(\ts{y}{1}{T}|\ti{\parameters}{n} \right)\right)}{T}$}%
-%    \input{figs/TrainChar.pdf_t}
+%    \input{TrainChar.pdf_t}
   }
   \caption[Convergence of the Baum-Welch algorithm.]{%
     Convergence of the Baum-Welch algorithm.  Here I have
@@ -924,10 +781,6 @@ make TrainChar.pdf from data/TrainChar.
 \label{sec:EM}
 \index{estimate maximize (EM) algorithm|textbf}%
 
-I use gnuplot to make each component of Fig.~\ref{fig:GaussMix}.  The
-script gaussmix.gpt needs the file data/em\_yt to make gaussmix.pdf.
-Rather than have em\_yt in the distribution, I should modify
-code/python/em.py to write the file.
 \begin{figure}[htbp]
   \centering{\plotsize%
     %% 
@@ -949,8 +802,8 @@ code/python/em.py to write the file.
     \def\ptheta{$P_{\ti{\parameters}{1}}$}%
     \def\px{$P_{\parameters}$}%
     \def\Pthetax{$P_{\ti{\parameters}{3}}$}%
-%    \input{figs/gaussmixA.pdf_t}\\[-2.5ex]
-%    \input{figs/gaussmix.pdf_t}
+%    \input{gaussmixA.pdf_t}\\[-2.5ex]
+%    \input{gaussmix.pdf_t}
   }
   \caption[Two iterations of the EM
   algorithm.]%
@@ -987,8 +840,6 @@ code/python/em.py to write the file.
 \subsubsection{A contrived example}
 \label{sec:contrived}
 
-The scripts EM1.gpt and EM2.gpt make the components of
-Fig.~\ref{fig:EM} without needing any external data.
 \begin{figure}[htbp]
   \centering
   {\plotsize%
@@ -997,11 +848,11 @@ Fig.~\ref{fig:EM} without needing any external data.
       \def\y#1{\mbox{\kern-0.5em\lower1.0ex\hbox{$#1$}}}%
       \def\ylab{\mbox{\kern-0.5em\lower1.5ex\hbox{$\parametersPrime$}}}%
       \def\zlab{$Q(\parametersPrime,\parameters)$}%
-%      \input{figs/EM1.pdf_t}
+%      \input{EM1.pdf_t}
     }%
     {\def\xlab{$\parameters$}%
       \def\ylab{$\EMmap(\parameters)$}%
-%      \input{figs/EM2.pdf_t}
+%      \input{EM2.pdf_t}
     }}
   \caption[An illustration of the EM algorithm.]%
   {An illustration of the EM algorithm for an experiment in which a
@@ -1029,7 +880,7 @@ Laser\_plots.py uses pylab to make Fig.~\ref{fig:LaserHist} directly
 from Tang's file data/LP5.DAT.
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{figs/LaserHist.pdf}}
+%    \resizebox{\textwidth}{!}{\includegraphics{LaserHist.pdf}}
   }
   \caption[Histogram of Tang's laser measurements.]%
   {Histogram of Tang's laser measurements.  Even though neither $y=5$
@@ -1047,12 +898,6 @@ from Tang's file data/LP5.DAT.
 \subsection{Independent Scalar Observations}
 \label{sec:ScalarGaussian}
 
-The data for the time series plots within
-Fig.~\ref{fig:ScalarGaussian} get made by ScalarGaussian.py and they
-are plotted using pylab by SGO.py.  The three state transition
-drawings all come from the same xfig file ScalarGaussian.fig.  Each
-time software.tex invokes the drawing, it redefines the commands used
-for the labels.
 %%%
 %%% fig:ScalarGaussian
 %%%
@@ -1069,7 +914,7 @@ for the labels.
         \def\prbd{$0.87$}%
         \def\lbla{\parbox[t]{1.8in}{$\mu=-1$\\$\sigma=1$}}%
         \def\lblb{\parbox[t]{1.8in}{$\mu=1$\\$\sigma=1$}}%
-%        \input{figs/SGO.pdf_t}
+%        \input{SGO.pdf_t}
       }%
       %\smallskip%
       &
@@ -1077,7 +922,7 @@ for the labels.
         \put(0.0,0.8){\makebox{\normalsize\textbf{(b)}}}
       \end{picture}%
       \hspace{2em}
-%      \resizebox{0.4\textwidth}{!}{\includegraphics{figs/SGOsimS.pdf}}
+%      \resizebox{0.4\textwidth}{!}{\includegraphics{SGOsimS.pdf}}
       % 
       %\smallskip%
       \\
@@ -1085,14 +930,14 @@ for the labels.
         \put(0.0,0.8){\makebox{\normalsize\textbf{(c)}}}
       \end{picture}%
       \hspace{2em}
-%      \resizebox{0.4\textwidth}{!}{\includegraphics{figs/SGOsimY.pdf}}%
+%      \resizebox{0.4\textwidth}{!}{\includegraphics{SGOsimY.pdf}}%
       \smallskip%
       &
       \begin{picture}(0,0)
         \put(0.0,0.8){\makebox{\normalsize\textbf{(d)}}}
       \end{picture}%
       \hspace{2em}
-%      \resizebox{0.4\textwidth}{!}{\includegraphics{figs/SGOdecodeS.pdf}}%
+%      \resizebox{0.4\textwidth}{!}{\includegraphics{SGOdecodeS.pdf}}%
       %\smallskip%
       \\
       \begin{picture}(0,0)
@@ -1104,7 +949,7 @@ for the labels.
         \def\prbd{$0.5$}%
         \def\lbla{\parbox[t]{1.8in}{$\mu=-2$\\$\sigma=2$}}%
         \def\lblb{\parbox[t]{1.8in}{$\mu=2$\\$\sigma=2$}}%
-%        \input{figs/SGO.pdf_t}
+%        \input{SGO.pdf_t}
       }&
       \begin{picture}(0,0)
         \put(-0.1,0.8){\makebox{\normalsize\textbf{(f)}}}
@@ -1115,7 +960,7 @@ for the labels.
         \def\prbd{$0.88$}%
         \def\lbla{\parbox[t]{1.8in}{$\mu=-0.74$\\$\sigma=1.05$}}%
         \def\lblb{\parbox[t]{1.8in}{$\mu=1.17$\\$\sigma=1.13$}}%
-%        \input{figs/SGO.pdf_t}
+%        \input{SGO.pdf_t}
       }
       \end{tabular}}
     \caption[An HMM with scalar Gaussian
@@ -1154,7 +999,7 @@ Figure~\ref{fig:MLEfail} is an xfig drawing.
         \def\prbd{$0.5$}%
         \def\lbla{\parbox[t]{1.8in}{$\mu=0.0$\\$\sigma=4.0$}}%
         \def\lblb{\parbox[t]{1.8in}{$\mu=3.6$\\$\sigma=0.126$}}%
-%        \input{figs/SGO.pdf_t}
+%        \input{SGO.pdf_t}
       }&
       \begin{picture}(0,0)
         \put(-0.1,0.8){\makebox{\normalsize\textbf{(b)}}}
@@ -1165,7 +1010,7 @@ Figure~\ref{fig:MLEfail} is an xfig drawing.
         \def\prbd{$0.0$}%
         \def\lbla{\parbox[t]{1.8in}{$\mu=-0.08$\\$\sigma=1.38$}}%
         \def\lblb{\parbox[t]{1.8in}{$\mu=3.60$\\$\sigma=0.08$}}%
-%        \input{figs/SGO.pdf_t}
+%        \input{SGO.pdf_t}
       }%
     \end{tabular}}%
   \caption[An illustration of trouble with
@@ -1186,7 +1031,7 @@ It takes 11 minutes for VStatePic.py to make the state data for
 Fig.~\ref{fig:VARGstates} from data/lorenz.xyz.
 \begin{figure}[p]
   \centering{\plotsize%
-%    \includegraphics[width=1.0\textwidth]{figs/VARGstates.pdf}
+%    \includegraphics[width=1.0\textwidth]{VARGstates.pdf}
   }
   \caption[Vector autoregressive observation models.]%
   {Plots of decoded states using an HMM with vector autoregressive
@@ -1222,7 +1067,7 @@ way the old ones look.  The script ToyA.py makes the figures from the
 data.
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{figs/ToyTS.pdf}}
+%    \resizebox{\textwidth}{!}{\includegraphics{ToyTS.pdf}}
   }
   \caption[Extended Kalman filter for one step forecasting.]%
     {Extended Kalman filter for one step forecasting with simulation
@@ -1249,7 +1094,7 @@ data.
 %%%
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{figs/ToyStretch.pdf}}
+%    \resizebox{\textwidth}{!}{\includegraphics{ToyStretch.pdf}}
   }
   \caption[Dynamical stretching increases state variance.]%
   {These plots illustrate dynamical stretching increasing the variance
@@ -1279,9 +1124,6 @@ data.
   \label{fig:ToyStretch}
 \end{figure}
 
-It takes an hour and 28 minutes for Hsurvey.py to make data/Hsurvey
-and data/HtauS.  I use gnuplot with Hsurvey.gpt to make
-Fig.~\ref{fig:ToyH} from those data files.
 \begin{figure}[htbp]
   \centering{\plotsize%
     \def\tsa{$\Tsamp$}%
@@ -1290,7 +1132,7 @@ Fig.~\ref{fig:ToyH} from those data files.
     \def\y#1{\mbox{\kern-1.0em\lower2.0ex\hbox{$#1$}}}%
     \def\tsb{\mbox{\lower6.0ex\hbox{$\Tsamp$}}}%
     \def\ailly{$-\hat h$}%
-%    \input{figs/ToyH.pdf_t}
+%    \input{ToyH.pdf_t}
   }
   \caption[Average log likelihood of one step forecasts.]%
   {Average log likelihood of one step forecasts as a function of time
@@ -1346,7 +1188,7 @@ three xfig drawings.
     \def\Mfour{$ \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} $}%
     \def\Mfive{$ \begin{bmatrix} 5 & 0.15 \\ 0 & 0.2 \end{bmatrix} $}%
     \def\Msix{$ \begin{bmatrix}3 & 0.25 \\ -4 & 0 \end{bmatrix} $}%
-%     \input{figs/QR.pdf_t}
+     \input{QR.pdf_t}
   }
   \caption[The action of the $Q$ $R$ factors of a matrix on a unit square.]%
   {The action of the $Q$ $R$ factors of a matrix on a unit square.
@@ -1365,10 +1207,6 @@ three xfig drawings.
   \label{fig:QR}
 \end{figure}
 
-Figure~\ref{fig:benettin} uses the file data/benettin which takes
-eleven minutes for LyapPlot.py to make.  I use gnuplot and
-LyapPlot.gpt to translate the data into benettin.pdf.
-three xfig drawings.
 \begin{figure}[htb]
   \centering{\plotsize%
     \def\NFp{95\%}%
@@ -1378,7 +1216,7 @@ three xfig drawings.
     \def\Fp{5\%}%
     \def\ylabel{$\hat\lambda(t)$}%
     \def\t{$t$}%
-%    \input{figs/benettin.pdf_t}
+%    \input{benettin.pdf_t}
   }
   \caption[Lyapunov exponent calculation for
   the Lorenz system.]%
@@ -1404,10 +1242,8 @@ three xfig drawings.
 \section{Approaching the Bound}
 \label{sec:approach}
 
-It takes three hours and 55 minutes for Sparse\_hmm\_lor.py to make
-data/LikeLor.  I use gnuplot and LikeLor.gpt to make
 Fig.~\ref{fig:LikeLor} from the data.  Note: To make this figure you
-need to have at least two gigabytes of RAM.
+must have at least two gigabytes of RAM.
 \begin{figure}[htbp]
   \centering{
     \resizebox{\textwidth}{!}{\includegraphics{LikeLor.pdf}}
@@ -1434,12 +1270,6 @@ need to have at least two gigabytes of RAM.
 
 \chapter{Obstructive Sleep Apnea}
 \label{chap:apnea}
-
-The script apnea\_ts\_plots.py uses pylab to make
-Figs.~\ref{fig:a03erA} - \ref{fig:ApneaNLD}.  While the heart rate data for
-these figures comes from *.lphr files that the script rr2hr.py
-creates from *.Rtimes files, I derived the rest of the data directly
-from PhysioNet files using the PhysioNet's WFDB software.
 
 \section{The  Challenge and the Data}
 \label{sec:challenge}
@@ -1503,8 +1333,6 @@ from PhysioNet files using the PhysioNet's WFDB software.
 \subsection{The Excellent Eye of Dr.\ McNames}
 \label{sec:mcnames}
 
-The script apnea\_sgram.py uses pylab to make Fig.~\ref{fig:sgram} from
-a11.Rtimes.  The pylab function specgram makes the spectrogram.
 \begin{figure}
   \centering{
     \resizebox{\textwidth}{!}{\includegraphics{sgram.pdf}}
@@ -1521,9 +1349,72 @@ a11.Rtimes.  The pylab function specgram makes the spectrogram.
     respiration.}
   \label{fig:sgram}
 \end{figure}
-
+\afterpage{\clearpage} % Flush floate
+\newpage
 \section{Decoding Sequences of Classifications}
 \label{sec:V4Class}
+
+In the book I presented the algorithm described
+in Fig.~\ref{fig:viterbiC} and claimed that given an observation sequence
+$y_1^T$ it finds the \emph{best} classification sequence, $\hat c_1^T$,
+in a number of computations that is linear in $T$.  By best, I mean
+\begin{equation*}
+  \hat c_1^T \equiv \argmax_{c_1^T} P(y_1^T,c_1^T)
+\end{equation*}
+In 2013, as I was developing a test suite for a new version of the
+software, I discovered a configuration for which the algorithm
+a \emph{possible} classification sequence even though it was using the
+model that generated the test data.
+
+Examining the failure, I discovered that for each of the ``best''
+class histories ending in each of the classes at time $t=493$, the
+conditional state probability given that class history assigned a
+probability of 0 to state 2.  However, at time $t=494$, the only state
+that could produce $y(494)$ required that $s(493)=2$.  Thus the
+algorithm calculated $P(y_1^{494}, \hat c_1^{494}) = 0$ and died.
+
+I had designed the algorithm thinking that the class sequence was
+Markov and that future evidence could not change what was the best
+history leading to any class.  The following drawing makes my error
+obvious.
+\begin{center}
+  \resizebox{0.75\columnwidth}{!}{\input{class_net.pdf_t}}
+\end{center}
+Blocking out $s_{t+1}$ separates the past from the future, but
+blocking out $c_{t+1}$ doesn't.
+
+Thus to avoid discarding a class history that may at later times
+become the first portion of the \emph{best} class sequence, one must
+keep \emph{all} class histories.  Unfortunately the number of such
+histories is exponential in sequence length $t$, and there are too
+many to retain for most realistic applications.
+\subsection{Finding a \emph{Pretty Good Class} Sequence}
+\label{sec:prettygood}
+
+Rather than finding the \emph{best} class sequence given a sequence of
+observations $y_1^T$, I now have an algorithm that finds a \emph{good}
+one.  At each time $t$, I keep a limited collection of class histories
+which I build in the following three steps:
+\begin{description}
+\item[Step 1, Propagate and Sort:] I take the histories I've retained
+  at time $t-1$ and use all possible successors to create a list of
+  histories at time $t$, then I sort those histories by
+  $P(y_1^{t},c_1^{t})$.
+\item[Step 1, Prune:] Initially, I limit the collection using the
+  smallest of the following criteria:
+  \begin{itemize}
+  \item The total number of histories is at most $N_{\text{max}}$
+  \item I don't keep histories $c_1^t$ if
+    $\frac{P(y_1^{t},c_1^{t})}{P(y_1^{t},\bar c_1^{t})} <
+    R_{\text{min}}$ where $\bar c_1^t$ is the best class history in
+    the sorted list.
+  \end{itemize}
+\item[Step 3, Augment:] For each state $s(t)$ that is impossible given
+  the histories saved so far, if there are discarded histories for
+  which $s(t)$ is possible, I save the one that comes first in the
+  sorted list.
+\end{description}
+
 
 %
 \begin{figure}[htbp]
@@ -1560,9 +1451,10 @@ a11.Rtimes.  The pylab function specgram makes the spectrogram.
 	\end{tabbing}
       \end{minipage}
     }
-    \caption[Pseudocode for the Viterbi
-    Algorithm for class sequences.]%
-    {Pseudocode for the Viterbi Algorithm for class sequences}
+    \caption[\textbf{This algorithm does not work!}  In the book, this
+    figure was entitled \emph{Pseudocode for the Viterbi Algorithm}.]%
+    {\textbf{This algorithm does not work!}  In the book, this
+    figure was entitled \emph{Pseudocode for the Viterbi Algorithm}.}
     \label{fig:viterbiC}
   \end{center}
 \end{figure}
@@ -1573,16 +1465,9 @@ a11.Rtimes.  The pylab function specgram makes the spectrogram.
 \subsection{Extracting a Low Pass Filtered Heart Rate}
 \label{sec:LPHR}
 
-The script rr2hr.py takes about a minute to process the data in the
-data/Apnea/*.Rtimes files to make all of the data/Apnea/*.lphr files.
-
 \subsection{Extracting Respiration Information}
 \label{sec:RESP}
 
-The script respire.py uses the data in the data/Apnea/*Rtimes files to
-make all of the data/Apnea/*.resp files and the
-files mean.resp, AA.resp, AN.resp, and C.resp for Fig.~\ref{fig:LDA}.
-It takes 34 minutes and 1.8 GB of RAM.
 \begin{figure}
   \centering{
     \resizebox{0.65\textwidth}{!}{\includegraphics{LDA1.pdf}}
@@ -1606,18 +1491,9 @@ It takes 34 minutes and 1.8 GB of RAM.
 \subsection{Classifying Records}
 \label{sec:ClassRec}
 
-Figure~\ref{fig:class1} is not exactly like the figure in the book.
-The results of the new software are enough different from the results
-of the old software to concern me.  I will put more effort into
-understanding the difference.  The prerequisites for making
-Fig.~\ref{fig:class1} include all of the *.resp and *.lphr files and
-the HMM model files mod\_A, mod\_C, mod\_L, mod\_M, and mod\_H.  The
-script DoubleClassify.py with the flag --Single makes data files
-pass1A, pass1B, pass1C, and pass1X that class1.py uses to create the
-figure.
 \begin{figure}[tbhp]
   \centering{
-%      \resizebox{\textwidth}{!}{\includegraphics{figs/class1.pdf}}
+%      \resizebox{\textwidth}{!}{\includegraphics{class1.pdf}}
   }
   \caption[The first pass classifier]%
   {The first pass classifier.  I've plotted the location of each
@@ -1661,7 +1537,7 @@ Figure~\ref{fig:structure} is a simple xfig drawing.
     \def\nfive{$N_{P12}$}%
     \def\ModH{\large$Mod_H$}%
     \def\ModL{\large$Mod_M$ and $Mod_L$}%
-%     \input{figs/structure.pdf_t}
+    \input{structure.pdf_t}
   }
   \caption[Structure of HMMs for minute by minute classification]%
   {Structure of HMMs for minute by minute classification in the second
@@ -1675,15 +1551,15 @@ Figure~\ref{fig:structure} is a simple xfig drawing.
 \subsection{Tunable Parameters}
 \label{sec:tune}
 %
-It takes more than two days to make the data for
-Fig.~\ref{fig:PFsurvey}.  To let readers avoid that delay, I've
-included the data in the source package.  If you want to build the
-data, simply remove data/PFsurveyH, make data/PFsurveyH and copy it to
-data/PFsurvey.
+It takes a long time make the data for Fig.~\ref{fig:PFsurvey}.  To
+let readers avoid that delay, I've included the data in the source
+package.  If you want to build the data, simply remove data/PFsurveyH,
+make data/PFsurveyH and copy it to data/PFsurvey.
 \begin{figure}
   \centering{
     \resizebox{1.0\textwidth}{!}{
-      \includegraphics[trim = 40mm 10mm 10mm 10mm ]{pf_H.pdf}}
+%      \includegraphics[trim = 40mm 10mm 10mm 10mm ]{pf_H.pdf}
+    }
   }
   \caption[The response of classification performance to changes in \emph{Pow} and \emph{Fudge}]%
   {The response of classification performance to changes in \emph{Pow}
@@ -1809,6 +1685,12 @@ not reflect the performance of the new code.
 %
 
 \end{document}
+
+Unused: figs/ScalarGaussian.pdf_t figs/sgauss1.pdf_t
+figs/sgauss2.pdf_t figs/ToyCross.pdf_t figs/ToyPractical.pdf_t
+
+
+
 %%% Local Variables:
 %%% eval: (TeX-PDF-mode)
 %%% End:

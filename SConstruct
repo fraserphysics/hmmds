@@ -22,16 +22,17 @@ http://www.scons.org/wiki/LatexSupport
 
 def build_pdf_t(target, source, env):
     ''' Written for the fig2pdf Builder, this function runs fig2dev
-    twice on an x-fig source.  Prolly belongs in plotscript dir.
+    twice on an xfig source.  Prolly belongs in plotscript dir.
     "target" is two Nodes [*.pdf, *.pdf_t]
     "source" is single Node [*.fig]
     '''
     import subprocess
+    from os.path import basename
     x_fig = str(source[0])
     x_pdf = str(target[0])
     x_pdf_t = str(target[1])
     subprocess.call(['fig2dev', '-L', 'pdftex', x_fig, x_pdf])
-    subprocess.call(['fig2dev', '-L', 'pdftex_t', '-p', x_pdf, x_fig, x_pdf_t])
+    subprocess.call(['fig2dev', '-L', 'pdftex_t', '-p', basename(x_pdf), x_fig, x_pdf_t])
     return None
 
 '''fig2pdf is a SCons Builder for making "%.pdf" and "%.pdf_t" from
@@ -48,6 +49,7 @@ CH  = lambda file: join(GetLaunchDir(),'code/hmm/',file)
 CAS = lambda file: join(GetLaunchDir(),'code/applications/synthetic/', file)
 CAA = lambda file: join(GetLaunchDir(),'code/applications/apnea/', file)
 CPS = lambda file: join(GetLaunchDir(),'code/plotscripts/', file)
+CXF = lambda file: join(GetLaunchDir(),'code/xfigs/', file)
 DDS = lambda file: join(GetLaunchDir(),'derived_data/synthetic/', file)
 DDA = lambda file: join(GetLaunchDir(),'derived_data/apnea/', file)
 RDA = lambda file: join(GetLaunchDir(),'raw_data/apnea/', file)
@@ -100,6 +102,7 @@ def BUILD2(target, source, env):
 SConscript(CAS('SConscript'), exports='CH DDS KEY BUILD')           # Synthetic
 SConscript(CAA('SConscript'), exports='DDA RDA KEY BUILD')          # Apnea
 SConscript(CPS('SConscript'), exports='DDA DDS RDA FIG KEY BUILD2') # plots
+SConscript(CXF('SConscript'), exports='fig2pdf FIG') # xfigs
 
 # The remaining code fragments are so small that I have not put them
 # in SConscript files.

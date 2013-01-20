@@ -472,36 +472,6 @@ class Class_y(Discrete_Observations):
         """
         self.y_mod.reestimate(w, cy[1:])
         return
-class ClassHistory:
-    ''' For keeping track of good class histories
-    To sort a list of histories: L.sort(key=lambda x: x.score)
-    '''
-    def __init__(self, path, phi, score, c2s, P_SS):
-        self.path = path    # Sequence of past classes
-        self.phi = phi      # phi[s] = P(s|y_0^t,path)
-        self.score = score  # log(P(y_0^t|path))
-        self.c2s = c2s      # c2s[c,s] = 1 if class c contains state s
-        self.P_SS = P_SS    # P_SS[a,b] = P(b|a)
-        return
-    def fork(self, # ClassHistory instance
-             P_Y   # P_Y[s] = P(y(t)|s
-    ):
-        ''' Make and return a list of children
-        '''
-        import math
-
-        n_classes, n_states = self.c2s.shape
-        children = []
-        phi = self.c2s*(np.dot(self.phi, self.P_SS)*P_Y)
-        for c in range(n_classes):
-            path = self.path + (c,)
-            s = phi[c].sum()
-            assert s <= 1
-            if s > 0:
-                score = math.log(s) + self.score
-                children.append(
-                    ClassHistory(path, phi[c]/s, score, self.c2s, self.P_SS))
-        return children # Try yield
 def _test():
     import base
     P_S0 = [0.67, 0.33]

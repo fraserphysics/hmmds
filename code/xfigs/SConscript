@@ -1,0 +1,13 @@
+Import('fig2pdf FIG')
+
+from os import listdir
+env=Environment()
+env['BUILDERS']['Fig'] = fig2pdf
+for name in listdir('.'):
+    if name.endswith('.fig'):
+        root = name.split('.')[0]
+        env.Fig([FIG(root+'.pdf'),FIG(root+'.pdf_t')], name)
+
+#Local Variables:
+#mode:python
+#End:
