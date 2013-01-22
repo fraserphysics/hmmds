@@ -3,7 +3,7 @@
 Scripts in this directory plot data that other code produced.  They
 should not write anything except the resulting plots.
 '''
-Import('DDA DDS RDA FIG KEY BUILD2')
+Import('DDL DDA DDS RDA FIG KEY BUILD2')
 
 from os.path import join
 root = lambda x: join(GetLaunchDir(), x)
@@ -51,6 +51,12 @@ env.Command(target, source, BUILD2)
 target = (FIG('Statesintro.pdf'),)
 source = ['stateplot.py', DDS('states')]+[DDS('state%s'%x) for x in range(12)]
 env.args[KEY(target)] = (DDS(''), 'state', FIG('Statesintro.pdf'))
+env.Command(target, source, BUILD2)
+
+roots = ('LaserLP5', 'LaserForecast', 'LaserHist')# LaserLogLike LaserStates
+target = tuple(FIG(x+'.pdf') for x in roots)
+source = ('laser.py',) + tuple(DDL(x) for x in roots)
+env.args[KEY(target)] = tuple('--%s'%x for x in roots)+(DDL(''), FIG(''))
 env.Command(target, source, BUILD2)
 
 #Local Variables:

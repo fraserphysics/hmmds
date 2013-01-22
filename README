@@ -70,6 +70,8 @@ To do:
     pickle works without including  "/home/andy/..../hmm/" in
     PYTHONPATH
 
+-4. Test functions for EKF.  Make EKF independent of lorenz.
+
 # Local Variables:
 # mode: text
 # End:

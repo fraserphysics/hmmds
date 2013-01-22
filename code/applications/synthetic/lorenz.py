@@ -28,11 +28,29 @@ Lsteps, Ltan_steps, Ltan_one
 import sys, numpy as np
 
 def F(x,t,s,b,r):
+    ''' Lorenz vector field
+    '''
     return np.array([
         s*(x[1]-x[0]),
         x[0]*(r - x[2])-x[1],
         x[0]*x[1]-b*x[2]
         ])
+def F_tan(
+        x_aug, # 12 dimensional augmented vector 
+        t, s, b, r):
+    ''' Lorenz vector field augmented with tangent space
+    '''
+    rv = np.empty(12)
+    x = x_aug[:3]
+    rv[:3] = F(x, t, s, b, r)
+
+    DF = np.array([ # The derivative of F wrt x
+        [-s,     s,    0],
+        [r-x[2], -1,   -x[0]],
+        [x[1],   x[0], -b]])
+    D = x_aug[3:].reshape((3,3))
+    rv[3:] = np.dot(DF,D).reshape(-1)
+    return rv
 def Lsteps(IC,      # IC[0:3] is the initial condition
            f,       # Function that evaluates derivitive
            s, b, r, # These are the Lorenz parameters
@@ -62,6 +80,36 @@ def Lsteps(IC,      # IC[0:3] is the initial condition
     from scipy.integrate import odeint
     t = np.arange(N_steps,dtype=float)*T_step
     return odeint(f, np.array(IC), t, args=(s,b,r))
+def Ltan_steps(IC,       # IC[0:12] is the initial condition
+               s, b, r,  # These are the Lorenz parameters
+               T_step,   # The time between returned samples
+               N_steps
+               ):
+    """ Return RV[0:N_steps+1,0:4,0:3) where RV[t,0,0:3] is the initial x
+    vector and RV[t,1:4,0:3] is the derivative after integrating t time
+    steps.
+    """
+    from scipy.integrate import odeint
+    t = np.arange(N_steps,dtype=float)*T_step
+    return odeint(F_tan, np.array(IC), t, args=(s,b,r))
+def Ltan_one(IC,       # IC[0:3] is the initial condition
+             s, b, r,  # These are the Lorenz parameters
+             T_step    # The time step
+             ):
+    """ Integrate initial condition IC and the tangent (initialize here as
+    identity) one step.  Return a pair consisting of the final
+    location x(t) and the derivative D.
+    """
+    IC_4_3 = np.zeros((4,3),np.float64)
+    IC_4_3[0,0:3] = IC
+    IC_4_3[1,0] = 1.0
+    IC_4_3[2,1] = 1.0
+    IC_4_3[3,2] = 1.0
+    RV2 = Ltan_steps(IC_4_3.reshape(-1),s,b,r,T_step,2)
+    RV = RV2[1]
+    X = RV[0:3]
+    D = RV[3:].reshape((3,3))
+    return X,D
 def main(argv=None):
     '''Writes time series to files specified by options --xyzfile and or
     --quantfile.  If neither is specified, simpy runs doctest.

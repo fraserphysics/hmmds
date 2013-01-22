@@ -183,7 +183,7 @@ the file data/LaserLP5.  The optimization takes about 6 minutes.  The
 script Laser\_plots.py makes figs/LaserLP5.pdf from data/LaserLP5.
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{LaserLP5.pdf}}
+    \resizebox{\textwidth}{!}{\includegraphics{LaserLP5.pdf}}
   }
   \caption[Laser intensity measurements.]%
   {Laser intensity measurements.  The trace labeled \emph{Laser} is a
@@ -238,7 +238,7 @@ I hope to rework the optimization code yet again to find a stable
 period five orbit that matches the data.
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{LaserForecast.pdf}}
+    \resizebox{\textwidth}{!}{\includegraphics{LaserForecast.pdf}}
   }
   \caption[Forecast observation sequence.]%
   {Forecast observation sequence.  I set the noise terms $\eta$ and
@@ -880,7 +880,7 @@ Laser\_plots.py uses pylab to make Fig.~\ref{fig:LaserHist} directly
 from Tang's file data/LP5.DAT.
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{LaserHist.pdf}}
+    \resizebox{\textwidth}{!}{\includegraphics{LaserHist.pdf}}
   }
   \caption[Histogram of Tang's laser measurements.]%
   {Histogram of Tang's laser measurements.  Even though neither $y=5$
@@ -1362,9 +1362,9 @@ in a number of computations that is linear in $T$.  By best, I mean
   \hat c_1^T \equiv \argmax_{c_1^T} P(y_1^T,c_1^T)
 \end{equation*}
 In 2013, as I was developing a test suite for a new version of the
-software, I discovered a configuration for which the algorithm
-a \emph{possible} classification sequence even though it was using the
-model that generated the test data.
+software, I discovered a configuration for which the algorithm failed
+to find a \emph{possible} classification sequence even though it was
+using the model that generated the test data.
 
 Examining the failure, I discovered that for each of the ``best''
 class histories ending in each of the classes at time $t=493$, the
@@ -1453,8 +1453,9 @@ which I build in the following three steps:
     }
     \caption[\textbf{This algorithm does not work!}  In the book, this
     figure was entitled \emph{Pseudocode for the Viterbi Algorithm}.]%
-    {\textbf{This algorithm does not work!}  In the book, this
-    figure was entitled \emph{Pseudocode for the Viterbi Algorithm}.}
+    {\textbf{This algorithm does not work!}  In the book, this figure
+      was entitled \emph{Pseudocode for the Viterbi algorithm for
+        class sequences}.}
     \label{fig:viterbiC}
   \end{center}
 \end{figure}
