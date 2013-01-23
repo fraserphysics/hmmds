@@ -165,6 +165,7 @@ def LaserStates(data_dir, Nt, O_Par):
     for x in aM:
         print(x.A[0,0],x.A[2,0], file=f)
     f.close()
+    return aM
 def forecast(data_dir, Nt, Nf, ic, s, b, r, ts, scale, offset):
     X = lorenz.Lsteps(ic, lorenz.F, s,b,r,ts,Nf+1)
     f = open(join(data_dir,'LaserForecast'),'w')
@@ -267,7 +268,7 @@ def main(argv=None):
     assert len(argv) == 2
     in_name, result_dir = argv
 
-    global Y
+    global Y, Nt
     Nt = 250
     # Read the input data.  The first and last line are not data, skip them
     Y = [int(x.split()[1]) for x in (open(in_name,'r').readlines())[1:-1]]
@@ -275,15 +276,16 @@ def main(argv=None):
     # takes about 8 minutes
     Params = LaserLP5(result_dir)
     hist(result_dir) # Write histogram of first 600 samples
+    # 8 minutes (0:08) to get opt_250_results. 2:18 to get opt_Fixed_results
     O_Par = Optimize(result_dir, Params)
     print('After Optimize():')
     P_print(O_Par)
-    LaserStates(result_dir, Nt, O_Par)
-    ic = O_Par[:3]
+    aM = LaserStates(result_dir, Nt, O_Par)
+    ic = numpy.array(aM[-1]).flatten()
     r, s, b, ts, offset, scale, dev_epsilon, dev_eta = O_Par[3:]
     forecast(result_dir, Nt, 400, ic, s, b, r, ts, scale, offset)
     # LaserLogLike takes 48 minutes
-    #LaserLogLike(result_dir, O_Par, 5, Nt)
+    LaserLogLike(result_dir, O_Par, 5, Nt)
 if __name__ == "__main__":
     sys.exit(main(argv=('../../../raw_data/LP5.DAT', 
                         '../../../derived_data/laser/')))

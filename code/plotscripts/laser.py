@@ -64,6 +64,8 @@ def main(argv=None):
     else:
         mpl.use('PDF')
     import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D # for  "projection='3d'".
+
     _dict = globals()
     for key in args.__dict__:
         if key not in _dict or args.__dict__[key] is False:
@@ -134,6 +136,40 @@ def read_data(data_file):
     f.close()
     return np.array(data).T
 
+def read_xyz(data_file):
+    f = file(data_file, 'r')
+    x_dict = {}
+    y_dict = {}
+    xs = []
+    ys = []
+    z_dict = {}
+    for line in f.xreadlines():
+        parts = line.split()
+        if len(parts) != 3:
+            continue
+        x, y, z = tuple(float(x) for x in parts)
+        ij = []
+        for _dict, _list, w in ((x_dict, xs, x), (y_dict, ys, y)):
+            if not _dict.has_key(w):
+                _dict[w] = len(_dict)
+                _list.append(w)
+            ij.append(_dict[w])
+        z_dict[tuple(ij)] = z
+    zs = np.empty((len(xs),len(ys)))
+    for ij, z in z_dict.items():
+        i, j = ij
+        zs[i,j] = z
+    f.close()
+    return np.array(xs), np.array(ys), zs
+def LaserStates(data_dir):
+    data = read_data(join(data_dir,'LaserStates'))
+    fig = plt.figure(figsize=(6,6))
+    X = axis(data=data[0], magnitude=False, label='$x_1$')
+    Y = axis(data=data[1], magnitude=False, label='$x_3$')
+    ax = SubPlot(fig,(1,1,1),X,Y, color='b', label='Laser')
+    fig.subplots_adjust(bottom=0.12) # Make more space for label
+    return fig
+
 def LaserLP5(data_dir):
     data = read_data(join(data_dir,'LaserLP5'))
     fig = plt.figure(figsize=(7,5))
@@ -155,7 +191,7 @@ def LaserForecast(data_dir):
     Y = axis(data=data[1], magnitude=False, label='y(t)',
              ticks=np.arange(50,256,100))
     ax = SubPlot(fig,(1,1,1),X,Y, color='b', label='Laser')
-    #ax.plot(X.get_data(), data[2], 'r:', label='Forecast')
+    ax.plot(X.get_data(), data[2], 'r:', label='Forecast')
     ax.legend()
     fig.subplots_adjust(bottom=0.12) # Make more space for label
     return fig
@@ -170,6 +206,20 @@ def LaserHist(data_dir):
     ax.set_xlabel('$x$')
     ax.set_xticks([0,5,50,93,100])
     fig.subplots_adjust(bottom=0.12) # Make more space for label
+    return fig
+
+def LaserLogLike(data_dir):
+    fig = plt.figure(figsize=(12,8))
+    ax = fig.add_subplot(1, 1, 1, projection='3d', azim=-13, elev=20)
+    ax.set_xlabel('$s$')
+    ax.set_ylabel('$b$')
+    ax.set_zlabel(r'$\log(P(y_1^{250}|\theta))$')
+    xs, ys, zs = read_xyz(join(data_dir,'LaserLogLike'))
+    X, Y = np.meshgrid(xs, ys)
+    surf = ax.plot_surface(X, Y, zs, rstride=1, cstride=1, cmap=mpl.cm.hsv,
+                           linewidth=1)
+    ax.set_yticks(np.arange(0.358, 0.360, 0.002))
+    ax.set_zticks(np.arange(-464.5, -463.0, 0.5))
     return fig
 
 if __name__ == "__main__":

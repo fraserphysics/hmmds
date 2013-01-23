@@ -201,12 +201,8 @@ script Laser\_plots.py makes figs/LaserLP5.pdf from data/LaserLP5.
 \end{figure}
 
 \begin{figure}[htbp]
-  \centering{\plotsize%
-    \def\l#1{\mbox{\lower1.5ex\hbox{$#1$}}}%
-    \def\s{\mbox{\kern2.0em\lower2.0ex\hbox{$s$}}}%
-    \def\b{\mbox{\lower1.5ex\hbox{$b$}}}%
-    \def\LogLikely{$\log\left(P(\ts{y}{1}{250}|\theta) \right)$}%
-%    \input{LaserLogLike.pdf_t}
+  \centering{
+    \resizebox{\textwidth}{!}{\includegraphics{LaserLogLike.pdf}}
   }
   \caption{Log likelihood as function of $s$ and $b$.  Other parameters were
     taken from the vector $\hat \theta$ that maximizes the likelihood
@@ -219,7 +215,7 @@ data for Figs.\ref{fig:LaserStates}, \ref{fig:LaserForecast}, and
 \ref{fig:LaserHist} are made in less than a minute.
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{LaserStates.pdf}}
+    \resizebox{\textwidth}{!}{\includegraphics{LaserStates.pdf}}
   }
   \caption[State trajectory $\ts{\hat
     x}{1}{250}$.]%
@@ -1559,7 +1555,7 @@ make data/PFsurveyH and copy it to data/PFsurvey.
 \begin{figure}
   \centering{
     \resizebox{1.0\textwidth}{!}{
-%      \includegraphics[trim = 40mm 10mm 10mm 10mm ]{pf_H.pdf}
+      \includegraphics[trim = 40mm 10mm 10mm 10mm ]{pf_H.pdf}
     }
   }
   \caption[The response of classification performance to changes in \emph{Pow} and \emph{Fudge}]%

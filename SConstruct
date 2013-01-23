@@ -52,6 +52,7 @@ CPS = lambda file: join(GetLaunchDir(),'code/plotscripts/', file)
 CXF = lambda file: join(GetLaunchDir(),'code/xfigs/', file)
 DDS = lambda file: join(GetLaunchDir(),'derived_data/synthetic/', file)
 DDA = lambda file: join(GetLaunchDir(),'derived_data/apnea/', file)
+DDL = lambda file: join(GetLaunchDir(),'derived_data/laser/', file)
 RDA = lambda file: join(GetLaunchDir(),'raw_data/apnea/', file)
 FIG = lambda file: join(GetLaunchDir(),'figs', file)
 
@@ -101,7 +102,7 @@ def BUILD2(target, source, env):
 
 SConscript(CAS('SConscript'), exports='CH DDS KEY BUILD')           # Synthetic
 SConscript(CAA('SConscript'), exports='DDA RDA KEY BUILD')          # Apnea
-SConscript(CPS('SConscript'), exports='DDA DDS RDA FIG KEY BUILD2') # plots
+SConscript(CPS('SConscript'), exports='DDL DDA DDS RDA FIG KEY BUILD2') # plots
 SConscript(CXF('SConscript'), exports='fig2pdf FIG') # xfigs
 
 # The remaining code fragments are so small that I have not put them

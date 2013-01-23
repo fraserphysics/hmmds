@@ -62,6 +62,18 @@ To do:
 
 5. Make the rest of the figures in the book
 
+   Parts of speech table
+   TrainChar
+   GaussMix
+   Fig. 2.8
+   ScalarGaussian
+   MLEfail
+   VARGstates
+   ToyTS1
+   ToyStretch
+   ToyH
+   benettin
+
 -1. Get 2 axes rather than box for matplotlib plots and kill boxes on legends
 
 -2. Remember bug in argparse that makes empty file at default argument
