@@ -149,6 +149,22 @@ def make_prob(x):
     x = np.array(x)
     return Prob(x.shape, buffer=x.data)
 
+def make_random(shape):
+        '''
+        Make random Prob of given shape
+
+        Parameters
+        ----------
+        shape
+
+        Returns
+        -------
+        p
+        '''
+        from numpy.random import random
+        P = make_prob(random(shape))
+        P.normalize()
+        return P
 class Discrete_Observations:
     '''The simplest observation model: A finite set of integers.
 

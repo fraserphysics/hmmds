@@ -48,11 +48,14 @@ C  = lambda file: join(GetLaunchDir(),'code/',file)
 CH  = lambda file: join(GetLaunchDir(),'code/hmm/',file)
 CAS = lambda file: join(GetLaunchDir(),'code/applications/synthetic/', file)
 CAA = lambda file: join(GetLaunchDir(),'code/applications/apnea/', file)
+CAO = lambda file: join(GetLaunchDir(),'code/applications/other/', file)
 CPS = lambda file: join(GetLaunchDir(),'code/plotscripts/', file)
 CXF = lambda file: join(GetLaunchDir(),'code/xfigs/', file)
+DD = lambda file: join(GetLaunchDir(),'derived_data/', file)
 DDS = lambda file: join(GetLaunchDir(),'derived_data/synthetic/', file)
 DDA = lambda file: join(GetLaunchDir(),'derived_data/apnea/', file)
 DDL = lambda file: join(GetLaunchDir(),'derived_data/laser/', file)
+RD = lambda file: join(GetLaunchDir(),'raw_data/', file)
 RDA = lambda file: join(GetLaunchDir(),'raw_data/apnea/', file)
 FIG = lambda file: join(GetLaunchDir(),'figs', file)
 
@@ -102,6 +105,7 @@ def BUILD2(target, source, env):
 
 SConscript(CAS('SConscript'), exports='CH DDS KEY BUILD')           # Synthetic
 SConscript(CAA('SConscript'), exports='DDA RDA KEY BUILD')          # Apnea
+SConscript(CAO('SConscript'), exports='DD RD CH KEY BUILD')         # Other
 SConscript(CPS('SConscript'), exports='DDL DDA DDS RDA FIG KEY BUILD2') # plots
 SConscript(CXF('SConscript'), exports='fig2pdf FIG') # xfigs
 

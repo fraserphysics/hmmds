@@ -62,10 +62,8 @@ To do:
 
 5. Make the rest of the figures in the book
 
-   Parts of speech table
    TrainChar
    GaussMix
-   Fig. 2.8
    ScalarGaussian
    MLEfail
    VARGstates

@@ -59,6 +59,11 @@ source = ('laser.py',) + tuple(DDL(x) for x in roots)
 env.args[KEY(target)] = tuple('--%s'%x for x in roots)+(DDL(''), FIG(''))
 env.Command(target, source, BUILD2)
 
+target = (FIG('EM.pdf'),)
+source = ['EM.py']
+env.args[KEY(target)] = (FIG('EM.pdf'),)
+env.Command(target, source, BUILD2)
+
 #Local Variables:
 #mode:python
 #End:
