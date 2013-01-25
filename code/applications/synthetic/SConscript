@@ -29,6 +29,11 @@ env.args[KEY(target)] = ('--resultfile', target[0], '--exponents', '-2.0',
                          '3.0', '0.5')
 env.Command(target, source, BUILD)
 
+target = (DDS('TrainChar'),)
+source = ('TrainChar.py', DDS('lorenz.4'))
+env.args[KEY(target)] = (source[-1], target[0])
+env.Command(target, source, BUILD)
+
 #---------------
 # Local Variables:
 # eval: (python-mode)

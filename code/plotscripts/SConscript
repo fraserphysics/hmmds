@@ -64,6 +64,11 @@ source = ['EM.py']
 env.args[KEY(target)] = (FIG('EM.pdf'),)
 env.Command(target, source, BUILD2)
 
+target = (FIG('TrainChar.pdf'),)
+source = ('TrainChar.py', DDS('TrainChar'))
+env.args[KEY(target)] = (source[-1], target[0])
+env.Command(target, source, BUILD2)
+
 #Local Variables:
 #mode:python
 #End:

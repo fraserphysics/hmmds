@@ -54,9 +54,7 @@ def main(argv=None):
     if argv is None:                    # Usual case
         argv = sys.argv[1:]
 
-    data_file, figure_file = argv
-    pass1_report, fig_name = argv
-    data = read_data(pass1_report)
+    data_file, fig_name = argv
     params = {'axes.labelsize': 12,
                    'text.fontsize': 10,
                    'legend.fontsize': 10,
@@ -69,7 +67,7 @@ def main(argv=None):
 
     fig = plt.figure(figsize=(9, 6))
     #ax = fig.gca(projection='3d')
-    ax = fig.add_subplot(1, 1, 1, projection='3d', azim=-60, elev=30)
+    ax = fig.add_subplot(1, 1, 1, projection='3d', azim=-75, elev=50)
     ax.set_xlabel('Power')
     ax.set_ylabel('Fudge')
     ax.set_zlabel('Frac. Right')
@@ -86,7 +84,6 @@ def main(argv=None):
     return 0
 
 if __name__ == "__main__":
-    args = ['pf_M', 'pf_M.pdf']
     sys.exit(main())
 # Local Variables:
 # mode: python

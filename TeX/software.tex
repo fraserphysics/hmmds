@@ -367,7 +367,7 @@ magnitude.
         15 -- & \rule{0pt}{2.5ex}Relative pronouns
       \end{tabular}}\\[2.0ex]
       \begin{tabular}{|@{\hspace{0.10em}}r@{\hspace{0.40em}}|*{10}{@{\hspace{0.28em}}l@{\hspace{0.28em}}}|}
-%        \hline \input{data/po_speech} [0.5ex]
+        \hline \input{po_speech} [0.5ex]
         \hline
       \end{tabular}
     }\end{center}
@@ -747,29 +747,27 @@ Fig.~\ref{fig:train} is also obscure straight \LaTeX.
 \label{sec:MultiMax}
 
 \begin{figure}
-  \centering{\plotsize%
-    \def\llps{$\frac{\log \left( P \left(\ts{y}{1}{T}|\ti{\parameters}{n} \right)\right)}{T}$}%
-%    \input{TrainChar.pdf_t}
+  \centering{
+    \resizebox{\textwidth}{!}{\includegraphics{TrainChar.pdf}}
   }
   \caption[Convergence of the Baum-Welch algorithm.]{%
-    Convergence of the Baum-Welch algorithm.  Here I have
-    plotted $\frac{\log \left( P
-        \left(\ts{y}{1}{T}|\ti{\parameters}{n} \right)\right)}{T}$
-    (the log likelihood per step) as a function of the number of
-    iterations $n$ of the Baum-Welch algorithm for five different
-    initial models $\ti{\parameters}{1}$.  I used the same sequence
-    of observations $\ts{y}{1}{T}$ that I used for
-    Fig.~1.9, and I used different seeds for a
-    random number generator to make the five initial models.  Note the
-    following characteristics: The five different initial models all
-    converge to different models with different likelihoods; the curves
-    intersect each other as some models improve more with training
-    than others; convergence is difficult to determine because some
-    curves seem to have converged for many iterations and later rise
-    significantly.  Although it appears that three of the initial
-    models all converge to -0.5, close examination of the data
-    suggests that they are converging to different models with log
-    likelihoods per step of -0.49898, -0.49975, and -0.50275.}
+    Convergence of the Baum-Welch algorithm.  Here I have plotted
+    $\frac{\log \left( P \left(\ts{y}{1}{T}|\ti{\parameters}{n}
+        \right)\right)}{T}$ (the log likelihood per step) as a
+    function of the number of iterations $n$ of the Baum-Welch
+    algorithm for five different initial models $\ti{\parameters}{1}$.
+    I used the same sequence of observations $\ts{y}{1}{T}$ that I
+    used for Fig.~1.9, and I used different seeds for a random number
+    generator to make the five initial models.  Note the following
+    characteristics: The five different initial models all converge to
+    different models with different likelihoods; the curves intersect
+    each other as some models improve more with training than others;
+    convergence is difficult to determine because some curves seem to
+    have converged for many iterations and later rise significantly.
+    Although it appears that three of the initial models all converge
+    to -0.5, close examination of the data suggests that they are
+    converging to different models with different log likelihoods per
+    step.}
   \label{fig:TrainChar}
 \end{figure}
 
@@ -831,25 +829,17 @@ Fig.~\ref{fig:train} is also obscure straight \LaTeX.
 \addtocounter{subsection}{1}
 %\subsection{Monotonicity}
 
+\afterpage{\clearpage} % Flush float
+\newpage
 \subsection{Convergence}
 
 \subsubsection{A contrived example}
 \label{sec:contrived}
 
 \begin{figure}[htbp]
-  \centering
-  {\plotsize%
-    { \def\x#1{\mbox{\lower1.0ex\hbox{$#1$}}}%
-      \def\xlab{\mbox{\lower4.0ex\hbox{$\parameters$}}}%
-      \def\y#1{\mbox{\kern-0.5em\lower1.0ex\hbox{$#1$}}}%
-      \def\ylab{\mbox{\kern-0.5em\lower1.5ex\hbox{$\parametersPrime$}}}%
-      \def\zlab{$Q(\parametersPrime,\parameters)$}%
-%      \input{EM1.pdf_t}
-    }%
-    {\def\xlab{$\parameters$}%
-      \def\ylab{$\EMmap(\parameters)$}%
-%      \input{EM2.pdf_t}
-    }}
+  \centering{
+    \resizebox{\textwidth}{!}{\includegraphics{EM.pdf}}
+  }
   \caption[An illustration of the EM algorithm.]%
   {An illustration of the EM algorithm for an experiment in which a
     coin is thrown four times, first a head is observed
@@ -1345,7 +1335,7 @@ must have at least two gigabytes of RAM.
     respiration.}
   \label{fig:sgram}
 \end{figure}
-\afterpage{\clearpage} % Flush floate
+\afterpage{\clearpage} % Flush float
 \newpage
 \section{Decoding Sequences of Classifications}
 \label{sec:V4Class}
@@ -1558,7 +1548,8 @@ make data/PFsurveyH and copy it to data/PFsurvey.
       \includegraphics[trim = 40mm 10mm 10mm 10mm ]{pf_H.pdf}
     }
   }
-  \caption[The response of classification performance to changes in \emph{Pow} and \emph{Fudge}]%
+  \caption[The response of classification performance to changes in
+  \emph{Pow} and \emph{Fudge}]%
   {The response of classification performance to changes in \emph{Pow}
     and \emph{Fudge}.  I've plotted the performance of $Mod_H$ trained
     and evaluated on the \emph{H} group of records.  As described in
@@ -1566,7 +1557,8 @@ make data/PFsurveyH and copy it to data/PFsurvey.
     pass heart rate signal to the respiration characteristics and
     \emph{Fudge} is a bias for choosing the \emph{normal}
     classification.  The $Z$ axis is the fraction of minutes
-    classified correctly.}
+    classified correctly.  Time to make data: 37 hours, \emph{user
+      2217m6.358s} }
   \label{fig:PFsurvey}
 \end{figure}
 

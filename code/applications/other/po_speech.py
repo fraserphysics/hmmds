@@ -45,8 +45,6 @@ def all2words(all):
         key,count = word_list[n]
         if count <= bottom:
             merge = n
-            print('%%bottom=%d merge=%d len(word_list)=%d'%(
-                bottom,merge,len(word_list)))
             break
     word_list[merge] = ('****',bottom)
     # Change value of each entry in dict "words" to be minimum of the word
@@ -63,13 +61,13 @@ def random_hmm(Card_Y, N_states):
     '''
     '''
 
-    from Scalar import make_random as random
-    import base
+    from hmm.C import HMM
+    from hmm.Scalar import make_random as random
     P_S0 = random((1,N_states))[0]
     P_S0_ergodic = random((1,N_states))[0]
     P_ScS = random((N_states,N_states))
     P_YcS = random((N_states,Card_Y))
-    return base.HMM(P_S0, P_S0_ergodic, P_YcS, P_ScS)
+    return HMM(P_S0, P_S0_ergodic, P_YcS, P_ScS)
 
 def main(argv=None):
     if argv is None:                    # Usual case
@@ -86,7 +84,7 @@ def main(argv=None):
     Card_Y = merge + 1
     model = random_hmm(Card_Y, N_states)
     print("""
-Begin training in po_speech.py.  Takes 26 minutes on a 1 GHZ 64bit Athlon.
+Begin training in po_speech.py.  Takes 6 minutes on a 1 GHZ 64bit Athlon.
 """, file=sys.stderr)
     LL = model.train([y], iterations,display=False)
     # Do Viterbi decoding

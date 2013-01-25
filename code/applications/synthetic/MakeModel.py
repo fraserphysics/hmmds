@@ -6,7 +6,7 @@ import sys
 import os.path
 import pickle
 import random
-import numpy
+import numpy as np
 
 from itertools import dropwhile
 
@@ -18,19 +18,8 @@ def read_data(data_dir, data_file):
     '''Read data and return as numpy array
     '''
     lines = skip_header(open(os.path.join(data_dir, data_file), 'r'))
-    y = numpy.array([int(line)-1 for line in lines],numpy.int32)
+    y = np.array([int(line)-1 for line in lines],np.int32)
     return (y,), y.max()+1
-
-def randomP(A):
-    """ Fill allocated array A with random normalized probability
-    """
-    sum = 0
-    for i in range(len(A)):
-        x = random.random()
-        sum += x
-        A[i] = x
-    A /= sum
-    return A
 
 #from hmm.base import HMM
 #from hmm.C import HMM_SPARSE as HMM
@@ -57,14 +46,13 @@ def main(argv=None):
     
     Y, cardy = read_data(data_dir, data_file)
 
-    random.seed(7)
-    P_S0 = randomP(numpy.zeros(nstates))
-    P_S0_ergodic = randomP(numpy.zeros(nstates))
-    P_ScS = numpy.empty((nstates,nstates))
-    P_YcS = numpy.empty((nstates,cardy))
-    for AA in (P_ScS,P_YcS):
-        for A in AA:
-            randomP(A)
+    from Scalar import make_random as random_p
+    from numpy import random
+    random.seed(6)
+    P_S0 = random_p((1,nstates))[0]
+    P_S0_ergodic = random_p((1,nstates))[0]
+    P_ScS = random_p((nstates,nstates))
+    P_YcS = random_p((nstates,cardy))
 
     # Train the model
     mod = HMM(P_S0,P_S0_ergodic,P_YcS,P_ScS)
