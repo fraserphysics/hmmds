@@ -65,7 +65,6 @@ To do:
    GaussMix
    ScalarGaussian
    MLEfail
-   VARGstates
    ToyTS1
    ToyStretch
    ToyH
@@ -80,6 +79,10 @@ To do:
     PYTHONPATH
 
 -4. Test functions for EKF.  Make EKF independent of lorenz.
+
+
+export PYTHONPATH=/home/andy/projects/hmmds3/code/
+export PYTHONPATH=/home/andy/projects/hmmds3/code/hmm/:$PYTHONPATH
 
 # Local Variables:
 # mode: text

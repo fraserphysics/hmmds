@@ -41,20 +41,20 @@ big = 1e+20
 
 #------------------------------------------------------------
 class VARG(Discrete_Observations):
-'''
-To be consistent with Scalar.Discrete_Observations a class must have
-the following methods:
+    '''
+    To be consistent with Scalar.Discrete_Observations a class must have
+    the following methods:
 
-__init__(parameters)
+    __init__(parameters)
 
-calc(y) where y is a list of sequences.  Returns P(s,y) likelihoods
-given states
+    calc(y) where y is a list of sequences.  Returns P(s,y) likelihoods
+    given states
 
-reestimate(w,y)
+    reestimate(w,y)
 
-join(ys) where ys is a list of sequences.  Returns concatenation of
-    sequences and boundary points within them of the components.
-'''
+    join(ys) where ys is a list of sequences.  Returns concatenation of
+        sequences and boundary points within them of the components.
+    '''
 
     def random_out(self, s):
         raise RuntimeError(
@@ -68,33 +68,40 @@ join(ys) where ys is a list of sequences.  Returns concatenation of
             self.As, self.Icovs, self.a, self.b = params
 
         self.n_states = len(self.As)
-        assert self.nstates = len(self.Icovs)
-        self.n_states = len(self.norm)
+        assert self.n_states == len(self.Icovs)
         self.dtype = [np.float64]
         self.P_Y = None
-        self.normalize()
+        self.fixed_var = False
         return # End of __init__()
+    def freeze_var(self):
+        self.fixed_var = True
+    def thaw_var(self, a=None, b=None):
+        if a is not None:
+            self.a = a
+        if b is not None:
+            self.b = b            
+        self.fixed_var = False
     def normalize(self):
-        cr,cc = self.ICovs[0].shape
-        assert cr == cc
+        cr,cc = self.Icovs[0].shape
+        assert cr == cc, 'Icovs[0]=%s'%(self.Icovs[0],)
         self.evals = np.empty((self.n_states,cr))
         self.evecs = np.empty((self.n_states,cr,cr))
         self.norms = np.empty((self.n_states,))
         for i in range(self.n_states):
-            self.evals[i,:],self.evecs[i,:,:] = LA.eigh(self.ICovs[i])
+            self.evals[i,:],self.evecs[i,:,:] = LA.eigh(self.Icovs[i])
             # Save sqrt eigenvalues of Cov not inverse Cov because they are
             # only used in simulate()
-            self.evals[i] = 1/scipy.sqrt(self.evals[i])
+            self.evals[i] = 1/np.sqrt(self.evals[i])
             if self.evals[i].min() < small:
                 raise RuntimeError('In normalize: Eigenvalue %f too small'%(
                     self.evals[i].min()))
             if self.evals[i].max() > big:
                 raise RuntimeError('In normalize: Eigenvalue %f too big'%(
                     self.evals[i].max()))
-            d = LA.det(self.ICovs[i])
+            d = LA.det(self.Icovs[i])
             if d < small or d > big:
                 raise RuntimeError('extreme determinant %f'%d)
-            self.norms[i] = 1/math.sqrt((2*math.pi)**cr/d)
+            self.norms[i] = 1/np.sqrt((2*np.pi)**cr/d)
         return
     def calc(self, y):
         """
@@ -116,7 +123,7 @@ join(ys) where ys is a list of sequences.  Returns concatenation of
         for t in range(n_y):
             for i in range(self.n_states):
                 d = y[0][t] - np.dot(self.As[i], y[1][t])
-                dQd = np.dot(d, np.dot(self.Icov[i], d))
+                dQd = np.dot(d, np.dot(self.Icovs[i], d))
                 if dQd > 300: # Underflow
                     self.P_Y[t,i] = 0
                 else:
@@ -130,19 +137,20 @@ join(ys) where ys is a list of sequences.  Returns concatenation of
         t, dim_X = y[1].shape
         assert t == n_y
         
-        root_w = scipy.sqrt(w)
-        sum_w = w.sum(axis=1)
-        for i in range(N):
-            wY = (root_w.T * y[0].T).T
-            wX = (root_w.T * y[1].T).T
-            AT,resids,rank,svals = LA.lstsq(wX, wY, cond=1e-10,
-                                             overwrite_a=1, overwrite_b=1)
+        root_w = np.sqrt(w)
+        sum_w = w.sum(axis=0)
+        for i in range(self.n_states):
+            wY = (root_w.T[i] * y[0].T).T
+            wX = (root_w.T[i] * y[1].T).T
+            AT,resids,rank,svals = LA.lstsq(wX, wY, rcond=1e-10)
             self.As[i] = AT.T
-            zT = wY - scipy.dot(wX,AT)
-            ZZT = scipy.dot(zT.T,zT)
+            if self.fixed_var:
+                continue
+            zT = wY - np.dot(wX,AT)
+            ZZT = np.dot(zT.T,zT)
             # MAP with an inverse Wishart prior
-            Cov = (self.b * scipy.eye(dim_Y) + ZZT)/(self.a + sum_w[i])
-            self.ICovs[i] = scipy.linalg.inv(Cov)
+            Cov = (self.b * np.eye(dim_Y) + ZZT)/(self.a + sum_w[i])
+            self.Icovs[i] = LA.inv(Cov)
         self.normalize()
         return # End of reestimate()
     def __str__(self # VARG

@@ -23,6 +23,11 @@ source = ('StatePic.py', DDS('lorenz.4'), DDS('lorenz.xyz'), DDS('m12s.4y'))
 env.args[KEY(target)] = (DDS(''), 'lorenz.4', 'lorenz.xyz','m12s.4y')
 env.Command(target, source, BUILD)
 
+target = [DDS('varg_state%s'%x) for x in range(12)]
+source = ('VStatePic.py', DDS('lorenz.xyz'), DDS('states'))
+env.args[KEY(target)] = (DDS(''), 'lorenz.xyz', 'states')
+env.Command(target, source, BUILD)
+
 target = (DDS('H_study'),)
 source = ('cross_entropy.py',)
 env.args[KEY(target)] = ('--resultfile', target[0], '--exponents', '-2.0',

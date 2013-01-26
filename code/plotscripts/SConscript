@@ -53,6 +53,12 @@ source = ['stateplot.py', DDS('states')]+[DDS('state%s'%x) for x in range(12)]
 env.args[KEY(target)] = (DDS(''), 'state', FIG('Statesintro.pdf'))
 env.Command(target, source, BUILD2)
 
+target = (FIG('VARGstates.pdf'),)
+source = ['stateplot.py', DDS('states')]+[DDS('varg_state%s'%x)
+                                          for x in range(12)]
+env.args[KEY(target)] = (DDS(''), 'varg_state', target[0])
+env.Command(target, source, BUILD2)
+
 roots = ('LaserLP5', 'LaserForecast', 'LaserHist')# LaserLogLike LaserStates
 target = tuple(FIG(x+'.pdf') for x in roots)
 source = ('laser.py',) + tuple(DDL(x) for x in roots)

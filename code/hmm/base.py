@@ -491,6 +491,24 @@ class HMM:
             seq[t] = last_c
             last_c = pred[t, last_c]
         return seq
+    def initialize_y_model(self, y, s_t=None, segs=None):
+        ''' Given data and plausible P_SS, make plausible y_model.
+        '''
+        n_y = len(y[0])
+        if s_t is None:
+            s_t = np.array(self.state_simulate(n_y), np.int32)
+        alpha = np.zeros((n_y, self.n_states))
+        t = np.arange(n_y)
+        alpha[t,s_t] = 1
+        self.alpha = alpha
+        self.beta = alpha.copy()
+        self.gamma = np.ones(n_y)
+        self.P_Y = np.ones((n_y, self.n_states))
+        if segs is not None:
+            for b in segs[1:-1]:
+                mod.gamma[b] = -1
+        self.reestimate(y)
+
     def state_simulate(
             self,  # HMM instance
             length, mask=None, seed=3):

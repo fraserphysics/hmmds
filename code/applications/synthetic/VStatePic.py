@@ -12,72 +12,76 @@ This file is part of HMM_DS_Code.
 
 """
 
+import numpy as np
 import sys
-import os.path
-import pickle
-import numpy
-from hmm import C
-from MakeModel import read_data, skip_header
-from hmm.VARG import VARG
 
-data_dir,y_name = sys.argv[1:3]
+def main(argv=None):
+    '''Call with arguments: data_dir vector_file
 
-def MakeVARG_HMM(Nstates,Odim,Cdim):
+    Writes files named ['state%d'%n for n in range(nstates)] to the
+    data_dir.  Each file consists of points in vector_file that are
+    decoded to the the state number specified in the name.  The states
+    are assigned by using the model in model_file to Viterbi decode
+    the data in data_file.
+
+    '''
+    from os.path import join
+    from MakeModel import skip_header
+
+    if argv is None:                    # Usual case
+        argv = sys.argv[1:]
+    data_dir, vector_file, state_file = argv
+
+    # Read in time series of vectors
+    vectors = np.array([list(map(float,line.split())) for line in
+               skip_header(open(join(data_dir, vector_file),'r'))])
+    n_y, Odim = vectors.shape
+    n_y -= 1
+    Cdim = Odim + 1
+    assert Cdim == 4
+    N_states = 12
+
+    data = vectors[1:, :]
+    context = np.empty((n_y, Cdim))
+    context[:,:-1] = vectors[:-1,:]
+    context[:,-1] = 1
+    Y = [data, context]
+
+    states = np.array(# Read in time series of states
+        [list(map(int,line.split())) for line in
+                       skip_header(open(join(data_dir, state_file),'r'))])
+    model = MakeVARG_HMM(N_states,Odim,Cdim, Y, states) # Make initial model
+    # Recall:   Cov = (b * np.eye(dim_Y) + ZZT)/(a + sum_w[i])
+    for a,b in ((1e6, 4e6), (4.0, 1.0), (1.0, 0.25), (0.0, 0.0)):
+        model.y_mod.thaw_var(a=a,b=b)
+        model.train(Y, 10)
+    states = model.decode(Y)                 # Do Viterbi decoding
+
+    f = list(open(join(data_dir, 'varg_state'+str(s)), 'w') for
+             s in range(N_states))
+    for t in range(n_y):
+        print('%7.4f %7.4f %7.4f'%tuple(data[t]), file=f[states[t]])
+    return 0
+
+def MakeVARG_HMM(Nstates,Odim,Cdim, Y, states):
     '''Returns a normalized random initial model
     '''
-    from Scalar import make_random as random_p
-    from numpy import random
-    random.seed(6)
-    P_S0 = random_p((1,Nstates))[0]
-    P_S0_ergodic = random_p((1,Nstates))[0]
-    P_ScS = random_p((Nstates,Nstates))
-
+    from hmm.base import HMM
+    from hmm.VARG import VARG
+    P_S0 = np.empty(Nstates)
+    P_S0_ergodic = np.empty(Nstates)
+    P_ScS = np.empty((Nstates,Nstates))
     Icovs = np.empty((Nstates, Odim, Odim))
-    As = np.empty((Nstates, Odim, Cdim))
-    ICovs = Nstates*[None]
-    for i in range(Nstates):
-        ICovs[i,:,:] = np.eye(Odim)/100
-        As[i,:,:] = random_p((Odim,Cdim))
-
-    params = (Icovs,
-              As,
-              30.0,  # a
-              0.1    # b
+    params = (np.zeros((Nstates, Odim, Cdim)), # As
+              np.empty((Nstates, Odim, Odim))  #Icovs
     )
-    # Recall:   Cov = (b * scipy.eye(dim_Y) + ZZT)/(a + sum_w[i])
-    return HMM(P_S0,P_S0_ergodic,params,P_ScS, VARG)
-
-# Read data and construct Y.
-Odim,Cdim,N_states = (3,4,12)
-Y = []
-f = file(os.path.join(data_dir, y_name), 'r')
-tail_one = scipy.ones(1,scipy.float32) # Because Odim = 3 and Cdim = 4
-data = scipy.zeros(Odim,scipy.float32)
-for line in f:
-    context = scipy.concatenate((data,tail_one))
-    data = scipy.array(list(map(float,line.split())),scipy.float32)
-    Y.append([data,context])
-f.close()
-Y.pop(0) # first y has no context, delete it
-
-# Now for each t, y[t] = [observation,context] where observation is
-# the 3-d state at time t and context is 4-d; the 3-d state at time
-# t-1 with 1.0 appended.  1.0 lets the state use a column of A to
-# provide a fixed offset
-random.seed(6) # 96 is interesting too
-model = MakeVARG_HMM(N_states,Odim,Cdim) # Make a random initial model
-model.train(Y, 25)
-states = model.decode(Y)                 # Do Viterbi decoding
-vs = N_states*[None]
-for s in range(N_states):
-    vs[s] = []  # vs[s] is a list of vectors that belong in state s.
-for t in range(0,len(states)):
-    vs[states[t]].append(Y[t][0])
-for s in range(N_states):
-    f = file(os.path.join(data_dir, 'varg_state'+str(s)), 'w')
-    for v in vs[s]:
-        print(v[0], v[1], v[2], file=f)
-                                 
+    model = HMM(P_S0,P_S0_ergodic,params,P_ScS, VARG)
+    model.initialize_y_model(Y, states)
+    return model
+    
+if __name__ == "__main__":
+    sys.exit(main())
+                      
 #Local Variables:
 #mode:python
 #End:

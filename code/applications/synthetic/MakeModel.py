@@ -62,9 +62,7 @@ def main(argv=None):
     mod.alpha = None
     mod.beta = None
     mod.Py = None
-    f = open(os.path.join(data_dir, model_file), 'wb')
-    pickle.dump(mod, f, fix_imports=False)
-    f.close()
+    pickle.dump(mod, open(os.path.join(data_dir, model_file), 'wb'))
     return 0
 
 if __name__ == "__main__":
