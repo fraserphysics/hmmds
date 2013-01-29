@@ -4,7 +4,7 @@ label_magnitude_unit = lambda lab,mag,unit: (
     r'$%s/(10^{%d}\ {\rm{%s}})$'%(lab,mag,unit))
 label_unit = lambda lab,unit: r'$%s/{\rm{%s}}$'%(lab,unit)
 label_magnitude = lambda lab,mag: r'$%s/10^{%d}$'%(lab,mag)
-magnitude = lambda A: int(math.log10(np.abs(A).max()))
+magnitude = lambda A: int(np.log10(np.abs(A).max()))
 
 class axis(object):
     ''' Class for managing scaling and labeling 1-d axes and data.

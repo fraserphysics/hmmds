@@ -82,16 +82,7 @@ def main(argv=None):
         else:
             s_t = mod.state_simulate(n_y)
         s_t = np.array(s_t, np.int32)
-        alpha = np.zeros((n_y, mod.n_states))
-        t = np.arange(n_y)
-        alpha[t,s_t] = 1
-        mod.alpha = alpha
-        mod.beta = alpha.copy()
-        mod.gamma = np.ones(n_y)
-        mod.P_Y = np.ones((n_y, mod.n_states))
-        for b in segs[1:-1]:
-            mod.gamma[b] = -1
-        mod.reestimate(data)
+        mod.initialize_y_model(data, s_t, segs)
         mod.P_S0 = mod.P_S0_ergodic
         return
     # Set up lists of records by the groups used for training

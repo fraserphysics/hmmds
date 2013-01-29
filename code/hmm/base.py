@@ -506,7 +506,7 @@ class HMM:
         self.P_Y = np.ones((n_y, self.n_states))
         if segs is not None:
             for b in segs[1:-1]:
-                mod.gamma[b] = -1
+                self.gamma[b] = -1
         self.reestimate(y)
 
     def state_simulate(

@@ -51,24 +51,27 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-1. Clean up LaTeX document.  Describe error.  Notify SIAM.
+1. Do LANL release procedure
 
-2. From single source (HMMDS3) make two distribution tarballs: HMMpy
-   and HMM_DS
+2. Move to google repository
 
-3. Do LANL release procedure
-
-4. Move to google repository
-
-5. Make the rest of the figures in the book
+3. Make the rest of the figures in the book
 
    GaussMix
    ScalarGaussian
    MLEfail
-   ToyTS1
+   ToyTS
    ToyStretch
    ToyH
    benettin
+   class1
+
+4. Clean up LaTeX document.  Rework website
+
+5. From single source (HMMDS3) make two distribution tarballs: HMMpy
+   and HMM_DS
+
+6. Study alternative build systems
 
 -1. Get 2 axes rather than box for matplotlib plots and kill boxes on legends
 

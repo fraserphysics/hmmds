@@ -51,9 +51,11 @@ def main(argv=None):
                skip_header(open(join(data_dir, vector_file),'r'))]
 
     # Write vectors to each state file, ie, state0, state1, .. state11
+    ssf = open(join(data_dir, 'state_sequence'), 'w')
     f = list(open(join(data_dir, 'state'+str(s)), 'w') for
              s in range(nstates))
     for t in range(len(ss)):
+        print('%4d %d'%(t, ss[t]), file=ssf)
         print('%7.4f %7.4f %7.4f'%tuple(vectors[t]), file=f[ss[t]])
     return 0
 

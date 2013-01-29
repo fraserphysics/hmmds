@@ -158,12 +158,14 @@ def main(argv=None):
                        help='Lorenz b parameter')
     parser.add_argument('--dt', type=float, default=0.15,
                        help='Sample interval')
+    #FixMe: --levels not used
     parser.add_argument('--levels', type=int, default=4,
                         help='Number of quatization levels')
     parser.add_argument('--quantfile', type=argparse.FileType('w'),
                        help='Write quantized data to this file')
     parser.add_argument('--xyzfile', type=argparse.FileType('w'),
                        help='Write x,y,z data to this file')
+    parser.add_argument('--TSintro', help='Write data to this directory')
     parser.add_argument('--time', action='store_true',
                        help='Do some timing tests')
     args = parser.parse_args(argv)
@@ -194,7 +196,23 @@ def main(argv=None):
         xyz = Lsteps(np.array(args.IC),F,args.s,args.b,args.r,args.dt,args.L)
         for v in xyz:
             print((3*'%6.3f ')%tuple(v),file=args.xyzfile) 
-            print('%d'%int(np.ceil(v[0]/10+2)),file=args.quantfile)     
+            print('%d'%int(np.ceil(v[0]/10+2)),file=args.quantfile) 
+    if args.TSintro is not None:
+        from os.path import join
+        xyz = Lsteps(args.IC, F, args.s, args.b, args.r, args.dt/50, args.L)
+        # Write x[0] to TSintro_fine with time step .003
+        f = open(join(args.TSintro,'TSintro_fine'),'w')
+        for i in range(0,args.L):
+            print((2*'%6.3f ')%(args.dt/50 * i, xyz[i,0]),file=f)
+        # Write x[0] to TSintro_qt with time step .15
+        f = open(join(args.TSintro,'TSintro_qt'),'w')
+        for i in range(0,args.L,50):
+            print((2*'%6.3f ')%(args.dt/50 * i, xyz[i,0]),file=f)
+        # Write quantized x[0] to TSintro_qtx with time step .15
+        q = np.ceil(xyz[:,0] / 10 + 2)
+        f = open(join(args.TSintro,'TSintro_qtx'),'w')
+        for i in range(0,args.L,50):
+                  print('%2d %6.3f '%(i/50, q[i]),file=f)
     return 0
 
 if __name__ == "__main__":

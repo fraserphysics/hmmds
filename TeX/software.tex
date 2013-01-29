@@ -268,7 +268,6 @@ Fig.~\ref{fig:dhmm} too.  In his words:
 \begin{figure}[htbp]
   \centering{
     \resizebox{\textwidth}{!}{\input Markov_mm.pdf_t }
-%    \input{Markov_mm.pdf_t}
   }
   \caption[A Markov model.]{A Markov model}
   \label{fig:mm}
@@ -291,7 +290,7 @@ data for Figs.~\ref{fig:TSintro}-\ref{fig:Statesintro}.  I have not
 found matplotlib to be much easier to use than gnuplot.
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{TSintro.pdf}}
+    \resizebox{\textwidth}{!}{\includegraphics{TSintro.pdf}}
   }
   \caption[Generating the observations $\ts{y}{1}{40}$.]%
   {Generating the observations $\ts{y}{1}{40}$.  The curve in the
@@ -306,8 +305,8 @@ found matplotlib to be much easier to use than gnuplot.
 \end{figure}
 
  \begin{figure}[htbp]
-   \centering{\plotsize%
-%     \input{STSintro.pdf_t}
+   \centering{
+    \resizebox{\textwidth}{!}{\includegraphics{STSintro.pdf}}
 }
    \caption{A plot of the state sequence found by Viterbi decoding a quantized
      time series from the Lorenz system.  Here the number of the
@@ -1340,24 +1339,25 @@ must have at least two gigabytes of RAM.
 \section{Decoding Sequences of Classifications}
 \label{sec:V4Class}
 
-In the book I presented the algorithm described
-in Fig.~\ref{fig:viterbiC} and claimed that given an observation sequence
-$y_1^T$ it finds the \emph{best} classification sequence, $\hat c_1^T$,
-in a number of computations that is linear in $T$.  By best, I mean
+In the book I presented the algorithm described in
+Fig.~\ref{fig:viterbiC} for finding the \emph{best} classification
+sequence,
 \begin{equation*}
-  \hat c_1^T \equiv \argmax_{c_1^T} P(y_1^T,c_1^T)
+  \hat c_1^T \equiv \argmax_{c_1^T} P(y_1^T,c_1^T),
 \end{equation*}
-In 2013, as I was developing a test suite for a new version of the
-software, I discovered a configuration for which the algorithm failed
-to find a \emph{possible} classification sequence even though it was
-using the model that generated the test data.
+given an observation sequence $y_1^T$.  I claimed that the number of
+computations required is a linear function of $T$.  In 2013, as I was
+developing a test suite for a new version of the software, I
+discovered a configuration for which the algorithm failed to find a
+\emph{possible} classification sequence even though it was using the
+model that generated the test data.
 
 Examining the failure, I discovered that for each of the ``best''
-class histories ending in each of the classes at time $t=493$, the
-conditional state probability given that class history assigned a
-probability of 0 to state 2.  However, at time $t=494$, the only state
-that could produce $y(494)$ required that $s(493)=2$.  Thus the
-algorithm calculated $P(y_1^{494}, \hat c_1^{494}) = 0$ and died.
+class histories ending in each of the classes at a particular time
+$t$, the conditional probability of a particular state $s$ given that
+class history was 0.  However, at time $t+1$, the only state that
+could produce $y(t+1)$ required that $S(t)=s$.  Thus the algorithm
+calculated $P(y_1^{t}, \hat c_1^{t}) = 0$ and died.
 
 I had designed the algorithm thinking that the class sequence was
 Markov and that future evidence could not change what was the best
@@ -1370,25 +1370,31 @@ Blocking out $s_{t+1}$ separates the past from the future, but
 blocking out $c_{t+1}$ doesn't.
 
 Thus to avoid discarding a class history that may at later times
-become the first portion of the \emph{best} class sequence, one must
-keep \emph{all} class histories.  Unfortunately the number of such
-histories is exponential in sequence length $t$, and there are too
-many to retain for most realistic applications.
+become the first portion of the \emph{best} class sequence, one may
+need to keep a number of class histories that is exponential in
+sequence length $t$.  That is too many to retain for most realistic
+applications.
+
 \subsection{Finding a \emph{Pretty Good Class} Sequence}
 \label{sec:prettygood}
 
 Rather than finding the \emph{best} class sequence given a sequence of
-observations $y_1^T$, I now have an algorithm that finds a \emph{good}
-one.  At each time $t$, I keep a limited collection of class histories
-which I build in the following three steps:
+observations $y_1^T$, I now seek a \emph{good} one using the following
+ideas.  The ideas yield performance similar to that described in the
+book when applied to the apnea problem.  At each time $t$, I keep a
+limited collection of class histories which I build in the following
+three steps:
 \begin{description}
 \item[Step 1, Propagate and Sort:] I take the histories I've retained
   at time $t-1$ and use all possible successors to create a list of
   histories at time $t$, then I sort those histories by
   $P(y_1^{t},c_1^{t})$.
-\item[Step 1, Prune:] Initially, I limit the collection using the
-  smallest of the following criteria:
+\item[Step 2, Prune:] Initially, I limit the collection using the
+  following criteria:
   \begin{itemize}
+  \item If there are two histories $^ac_1^t$ and $^bc_1^t$ with
+    $P(s_i, y_1^{t}, ^bc_1^{t}) \leq P(s_i, y_1^{t}, ^ac_1^{t})
+    \forall s_i $, then I drop $^bc_1^t$.
   \item The total number of histories is at most $N_{\text{max}}$
   \item I don't keep histories $c_1^t$ if
     $\frac{P(y_1^{t},c_1^{t})}{P(y_1^{t},\bar c_1^{t})} <
