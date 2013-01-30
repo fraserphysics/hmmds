@@ -76,7 +76,7 @@ def survey_cmd(mod, group, power, fudge, target_):
     env.Command(target, source, BUILD)
 
 # Survey for "High" group.  6.8&0.64 .8124 on watcher, 6.0&0.7 .8129 on orr
-survey_cmd('mod_H', 'High', (1.0, 8.1, 1), (.5, 1.01, .1), 'pf_H')
+survey_cmd('mod_H', 'High', (1.0, 13.1, 1), (.2, 1.01, .1), 'pf_H')
 # Survey for "Medium" group.  1.0 & 2.5 .9292 on watcher, 1.5 & 1.6 .9095 orr
 survey_cmd('mod_M', 'Medium', (0.0, 3.1, 0.5), (1.0, 2.3, .1), 'pf_M')
 # Survey for "Low" group.  Choose 0.5 & 2.5. OK on watcher and orr.

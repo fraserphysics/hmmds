@@ -44,13 +44,24 @@ env.args[KEY(target)] = source[1:] + target
 env.Command(target, source, BUILD2)
 
 target = (FIG('pf_H.pdf'),)
-source = ('PFsurvey.py', DDA('pf_H'))
+source = ('PFsurvey.py', DDA('all_pf_H'))
+env.args[KEY(target)] = source[1:] + target
+env.Command(target, source, BUILD2)
+
+target = (FIG('TSintro.pdf'),)
+source = ('TSintro.py', DDS('TSintro_fine'),  DDS('TSintro_qt'),
+          DDS('TSintro_qtx'))
+env.args[KEY(target)] = source[1:] + target
+env.Command(target, source, BUILD2)
+
+target = (FIG('STSintro.pdf'),)
+source = ('STSintro.py', DDS('state_sequence'))
 env.args[KEY(target)] = source[1:] + target
 env.Command(target, source, BUILD2)
 
 target = (FIG('Statesintro.pdf'),)
 source = ['stateplot.py', DDS('states')]+[DDS('state%s'%x) for x in range(12)]
-env.args[KEY(target)] = (DDS(''), 'state', FIG('Statesintro.pdf'))
+env.args[KEY(target)] = (DDS(''), 'state', target[0])
 env.Command(target, source, BUILD2)
 
 target = (FIG('VARGstates.pdf'),)
@@ -72,6 +83,11 @@ env.Command(target, source, BUILD2)
 
 target = (FIG('TrainChar.pdf'),)
 source = ('TrainChar.py', DDS('TrainChar'))
+env.args[KEY(target)] = (source[-1], target[0])
+env.Command(target, source, BUILD2)
+
+target = (FIG('benettin.pdf'),)
+source = ('benettin.py', DDS('benettin'))
 env.args[KEY(target)] = (source[-1], target[0])
 env.Command(target, source, BUILD2)
 

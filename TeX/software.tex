@@ -1193,15 +1193,8 @@ three xfig drawings.
 \end{figure}
 
 \begin{figure}[htb]
-  \centering{\plotsize%
-    \def\NFp{95\%}%
-    \def\SamOne{Sample1}%
-    \def\SamTwo{Sample2}%
-    \def\SamThr{Sample3}%
-    \def\Fp{5\%}%
-    \def\ylabel{$\hat\lambda(t)$}%
-    \def\t{$t$}%
-%    \input{benettin.pdf_t}
+  \centering{
+    \includegraphics[width=1.0\textwidth]{benettin.pdf}
   }
   \caption[Lyapunov exponent calculation for
   the Lorenz system.]%
@@ -1486,7 +1479,7 @@ three steps:
 
 \begin{figure}[tbhp]
   \centering{
-%      \resizebox{\textwidth}{!}{\includegraphics{class1.pdf}}
+      \resizebox{\textwidth}{!}{\includegraphics{pass1a.pdf}}
   }
   \caption[The first pass classifier]%
   {The first pass classifier.  I've plotted the location of each
@@ -1495,7 +1488,7 @@ three steps:
     are in the $L$ group.  Records to the right of the line
     $2.55-\frac{llr}{2}$ are in the $H$ group.  And those in between are
     in the $M$ group.}
-  \label{fig:class1}
+  \label{fig:pass1}
 \end{figure}
 
 \subsection{Model Topology and Training Data}

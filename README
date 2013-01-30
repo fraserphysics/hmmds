@@ -63,8 +63,6 @@ To do:
    ToyTS
    ToyStretch
    ToyH
-   benettin
-   class1
 
 4. Clean up LaTeX document.  Rework website
 
@@ -86,6 +84,8 @@ To do:
 
 export PYTHONPATH=/home/andy/projects/hmmds3/code/
 export PYTHONPATH=/home/andy/projects/hmmds3/code/hmm/:$PYTHONPATH
+
+LA-CC-13-008
 
 # Local Variables:
 # mode: text

@@ -5,24 +5,32 @@ python PFsurvey.py PFdata PFplot
 Debug = False
 import numpy as np
 def read_data(data_file):
-    x_dict = {}
+    z_dict = {}
+    xs = set()
+    ys = set()
     for line in open(data_file, 'r'):
         x, y, z = (float(p) for p in line.split())
-        if not x_dict.has_key(x):
-            x_dict[x] = {}
-        x_dict[x][y] = z
-    xs = list(x_dict.keys())
+        z_dict[(x,y)] = z
+        xs.add(x)
+        ys.add(y)
+    xs = list(xs)
     xs.sort()
     xs = np.array(xs)
-    ys = x_dict[xs[0]].keys()
+    n_x = len(xs)
+    x_dict = dict((xs[i],i) for i in range(n_x))
+    ys = list(ys)
     ys.sort()
     ys = np.array(ys)
-    n_x = len(xs)
     n_y = len(ys)
+    y_dict = dict((ys[i],i) for i in range(n_y))
+
     zs = np.empty((n_y, n_x))
-    for i in range(n_x):
-        for j in range(n_y):
-            zs[j,i] = x_dict[xs[i]][ys[j]] # FixMe: Why is this right?
+    zs[:,:] = np.NaN
+    for xy, z in z_dict.items():
+        if z < 0.78:
+            continue
+        x,y = xy
+        zs[y_dict[y], x_dict[x]] = z
     return xs, ys, zs
 
 import sys
@@ -67,7 +75,7 @@ def main(argv=None):
 
     fig = plt.figure(figsize=(9, 6))
     #ax = fig.gca(projection='3d')
-    ax = fig.add_subplot(1, 1, 1, projection='3d', azim=-75, elev=50)
+    ax = fig.add_subplot(1, 1, 1, projection='3d', azim=-130, elev=17)
     ax.set_xlabel('Power')
     ax.set_ylabel('Fudge')
     ax.set_zlabel('Frac. Right')
