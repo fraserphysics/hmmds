@@ -44,6 +44,8 @@ def main(argv=None):
     ax.plot(data[0], data[4], 'b', label=r'5\%')
     ax.set_ylim(0.5, 1.5)
     ax.legend()
+    ax.yaxis.tick_right()
+    ax.yaxis.set_label_position("right")
 
     X = axis(data=data[0], magnitude=False, label=r'$t$')
     Y = axis(data=data[10], magnitude=False, ticks=np.arange(0.6, 1.41, 0.2),
@@ -55,11 +57,12 @@ def main(argv=None):
     ax.plot(data[0], data[9],'b', label=r'5\%')
     ax.set_ylim(0.5, 1.5)
     ax.legend()
+    ax.yaxis.tick_right()
+    ax.yaxis.set_label_position("right")
 
     if DEBUG:
         plt.show()
     else:
-        print('Saving to %s'%plot_file)
         fig.savefig(plot_file)
     return 0
 

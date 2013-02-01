@@ -1,0 +1,431 @@
+\documentclass{beamer}
+\setbeamertemplate{navigation symbols}{} %no nav symbols
+\usepackage{graphicx,color}
+\usepackage{amsmath, amsfonts}% ToDo: compatible w/siammathtime.sty?
+\usepackage{amsthm}% Note: Conflicts with newsiambook
+\usepackage{xspace}
+\usepackage{bm} % Bold Math
+\usepackage{rotating} % for sidewaysfigure
+\usepackage{afterpage}
+\usepackage{booktabs}       % for nicer looking tables
+\usepackage{dcolumn}        % decimal point aligned columns
+\renewcommand{\th}{^{\text th}}
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\INTEGER}{\field{Z}}
+\newcommand{\REAL}{\field{R}}
+\newcommand{\COMPLEX}{\field{C}}
+\newcommand{\EV}{\field{E}}
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\s}{{\bf s}}
+\newcommand{\bS}{{\bf S}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Tsamp}{\tau_s }
+\newcommand{\ColorComment}[3]{}
+\newcommand{\argmin}{\operatorname*{argmin}}
+\newcommand{\argmax}{\operatorname*{argmax}}
+\newcommand{\Normal}{{\mathcal{N}}}
+\newcommand{\NormalE}[3]{{\mathcal{N}}\left.\left(#1,#2\right)\right|_{#3}}
+\newcommand{\transpose}{^\top}
+\newcommand{\ceil}[1]{\lceil#1\rceil}
+\newcommand{\bceil}[1]{\left\lceil#1\right\rceil}
+\newcommand{\floor}[1]{\lfloor#1\rfloor}
+\newcommand{\bfloor}[1]{\left\lfloor#1\right\rfloor}
+\newcommand{\states}{{\cal S}}
+\newcommand{\outputs}{{\cal Y}}
+\newcommand{\State}{S}
+\newcommand{\Output}{Y}
+\newcommand{\parameters}{\theta}
+\newcommand{\parametersPrime}{\theta'}% for EM1.gpt
+
+\newcommand{\ti}[2]{{#1}{(#2)}}                  % Time Index
+%%% \newcommand{\ts}[3]{{#1}{(t\=#2,\ldots,#3)}}         % Time Sequence
+\newcommand{\ts}[3]{#1_{#2}^{#3}}                    % Time Sequence
+%%% \newcommand{\ts}[3]{\left\{ #1(l) \right\}_{l=#2}^{#3}}  % Time Sequence
+\newcommand{\id}{{\bf I}}
+\newcommand{\ie}{i.e.\xspace}
+\newcommand{\eg}{e.g.\xspace}
+\newcommand{\etal}{et al.\xspace}
+\newcommand{\iid}{i.~i.~d.\xspace}
+\newcommand{\apost}{\emph{a posteriori}\xspace}
+\newcommand{\apri}{\emph{a priori}\xspace}
+\newcommand{\plotsize}{\small}
+\newcommand{\mlabel}[1]{\label{#1}}
+\newcommand{\EMmap}{{\mathcal T}} %
+
+\title{Decoding Class rather than State}
+
+\author{Andy Fraser}
+\date{2013-2-5}
+
+\usetheme{default}
+\usefonttheme[]{serif}
+\begin{document}
+\frame{\titlepage}
+
+\frame{\frametitle{Outline}\tableofcontents}
+
+\section{Hidden Markov Models}
+\label{sec:hmms}
+
+\frame{ \frametitle{A hidden Markov model}
+\begin{center}
+  \input{Markov_dhmm.pdf_t}
+\end{center}
+}
+\frame{ %\frametitle{Viterbi Algorithm}
+  \begin{center}
+    \def\tnext{_{\text{next}}}%
+    \def\told{_{\text{old}}}%
+    \def\tbest{_{\text{best}}}%
+    \fbox{
+      \begin{minipage}{0.90\textwidth}
+        \begin{tabbing}
+          XX\=XX\=XX\=XX\=XX\=XX\=XX\=XX\= \kill
+          Initialize: \> \+ \\
+          for each $s$\\ \> \+
+          $\nu\tnext (s) = \log \left( P_{\ti{Y}{1},\ti{S}{1}}
+            \left(\ti{y}{1},s \right)\right)$ \\ \\ \< \- \< \-
+          Iterate: \> \+ \\
+          for $t$ from 2 to $T-1$\\ \> \+
+          Swap $\nu\tnext \leftrightarrow \nu\told$\\
+          for each $s\tnext$\\ \> \+
+             \\ for each $s\told$\\ \> \+
+                $\omega(s\told,s\tnext) = \nu(s\told,t) + \log\left(
+            P(s\tnext|s\told) \right)$  \\ \> \+ 
+             $ + \log\left( P(\ti{y}{t+1}|s\tnext) \right)$\\
+          \< \- \< \- %This stuff is for tabs \< \-
+          \\ \# Find best predecessor\\
+          $B(s\tnext,t+1) = \argmax_{s\told} \omega(s\told,s\tnext) $ \\
+          \\ \# Update $\nu$\\
+          $\nu\tnext(s\tnext) =\,$ \= $\omega(B(s\tnext,t+1),s\tnext)$ \\
+          \< \- \< \- \< \- %This stuff is for tabs \< \-
+          Backtrack: \> \+ \\
+          $\bar s = \argmax_s \nu\tnext(s)$ \\
+          $\ti{\hat s}{T}  = \bar s$ \\
+          for $t$ from $T-1$ to $1$  \\ \> \+
+          $ \bar s = B(\bar s,t+1)$  \\
+          $\ti{\hat s}{t} = \bar s$
+        \end{tabbing}
+      \end{minipage}
+    }
+  \end{center}
+}
+\frame{
+  %% 0.75\textheight is approx 5.7 in.  The .eps is exactly that size.
+  %% The widths for the minipages below are taken by measuring the
+  %% ovals inside of XFig.
+  \centering{\tiny
+    %% Column a
+    \def\colaa{$\nu(s_1,t-1)$}%
+    \def\colab{$\nu(s_2,t-1)$}%
+    \def\colac{$\nu(s_3,t-1)$}%
+    %% Column b
+    \def\colba{$ \begin{matrix} B(s_1,t) = \argmax_{{\tilde s}}\\%
+        \log\left(P(s_1|{\tilde s}) \right)\\+ \nu({\tilde s},t-1)
+      \end{matrix}$}%
+    \def\colbb{$ \begin{matrix} B(s_2,t) = \argmax_{{\tilde s}}\\%
+        \log\left(P(s_2|{\tilde s}) \right)\\+ \nu({\tilde s},t-1)
+      \end{matrix}$}%
+    \def\colbc{$ \begin{matrix} B(s_3,t) = \argmax_{{\tilde s}}\\%
+        \log\left(P(s_3|{\tilde s}) \right)\\+ \nu({\tilde s},t-1)
+      \end{matrix}$}%
+    \def\bestpred{%
+      \begin{minipage}[t]{3.9in}
+        \raggedright%
+        For each state $s$ find the best\\%
+        predecessor $\tilde s$, \ie, the\\%
+        one that maximizes\\%
+        $\log\left(P(s|\tilde s) \right) + \nu(\tilde s,t-1)$.\\%
+        The bolder lines indicate best\\%
+        predecessors.
+      \end{minipage}}%
+    %% Column c
+    \def\colca{$\nu(s_1,t)$}%
+    \def\colcb{$\nu(s_2,t)$}%
+    \def\colcc{$\nu(s_3,t)$}%
+    \def\newnu{%
+      \begin{minipage}[t]{2.7in}
+        \raggedright%
+        For each state $s$\\%
+        calculate $\nu(s,t)$\\%
+        by including the\\%
+        conditional probability\\%
+        of the observation $\ti{y}{t}$,\\%
+        \ie, $ \nu(s,t) = \log\left(P(\ti{y}{t}|s) \right) $\\
+        \qquad$+ \log\left(P(s|B(s,t)) \right)$\\
+        \qquad$+ \nu(B(s,t),t-1)$.
+      \end{minipage}}
+    %%
+    \resizebox{1.0\textwidth}{!}{\input{viterbiB.pdf_t}}
+    %\input{viterbiB.pdf_t} 
+  }
+}
+\section{The  Challenge and the Data}
+\label{sec:challenge}
+
+\frame{ \frametitle{The Challenge}
+{\it % italic to signify quote
+  {\rm \textbf{Introduction:}}
+  %
+  Obstructive sleep apnea (intermittent cessation of breathing) is a
+  common problem with major health implications, [\ldots] possibility
+  of detecting sleep apnea using features of the
+  electrocardiogram. [\ldots]
+
+  {\rm \textbf{Data for development and evaluation:}}
+  %
+  [...]  learning set and a test set of equal size. Each set consists
+  of 35 recordings, containing a single ECG signal digitized at 100 Hz
+  [\ldots] reference annotations, one for each minute of the recording
+
+  {\rm \textbf{Data classes:}}
+  %
+  \begin{description}
+  \item[Class A (Apnea):] [\ldots] The learning and test sets each
+    contain 20 class A recordings.
+  \item[Class B (Borderline):] [\ldots] The learning and test sets
+    each contain 5 class B recordings.
+  \item[Class C (Control):] [\ldots] The learning and test
+    sets each contain 10 class C recordings.
+  \end{description}
+}%% end \it for quote
+}
+
+\frame{ \frametitle{The Challenge contd.}
+{\it % italic to signify quote
+  {\rm \textbf{Events and scoring:}}
+  %
+  Each entrant may compete in one or both of the following events:
+  \begin{description}
+  \item[1. Apnea screening:] [\ldots] classify the 35 test set
+    recordings into class A  and class C [\ldots]
+  \item[2. Quantitative assessment of apnea:] [\ldots] generate a
+    minute-by-minute annotation file for each recording, [\ldots] Each
+    annotation that matches a reference annotation earns one point
+    [\ldots] scores approaching the maximum are very unlikely, since
+    apnea assessment can be very difficult even for human
+    experts. [\ldots]
+  \end{description}
+}%% end \it for quote
+}
+
+\frame{ \frametitle{The Data}
+  \resizebox{\textwidth}{!}{\includegraphics{a03erA.pdf}}
+}
+
+\frame{
+  \resizebox{\textwidth}{!}{\includegraphics{a03erN.pdf}}
+}
+
+\frame{
+  \resizebox{\textwidth}{!}{\includegraphics{a03erHR.pdf}}
+}
+\frame{
+  \resizebox{\textwidth}{!}{\includegraphics{ApneaNLD.pdf}}
+}
+\frame{
+  \resizebox{\textwidth}{!}{\includegraphics{sgram.pdf}}
+}
+
+\frame{ \frametitle{Decoding Sequences of Classifications}
+
+  \emph{Best} classification sequence,
+  \begin{equation*}
+    \hat c_1^T \equiv \argmax_{c_1^T} P(y_1^T,c_1^T),
+  \end{equation*}
+  Last month I discovered a configuration for which my old algorithm
+  failed to find a \emph{possible} classification sequence even though
+  it was using the model that generated the test data.  }
+
+\frame{ The following drawing makes my error obvious.
+  \begin{center}
+    \resizebox{0.75\columnwidth}{!}{\input{class_net.pdf_t}}
+  \end{center}
+  Blocking out $s_{t+1}$ separates the past from the future, but
+  blocking out $c_{t+1}$ doesn't.
+}
+
+\frame{ Thus to avoid discarding a class history that may at later
+  times become the first portion of the \emph{best} class sequence,
+  one may need to keep a number of class histories that is exponential
+  in sequence length $t$.  That is too many to retain for most
+  realistic applications.
+}
+
+\frame{ \frametitle{Model Topology}
+  \resizebox{1.0\textwidth}{!}{
+    \centering{\plotsize%
+    \def\Azero{$A_H$}%
+    \def\Aone{$A_{I1}$}%
+    \def\Atwo{$A_{I2}$}%
+    \def\Athree{$A_{P11}$}%
+    \def\Afour{$A_{P12}$}%
+    \def\Afive{$A_{P21}$}%
+    \def\Asix{$A_{P22}$}%
+    \def\Nzero{$N_H$}%
+    \def\None{$N_{I1}$}%
+    \def\Ntwo{$N_{I2}$}%
+    \def\Nthree{$N_{I3}$}%
+    \def\Nfour{$N_{I4}$}%
+    \def\Nfive{$N_{P11}$}%
+    \def\Nsix{$N_{P12}$}%
+    \def\azero{$A_H$}%
+    \def\aone{$A_{I1}$}%
+    \def\atwo{$A_{P11}$}%
+    \def\athree{$A_{P12}$}%
+    \def\nzero{$N_H$}%
+    \def\none{$N_{I1}$}%
+    \def\ntwo{$N_{I2}$}%
+    \def\nthree{$N_{I3}$}%
+    \def\nfour{$N_{P11}$}%
+    \def\nfive{$N_{P12}$}%
+    \def\ModH{\large$Mod_H$}%
+    \def\ModL{\large$Mod_M$ and $Mod_L$}%
+    \input{structure.pdf_t}
+  }}
+}
+
+\frame{
+    \newcommand{\tnext}{_{\text{next}}}
+    \newcommand{\told}{_{\text{old}}}
+    \newcommand{\tbest}{_{\text{best}}}
+    \newcommand{\ick}{\log \left(\sum_{s} g(s,c\tbest) f(t+1,s,c\tbest) \right)}
+    \resizebox{1.0\textwidth}{!}{
+      \fbox{
+      \begin{minipage}{\columnwidth}
+	\begin{tabbing}
+	  XX\=XX\=XX\=XX\=XX\=XX\=XX\=XX\= \kill
+	  Initialize: \> \+ \\
+	  for each $c$\\ \> \+
+	  $\nu\tnext (c) = \log \left( \sum_{s} g(s,C) P_{\ti{Y}{1},\ti{S}{1}}
+	    \left(\ti{y}{1},s \right)\right)$ \\ \\ \< \- \< \-
+	  Iterate: \> \+ \\
+	  for $t$ from 1 to $T$\\ \> \+
+	  Swap $\nu\tnext \leftrightarrow \nu\told$\\
+	  for each $c\tnext$\\ \> \+
+	  \\ \# Find best predecessor\\
+	  $c\tbest = \argmax_{c\told}\left( \nu\told(c\told) + \ick \right)$ \\
+	  \\ \# Update $\nu$\\
+	  $\nu\tnext(c\tnext) =\,$ \= $\nu\told(c\tbest) + \ick$ \\ \> \-
+	  \\ \# Update predecessor array\\
+	  Predecessor[$c\tnext,t$] = $c\tbest$\\
+	  \\ \# Update $\phi$\\
+	  for $s$ in $c\tnext$\\ \> \+
+	  Assign $\phi\tnext(s,c\tnext)$ using Eqn.~6.7\\ \\
+	  \< \- \< \- \< \- %This stuff is for tabs \< \-
+	  Backtrack: \> \+ \\
+	  $\ts{c}{1}{t} = \ts{\hat c}{1}{t}(\bar c)$ , where $\bar c =
+	  \argmax_c \nu\tnext(c)$ at $t=T$
+	\end{tabbing}
+      \end{minipage}
+    }}
+}
+
+\frame{ \frametitle{}
+  \resizebox{0.75\textwidth}{!}{
+  \centering{\plotsize%
+    \begin{tabular}{|llllll|}
+      \hline
+      Record & $N\rightarrow N$ &  $N\rightarrow A$ &  $A\rightarrow N$ &  $A\rightarrow A$ & \% Right \\
+      \hline
+      \rule{0pt}{2.0ex}%
+      a11 &  198 &   46 &  138 &   84 & 0.6052 \\
+      b02 &  255 &  169 &   14 &   79 & 0.6460 \\
+      a06 &  276 &   27 &  140 &   66 & 0.6719 \\
+      a08 &  197 &  114 &   24 &  165 & 0.7240 \\
+      b01 &  362 &  105 &    2 &   17 & 0.7798 \\
+      a07 &   96 &   93 &   12 &  309 & 0.7941 \\
+      a18 &   37 &   14 &   82 &  356 & 0.8037 \\
+      b03 &  296 &   71 &   13 &   60 & 0.8091 \\
+      a03 &  175 &   98 &    0 &  246 & 0.8112 \\
+      a20 &  184 &   10 &   78 &  237 & 0.8271 \\
+      a15 &   91 &   50 &   36 &  332 & 0.8310 \\
+      a05 &  147 &   30 &   44 &  232 & 0.8366 \\
+      a16 &  140 &   21 &   51 &  269 & 0.8503 \\
+      a13 &  213 &   38 &   28 &  215 & 0.8664 \\
+      a09 &   90 &   24 &   39 &  342 & 0.8727 \\
+      a10 &  404 &   13 &   49 &   50 & 0.8798 \\
+      a14 &   69 &   57 &    2 &  381 & 0.8841 \\
+      a17 &  302 &   24 &   32 &  126 & 0.8843 \\
+      a02 &   72 &   36 &   19 &  401 & 0.8958 \\
+      a19 &  289 &    8 &   30 &  174 & 0.9242 \\
+      a12 &   14 &   29 &    3 &  530 & 0.9444 \\
+      b04 &  418 &    0 &   10 &    0 & 0.9766 \\
+      a01 &   11 &    8 &    0 &  470 & 0.9836 \\
+      a04 &   35 &    4 &    2 &  451 & 0.9878 \\
+      c07 &  424 &    0 &    4 &    0 & 0.9907 \\
+      c05 &  462 &    0 &    3 &    0 & 0.9935 \\
+      c09 &  465 &    0 &    2 &    0 & 0.9957 \\
+      c10 &  429 &    0 &    1 &    0 & 0.9977 \\
+      c03 &  452 &    1 &    0 &    0 & 0.9978 \\
+      c06 &  466 &    0 &    1 &    0 & 0.9979 \\
+      c02 &  500 &    0 &    1 &    0 & 0.9980 \\
+      c01 &  483 &    0 &    0 &    0 & 1.0000 \\
+      c04 &  481 &    0 &    0 &    0 & 1.0000 \\
+      c08 &  513 &    0 &    0 &    0 & 1.0000 \\
+      \hline
+      \rule{0pt}{2.0ex}%
+      sum & 9046 & 1090 &  860 & 5592 & 0.8824\\
+      \hline
+    \end{tabular}
+  }}
+}
+
+\frame{ \frametitle{Finding a \emph{Pretty Good Class} Sequence}
+
+  At $t$, keep collection of class histories:
+  \begin{description}
+  \item[Step 1, Propagate and Sort:] Use histories from $t-1$.  Put
+    all possible successors in list of histories at $t$.  Sort those
+    by $P(y_1^{t},c_1^{t})$.
+  \item[Step 2, Prune:] Use following criteria:
+    \begin{itemize}
+    \item For histories $^ac_1^t$ and $^bc_1^t$ with
+      $P(s_i, y_1^{t}, ^bc_1^{t}) \leq P(s_i, y_1^{t}, ^ac_1^{t})
+      \forall s_i $, drop $^bc_1^t$.
+    \item The total number of histories is at most $N_{\text{max}}$
+    \item Drop $c_1^t$ if
+      $\frac{P(y_1^{t},c_1^{t})}{P(y_1^{t},\bar c_1^{t})} <
+      R_{\text{min}}$ where $\bar c_1^t$ is the best
+    \end{itemize}
+
+  \item[Step 3, Augment:] For each state $s(t)$ that is impossible given
+    the histories saved so far, if there are discarded histories for
+    which $s(t)$ is possible, save the one that comes first in the
+    sorted list.
+  \end{description}
+}
+
+\frame{ \frametitle{Alternative}
+
+  At $t$, keep collection of class histories:
+  \begin{description}
+  \item[Step 1, Propagate and Sort:] Use histories from $t-1$.  Put
+    all possible successors in list of histories at $t$.
+  \item[Step 2, Select Best History for Each State:] For each state
+    $s_i$, keep a history
+    \begin{equation*}
+      ^ic_1^t \equiv \argmax_{c_1^t}  P(s_i, y_1^{t}, c_1^{t})
+    \end{equation*}
+  \end{description}
+}
+
+\frame{ \frametitle{Strengths Weaknesses and Applications}
+  \begin{description}
+  \item[$I^2$ Plausible] (strength)
+  \item[Overlapping Classes Possible] Universal class
+    $\leftrightarrow$ No user input (strength)
+  \item[Derivation of State/Class Membership \& Topology] Does not
+    seem user friendly (weakness)
+  \item[Sterile Theoretically] I doubt you can go much beyond ad hoc
+    (weakness)
+  \item[Numerous Applications] (strength)
+  \end{description}
+}
+
+\end{document}
+
+%%% Local Variables:
+%%% eval: (TeX-PDF-mode)
+%%% End:

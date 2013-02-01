@@ -113,6 +113,7 @@ SConscript(CXF('SConscript'), exports='fig2pdf FIG') # xfigs
 # in SConscript files.
 swe=Environment()
 swe.PDF('TeX/software.tex')
+swe.PDF('TeX/ii.tex')
 swe['TEXINPUTS'] = ['figs','TeX']
 
 env=Environment()
