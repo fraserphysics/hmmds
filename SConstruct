@@ -103,7 +103,7 @@ def BUILD2(target, source, env):
     print('call %s'%source[0]) # Name "env" used twice.  Different and OK.
     call(('python2.7', str(source[0])) + env.args[KEY(target)], env=d)
 
-SConscript(CAS('SConscript'), exports='CH DDS KEY BUILD')           # Synthetic
+SConscript(CAS('SConscript'), exports='CH RD DDS KEY BUILD')        # Synthetic
 SConscript(CAA('SConscript'), exports='DDA RDA KEY BUILD')          # Apnea
 SConscript(CAO('SConscript'), exports='DD RD CH KEY BUILD')         # Other
 SConscript(CPS('SConscript'), exports='DDL DDA DDS RDA FIG KEY BUILD2') # plots

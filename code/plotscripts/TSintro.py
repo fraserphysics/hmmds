@@ -58,7 +58,6 @@ def main(argv=None):
     if DEBUG:
         plt.show()
     else:
-        print('Saving to %s'%plot_file)
         fig.savefig(plot_file)
     return 0
 

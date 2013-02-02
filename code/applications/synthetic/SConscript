@@ -1,7 +1,7 @@
 '''SConscript
 '''
 
-Import('CH DDS KEY BUILD')
+Import('CH RD DDS KEY BUILD')
 # BUILD forks a command 'python3 source[0] env.args[KEY]'
 env=Environment()
 env.args = {}
@@ -47,6 +47,11 @@ env.Command(target, source, BUILD)
 
 target = (DDS('TrainChar'),)
 source = ('TrainChar.py', DDS('lorenz.4'))
+env.args[KEY(target)] = (source[-1], target[0])
+env.Command(target, source, BUILD)
+
+target = (DDS('ToyTS1'),)
+source = ('ToyTS1.py', RD('Save_Hview_T_100'))
 env.args[KEY(target)] = (source[-1], target[0])
 env.Command(target, source, BUILD)
 

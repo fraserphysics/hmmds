@@ -1052,7 +1052,7 @@ way the old ones look.  The script ToyA.py makes the figures from the
 data.
 \begin{figure}[htbp]
   \centering{
-%    \resizebox{\textwidth}{!}{\includegraphics{ToyTS.pdf}}
+    \resizebox{\textwidth}{!}{\includegraphics{ToyTS1.pdf}}
   }
   \caption[Extended Kalman filter for one step forecasting.]%
     {Extended Kalman filter for one step forecasting with simulation
@@ -1073,7 +1073,8 @@ data.
     the second trace is the difference between the actual observation
     and the mean of the forecast.  The logs of the likelihoods of the
     forecasts, $\log(P_{\gamma} \left(\ti{y}{t} \right))$, appear in
-    the bottom plot.}
+    the bottom plot.  \textbf{Note: The data comes from old software
+      not in hmmds3.}}
   \label{fig:ToyTS1}
 \end{figure}
 %%%
@@ -1084,9 +1085,9 @@ data.
   \caption[Dynamical stretching increases state variance.]%
   {These plots illustrate dynamical stretching increasing the variance
     of the conditional distribution in state space corresponding to
-    time steps 118 and 119 in Fig.~5.1.  In each plot,
-    the larger ellipse represents the \emph{forecast} state
-    distribution $P_{a} \left(\ti{x}{t} \right) \equiv P
+    time steps 118 and 119 in Fig.~5.1.  In each plot, the larger
+    ellipse represents the \emph{forecast} state distribution $P_{a}
+    \left(\ti{x}{t} \right) \equiv P
     \left(\ti{x}{t}|\ts{y}{1}{t-1},\theta \right) =
     \NormalE{\mu_a}{\Sigma_a}{\ti{x}{t}}$ and the smaller ellipse
     represents the \emph{updated} state distribution $P_{\alpha}
@@ -1105,7 +1106,8 @@ data.
     distribution to the forecast distribution $P_{a}(\ti{x}{t})$ at
     $t=119$ (the larger of the two ellipses on the right) for which
     the standard deviation in the $x_1$ direction is more than ten
-    times larger.}
+    times larger.  \textbf{Note: The data comes from old software not
+      in hmmds3.}}
   \label{fig:ToyStretch}
 \end{figure}
 

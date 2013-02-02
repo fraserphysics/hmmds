@@ -16,3 +16,7 @@ code/hmm/*.so
 /code/applications/synthetic/build/temp.linux-x86_64-3.2/lor_C.o
 /code/applications/synthetic/lor_C.c
 /code/applications/synthetic/lor_C.cpython-32mu.so
+/TeX/*.nav
+/TeX/*.out
+/TeX/*.snm
+/TeX/*.toc
