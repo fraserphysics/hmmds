@@ -27,7 +27,7 @@ def read_data(data_file):
     zs = np.empty((n_y, n_x))
     zs[:,:] = np.NaN
     for xy, z in z_dict.items():
-        if z < 0.78:
+        if z < 0.0:
             continue
         x,y = xy
         zs[y_dict[y], x_dict[x]] = z
@@ -75,7 +75,7 @@ def main(argv=None):
 
     fig = plt.figure(figsize=(9, 6))
     #ax = fig.gca(projection='3d')
-    ax = fig.add_subplot(1, 1, 1, projection='3d', azim=-130, elev=17)
+    ax = fig.add_subplot(1, 1, 1, projection='3d', azim=-10, elev=30)
     ax.set_xlabel('Power')
     ax.set_ylabel('Fudge')
     ax.set_zlabel('Frac. Right')

@@ -44,7 +44,7 @@ env.args[KEY(target)] = source[1:] + target
 env.Command(target, source, BUILD2)
 
 target = (FIG('pf_H.pdf'),)
-source = ('PFsurvey.py', DDA('all_pf_H'))
+source = ('PFsurvey.py', DDA('pf_H'))
 env.args[KEY(target)] = source[1:] + target
 env.Command(target, source, BUILD2)
 

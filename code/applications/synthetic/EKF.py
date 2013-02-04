@@ -1,4 +1,9 @@
-""" EKF.py Module containing functions that help with extended Kalman
+"""Caution, I took this file from webhmmds and it used numpy matrices
+which I have been replacing with numpy arrays.  I may have failed to to
+that completely.  I should write a test for each function in this file
+but I have not spent the time yet.
+
+EKF.py Module containing functions that help with extended Kalman
 filtering for the Lorenz system.
 
 Contents:
@@ -28,15 +33,16 @@ def LogLike()
 
 """
 
+from numpy.linalg import inv as LAI
+import numpy as np
 ###################### Def forwardEKF() ####################
 def ForwardEKF(
     Y,         # Observations.  Shape = (Nt,dim_y)
-    SigmaEtaT, # Covariances of dynamical noise.  Shape = (Nt,dim_x,dim_x)
-    SigEp,     # Covariance of measurement noise.  Shape = (dim_y,dim_y)
-    mux,       # Mean of initial state (forecast).  Matrix shape (dim_x,1)
+    SigmaEtaT, # Covs of dynamical noise.  SigmaEtaT[t].shape = (dim_x,dim_x)
+    SigEp,     # Covariance of measurement noise.  SigEp.shape = (dim_y,dim_y)
+    mux,       # Mean of initial state (forecast).  Array shape (dim_x,)
     Sigmax,    # Covariance of initial state.  Later cov of forecast
-    F,         # Integrator: Maps ic (initial condition) to fc,D
-               # (final condition and derivative)
+    F,         # Integrator: Maps ic to image and derivative
     G=None,    # G_x(x) returns y,DG observation and derivative
         # If the following arguments are not None, use them to
         # return intermediate results
@@ -44,52 +50,50 @@ def ForwardEKF(
     alphaM=None,  # Corrections to means of updtated state distributions
     alphaSig=None,# Covariances of updtated state distributions
     aM=None,      # Means of forecast state distributions
-    aSigma=None   # Covariances of forecast state distributions
+    aSigma=None,  # Covariances of forecast state distributions
+    X=None        # Cheat
     ):
     """ This started as a general extended Kalman filter function, but
     lapsed into a function that is specific for the laser data.
     """
-    import copy, math, numpy as np, numpy.linalg as LA
-    LAI = LA.inv
     
-    assert type(Sigmax) == np.matrix
-    assert type(SigEp) == np.matrix
-    Nt,dim_y = Y.shape
-    dim_x,one = mux.shape
-    assert one == 1,'mux.shape=(%d,%d)'%(dim_x,one)
+    assert type(Sigmax) == np.ndarray
+    assert type(SigEp) == np.ndarray
+    (Nt,dim_y) = Y.shape
+    (dim_x,) = mux.shape
     assert (dim_x,dim_x) == Sigmax.shape
     assert (dim_y,dim_y) == SigEp.shape,"dim_y=%d, SigEp.shape=(%d,%d)"%(
         dim_y, SigEp.shape[0],SigEp.shape[1])
-
     if G == None:
         def G(x):  # Define G for Tang's laser measurements
-            x_0 = x[0,0]
-            DG = np.mat(np.zeros((1,3)))
+            x_0 = x[0]
+            DG = np.zeros(1,3)
             DG[0,0] = 2*x_0
-            return np.mat(np.eye(1))*x_0*x_0,DG
-    Id = np.mat(np.eye(dim_x))  # Identity matrix
+            return np.array((x_0*x_0,)),DG
+    Id = np.eye(dim_x)  # Identity matrix
     for t in range(Nt):
-        SigmaEta = np.mat(SigmaEtaT[t])
+        SigmaEta = SigmaEtaT[t]
         mu_y,Gt = G(mux)
         # Update: Calculate \Sigma_\alpha(t) and \mu_\alpha(t) Y[t]
-        K = Sigmax*Gt.T*LAI(Gt*Sigmax*Gt.T + SigEp)
-        Sigmaalpha = (Id - K*Gt)*Sigmax
-        mualpha = K*(Y[t] - mu_y)
-        ic = mux + mualpha  # This is updated mean of state
+        K = np.dot( np.dot(Sigmax, Gt.T), 
+                    LAI( np.dot(Gt, np.dot(Sigmax, Gt.T))
+                         + SigEp))
+        Sigmaalpha = np.dot( (Id - np.dot(K,Gt)), Sigmax)
+        ic = mux + np.dot(K,Y[t] - mu_y) # This is updated mean of state
         # Record requested values
         if alphaM != None:
-            alphaM[t] = mualpha
+            alphaM[t] = correction
         if aSigma != None:
-            aSigma[t] = copy.copy(Sigmax)
+            aSigma[t] = Sigmax.copy()
         if alphaSig != None:
             alphaSig[t] = Sigmaalpha
         if DF != None:
-            DF[t] = copy.copy(Ft)
+            DF[t] = Ft.copy()
         if aM != None:
-            aM[t] = copy.copy(mux)
+            aM[t] = mux.copy()
         # Forecast: Calcualte \mu_x(t+1) and \Sigma_x(t+1)
         mux,Ft = F(ic)# Calculate mux and Ft
-        Sigmax = Ft*Sigmaalpha*Ft.T + SigmaEta
+        Sigmax = np.dot(Ft, np.dot(Sigmaalpha, Ft) + SigmaEta)
     return # End of ForwardEKF() #
 def BackwardEKF(
     Y,         # Observations
@@ -101,8 +105,6 @@ def BackwardEKF(
     betaM,     # Mean of back forcast
     betaSI     # Inverse covariance of back forecast
     ):
-    import copy, math, numpy as np, np.linalg as LA
-    LAI = LA.inv
     # Abbreviate common functions
     mubeta = np.zeros(3,np.float32)       # Corrections to alpha
     Sigmabeta = np.eye(3,np.float32)*1e10 # Should be 1/zero
@@ -138,7 +140,6 @@ system, Y, a sequence of observations, F a sequence of tangents to the
 state dynamics, G a sequence of tangents to the observation functions
 """
 def TanGen(
-    results,                    # list of empty lists [X,Y,F,G]
     DevEta = 0.001,             # Dynamical noise
     DevEpsilon = 0.004,         # Measurement noise
     s=10.0, r = 28.0, b = 8.0/3,# Lorenz parameters
@@ -146,7 +147,7 @@ def TanGen(
     Nt = 300,                   # Number of samples
     trelax = 7.5                # Time to relax to attractor
     ):
-    import lorenz, numpy as np, copy, pickle, random
+    import lorenz, pickle, random
     RG = random.gauss
     # Storage for initial conditions
     ic = np.ones(3,np.float32)
@@ -156,13 +157,13 @@ def TanGen(
     NumpyLor.LstepsPN(ic,s,b,r,trelax,Nrelax,temp)
     ic = temp[Nrelax-1]                                # reset ICs
 
-    X = results[0]
-    Y = results[1]
-    F = results[2]
-    G = results[3]
+    X = []
+    Y = []
+    F = []
+    G = []
     tempTan = np.ones((3,3),np.float32)  # Storage for one step integration
     for t in range(Nt):
-        X.append(copy.copy(ic))
+        X.append(ic.copy())
         Y.append(np.array([ic[0]**2+RG(0.0,DevEpsilon)]))
         G.append(np.array([[2*ic[0],0,0]],))
         # Call to integrator.  ic is overwritten with result
@@ -170,10 +171,12 @@ def TanGen(
         # Add random Gaussian noise to ic
         ic = ic + np.array([RG(0.0,DevEta),RG(0.0,DevEta),RG(0.0,DevEta)])
         ic = ic.astype(np.float32)
-        F.append(copy.copy(tempTan))
+        F.append(tempTan.copy())
+    results = [X, Y, F, G]
     f = open('XYGF','w')
     pickle.dump(results,f,protocol=1)
     f.close()
+    return (X, Y, F, G)
 """
 ForwardK A forward Kalman filter that requires state and measurement
 derivatives and a reference state trajectory.
@@ -190,8 +193,6 @@ def ForwardK(
     alphaM         # Pass empty list.  Return Means of up-dated
                    # state estimates
     ):
-    import copy, math, numpy as np, numpy.linalg as LA
-    LAI = LA.inv
     
     #  The next four values should be parameters?
     Sigmax = np.identity(3,np.float32)*5
@@ -231,8 +232,6 @@ def BackwardK(
     betaM          # Pass empty list.  Return Means of filtered
                    # state estimates
     ):
-    import copy, math, numpy as np, numpy.linalg as LA
-    LAI = LA.inv
 
     # Initialize beta, the backcast for T-1
     mubeta =  np.zeros(3,np.float32)
@@ -280,8 +279,6 @@ def ForwardEKF0(
     aSigma,    # Covariances of forecast state distributions
     DF,        # Derivatives of state map
     ):
-    import copy, math, numpy as np, numpy.linalg as LA
-    LAI = LA.inv
     
     Ft = np.zeros((3,3),np.float32)  # Storage for tangent to F
     Gt = np.zeros((1,3),np.float32)  # Storage for tangent to G
@@ -291,8 +288,8 @@ def ForwardEKF0(
         #dy = Y[t] - mux[0]**2    # Error of forecast Y
         Gt[0][0] = 1.0            # Estimated derivative of Y wrt X
         dy = Y[t] - mux[0]        # Error of forecast Y
-        aM[t] = copy.copy(mux)    # backward needs the forecast for time t
-        aSigma[t] = copy.copy(Sigmax)
+        aM[t] = mux.copy()        # backward needs the forecast for time t
+        aSigma[t] = Sigmax.copy()
         
         # Update: Calculate \Sigma_\alpha(t) and \mu_\alpha(t) using y(t)
         SIalpha = LAI(Sigmax) + np.dot(Gt.T,np.dot(SEI,Gt))
@@ -301,7 +298,7 @@ def ForwardEKF0(
         alphaM[t] = mualpha         # Save only correction
         ic = mux + mualpha
         # Check for big ic
-        R = math.sqrt(np.dot(ic,ic))
+        R = np.sqrt(np.dot(ic,ic))
         if R > 100:
             print("t=",t,"R=",R,"Shrinking ic")
             ic = ic/R
@@ -311,16 +308,15 @@ def ForwardEKF0(
 
         # Remember values you need for backward and smoothing
         alphaSI[t] = SIalpha
-        DF[t] = copy.copy(Ft)
+        DF[t] = Ft.copy()
 ################# End of ForwardEKF0() ####################
 def TanGen0(
-    results,                    # list of empty lists [X,Y,F,G]
     DevEta = 0.001,             # Dynamical noise
     DevEpsilon = 0.004,         # Measurement noise
     s=10.0, r = 28.0, b = 8.0/3,# Lorenz parameters
     ts = 0.15,                  # Sample interval
     Nt = 300,                   # Number of samples
-    trelax = 7.5                # Time to relax to attractor
+    trelax = 1.0                # Time to relax to attractor
     ):
     """
     Simulate the evolution of the whole system for Nt time steps.
@@ -331,17 +327,18 @@ def TanGen0(
     """
 
     import lorenz, numpy as np, random
+    assert trelax < 2.0,"Integrator doesn't work with big times"
     RG = random.gauss
     # Storage for initial conditions
     ic = np.ones(3)
     # Relax to the attractor:
-    Nrelax = 3
-    temp = lorenz.Lsteps(ic,s,b,r,trelax,Nrelax)
-    ic = temp[Nrelax-1]  # reset ICs
-    X = results[0]       # X, Y, F, and G are empty lists that
-    Y = results[1]       # get appended to below
-    F = results[2]
-    G = results[3]
+    Nrelax = 30
+    temp = lorenz.Lsteps(ic, lorenz.F, s,b,r,trelax,Nrelax)
+    ic = temp[-1]  # reset ICs
+    X = []
+    Y = []
+    F = []
+    G = []
     for t in range(Nt):
         X.append(ic)
         Y.append(np.array([ic[0]+RG(0.0,DevEpsilon)]))
@@ -350,6 +347,7 @@ def TanGen0(
         ic,tan = lorenz.Ltan_one(ic,s,b,r,ts)
         ic = ic + np.array([RG(0.0,DevEta),RG(0.0,DevEta),RG(0.0,DevEta)])
         F.append(tan)
+    return (X, Y, F, G)
 #End of TanGen0()
 
 ###################### Def LogLike() ####################
@@ -363,7 +361,6 @@ def LogLike(L,        # Lorenz/Laser parameters
             Y,        # Time series of observations
             aM=None   # Forecast means
             ): # L is the argument list.  Unpack it first
-    import lorenz, math, numpy as np, numpy.linalg as LA
     ic = L[0:3]
     r = L[3]
     s = L[4]
@@ -377,13 +374,11 @@ def LogLike(L,        # Lorenz/Laser parameters
     def lorstep(x):
         # Return mu_x(t+1) and derivative F(t)
         # Check for big ic
-        x = x.A.reshape((3,)) # View as array instead of matrix
-        R = math.sqrt(float(np.dot(x,x)))
+        R = np.sqrt(float(np.dot(x,x)))
         if R > 100:
             print("R=%6.0f Shrinking ic"%R)
             x /= R
-        fc,D = lorenz.Ltan_one(x,s,b,r,ts)
-        return np.mat(fc.reshape((3,1))),np.mat(D) # View as matrices
+        return lorenz.Ltan_one(x,s,b,r,ts)
 
     Nt = len(Y)
     yso = np.empty((Nt,1))  # Scaled and offset
@@ -413,11 +408,11 @@ def LogLike(L,        # Lorenz/Laser parameters
         sigma_gamma *= scale**2
         ye *= scale
         try:
-            ill = -0.5*(math.log(2*math.pi*sigma_gamma) + ye*ye/sigma_gamma )
+            ill = -0.5*(np.log(2*np.pi*sigma_gamma) + ye*ye/sigma_gamma )
         except (ValueError, OverflowError) as error_string:
             print('inc log like (ill) is sick: %s\nt=%d '%(error_string,t))
             print('ye=%f, sigma_gamma=%f'%(ye,sigma_gamma))
-            ill = -0.5*(math.log(2*math.pi*sigma_gamma))
+            ill = -0.5*(np.log(2*np.pi*sigma_gamma))
         LL += ill
     return (LL)
 
