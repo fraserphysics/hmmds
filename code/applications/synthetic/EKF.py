@@ -79,6 +79,22 @@ def ForwardEKF(
                     LAI( np.dot(Gt, np.dot(Sigmax, Gt.T))
                          + SigEp))
         Sigmaalpha = np.dot( (Id - np.dot(K,Gt)), Sigmax)
+        y_error = Y[t] - mu_y
+        x_correction = np.dot(K, y_error)
+        y_mag = np.sqrt(np.dot(y_error, y_error))
+        x_mag = np.sqrt(np.dot(x_correction, x_correction))
+        if x_mag > 1 or y_mag > 1:
+            print('t=%d x_mag=%7.4f y_mag-%7.4f'%(t, x_mag, y_mag))
+            print('''
+Y[t] = %s
+mu_y = %s
+y_error = %s
+K = %s
+x_correction =
+%s
+'''%(Y[t], mu_y, y_error, K, x_correction))
+        if x_mag > 10:
+            raise RuntimeError
         ic = mux + np.dot(K,Y[t] - mu_y) # This is updated mean of state
         # Record requested values
         if alphaM != None:
