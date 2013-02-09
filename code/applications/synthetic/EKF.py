@@ -33,84 +33,65 @@ def LogLike()
 
 """
 
+def symmetric(M):
+    '''For debugging, check some easy properties of a covariance matrix:
+    Symmetry and nonnegative on diagonal.  Allow small asymmetry but
+    return truly symmetric (M + M.T)/2.
+
+    '''
+    I,J = M.shape
+    assert I==J, 'M=\n%s'%M
+    for i in range(I):
+        assert M[i,i]>=0, 'M=\n%s'%M
+        for j in range(J):
+            assert (np.abs(M[i,j]) < 1e-30 or np.abs((M[i,j] - M[j,i])/M[i,j]) 
+                    < 1e-7), 'Assymentric at (%d,%d) M= \n%s'%(i,j,M)
+    return (M+M.T)/2
 from numpy.linalg import inv as LAI
 import numpy as np
-###################### Def forwardEKF() ####################
+
 def ForwardEKF(
     Y,         # Observations.  Shape = (Nt,dim_y)
-    SigmaEtaT, # Covs of dynamical noise.  SigmaEtaT[t].shape = (dim_x,dim_x)
-    SigEp,     # Covariance of measurement noise.  SigEp.shape = (dim_y,dim_y)
-    mux,       # Mean of initial state (forecast).  Array shape (dim_x,)
-    Sigmax,    # Covariance of initial state.  Later cov of forecast
+    Sig_EtaT,  # Covs of dynamical noise.  Sig_EtaT[t].shape = (dim_x,dim_x)
+    Sig_Ep,    # Covariance of measurement noise.  Sig_Ep.shape = (dim_y,dim_y)
+    mu_a,      # Mean of initial state (forecast)
+    Sig_a,     # Covariance of initial state (forecast)
     F,         # Integrator: Maps ic to image and derivative
-    G=None,    # G_x(x) returns y,DG observation and derivative
-        # If the following arguments are not None, use them to
-        # return intermediate results
-    DF=None,      # Derivatives of state map
-    alphaM=None,  # Corrections to means of updtated state distributions
-    alphaSig=None,# Covariances of updtated state distributions
-    aM=None,      # Means of forecast state distributions
-    aSigma=None,  # Covariances of forecast state distributions
-    X=None        # Cheat
+    G,         # G_x(x) returns y,DG observation and derivative
+    rd={}      # Return dictionary.  Key=variable, value=list
     ):
     """ This started as a general extended Kalman filter function, but
     lapsed into a function that is specific for the laser data.
     """
     
-    assert type(Sigmax) == np.ndarray
-    assert type(SigEp) == np.ndarray
     (Nt,dim_y) = Y.shape
-    (dim_x,) = mux.shape
-    assert (dim_x,dim_x) == Sigmax.shape
-    assert (dim_y,dim_y) == SigEp.shape,"dim_y=%d, SigEp.shape=(%d,%d)"%(
-        dim_y, SigEp.shape[0],SigEp.shape[1])
-    if G == None:
-        def G(x):  # Define G for Tang's laser measurements
-            x_0 = x[0]
-            DG = np.zeros(1,3)
-            DG[0,0] = 2*x_0
-            return np.array((x_0*x_0,)),DG
+    (dim_x,) = mu_a.shape
+    assert (dim_x,dim_x) == Sig_a.shape
+    assert (dim_y,dim_y) == Sig_Ep.shape,"dim_y=%d, Sig_Ep.shape=(%d,%d)"%(
+        dim_y, Sig_Ep.shape[0],Sig_Ep.shape[1])
     Id = np.eye(dim_x)  # Identity matrix
     for t in range(Nt):
-        SigmaEta = SigmaEtaT[t]
-        mu_y,Gt = G(mux)
+        Sig_Eta = Sig_EtaT[t]
+        mu_y, Gt = G(mu_a)     # Forcast y and derivative wrt mu_a
+        error_y = Y[t] - mu_y
         # Update: Calculate \Sigma_\alpha(t) and \mu_\alpha(t) Y[t]
-        K = np.dot( np.dot(Sigmax, Gt.T), 
-                    LAI( np.dot(Gt, np.dot(Sigmax, Gt.T))
-                         + SigEp))
-        Sigmaalpha = np.dot( (Id - np.dot(K,Gt)), Sigmax)
-        y_error = Y[t] - mu_y
-        x_correction = np.dot(K, y_error)
-        y_mag = np.sqrt(np.dot(y_error, y_error))
-        x_mag = np.sqrt(np.dot(x_correction, x_correction))
-        if x_mag > 1 or y_mag > 1:
-            print('t=%d x_mag=%7.4f y_mag-%7.4f'%(t, x_mag, y_mag))
-            print('''
-Y[t] = %s
-mu_y = %s
-y_error = %s
-K = %s
-x_correction =
-%s
-'''%(Y[t], mu_y, y_error, K, x_correction))
-        if x_mag > 10:
-            raise RuntimeError
-        ic = mux + np.dot(K,Y[t] - mu_y) # This is updated mean of state
+        I_y = LAI( np.dot(Gt, np.dot(Sig_a, Gt.T)) + Sig_Ep)
+        # I_y is the inverse covariance of the y forecast
+        K = np.dot( np.dot(Sig_a, Gt.T), I_y) # Kalman gain matrix 4.44c
+        I_gain = np.dot(np.dot(K,Gt), Sig_a)  # Info gain (jargon error) from y
+        Sig_alpha = Sig_a - I_gain            # Updated state variance 4.44a
+        mu_alpha = mu_a + np.dot(K, error_y)  # Updated state mean
+        # Forecast: Calcualte mean mu_a(t+1) and variance Sigma_a(t+1)
+        mu_a, Ft = F(mu_alpha) # Calculate state forecast and derivative
+        Sig_a = np.dot(Ft, np.dot(Sig_alpha, Ft.T)) + Sig_Eta # 4.38
+        Sig_a = (Sig_a + Sig_a.T)/2 # Symmetrize, perhaps unnecessary
         # Record requested values
-        if alphaM != None:
-            alphaM[t] = correction
-        if aSigma != None:
-            aSigma[t] = Sigmax.copy()
-        if alphaSig != None:
-            alphaSig[t] = Sigmaalpha
-        if DF != None:
-            DF[t] = Ft.copy()
-        if aM != None:
-            aM[t] = mux.copy()
-        # Forecast: Calcualte \mu_x(t+1) and \Sigma_x(t+1)
-        mux,Ft = F(ic)# Calculate mux and Ft
-        Sigmax = np.dot(Ft, np.dot(Sigmaalpha, Ft) + SigmaEta)
-    return # End of ForwardEKF() #
+        D = locals()
+        for key in rd:
+            rd[key].append(D[key])
+    if len(rd) == 0:
+        return (mu_alpha, Sig_alpha)
+    return rd # End of ForwardEKF() #
 def BackwardEKF(
     Y,         # Observations
     SigmaEtaT, # Covariances of dynamical noise (time dependent)
@@ -163,7 +144,7 @@ def TanGen(
     Nt = 300,                   # Number of samples
     trelax = 7.5                # Time to relax to attractor
     ):
-    import lorenz, pickle, random
+    import lorenz, pickle, random # FixMe: use numpy.random
     RG = random.gauss
     # Storage for initial conditions
     ic = np.ones(3,np.float32)
@@ -211,7 +192,7 @@ def ForwardK(
     ):
     
     #  The next four values should be parameters?
-    Sigmax = np.identity(3,np.float32)*5
+    Sigma_a = np.identity(3,np.float32)*5
     mux = np.ones(3,np.float32)*1
     SigmaEta = np.eye(3,np.float32)*1
     SEI = np.ones((1,1),np.float32)*1 # Sigma_epsilon^{-1}
@@ -221,7 +202,7 @@ def ForwardK(
         dy = Y[t] - ythat
         # Do an update: Calculate \Sigma_\alpha(t) and \mu_\alpha(t)
         # using forecast error (eq:KUpdate in book)
-        SIalpha = LAI(Sigmax) + np.dot(G[t].T,np.dot(SEI,G[t]))
+        SIalpha = LAI(Sigma_a) + np.dot(G[t].T,np.dot(SEI,G[t]))
         Sigmaalpha = LAI(SIalpha)
         mualpha = mux + np.dot(Sigmaalpha,np.dot(G[t].T,np.dot(SEI,dy)))
         
@@ -230,7 +211,7 @@ def ForwardK(
         # Forecast: Calcualte \mu_x(t+1) and \Sigma_x(t+1), eq:Kfore
         # in book.  Note mualpha is mean deviation from X
         mux =  np.dot(F[t],mualpha)
-        Sigmax = np.dot(F[t],np.dot(Sigmaalpha,F[t].T)) + SigmaEta
+        Sigma_a = np.dot(F[t],np.dot(Sigmaalpha,F[t].T)) + SigmaEta
 """
 BackwardK A backward Kalman filter that requires state and measurement
 derivatives and a reference state trajectory.  The filter tracks
@@ -395,7 +376,13 @@ def LogLike(L,        # Lorenz/Laser parameters
             print("R=%6.0f Shrinking ic"%R)
             x /= R
         return lorenz.Ltan_one(x,s,b,r,ts)
-
+    def Tang_G(x):
+        ''' Measurement function and its derivative for Tang's laser data
+        '''
+        x_0 = x[0]
+        DG = np.zeros(1,3)
+        DG[0,0] = 2*x_0
+        return np.array((x_0*x_0,)),DG
     Nt = len(Y)
     yso = np.empty((Nt,1))  # Scaled and offset
     for t in range(Nt):
@@ -411,7 +398,7 @@ def LogLike(L,        # Lorenz/Laser parameters
         aM = Nt*[None]
     aSigma = Nt*[None]
     ic = np.mat(np.array(ic).reshape((3,1)))
-    ForwardEKF(yso, SigmaEtaT,SigmaEpsilon, ic, Sigma_x, lorstep,
+    ForwardEKF(yso, SigmaEtaT,SigmaEpsilon, ic, Sigma_x, lorstep, Tang_G,
                DF=None,alphaM=None, alphaSig=None ,aM=aM, aSigma=aSigma)
 
     # Calculate the log likelihood

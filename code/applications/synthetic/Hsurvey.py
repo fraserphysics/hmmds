@@ -2,7 +2,7 @@
 Hsurvey.py code to make the data for figure ToyH (Fig 5.3, the
 relative entropy of a Kalman filter)
 
-Invoke with: python code/python/Hsurvey.py data
+Invoke with: python Hsurvey.py data_dir
 
 Creates files: HtauS and Hsurvey in the data_dir
 
@@ -73,28 +73,21 @@ def Filter(Y,            # Observation sequence
 
     '''
     Nt = len(Y)
-    aM = Nt*[None]             # Forecast state means
-    aSigma = Nt*[None]         # Forecast state covariances
-    LogStateError = Nt*[None]
     # Initial state variance
     Sigmax = np.eye(3)*1e-3
     # Inverse meas. noise
     SigEp = np.eye(1)*SigmaEpsilon
     # Time dependent dynamic noise
-    SigmaEtaT = Nt*[None]
-    same = np.eye(3)*SigmaEta
-    for t in range(Nt):
-        SigmaEtaT[t] = same
+    SigmaEtaT = Nt*[np.eye(3)*SigmaEta] # Nt pointers to a single np.array
     # Call the filtering function
-    copy = mux.copy()
-    EKF.ForwardEKF(Y, SigmaEtaT, SigEp, mux, Sigmax, lorstep, G_func,
-                   aM=aM, aSigma=aSigma, X=X)
+    RD = {'mu_y':[], 'I_y':[]}
+    EKF.ForwardEKF(Y, SigmaEtaT, SigEp, mux, Sigmax, lorstep, G_func, RD)
     # Generate error time series
     AILLY = 0.0 # Average Incremental Log Likelihood of Y
     for t in range(Nt):
-        y_hat = aM[t][0]
+        y_hat = RD['mu_y'][t]
         Y_t = Y[t][0]
-        var_y = aSigma[t][0,0] + SigmaEpsilon
+        var_y = 1/RD['I_y'][t][0,0]
         #Integrate over bin size here
         top = Y_t + Ystep/2
         bottom = Y_t - Ystep/2
@@ -173,7 +166,7 @@ def main(argv=None):
     assert len(argv) == 1
     data_dir = argv[0]
 
-    Ystep = 10**(-4) # Quantization of y.  Forecasts have probability
+    Ystep = 1.0e-4    # Quantization of y.  Forecasts have probability
     Nt = 100
     DevEpsilon = 1e-4 # Square root of the variance of measurement noise
     SigmaEpsilon = DevEpsilon**2
@@ -202,12 +195,11 @@ def main(argv=None):
         (X,Y) = calculate(DevEta, DevEpsilon, ts, Nt, Ystep) # Create the data
         DevEpsilon = 10**dy1
         SigmaEpsilon = DevEpsilon**2
-        AILLY = Filter(Y, X[0], Ystep, SigmaEpsilon, SigmaEta, X)
-        print('%4.2f %6.4f'%(ts, AILLY), end=' ', file=f)
+        AILLY0 = Filter(Y, X[0], Ystep, SigmaEpsilon, SigmaEta, X)
         DevEpsilon = 10**(dy2 + 0.4*ts)
         SigmaEpsilon = DevEpsilon**2
-        AILLY = Filter(Y, X[0], Ystep, SigmaEpsilon, SigmaEta, X)
-        print('%6.4f'%AILLY, file=f)
+        AILLY1 = Filter(Y, X[0], Ystep, SigmaEpsilon, SigmaEta, X)
+        print('%4.2f %6.4f %6.4f'%(ts, AILLY0, AILLY1), file=f)
     f.close()
 
 if __name__ == "__main__":
