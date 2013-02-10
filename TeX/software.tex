@@ -1112,14 +1112,9 @@ data.
 \end{figure}
 
 \begin{figure}[htbp]
-  \centering{\plotsize%
-    \def\tsa{$\Tsamp$}%
-    \def\x#1{\mbox{\kern-0.5em\lower1.0ex\hbox{$#1$}}}%
-    \def\devy{\mbox{\lower7.0ex\hbox{$\log_{10} \left( \tilde \sigma_\epsilon \right)$}}}%
-    \def\y#1{\mbox{\kern-1.0em\lower2.0ex\hbox{$#1$}}}%
-    \def\tsb{\mbox{\lower6.0ex\hbox{$\Tsamp$}}}%
-    \def\ailly{$-\hat h$}%
-%    \input{ToyH.pdf_t}
+  \centering{
+    \resizebox{\textwidth}{!}{
+      \includegraphics[trim = 45mm 20mm 25mm 10mm ]{ToyH.pdf}}
   }
   \caption[Average log likelihood of one step forecasts.]%
   {Average log likelihood of one step forecasts as a function of time

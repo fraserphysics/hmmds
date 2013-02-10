@@ -49,23 +49,19 @@ r = 28.0
 b = 8.0/3
 ts = 0.15  # Will be changed as global.  lorstep in EKF needs global
 
-def G_func(x):
+def G_func(t, x):
     ''' Given state "x", return g(x) \equiv observation(x) and dg/dx
     '''
     x_0 = x[0]
     DG = np.zeros((1,3))
     DG[0,0] = 1
     return np.array((x_0,)),DG
-def lorstep(x):
-    ''' Given state "x", return x(t+1)=F(x) and dF/dx
-    '''
-    return lorenz.Ltan_one(x,s,b,r,ts)
 
 def Filter(Y,            # Observation sequence
            mux,          # Initial state mean
            Ystep,        # Quantization of forecasts
-           SigmaEpsilon, # Variance of state noise
-           SigmaEta,     # Variance of measurement noise
+           sigma_epsilon,# scalar variance of measurement noise
+           sigma_eta,    # scalar variance of state noise
            X
 ):
     '''Run Kalman filter on sequence Y.  Calculate and return AILLY
@@ -75,13 +71,15 @@ def Filter(Y,            # Observation sequence
     Nt = len(Y)
     # Initial state variance
     Sigmax = np.eye(3)*1e-3
-    # Inverse meas. noise
-    SigEp = np.eye(1)*SigmaEpsilon
-    # Time dependent dynamic noise
-    SigmaEtaT = Nt*[np.eye(3)*SigmaEta] # Nt pointers to a single np.array
+    # Define functions for EKF
+    state_noise = np.eye(3)*sigma_eta
+    SigmaEta = lambda t,x: state_noise
+    measurement_noise = np.eye(1)*sigma_epsilon
+    SigmaEpsilon = lambda t,x: measurement_noise
+    F = lambda t,x: lorenz.Ltan_one(x,s,b,r,ts)
     # Call the filtering function
     RD = {'mu_y':[], 'I_y':[]}
-    EKF.ForwardEKF(Y, SigmaEtaT, SigEp, mux, Sigmax, lorstep, G_func, RD)
+    EKF.ForwardEKF(Y, mux, Sigmax, SigmaEta, SigmaEpsilon, F, G_func, RD)
     # Generate error time series
     AILLY = 0.0 # Average Incremental Log Likelihood of Y
     for t in range(Nt):
@@ -154,7 +152,7 @@ def survey(data_dir, Nt, Ystep, DevEpsilon, DevEta):
             DevEpsilon = 10**dy
             SigmaEpsilon = DevEpsilon**2
             AILLY = Filter(Y, X[0], Ystep, SigmaEpsilon, SigmaEta, X)
-            print(dy, ts, AILLY, file=f)
+            print(dy, ts, AILLY[0], file=f)
     f.close()
 
 def main(argv=None):

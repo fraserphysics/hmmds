@@ -96,6 +96,11 @@ source = ('ToyTS1.py', DDS('ToyTS1'))
 env.args[KEY(target)] = (source[-1], target[0])
 env.Command(target, source, BUILD2)
 
+target = (FIG('ToyH.pdf'),)
+source = ('ToyH.py', DDS('Hsurvey'), DDS('HtauS'))
+env.args[KEY(target)] = source[1:] + (target[0],)
+env.Command(target, source, BUILD2)
+
 #Local Variables:
 #mode:python
 #End:

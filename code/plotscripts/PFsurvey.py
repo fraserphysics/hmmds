@@ -27,8 +27,6 @@ def read_data(data_file):
     zs = np.empty((n_y, n_x))
     zs[:,:] = np.NaN
     for xy, z in z_dict.items():
-        if z < 0.0:
-            continue
         x,y = xy
         zs[y_dict[y], x_dict[x]] = z
     return xs, ys, zs

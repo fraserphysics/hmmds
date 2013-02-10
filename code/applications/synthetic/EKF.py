@@ -52,12 +52,12 @@ import numpy as np
 
 def ForwardEKF(
     Y,         # Observations.  Shape = (Nt,dim_y)
-    Sig_EtaT,  # Covs of dynamical noise.  Sig_EtaT[t].shape = (dim_x,dim_x)
-    Sig_Ep,    # Covariance of measurement noise.  Sig_Ep.shape = (dim_y,dim_y)
     mu_a,      # Mean of initial state (forecast)
     Sig_a,     # Covariance of initial state (forecast)
-    F,         # Integrator: Maps ic to image and derivative
-    G,         # G_x(x) returns y,DG observation and derivative
+    Sig_Eta,   # Sig_Eta(t, x) is Covariance of dynamical noise
+    Sig_Ep,    # Sig_Ep(t, x) is Covariance of measurement noise
+    F,         # (x[t+1], dx[t+1]/dx[t]) = F(t, x[t])
+    G,         # (y, dy/dx) = G(t, x)
     rd={}      # Return dictionary.  Key=variable, value=list
     ):
     """ This started as a general extended Kalman filter function, but
@@ -67,23 +67,20 @@ def ForwardEKF(
     (Nt,dim_y) = Y.shape
     (dim_x,) = mu_a.shape
     assert (dim_x,dim_x) == Sig_a.shape
-    assert (dim_y,dim_y) == Sig_Ep.shape,"dim_y=%d, Sig_Ep.shape=(%d,%d)"%(
-        dim_y, Sig_Ep.shape[0],Sig_Ep.shape[1])
     Id = np.eye(dim_x)  # Identity matrix
     for t in range(Nt):
-        Sig_Eta = Sig_EtaT[t]
-        mu_y, Gt = G(mu_a)     # Forcast y and derivative wrt mu_a
+        mu_y, Gt = G(t,mu_a)     # Forcast y and derivative wrt mu_a
         error_y = Y[t] - mu_y
         # Update: Calculate \Sigma_\alpha(t) and \mu_\alpha(t) Y[t]
-        I_y = LAI( np.dot(Gt, np.dot(Sig_a, Gt.T)) + Sig_Ep)
+        I_y = LAI( np.dot(Gt, np.dot(Sig_a, Gt.T)) + Sig_Ep(t,mu_a))
         # I_y is the inverse covariance of the y forecast
         K = np.dot( np.dot(Sig_a, Gt.T), I_y) # Kalman gain matrix 4.44c
         I_gain = np.dot(np.dot(K,Gt), Sig_a)  # Info gain (jargon error) from y
         Sig_alpha = Sig_a - I_gain            # Updated state variance 4.44a
         mu_alpha = mu_a + np.dot(K, error_y)  # Updated state mean
         # Forecast: Calcualte mean mu_a(t+1) and variance Sigma_a(t+1)
-        mu_a, Ft = F(mu_alpha) # Calculate state forecast and derivative
-        Sig_a = np.dot(Ft, np.dot(Sig_alpha, Ft.T)) + Sig_Eta # 4.38
+        mu_a, Ft = F(t,mu_alpha) # Calculate state forecast and derivative
+        Sig_a = np.dot(Ft, np.dot(Sig_alpha, Ft.T)) + Sig_Eta(t,mu_a) # 4.38
         Sig_a = (Sig_a + Sig_a.T)/2 # Symmetrize, perhaps unnecessary
         # Record requested values
         D = locals()

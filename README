@@ -68,7 +68,10 @@ To do:
 5. From single source (HMMDS3) make two distribution tarballs: HMMpy
    and HMM_DS
 
-6. Study alternative build systems
+6. Clean up EKF and put it in code/hmm.  Reduce it to Forward(),
+   Backward(), and Smooth().
+
+7. Study alternative build systems
 
 -1. Get 2 axes rather than box for matplotlib plots and kill boxes on legends
 
