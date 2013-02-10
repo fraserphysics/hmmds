@@ -57,11 +57,10 @@ To do:
 
 3. Make the rest of the figures in the book
 
-   GaussMix
-   ScalarGaussian
-   MLEfail
+   ScalarGaussian 3.2
+   MLEfail 3.3
 
-4. Clean up LaTeX document.  Rework website
+4. Clean up LaTeX document.  Explain class decode stuff better.  Rework website
 
 5. From single source (HMMDS3) make two distribution tarballs: HMMpy
    and HMM_DS

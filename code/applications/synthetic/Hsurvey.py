@@ -165,7 +165,7 @@ def main(argv=None):
     data_dir = argv[0]
 
     Ystep = 1.0e-4    # Quantization of y.  Forecasts have probability
-    Nt = 100
+    Nt = 2000
     DevEpsilon = 1e-4 # Square root of the variance of measurement noise
     SigmaEpsilon = DevEpsilon**2
     DevEta = 1e-6 # Square root of the variance of state noise

@@ -60,6 +60,11 @@ source = ('Hsurvey.py', 'EKF.py')
 env.args[KEY(target)] = (DDS(''),)
 env.Command(target, source, BUILD)
 
+target = (DDS('em.pickle'),)
+source = ('em.py',)
+env.args[KEY(target)] = target
+env.Command(target, source, BUILD)
+
 #---------------
 # Local Variables:
 # eval: (python-mode)
