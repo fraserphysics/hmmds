@@ -106,7 +106,7 @@ def BUILD2(target, source, env):
 SConscript(CAS('SConscript'), exports='CH RD DDS KEY BUILD')        # Synthetic
 SConscript(CAA('SConscript'), exports='DDA RDA KEY BUILD')          # Apnea
 SConscript(CAO('SConscript'), exports='DD RD CH KEY BUILD')         # Other
-SConscript(CPS('SConscript'), exports='DDL DDA DDS RDA FIG KEY BUILD2') # plots
+SConscript(CPS('SConscript'), exports='DDL DDA DDS RDA RD FIG KEY BUILD2')
 SConscript(CXF('SConscript'), exports='fig2pdf FIG') # xfigs
 
 # The remaining code fragments are so small that I have not put them
