@@ -4,7 +4,7 @@
 This is the first line of the data file a03er_seg and the fields:
 
 3000.01 -0.65 -4814.0 -4002.0  -56.0     70.0 
-time     EEG                   1000*ONR  O2sat
+time     ECG                   1000*ONR  O2sat
 
 This is the first line of the data file a03.lphr and the fields:
 
@@ -40,7 +40,7 @@ def plot_a(plt, seg, start, stop, xbounds, xrng, out_name):
         ax.set_xlim(xbounds)
         return
 
-    subplot((3,1,1), seg[1,start:stop]/1000, r'$EEG$', [], (-0.015, 0.035),
+    subplot((3,1,1), seg[1,start:stop]/1000, r'$ECG$', [], (-0.015, 0.035),
             np.arange(-10,31,10), 1e-3)
     subplot((3,1,2), seg[4,start:stop]/1000, r'$ONR$', [], (-15, 15),
             np.arange(-10,11,10))

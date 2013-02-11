@@ -51,9 +51,9 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-0. Change EEG to ECG in apnea plots
+0. Do LANL release procedure
 
-1. Do LANL release procedure
+1. Put copyright notices in each file and include GPL3 file
 
 2. Move to google repository
 
@@ -66,7 +66,7 @@ To do:
    and HMM_DS
 
 6. Clean up EKF and put it in code/hmm.  Reduce it to Forward(),
-   Backward(), and Smooth().
+   Backward(), and Smooth().  Write test functions.
 
 7. Study alternative build systems
 
@@ -78,13 +78,16 @@ To do:
     pickle works without including  "/home/andy/..../hmm/" in
     PYTHONPATH
 
--4. Test functions for EKF.  Make EKF independent of lorenz.
+To run scripts from the command line rather than scons, one must
+modify the PYTHONPATH environment variable.  The following lines work
+for my configuration:
 
+    export PYTHONPATH=/home/andy/projects/hmmds3/code/
+    export PYTHONPATH=/home/andy/projects/hmmds3/code/hmm/:$PYTHONPATH
 
-export PYTHONPATH=/home/andy/projects/hmmds3/code/
-export PYTHONPATH=/home/andy/projects/hmmds3/code/hmm/:$PYTHONPATH
-
-LA-CC-13-008
+While I did most of the work on this code at FraserPhysics, a I did a
+fraction at Los Alamos National Laboratory (LANL).  The "Los Alamos
+Computer Code" for this work is LA-CC-13-008.
 
 # Local Variables:
 # mode: text
