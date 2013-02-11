@@ -51,16 +51,16 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
+0. Change EEG to ECG in apnea plots
+
 1. Do LANL release procedure
 
 2. Move to google repository
 
-3. Make the rest of the figures in the book
+3. Clean up LaTeX document.  Explain class decode stuff better.  Run
+   apnea stuff to completion.
 
-   ScalarGaussian 3.2
-   MLEfail 3.3
-
-4. Clean up LaTeX document.  Explain class decode stuff better.  Rework website
+4. Rework website
 
 5. From single source (HMMDS3) make two distribution tarballs: HMMpy
    and HMM_DS

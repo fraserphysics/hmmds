@@ -80,6 +80,13 @@ def SubPlot(fig,position,x,y,plot_flag=True,label=None,color='b'):
     x.set_ticks(ax.set_xticks,ax.set_xticklabels)
     return ax
 
+def read_data(data_file):
+    '''Read in "data_file" as an array'''
+    f = file(data_file, 'r')
+    data = [[float(x) for x in line.split()] for line in f.xreadlines()]
+    f.close()
+    return np.array(data).T
+
 #---------------
 # Local Variables:
 # eval: (python-mode)

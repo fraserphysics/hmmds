@@ -65,6 +65,11 @@ source = ('em.py',)
 env.args[KEY(target)] = target
 env.Command(target, source, BUILD)
 
+target = (DDS('SGO_sim'), DDS('SGO_train'))
+source = ('ScalarGaussian.py',)
+env.args[KEY(target)] = (DDS(''),)
+env.Command(target, source, BUILD)
+
 #---------------
 # Local Variables:
 # eval: (python-mode)

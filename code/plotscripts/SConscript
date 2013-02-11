@@ -111,6 +111,11 @@ source = ('GaussMix.py', DDS('em.pickle'))
 env.args[KEY(target)] = source[1:] + target
 env.Command(target, source, BUILD2)
 
+target = (FIG('SGO_b.pdf'),FIG('SGO_c.pdf'),FIG('SGO_d.pdf'))
+source = ('ScalarGaussian.py', DDS('SGO_sim'))
+env.args[KEY(target)] = (source[-1], FIG(''))
+env.Command(target, source, BUILD2)
+
 #Local Variables:
 #mode:python
 #End:
