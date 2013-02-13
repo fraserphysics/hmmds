@@ -19,6 +19,14 @@ http://www.scons.org/doc/HTML/scons-api/SCons.Scanner.LaTeX.LaTeX-class.html
 http://www.scons.org/wiki/LatexSupport
 
 '''
+# SConstruct, part of hmmds3, is the master file for the scons build system.
+# Copyright 2013 Andrew M. Fraser and Los Alamos National Laboratory
+
+# You can redistribute and/or modify hmmds3 under the terms of the GNU
+# General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later
+# version.  See the file "License" in the root directory of the
+# hmmds3 distribution.
 
 def build_pdf_t(target, source, env):
     ''' Written for the fig2pdf Builder, this function runs fig2dev

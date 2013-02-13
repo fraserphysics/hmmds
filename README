@@ -89,6 +89,15 @@ While I did most of the work on this code at FraserPhysics, a I did a
 fraction at Los Alamos National Laboratory (LANL).  The "Los Alamos
 Computer Code" for this work is LA-CC-13-008.
 
+This file is part of hmmds3.
+Copyright 2013 Andrew M. Fraser.
+
+You can redistribute and/or modify hmmds3 under the terms of the GNU
+General Public License as published by the Free Software Foundation,
+either version 3 of the License, or (at your option) any later
+version.  See the file "License" in the root directory of the
+hmmds3 distribution.
+
 # Local Variables:
 # mode: text
 # End:

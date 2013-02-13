@@ -1,3 +1,16 @@
+% software.tex, part of hmmds3, is the LaTeX file for explaining and
+% displaying figures that appear in my book "Hidden Markov Models and
+% Dynamical Systems" published by SIAM in 2008.
+
+% Copyright 2013 Andrew M. Fraser.
+
+% You can redistribute and/or modify hmmds3 under the terms of the GNU
+% General Public License as published by the Free Software Foundation,
+% either version 3 of the License, or (at your option) any later
+% version.  See the file "License" in the root directory of the
+% hmmds3 distribution.
+
+
 %%% Note: The following settings will cause many overfull hbox false alarms:
 \documentclass[prelim,showlabels]{book}
 
@@ -71,7 +84,7 @@
 \chapter{Preface}
 \label{chap:preface}
 
-This document describes \emph{hmmmds3}, a revision of the software I
+This document describes \emph{hmmds3}, a revision of the software I
 used to produce \emph{Hidden Markov Models and Dynamical Systems},
 hereinafter \emph{the book}.  When I started working on the book, I
 decided to structure it as a software project using version control to
@@ -136,12 +149,28 @@ actually used to produce the book:
   don't recommend scons over gnu make with any enthusiasm either.
 \end{description}
 
+\subsection*{Differences}
+The data for most of the figures and tables in this document are not
+identical to data for the figures and tables in the book.  My code is
+different and the libraries on which my code builds is different.
+Many details of the results depend on features like random number
+generators.  I have focused on making the new code easier to read
+rather than getting it to reproduce the results of the old code
+exactly.  While I've found the old code embarrassingly difficult to
+read, I am pleased to have found that it mostly runs and gives correct
+results.  As of 2013-02-12 the only substantial error that I've found
+in the old is the bogus algorithm described in
+Chapter~\ref{chap:apnea} of the book for decoding class sequences.  If
+I find other major flaws, I will note them in revisions to this
+document.
+
 \section*{Copyright and License}
 
 SIAM owns the copyright to the \LaTeX source files for the book,
 namely: \emph{algorithms.tex, introduction.tex, appendix.tex,
   main.tex, toys.tex, continuous.tex, real.tex,} and
-\emph{variants.tex}.  You may only use these files to see how the book
+\emph{variants.tex}.  You may obtain those files from the SIAM website
+for the book, but you can only use them to see how the book
 was made.  The \LaTeX source files are subject to the following
 restrictions:
 \begin{itemize}
@@ -150,16 +179,33 @@ restrictions:
 \item You may not distribute modifications of the files
 \end{itemize}
 
-I (Andrew M. Fraser) own the copyright to all the other files, and I
-make those files available under the terms of version 3 of the GNU
-General Public License as published by the Free Software Foundation,
+I (Andrew M. Fraser) and my current employer (Los Alamos National
+Laboratory)\footnote{The "Los Alamos Computer Code" for this work is
+  LA-CC-13-008.} own the copyright to all the other files, and we make
+those files available under the terms of version 3 of the GNU General
+Public License as published by the Free Software Foundation,
 (http://www.gnu.org/licenses/).
+
+\section*{Structure of the Document}
+Chapters \ref{chap:introduction} through \ref{chap:apnea} mirror
+chapters in the book.  The figures in those chapters map bijectively
+to the figures in the corresponding chapters of the book and the
+numbering is the same.  While the figures in the book illustrate
+concepts in the text, in this document the text explains the software
+that makes the figures.  I will place other material in this preface
+and in appendices.  The first appendix addresses the erroneous analysis
+of class decoding that appears in Chapter~\ref{chap:apnea} of the
+book.
 
 \section*{To Do}
 \begin{description}
-\item[Class-Decode:] Study ad-hoc algorithm and make sure figs from
-  Chapter 6 are OK
-\item[Make all of the figures] 
+\item[Class-Decode:] Study the performance of ad hoc algorithms for
+  decoding class.  Write an appendix describing the study.  Apply such
+  an algorithm to the apnea problem of Chapter 6.
+\item[Clean up EKF and put it in code/hmm]
+\item[Write new Hview code] Data for Figs.~\ref{fig:ToyTS1} and
+  \ref{fig:ToyStretch}
+
 \end{description}
 
 \mainmatter
@@ -285,7 +331,7 @@ Fig.~\ref{fig:dhmm} too.  In his words:
 \label{sec:QuantizedLorenz}
 
 I used \emph{scipy.odeint} or the fourth order Runge Kutta formula
-implemented in cython, to integrate the Lorenz system and make the
+implemented in Cython, to integrate the Lorenz system and make the
 data for Figs.~\ref{fig:TSintro}-\ref{fig:Statesintro}.  I have not
 found matplotlib to be much easier to use than gnuplot.
 \begin{figure}[htbp]
@@ -318,7 +364,7 @@ found matplotlib to be much easier to use than gnuplot.
    \label{fig:STSintro}
  \end{figure}
 
- Figure~\ref{fig:Statesintro} is the picture on the cover fo the book.
+ Figure~\ref{fig:Statesintro} is the picture on the cover of the book.
 %%% This is a large color figure on a page by itself. (butterfly)
 %%%
  \begin{figure}[htb]
@@ -340,7 +386,7 @@ the actual table of words is the result of the new code
 (po\_speech.py), the explanations do not match the word groups.  Using
 different seeds for the random number generator produces different
 groupings.  For now, each run takes 52 minutes.  In the future, I will
-write the core routines in cython which will reduce the time by an order of
+write the core routines in Cython which will reduce the time by an order of
 magnitude.
 \begin{table}[htb]
   \caption[Words most frequently associated with each state.]%
@@ -1017,7 +1063,7 @@ Fig.~\ref{fig:VARGstates} from data/lorenz.xyz.
 % \chapter[Continuous States and Observations]{Continuous States and
 %   Observations and Kalman Filtering}
 % \label{chap:continuous}
-\addtocounter{chapter}{1}
+\addtocounter{chapter}{1} % Skip chapter without figures
 \chapter[Performance Bounds]{Performance Bounds and a Toy Problem}
 \label{chap:toys}
 \index{toy problems}
