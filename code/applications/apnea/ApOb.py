@@ -222,7 +222,7 @@ def build_data(y_mod, args, use_class=True):
         readers = []
         paths = []
         args_ = []
-    if y_class is Heart_Rate or y_class is Both:
+    if y_class in (Heart_Rate, Both, fudge_pow):
         if y_class is Heart_Rate:
             assert args.resp_dir is None
             AR = y_mod.A.shape[1] - 1
@@ -231,7 +231,7 @@ def build_data(y_mod, args, use_class=True):
         readers.append(read_lphr)
         paths.append(args.hr_dir)
         args_.append(AR)
-    if y_class is Resp or y_class is Both:
+    if y_class in (Resp, Both, fudge_pow):
         if y_class is Resp:
             assert args.hr_dir is None
         readers.append(read_resp)

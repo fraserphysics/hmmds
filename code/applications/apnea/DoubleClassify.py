@@ -13,6 +13,18 @@ This file is part of HMM_DS_Code.
 """
 import sys
 
+def load(name, fudge, power):
+    ''' Return model specified
+    '''
+    import pickle
+    import ApOb
+    fudge = float(fudge)
+    power = float(power)
+    model = pickle.load(open(name, 'rb'))
+    y_mod_0 = model.y_mod.y_mod
+    s2c = model.y_mod.s2c
+    model.y_mod.y_mod = ApOb.fudge_pow(y_mod_0, fudge, power, s2c)
+    return model
 def main(argv=None):
     
     import argparse
@@ -36,9 +48,15 @@ def main(argv=None):
               help='Only do the first pass classification')
     parser.add_argument('--report', type=str,
                         help='Location of report to write')
-    parser.add_argument('--Lmodel', help='For records that have low score')
-    parser.add_argument('--Mmodel', help='For records that have medium score')
-    parser.add_argument('--Hmodel', help='For records that have high score')
+    parser.add_argument(
+        '--Lmodel', nargs=3,
+        help='(name, fudge, power) model for records that have low score')
+    parser.add_argument(
+        '--Mmodel', nargs=3,
+        help='(name, fudge, power) model for records that have medium score')
+    parser.add_argument(
+        '--Hmodel', nargs=3,
+        help='(name, fudge, power) model for records that have high score')
     parser.add_argument('--expert', type=str,
                        help='Path to file of expert annotations')
     parser.add_argument('record', type=str, nargs='*',
@@ -53,10 +71,9 @@ def main(argv=None):
     Amod = pickle.load(open(args.Amodel, 'rb'))
     BCmod = pickle.load(open(args.BCmodel, 'rb'))
     if not args.Single:
-        load = lambda x: pickle.load(open(x, 'rb'))
-        Lmod = load(args.Lmodel)
-        Mmod = load(args.Mmodel)
-        Hmod = load(args.Hmodel)
+        Lmod = load(*args.Lmodel)
+        Mmod = load(*args.Mmodel)
+        Hmod = load(*args.Hmodel)
     data_dict = ApOb.build_data(Amod.y_mod, args) # data [hr, context, resp]
     # Need h_data because AR order for Hmod is different
     if not args.Single:
@@ -102,7 +119,7 @@ def main(argv=None):
         if args.Single:
             print('', file=report)
             continue
-        Cseq = (model.class_decode(data) - 0.5)*2.0 # +/- 1
+        Cseq = (np.array(model.class_decode(data)) - 0.5)*2.0 # +/- 1
         sam_min = 10  # Samples per minute
         min_hour = 60
         sam_hour = 60*sam_min
@@ -118,7 +135,7 @@ def main(argv=None):
                 if t > len(Cseq):
                     break
                 if tot > 0:
-                    print('A',end='')
+                    print('A',end='', file=report)
                 else:
                     print('N',end='', file=report)
         print('\n',end='', file=report)
