@@ -70,7 +70,8 @@ source = ['stateplot.py', DDS('states')]+[DDS('varg_state%s'%x)
 env.args[KEY(target)] = (DDS(''), 'varg_state', target[0])
 env.Command(target, source, BUILD2)
 
-roots = ('LaserLP5', 'LaserForecast', 'LaserHist')# LaserLogLike LaserStates
+roots = ('LaserLP5', 'LaserForecast', 'LaserHist', 'LaserLogLike',
+         'LaserStates')
 target = tuple(FIG(x+'.pdf') for x in roots)
 source = ('laser.py',) + tuple(DDL(x) for x in roots)
 env.args[KEY(target)] = tuple('--%s'%x for x in roots)+(DDL(''), FIG(''))

@@ -34,7 +34,7 @@ source = ('VStatePic.py', DDS('lorenz.xyz'), DDS('states'))
 env.args[KEY(target)] = (DDS(''), 'lorenz.xyz', 'states')
 env.Command(target, source, BUILD)
 
-target = (DDS('benettinX'),)
+target = (DDS('benettin'),)
 source = ('LyapPlot.py',)
 env.args[KEY(target)] = target
 env.Command(target, source, BUILD)
