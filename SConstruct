@@ -136,6 +136,11 @@ env.Command(
     (CH('Scalar.py'), CH('C.pyx')),
     'cd %s; python3 setup.py build_ext --inplace'%CH('')
     )
+env.Command(
+    CAS('lor_C.cpython-32mu.so'),
+    (CAS('lor_C.pyx'),),
+    'cd %s; python3 setup.py build_ext --inplace'%CAS('')
+    )
 
 #---------------
 # Local Variables:

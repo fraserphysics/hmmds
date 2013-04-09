@@ -40,7 +40,7 @@ env.args[KEY(target)] = target
 env.Command(target, source, BUILD)
 
 target = (DDS('H_study'),)
-source = ('cross_entropy.py',)
+source = ('cross_entropy.py', 'lor_C.cpython-32mu.so', CH('C.cpython-32mu.so'))
 env.args[KEY(target)] = ('--resultfile', target[0], '--exponents', '-2.0',
                          '3.0', '0.5')
 env.Command(target, source, BUILD)

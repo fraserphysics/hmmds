@@ -8,7 +8,7 @@ env=Environment()
 env.args = {}
 
 target = (DD('po_speech'),)
-source = ('po_speech.py', RD('gutenberg-19355'))
+source = ('po_speech.py', RD('gutenberg-19355'), CH('C.cpython-32mu.so'))
 env.args[KEY(target)] = (source[1], target[0])
 env.Command(target, source, BUILD)
 
