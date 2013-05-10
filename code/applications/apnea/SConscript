@@ -71,7 +71,7 @@ env.Command(target, source, BUILD)
 
 def train_cmd(init, mod, group):
     target = (DDA(mod),)
-    source = ('ApTrain.py', DDA(init))
+    source = ('ApTrain.py', DDA(init), DDA('pass1_report'))
     env.args[KEY(target)] = ('--hr_dir', lp_hr, '--resp_dir', respiration,
     '--expert', expert, '--iterations', '20', DDA(init), DDA(mod),
     '--pass1', DDA('pass1_report'), group)
@@ -85,7 +85,7 @@ train_cmd('init_H', 'mod_H', 'High')
 def survey_cmd(mod, group, power, fudge, target_):
     import os.path
     target = (DDA(target_),)
-    source = ('PFsurvey.py', DDA(mod))
+    source = ('PFsurvey.py', DDA(mod), DDA('pass1_report'))
     env.args[KEY(target)] = (
         DDA(mod), expert, lp_hr, respiration, DDA('pass1_report'), group, 
         '%4.2f'%power[0], '%4.2f'%power[1], '%4.2f'%power[2],

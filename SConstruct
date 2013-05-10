@@ -130,15 +130,25 @@ SConscript(CXF('SConscript'), exports='fig2pdf FIG') # xfigs
 # The remaining code fragments are so small that I have not put them
 # in SConscript files.
 swe=Environment()
-swe.PDF('TeX/software.tex')
+software = swe.PDF('TeX/software.tex')
 swe.PDF('TeX/ii.tex')
-swe['TEXINPUTS'] = ['figs','TeX']
+swe['TEXINPUTS'] = ['figs','TeX', 'derived_data']
+# Added dependencies that scan of software.tex misses
+Depends(software, [
+    'figs/Markov_mm.pdf_t',
+    'derived_data/po_speech',
+    'figs/pass1.pdf'])
 
 env=Environment()
 env.Command(
     CH('C.cpython-32mu.so'),
     (CH('Scalar.py'), CH('C.pyx')),
     'cd %s; python3 setup.py build_ext --inplace'%CH('')
+    )
+env.Command(
+    CAS('lor_C.cpython-32mu.so'),
+    (CAS('lor_C.pyx'),),
+    'cd %s; python3 setup.py build_ext --inplace'%CAS('')
     )
 
 #---------------
