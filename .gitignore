@@ -8,6 +8,7 @@ doc/build
 derived_data
 !derived_data/apnea/r_times/*
 !derived_data/apnea/a03er_seg
+!derived_data/laser/LaserLP5
 figs
 *.pyc
 code/hmm/*.c
