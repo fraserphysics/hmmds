@@ -48,7 +48,24 @@ mod_L: Topology in Fig 6.9b.  Used if first pass stat is below 2.39.
 Found AR orders by looking in hmmdsbook/code/Apnea/Makefile.
 
 '''
+Copyright = '''
+Copyright2013 Andrew M. Fraser and Los Alamos National Laboroatory
 
+This file is part of hmmds3.
+
+Hmmds3 is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+Hmmds3 is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+See the file gpl.txt in the root directory of the hmmds3 distribution
+or see <http://www.gnu.org/licenses/>.
+'''
 import sys
 def main(argv=None):
     '''Call with arguments: 

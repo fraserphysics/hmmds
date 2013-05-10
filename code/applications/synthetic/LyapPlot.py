@@ -5,14 +5,25 @@ Call with: python LyapPlot.py data_file
 A script for makeing Lyapunov exponent plots for fig:benettin
 
 """
+Copyright = '''
+Copyright 2005, 2007, 2008 Andrew M. Fraser, and 2013 Andrew M. Fraser
+and Los Alamos National Laboroatory
 
-# Copyright (c) 2005, 2007, 2008, 2013 Andrew Fraser
-# This file is part of HMM_DS_Code.
+This file is part of hmmds3.
 
-# HMM_DS_Code is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
+Hmmds3 is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+Hmmds3 is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+See the file gpl.txt in the root directory of the hmmds3 distribution
+or see <http://www.gnu.org/licenses/>.
+'''
 
 import  sys, numpy, math, random, numpy.linalg as LA
 assert len(sys.argv) == 2,"Should be invoked like: %s data_file"%sys.argv[0]

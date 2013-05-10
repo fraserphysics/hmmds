@@ -5,7 +5,7 @@ Would need the following to work with scipy in same process:
     >export SCONS_HORRIBLE_REGRESSION_TEST_HACK=yes
 
 But, I run all commands in sub-processes because most of the code is
-for python3 and scons doesn't run under python3.
+for python3 and scons does not run under python3.
 
 SCons User Guide at
 http://www.scons.org/doc/production/HTML/scons-user/index.html
@@ -19,15 +19,24 @@ http://www.scons.org/doc/HTML/scons-api/SCons.Scanner.LaTeX.LaTeX-class.html
 http://www.scons.org/wiki/LatexSupport
 
 '''
-# SConstruct, part of hmmds3, is the master file for the scons build system.
-# Copyright 2013 Andrew M. Fraser and Los Alamos National Laboratory
+Copyright='''
+    Copyright 2013 Andrew M. Fraser and Los Alamos National Laboratory
+    
+    This file is part of hmmds3.
 
-# You can redistribute and/or modify hmmds3 under the terms of the GNU
-# General Public License as published by the Free Software Foundation,
-# either version 3 of the License, or (at your option) any later
-# version.  See the file "License" in the root directory of the
-# hmmds3 distribution.
+    Hmmds3 is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
+    Hmmds3 is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    See the file gpl.txt in the root directory of the hmmds3
+    distribution or see <http://www.gnu.org/licenses/>.
+'''
 def build_pdf_t(target, source, env):
     ''' Written for the fig2pdf Builder, this function runs fig2dev
     twice on an xfig source.  Prolly belongs in plotscript dir.

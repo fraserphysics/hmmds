@@ -6,12 +6,26 @@ Creates varg_stateN (N in 0..11) in the directory named by data
 y[0][t] is a numpy.array containing the observation
 y[1][t] is a numpy.array containing the context
 context = (y[0][t-1],y[0][t-2],...,y[0][t-taumax],1.0)
-
-Copyright (c) 2005, 2007, 2013 Andrew Fraser
-This file is part of HMM_DS_Code.
-
 """
+Copyright = '''
+Copyright 2005, 2007 Andrew M. Fraser, and 2013 Andrew M. Fraser and
+Los Alamos National Laboroatory
 
+This file is part of hmmds3.
+
+Hmmds3 is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+Hmmds3 is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+See the file gpl.txt in the root directory of the hmmds3 distribution
+or see <http://www.gnu.org/licenses/>.
+'''
 import numpy as np
 import sys
 

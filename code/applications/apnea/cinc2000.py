@@ -2,25 +2,25 @@
 cinc2000.py
 
 Utility routines for handling cinc2000 files.
-
- Copyright (c) 2005 Andrew Fraser
- This file is part of HMM_DS_Code.
-
- HMM_DS_Code is free software; you can redistribute it and/or modify it under
- the terms of the GNU General Public License as published by the Free Software
- Foundation; either version 2 of the License, or (at your option) any later
- version.
-
- HMM_DS_Code is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- General Public License for more details.
-
- You should have received a copy of the GNU General Public License along with
- this program; if not, write to the Free Software Foundation, Inc.,
- 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 """
 
+Copyright = '''Copyright 2005 Andrew M. Fraser
+
+This file is part of hmmds3.
+
+Hmmds3 is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+Hmmds3 is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+See the file gpl.txt in the root directory of the hmmds3 distribution
+or see <http://www.gnu.org/licenses/>.
+'''
 import numpy as N
 #Returns dictionary.  Keys are wfdb record names, eg, 'a01' and values
 #are strings, eg, 'NNNNNNNNNNNNNAAAAA...AAAAAAAAA'

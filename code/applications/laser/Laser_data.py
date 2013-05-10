@@ -18,13 +18,26 @@ Produces: <derived_data/laser>/
     LaserStates    Sequence of 250 states from EKF for figure LaserStates
     LaserForecast  Sequence of 400 scalar values for figure LaserForecast
     LaserHist      Histogram 600 values for figure LaserHist in Chap 3
-    
-
-Copyright (c) 2005, 2008, 2013 Andrew Fraser
-
-This file is part of HMM_DS_Code.
-
 """
+Copyright = '''
+Copyright 2005, 2008 Andrew M. Fraser, and 2013 Andrew M. Fraser and
+Los Alamos National Laboroatory
+
+This file is part of hmmds3.
+
+Hmmds3 is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+Hmmds3 is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+See the file gpl.txt in the root directory of the hmmds3 distribution
+or see <http://www.gnu.org/licenses/>.
+'''
 import sys, os, math, numpy, numpy.linalg as LA, EKF, copy, lorenz
 import pickle, scipy.optimize as O
 from os.path import join

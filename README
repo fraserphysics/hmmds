@@ -51,22 +51,20 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-0. Do LANL release procedure
+1. Move to google repository
 
-1. Put copyright notices in each file and include GPL3 file
+2. Explain class decode better in LaTeX document.  Run apnea
+   application to completion.
 
-2. Move to google repository
+3. Rework website
 
-3. Clean up LaTeX document.  Explain class decode stuff better.  Run
-   apnea stuff to completion.
-
-4. Rework website
-
-5. From single source (HMMDS3) make two distribution tarballs: HMMpy
+4. From single source (HMMDS3) make two distribution tarballs: HMMpy
    and HMM_DS
 
-6. Clean up EKF and put it in code/hmm.  Reduce it to Forward(),
+5. Clean up EKF and put it in code/hmm.  Reduce it to Forward(),
    Backward(), and Smooth().  Write test functions.
+
+6. Do the To Do list on page v of software.pdf
 
 7. Study alternative build systems
 

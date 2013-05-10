@@ -1,4 +1,4 @@
-"""ApOb.py
+'''ApOb.py
 
 Observation model classes for apnea data and utilities for reading the data.
 
@@ -25,8 +25,25 @@ autoregressive means.  And Both combines the models.
 FixMe: Remember that the relative weighting in class Both could be a
 parameter.
 
-"""
+'''
+Copyright = '''Copyright 2003, 2007, 2008, 2012 Andrew M. Fraser, and 2013
+Andrew M. Fraser and Los Alamos National Laboroatory
 
+This file is part of hmmds3.
+
+Hmmds3 is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+Hmmds3 is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+See the file gpl.txt in the root directory of the hmmds3 distribution
+or see <http://www.gnu.org/licenses/>.
+'''
 small = 1e-25
 SamPerMin = 10 # Samples per minute.
 

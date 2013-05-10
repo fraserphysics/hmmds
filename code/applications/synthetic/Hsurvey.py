@@ -15,27 +15,26 @@ cross entropy vs tau_s:
  One that follows the response surface down its ridge
  One set at the known simulated measurement noise level
  A line calculated by Eqn. 5.2 in the book
-
-Copyright (c) 2005, 2013 Andrew Fraser
-This file is part of HMM_DS_Code.
-
-HMM_DS_Code is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or
-(at your option) any later version.
-
-HMM_DS_Code is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-02111-1307, USA.
-
-
 """
+Copyright = '''
+Copyright 2005 Andrew M. Fraser, and 2013 Andrew
+M. Fraser and Los Alamos National Laboroatory
+
+This file is part of hmmds3.
+
+Hmmds3 is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version.
+
+Hmmds3 is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
+
+See the file gpl.txt in the root directory of the hmmds3 distribution
+or see <http://www.gnu.org/licenses/>.
+'''
 import sys
 import numpy as np
 from numpy.linalg import inv as LAI

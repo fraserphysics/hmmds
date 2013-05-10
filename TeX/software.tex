@@ -4,12 +4,21 @@
 
 % Copyright 2013 Andrew M. Fraser.
 
-% You can redistribute and/or modify hmmds3 under the terms of the GNU
-% General Public License as published by the Free Software Foundation,
-% either version 3 of the License, or (at your option) any later
-% version.  See the file "License" in the root directory of the
-% hmmds3 distribution.
+% Hmmds3 is free software: you can redistribute it and/or modify it
+% under the terms of the GNU General Public License as published by the
+% Free Software Foundation, either version 3 of the License, or (at your
+% option) any later version.
 
+% Hmmds3 is distributed in the hope that it will be useful, but WITHOUT
+% ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+% FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+% for more details.
+
+% See the file gpl.txt in the root directory of the hmmds3 distribution
+% or see <http://www.gnu.org/licenses/>.
+
+% To build from command line, first type:
+%export TEXINPUTS=../figs:.:/usr/share/texlive/texmf-dist/tex///
 
 %%% Note: The following settings will cause many overfull hbox false alarms:
 \documentclass[prelim,showlabels]{book}
@@ -152,7 +161,7 @@ actually used to produce the book:
 \subsection*{Differences}
 The data for most of the figures and tables in this document are not
 identical to data for the figures and tables in the book.  My code is
-different and the libraries on which my code builds is different.
+different and the libraries on which my code builds are different.
 Many details of the results depend on features like random number
 generators.  I have focused on making the new code easier to read
 rather than getting it to reproduce the results of the old code
@@ -199,6 +208,8 @@ book.
 
 \section*{To Do}
 \begin{description}
+\item[fig:LikeLor] Perhaps try for larger $n_\text{states}$
+\item[Fix fig:mm:] 
 \item[Class-Decode:] Study the performance of ad hoc algorithms for
   decoding class.  Write an appendix describing the study.  Apply such
   an algorithm to the apnea problem of Chapter 6.
@@ -212,21 +223,24 @@ book.
 \chapter{Introduction}
 \label{chap:introduction}
 
-The text \texttt{\{chap:introduction\}}
-that appears in the margin is produced by the package
-\emph{showlabels}.  I find it helpful as I write \LaTeX documents to
-be able to see the symbolic names of labeled items.
+The text \texttt{\{chap:introduction\}} that appears in the margin is
+produced by the package \emph{showlabels}.  I find it helpful as I
+write \LaTeX documents to be able to see the symbolic names of labeled
+items.  You can eliminate the labels by removing the line
+\texttt{\textbackslash usepackage\{showlabels\}} from the file
+\emph{software.tex} and rebuilding this document, \emph{software.pdf}.
 
 \section{Laser Example}
 
 The red trace in Fig.~\ref{fig:LaserLP5} plots the first 250 points in
-Tang's data file named LP5.DAT.  The blue trace is the result of an
+Tang's data file \emph{LP5.DAT}.  The blue trace is the result of an
 optimization that searches for parameters of the model described in
 the book that minimizes the sum of the squared differences between the
-simulation and the data.  The program Laser\_data.py calls the
+simulation and the data.  The program \emph{Laser\_data.py} calls the
 scipy.optimize.fmin\_powell routine to do the optimization and makes
-the file data/LaserLP5.  The optimization takes about 6 minutes.  The
-script Laser\_plots.py makes figs/LaserLP5.pdf from data/LaserLP5.
+the file \emph{data/LaserLP5}.  The optimization takes about 6
+minutes.  The script \emph{Laser\_plots.py} makes
+\emph{figs/LaserLP5.pdf} from \emph{data/LaserLP5}.
 \begin{figure}[htbp]
   \centering{
     \resizebox{\textwidth}{!}{\includegraphics{LaserLP5.pdf}}
@@ -304,11 +318,11 @@ Karl Hegbloom and I drew Fig.~\ref{fig:mm} using the xfig utility.
 Karl set up a method that let us use the same drawing for
 Fig.~\ref{fig:dhmm} too.  In his words:
 \begin{quote} 
-  Both "Markov\_mm.pdf\_t" and "Markov\_dhmm.pdf\_t" are generated from
-  the same .fig file.  The output arcs and their labels are at depth
-  40 and the rest is at depth 50.  When "mm.pdf\_t" is created, the
-  space taken up by the output arcs is blank, so we need to trim it
-  off using the '-K' switch to 'fig2dev'.
+  Both \emph{Markov\_mm.pdf\_t} and \emph{Markov\_dhmm.pdf\_t} are
+  generated from the same .fig file.  The output arcs and their labels
+  are at depth 40 and the rest is at depth 50.  When \emph{mm.pdf\_t}
+  is created, the space taken up by the output arcs is blank, so we
+  need to trim it off using the '-K' switch to 'fig2dev'.
 \end{quote}
 
 \begin{figure}[htbp]
@@ -383,11 +397,11 @@ found matplotlib to be much easier to use than gnuplot.
 
 I've copied Table~\ref{tab:POS} from the source for the book.  Since
 the actual table of words is the result of the new code
-(po\_speech.py), the explanations do not match the word groups.  Using
-different seeds for the random number generator produces different
-groupings.  For now, each run takes 52 minutes.  In the future, I will
-write the core routines in Cython which will reduce the time by an order of
-magnitude.
+(\emph{po\_speech.py}), the explanations do not match the word groups.
+Using different seeds for the random number generator produces
+different groupings.  For now, each run takes 52 minutes.  In the
+future, I will write the core routines in Cython which will reduce the
+time by an order of magnitude.
 \begin{table}[htb]
   \caption[Words most frequently associated with each state.]%
   {Words most frequently associated with each state.  While I have no
@@ -464,7 +478,7 @@ Figures~\ref{fig:dhmm_net} and \ref{fig:nonmm} are xfig drawings.
 \index{forward algorithm|textbf}
 
 Figure~\ref{fig:forward} is an xfig drawing that invokes many \LaTeX
-commands defined in the file software.tex.
+commands defined in the file \emph{software.tex}.
 \begin{sidewaysfigure}[htbp]
   %% 0.75\textheight is approx 5.7 in.  The .eps is exactly that size.
   %% The widths for the minipages below are taken by measuring the
@@ -538,7 +552,7 @@ commands defined in the file software.tex.
 \label{sec:viterbi}
 
 Figure~\ref{fig:viterbi} is straight \LaTeX source that is part of the
-file software.tex.
+file \emph{software.tex}.
 %%%
 %%% fig:viterbi
 %%%
@@ -584,7 +598,7 @@ file software.tex.
   \end{center}
 \end{figure}
 Figure~\ref{fig:viterbiB} is an xfig drawing that invokes commands
-defined in software.tex.
+defined in \emph{software.tex}.
 %%%
 %%% fig:viterbiB
 %%%
@@ -887,8 +901,8 @@ Fig.~\ref{fig:train} is also obscure straight \LaTeX.
 \chapter{Variants and Generalizations}
 \label{chap:variants}
 
-Laser\_plots.py uses pylab to make Fig.~\ref{fig:LaserHist} directly
-from Tang's file data/LP5.DAT.
+\emph{Laser\_plots.py} uses pylab to make Fig.~\ref{fig:LaserHist} directly
+from Tang's file \emph{data/LP5.DAT}.
 \begin{figure}[htbp]
   \centering{
     \resizebox{\textwidth}{!}{\includegraphics{LaserHist.pdf}}
@@ -1038,8 +1052,8 @@ Figure~\ref{fig:MLEfail} is an xfig drawing.
 
 \section{Related Models}
 \label{sec:related}
-It takes 11 minutes for VStatePic.py to make the state data for
-Fig.~\ref{fig:VARGstates} from data/lorenz.xyz.
+It takes 11 minutes for \emph{VStatePic.py} to make the state data for
+Fig.~\ref{fig:VARGstates} from \emph{data/lorenz.xyz}.
 \begin{figure}[p]
   \centering{\plotsize%
     \includegraphics[width=1.0\textwidth]{VARGstates.pdf}
@@ -1071,11 +1085,11 @@ Fig.~\ref{fig:VARGstates} from data/lorenz.xyz.
 \subsubsection{Lorenz Example}
 
 I make Figs.~\ref{fig:ToyTS1} and \ref{fig:ToyStretch} from the files
-Save\_Hview\_T\_100, Save\_Hview\_T\_118, and Save\_Hview\_T\_119.
-Which I made using the old version of GUI program Hview.py.  You can
-use the new version to make similar files and figures, but I like the
-way the old ones look.  The script ToyA.py makes the figures from the
-data.
+\emph{Save\_Hview\_T\_100}, \emph{Save\_Hview\_T\_118}, and
+\emph{Save\_Hview\_T\_119} which I made using the old version of GUI
+program \emph{Hview.py}.  You can use the new version to make similar
+files and figures, but I like the way the old ones look.  The script
+\emph{ToyA.py} makes the figures from the data.
 \begin{figure}[htbp]
   \centering{
     \resizebox{\textwidth}{!}{\includegraphics{ToyTS1.pdf}}
@@ -1562,8 +1576,9 @@ Figure~\ref{fig:structure} is a simple xfig drawing.
 %
 It takes a long time make the data for Fig.~\ref{fig:PFsurvey}.  To
 let readers avoid that delay, I've included the data in the source
-package.  If you want to build the data, simply remove data/PFsurveyH,
-make data/PFsurveyH and copy it to data/PFsurvey.
+package.  If you want to build the data, simply remove
+\emph{data/PFsurveyH}, make \emph{data/PFsurveyH} and copy it to
+\emph{data/PFsurvey}.
 \begin{figure}
   \centering{
     \resizebox{1.0\textwidth}{!}{
