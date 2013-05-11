@@ -300,9 +300,9 @@ def main(argv=None):
     # LaserLogLike takes 48 minutes
     LaserLogLike(result_dir, O_Par, 5, Nt)
 if __name__ == "__main__":
-    sys.exit(main(argv=('../../../raw_data/LP5.DAT', 
-                        '../../../derived_data/laser/')))
-    #sys.exit(main())
+    #sys.exit(main(argv=('../../../raw_data/LP5.DAT', 
+    #                    '../../../derived_data/laser/')))
+    sys.exit(main())
 
 # Local Variables:
 # mode: python

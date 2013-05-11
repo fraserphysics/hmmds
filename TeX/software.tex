@@ -108,6 +108,29 @@ single package that achieved the following goals:
 \item Make formatting techniques available to other authors
 \end{itemize}
 
+\section*{Building}
+\label{sec:building}
+
+To build this document, from a command line, go to the root directory
+(just above \emph{TeX}) and enter the following
+\begin{center}
+  \texttt{scons TeX/software.pdf}
+\end{center}
+Some of the derived files (those that take days to build and those for
+which the present code does not work) are included in the
+\emph{derived\_data} directory of distribution.  If you want to rebuild
+those files, simply remove them and rebuild using the above procedure.
+
+\subsection{showlabels}
+\label{sec:showlabels}
+
+The text \texttt{\{sec:showlabels\}} that appears in the margin is
+produced by the package \emph{showlabels}.  I find it helpful as I
+write \LaTeX documents to be able to see the symbolic names of labeled
+items.  You can eliminate the labels by removing the line
+\texttt{\textbackslash usepackage\{showlabels\}} from the file
+\emph{software.tex} and rebuilding this document, \emph{software.pdf}.
+
 \section*{Changes}
 \label{sec:changes}
 
@@ -213,7 +236,8 @@ book.
 \item[Class-Decode:] Study the performance of ad hoc algorithms for
   decoding class.  Write an appendix describing the study.  Apply such
   an algorithm to the apnea problem of Chapter 6.
-\item[Clean up EKF and put it in code/hmm]
+\item[Clean up EKF and put it in code/hmm]  Get scons to build all
+  files in derived\_data/laser and remove them from the repository
 \item[Write new Hview code] Data for Figs.~\ref{fig:ToyTS1} and
   \ref{fig:ToyStretch}
 
@@ -222,13 +246,6 @@ book.
 \mainmatter
 \chapter{Introduction}
 \label{chap:introduction}
-
-The text \texttt{\{chap:introduction\}} that appears in the margin is
-produced by the package \emph{showlabels}.  I find it helpful as I
-write \LaTeX documents to be able to see the symbolic names of labeled
-items.  You can eliminate the labels by removing the line
-\texttt{\textbackslash usepackage\{showlabels\}} from the file
-\emph{software.tex} and rebuilding this document, \emph{software.pdf}.
 
 \section{Laser Example}
 

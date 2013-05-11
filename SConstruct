@@ -64,6 +64,7 @@ from os.path import join
 C  = lambda file: join(GetLaunchDir(),'code/',file)
 CH  = lambda file: join(GetLaunchDir(),'code/hmm/',file)
 CAS = lambda file: join(GetLaunchDir(),'code/applications/synthetic/', file)
+CAL = lambda file: join(GetLaunchDir(),'code/applications/laser/', file)
 CAA = lambda file: join(GetLaunchDir(),'code/applications/apnea/', file)
 CAO = lambda file: join(GetLaunchDir(),'code/applications/other/', file)
 CPS = lambda file: join(GetLaunchDir(),'code/plotscripts/', file)
@@ -140,6 +141,7 @@ Depends(software, [
     'figs/pass1.pdf'])
 
 env=Environment()
+env.args = {}
 env.Command(
     CH('C.cpython-32mu.so'),
     (CH('Scalar.py'), CH('C.pyx')),
@@ -150,6 +152,11 @@ env.Command(
     (CAS('lor_C.pyx'),),
     'cd %s; python3 setup.py build_ext --inplace'%CAS('')
     )
+target = tuple(DDL(x) for x in ('LaserLP5', 'LaserForecast', 'LaserHist',
+                           'LaserLogLike', 'LaserStates'))
+source = tuple((CAL('Laser_data.py'), RD('LP5.DAT')))
+env.args[KEY(target)] = (RD('LP5.DAT'), DDL(''))
+env.Command(target, source, BUILD)
 
 #---------------
 # Local Variables:
