@@ -5,10 +5,11 @@ TeX/*.fls
 TeX/*.log
 TeX/*.pdf
 doc/build
-derived_data
+derived_data/apnea/low_pass*
+derived_data/apnea/respiration*
+#derived_data/synthetic
 !derived_data/apnea/r_times/*
-!derived_data/apnea/a03er_seg
-!derived_data/laser/LaserLP5
+!derived_data/laser/
 figs
 *.pyc
 code/hmm/*.c

@@ -33,7 +33,8 @@ source = ['rr2hr.py'] + r_time_records
 env.args[KEY(target)] = [r_times, lp_hr] + records_list
 env.Command(target, source, BUILD)
 
-target = respiration_records
+target = respiration_records + [DDA(x+'.resp') for x in
+                                ['mean', 'C', 'AN', 'AA']]
 source = ['respire.py'] + r_time_records
 env.args[KEY(target)] = (expert, r_times, apnea, respiration)
 env.Command(target, source, BUILD)
@@ -94,7 +95,8 @@ def survey_cmd(mod, group, power, fudge, target_):
     env.Command(target, source, BUILD)
 
 # Survey for "High" group.  6.8&0.64 .8124 on watcher, 6.0&0.7 .8129 on orr
-survey_cmd('mod_H', 'High', (1.0, 13.1, 1), (.2, 1.01, .1), 'pf_H')
+# The command below takes several days
+#survey_cmd('mod_H', 'High', (1.0, 13.1, 1), (.2, 1.01, .1), 'pf_H')
 # Survey for "Medium" group.  1.0 & 2.5 .9292 on watcher, 1.5 & 1.6 .9095 orr
 survey_cmd('mod_M', 'Medium', (0.0, 3.1, 0.5), (1.0, 2.3, .1), 'pf_M')
 # Survey for "Low" group.  Choose 0.5 & 2.5. OK on watcher and orr.

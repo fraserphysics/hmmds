@@ -131,7 +131,6 @@ def LDA(vec_dict, annotations, summary_dir):
     AA_mean, AA_var, AA_vecs, AA_n = mean_var(AA_vecs)
     AN_mean, AN_var, AN_vecs, AN_n = mean_var(AN_vecs)
 
-
     # Calculate Sw, the within class scatter
     Sw = C_var + AA_var + AN_var
     # Calculate Sb, the between class scatter
