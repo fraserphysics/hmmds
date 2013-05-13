@@ -156,7 +156,7 @@ target = tuple(DDL(x) for x in ('LaserLP5', 'LaserForecast', 'LaserHist',
                            'LaserLogLike', 'LaserStates'))
 source = tuple((CAL('Laser_data.py'), RD('LP5.DAT')))
 env.args[KEY(target)] = (RD('LP5.DAT'), DDL(''))
-env.Command(target, source, BUILD)
+#env.Command(target, source, BUILD)
 
 #---------------
 # Local Variables:
