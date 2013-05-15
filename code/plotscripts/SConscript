@@ -64,6 +64,11 @@ source = ['stateplot.py', DDS('states')]+[DDS('state%s'%x) for x in range(12)]
 env.args[KEY(target)] = (DDS(''), 'state', target[0])
 env.Command(target, source, BUILD2)
 
+target = (FIG('logo.jpg'),) # Small logo for google code
+source = ['logoplot.py', DDS('states')]+[DDS('state%s'%x) for x in range(12)]
+env.args[KEY(target)] = (DDS(''), 'state', target[0])
+env.Command(target, source, BUILD2)
+
 target = (FIG('VARGstates.pdf'),)
 source = ['stateplot.py', DDS('states')]+[DDS('varg_state%s'%x)
                                           for x in range(12)]

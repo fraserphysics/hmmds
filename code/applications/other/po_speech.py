@@ -123,7 +123,10 @@ Begin training in po_speech.py.  Takes 6 minutes on a 1 GHZ 64bit Athlon.
         s_words.sort(key=lambda x: -x[1])
         print('\\rule{0pt}{2.0ex} %d'%(s_n+1), end=' ', file=f)
         for i in range(10):
-            print('&%s'%word_list[s_words[i][0]][0], end=' ', file=f)
+            t = word_list[s_words[i][0]][0]
+            if t == '&':
+                t = '\&'
+            print('&%s'%t, end=' ', file=f)
         print('\\\\', file=f)
 
 

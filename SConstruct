@@ -48,8 +48,23 @@ def build_pdf_t(target, source, env):
     x_fig = str(source[0])
     x_pdf = str(target[0])
     x_pdf_t = str(target[1])
-    subprocess.call(['fig2dev', '-L', 'pdftex', x_fig, x_pdf])
-    subprocess.call(['fig2dev', '-L', 'pdftex_t', '-p', basename(x_pdf), x_fig, x_pdf_t])
+    for L in (['fig2dev', '-L', 'pdftex', x_fig, x_pdf],
+              ['fig2dev', '-L', 'pdftex_t', '-p', basename(x_pdf),
+               x_fig, x_pdf_t]):
+        try:
+            r = subprocess.call(L)
+            if r != 0:
+                print('''
+Error: In build_pdf_t(), subprocess.call(%s)
+    returned %d
+'''%(r, L))
+                return -1
+        except Exception as e:
+            print('''
+Error: In build_pdf_t(), subprocess.call(%s)
+     raised %s
+'''%(L, e))
+            return -1
     return None
 
 '''fig2pdf is a SCons Builder for making "%.pdf" and "%.pdf_t" from
