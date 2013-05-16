@@ -14,6 +14,7 @@
 
 import sys, os
 sys.path.append('../doc/source')
+sys.path.append('../code')
 sys.path.append('../code/hmm')
 sys.path.append('../code/applications/synthetic')
 sys.path.append('../code/plotscripts')
