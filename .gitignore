@@ -22,3 +22,4 @@ code/hmm/*.so
 /TeX/*.out
 /TeX/*.snm
 /TeX/*.toc
+/nohup.out

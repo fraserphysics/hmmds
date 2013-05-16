@@ -51,7 +51,8 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-1. Move to google repository
+1. Get documentation to build again and post.  Problem with import
+  hmm.C using __init__.py package stuff.
 
 2. Explain class decode better in LaTeX document.  Run apnea
    application to completion.
