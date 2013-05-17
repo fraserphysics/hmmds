@@ -23,3 +23,6 @@ code/hmm/*.so
 /TeX/*.snm
 /TeX/*.toc
 /nohup.out
+/www/OT107.www
+/www/index.www
+/www/software.www
