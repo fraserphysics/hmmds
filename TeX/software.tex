@@ -1422,20 +1422,20 @@ blocking out $c_{t+1}$ doesn't.
 Given measurements up to time step $t$, for any class history $c_1^t$,
 one can calculate a \emph{score} or value of
 \begin{equation*}
-  \nu(s|c_1^t) \equiv P(y_1^t|s(t) = s, c_1^t)
+  \psi(s,c_1^t) \equiv P(y_1^t, s(t) = s, c_1^t)
 \end{equation*}
 for every possible value $s$ of the ending state $s(t)$.  I define
-\emph{complete domination} of one class history $\tilde c_1^t$ by a
-second $\hat c_1^t$ as
+\emph{complete domination} of one class history $^a c_1^t$ by a
+second $^b c_1^t$ as
 \begin{equation*}
-  \nu(s|\hat c_1^t) \geq \nu(s|\tilde c_1^t),~ \forall s,
+  \psi(s, ^b \!c_1^t) \geq \psi(s, ^a\! c_1^t),~ \forall s,
 \end{equation*}
-which I denote $\nu(s|\hat c_1^t) \preceq \nu(s| \tilde c_1^t)$.
-Because a completely dominated class history will never be required as
-a part of a best class sequence, one can safely discard them as one
-makes a forward pass through a data set.  However, to ensure optimally
-one must retain and propagate every partial history that is not
-completely dominated by a another retained partial history.
+which I denote $^b \! c_1^t \preceq \,^a\!c_1^t$.  Because a completely
+dominated class history will never be required as a part of a best
+class sequence, one can safely discard them as one makes a forward
+pass through a data set.  However, to ensure optimality one must
+retain and propagate every partial history that is not completely
+dominated by a another retained partial history.
 
 One might hope that for a class with a small number of states, that a
 small number of histories would completely dominate all others.  For a
@@ -1449,7 +1449,7 @@ retain for most realistic applications.
   \resizebox{\textwidth}{!}{\input mono.pdf_t }\medskip\\
   \parbox{0.9\textwidth}{ In the drawings above, each dot represents a
     different class history and for that class history the coordinates
-    of the dot are $\nu(s_1|c_1^t)$ and $\nu(s_2|c_1^t))$.  The
+    of the dot are $\psi(s_1, c_1^t)$ and $\psi(s_2, c_1^t)$.  The
     drawing on the left illustrates \emph{complete dominance}.  The
     class history corresponding to the upper right dot completely
     dominates all the other class histories and it is the only one
@@ -1465,33 +1465,18 @@ retain for most realistic applications.
 \label{sec:prettygood}
 
 Rather than finding the \emph{best} class sequence given a sequence of
-observations $y_1^T$, I now seek a \emph{good} one using the following
-ideas.  The ideas yield performance similar to that described in the
-book when applied to the apnea problem.  At each time $t$, I keep a
-limited collection of class histories which I build in the following
-three steps:
-\begin{description}
-\item[Step 1, Propagate and Sort:] I take the histories I've retained
-  at time $t-1$ and use all possible successors to create a list of
-  histories at time $t$, then I sort those histories by
-  $P(y_1^{t},c_1^{t})$.
-\item[Step 2, Prune:] Initially, I limit the collection using the
-  following criteria:
-  \begin{itemize}
-  \item If there are two histories $^ac_1^t$ and $^bc_1^t$ with
-    $P(s_i, y_1^{t}, ^bc_1^{t}) \leq P(s_i, y_1^{t}, ^ac_1^{t})
-    \forall s_i $, then I drop $^bc_1^t$.
-  \item The total number of histories is at most $N_{\text{max}}$
-  \item I don't keep histories $c_1^t$ if
-    $\frac{P(y_1^{t},c_1^{t})}{P(y_1^{t},\bar c_1^{t})} <
-    R_{\text{min}}$ where $\bar c_1^t$ is the best class history in
-    the sorted list.
-  \end{itemize}
-\item[Step 3, Augment:] For each state $s(t)$ that is impossible given
-  the histories saved so far, if there are discarded histories for
-  which $s(t)$ is possible, I save the one that comes first in the
-  sorted list.
-\end{description}
+observations $y_1^T$, I now seek a \emph{good} sequence.  In a forward pass
+through the data sequence, at each $t$ I retain a class history for
+each ending class and a class history for each state.  Specifically, I
+retain the set:
+\begin{equation*}
+  \left\{ \argmax_{c_1^t:c_1^{t-1}\text{retained}}
+    \psi(s,c_1^t), ~ \forall s \right\} \cup
+  \left\{ \argmax_{c_1^t:c(t)=c\& c_1^{t-1}\text{retained}}
+    \psi(s,c_1^t), ~ \forall c \right\}.
+\end{equation*}
+Future versions of this document will report on the performance of
+this algorithm and prehaps on other approaches.
 
 
 %
