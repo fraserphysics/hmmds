@@ -1419,11 +1419,47 @@ obvious.
 Blocking out $s_{t+1}$ separates the past from the future, but
 blocking out $c_{t+1}$ doesn't.
 
-Thus to avoid discarding a class history that may at later times
-become the first portion of the \emph{best} class sequence, one may
-need to keep a number of class histories that is exponential in
-sequence length $t$.  That is too many to retain for most realistic
-applications.
+Given measurements up to time step $t$, for any class history $c_1^t$,
+one can calculate a \emph{score} or value of
+\begin{equation*}
+  \nu(s|c_1^t) \equiv P(y_1^t|s(t) = s, c_1^t)
+\end{equation*}
+for every possible value $s$ of the ending state $s(t)$.  I define
+\emph{complete domination} of one class history $\tilde c_1^t$ by a
+second $\hat c_1^t$ as
+\begin{equation*}
+  \nu(s|\hat c_1^t) \geq \nu(s|\tilde c_1^t),~ \forall s,
+\end{equation*}
+which I denote $\nu(s|\hat c_1^t) \preceq \nu(s| \tilde c_1^t)$.
+Because a completely dominated class history will never be required as
+a part of a best class sequence, one can safely discard them as one
+makes a forward pass through a data set.  However, to ensure optimally
+one must retain and propagate every partial history that is not
+completely dominated by a another retained partial history.
+
+One might hope that for a class with a small number of states, that a
+small number of histories would completely dominate all others.  For a
+class with only two states, the figure below illustrates both that
+hope and the fact that it is only a \emph{hope} and not a necessity.
+To ensure optimality one may need to keep a number of class histories
+that is exponential in sequence length $t$.  That is too many to
+retain for most realistic applications.
+
+\begin{center}
+  \resizebox{\textwidth}{!}{\input mono.pdf_t }\medskip\\
+  \parbox{0.9\textwidth}{ In the drawings above, each dot represents a
+    different class history and for that class history the coordinates
+    of the dot are $\nu(s_1|c_1^t)$ and $\nu(s_2|c_1^t))$.  The
+    drawing on the left illustrates \emph{complete dominance}.  The
+    class history corresponding to the upper right dot completely
+    dominates all the other class histories and it is the only one
+    that must be retained and propagated.  In the drawing on the
+    right, no class history is completely dominated, and to ensure
+    finding an optimal class sequence each history must be retained
+    and propagated.  For even two states in a class there is no limit
+    on the number of class histories that one may have to retain to
+    ensure finding an optimal class sequence.}
+\end{center}
 
 \subsection{Finding a \emph{Pretty Good Class} Sequence}
 \label{sec:prettygood}
