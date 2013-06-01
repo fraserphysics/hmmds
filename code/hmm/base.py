@@ -437,47 +437,39 @@ class HMM:
 
         '''
         P_Y = self.y_mod.y_mod.calc(y)
-        old_list = [ClassHistory(tuple(),           # Empty history
-                                 self.P_S0_ergodic, # phi
-                                 0.0,               # score
-                                 self.y_mod.c2s, self.P_SS)]
+        old_set = set([ClassHistory(
+            tuple(),            # Empty history
+            self.P_S0_ergodic,  # phi, ie, conditional utility of states
+            1.0,                # score
+            self.y_mod.c2s,     # c2s[c,s] == 1 if s in c
+            self.P_SS           # P_SS[a,b] = P(b|a)
+            )])
+        n_c, n_s = self.y_mod.c2s.shape
         for t in range(len(y[0])):
-            new_list = []
-            for history in old_list:
-                new_list.extend(history.fork(P_Y[t]))
-            new_list.sort(key=lambda x: x.score)
-            scores = np.array(list([x.score for x in new_list]))
-            i = max(
-                len(scores) - self.n_states,           # One history/state or
-                np.searchsorted(scores, scores[-1]-14) # Score down by 1e-6
-            )
-            old_list = new_list[i:]
-            def allowed_states(_list):
-                '''Calculate and return "allowed", a Boolean array,
-                with allowed[i] = True iff there is a history, h, in
-                _list with h.phi[s] > 0, ie, state s[t]=i is possible
-                given history h.
-                '''
-                allowed = np.zeros(self.n_states, dtype=np.bool)
-                for history in _list:
-                    allowed += history.phi > 0
-                return allowed
-            # For each i such that s(t)=i is possible for some history
-            # in new_list make sure to keep at least one history that
-            # that allows s(t)=i.
-            possible = allowed_states(new_list)    # Mask of possible s(t)
-            sum_possible = possible.sum()          # Number of possible s(t)
-            found = allowed_states(old_list)       # Mask of retained s(t)
-            sum_found = found.sum()                # Number of retained s(t)
-            while sum_found < sum_possible:
-                i -= 1
-                temp = found + (new_list[i].phi > 0)
-                # If new_list[i] makes another s(t) possible, retain it
-                if temp.sum() > sum_found:
-                    old_list.append(new_list[i])
-                    found = temp
-                    sum_found = temp.sum()
-        return new_list[-1].path
+            max_h = None        # new history with maximum score
+            by_class = np.empty(5, dtype=np.object_)
+            for c in range(n_c):
+                by_class[c] = []# list of histories that end in c
+            for history in old_set:
+                for new_h in history.fork(P_Y[t]):
+                    c = new_h.path[-1]
+                    by_class[c].append(new_h)
+                    if max_h is None or new_h.score > max_h.score:
+                        max_h = new_h
+            new_set = set()
+            for c in range(n_c):
+                if len(by_class[c]) == 0:
+                    continue
+                new_set.add(max(by_class[c], key=lambda x: x.score))
+                for s in range(n_s):
+                    if self.y_mod.c2s[c,s] == 0:
+                        continue
+                    new_set.add(max(by_class[c],
+                        key=lambda x: x.score*x.phi[s]))
+            for history in new_set:
+                history.score /= max_h.score
+            old_set = new_set
+        return max_h.path
     def broken_decode(self, y): # Algorithm from first edition of book
         c2s = self.y_mod.c2s
         n_c = len(c2s)
@@ -759,8 +751,8 @@ class ClassHistory:
     '''
     def __init__(self, path, phi, score, c2s, P_SS):
         self.path = path    # Sequence of past classes
-        self.phi = phi      # phi[s] = P(s|y_0^t,path)
-        self.score = score  # log(P(y_0^t|path))
+        self.phi = phi      # phi[s] = P(s| y_0^t, path)
+        self.score = score  # P(y_0^t, path)/norm
         self.c2s = c2s      # c2s[c,s] = 1 if class c contains state s
         self.P_SS = P_SS    # P_SS[a,b] = P(b|a)
         return
@@ -772,18 +764,16 @@ class ClassHistory:
         import math
 
         n_classes, n_states = self.c2s.shape
-        children = []
         phi = self.phi
-        self.P_SS.step_forward(phi)
-        phi = self.c2s*(phi*P_Y)
+        self.P_SS.step_forward(phi)  # Modify phi in place
+        phi = self.c2s*(phi*P_Y)     # phi[c,s] = P(s|c, path, y_0^{t-1})
         for c in range(n_classes):
             path = self.path + (c,)
             s = phi[c].sum()
             if s > 0:
-                score = math.log(s) + self.score
-                children.append(
-                    ClassHistory(path, phi[c]/s, score, self.c2s, self.P_SS))
-        return children # Try yield
+                score = s * self.score
+                yield ClassHistory(path, phi[c]/s, score, self.c2s, self.P_SS)
+        return
 def _test():
     import doctest
     doctest.testmod()

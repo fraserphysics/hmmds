@@ -51,23 +51,21 @@ http://www.python.org/dev/peps/pep-0008/
 
 To do:
 
-1. Get documentation to build again and post.  Problem with import
-  hmm.C using __init__.py package stuff.
+1. Test new class decode
 
-2. Explain class decode better in LaTeX document.  Run apnea
-   application to completion.
+2. Run apnea application to completion
 
-3. Rework website
+3. Problem with import hmm.C using __init__.py package stuff
 
-4. From single source (HMMDS3) make two distribution tarballs: HMMpy
+4. Get book to build
+
+5. From single source (HMMDS3) make two distribution tarballs: HMMpy
    and HMM_DS
 
-5. Clean up EKF and put it in code/hmm.  Reduce it to Forward(),
+6. Clean up EKF and put it in code/hmm.  Reduce it to Forward(),
    Backward(), and Smooth().  Write test functions.
 
-6. Do the To Do list on page v of software.pdf
-
-7. Study alternative build systems
+7. Do the To Do list on page v of software.pdf
 
 -1. Get 2 axes rather than box for matplotlib plots and kill boxes on legends
 
@@ -76,6 +74,10 @@ To do:
 -3. Get __module__ or something like it to include "hmm/" so that
     pickle works without including  "/home/andy/..../hmm/" in
     PYTHONPATH
+
+-4. Get sphinx to parse cython
+
+-5. Study alternative build systems
 
 To run scripts from the command line rather than scons, one must
 modify the PYTHONPATH environment variable.  The following lines work
