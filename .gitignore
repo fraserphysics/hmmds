@@ -26,3 +26,5 @@ code/hmm/*.so
 /www/OT107.www
 /www/index.www
 /www/software.www
+*.bak
+*~
