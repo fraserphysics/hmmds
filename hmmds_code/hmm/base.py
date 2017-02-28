@@ -22,8 +22,8 @@ See the file gpl.txt in the root directory of the hmmds3 distribution
 or see <http://www.gnu.org/licenses/>.
 '''
 import numpy as np
-from hmm.Scalar import initialize, Prob, Discrete_Observations, Class_y
-from hmm.Scalar import make_prob
+from hmmds_code.hmm.Scalar import initialize, Prob, Discrete_Observations, Class_y
+from hmmds_code.hmm.Scalar import make_prob
 
 class HMM:
     '''A Hidden Markov Model implementation.

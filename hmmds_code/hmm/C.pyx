@@ -23,8 +23,8 @@ See the file gpl.txt in the root directory of the hmmds3 distribution
 or see <http://www.gnu.org/licenses/>.
 '''
 #To build: python3 setup.py build_ext --inplace
-from hmm import Scalar
-from hmm import base
+from hmmds_code.hmm import Scalar
+from hmmds_code.hmm import base
 import numpy as np
 import scipy.sparse as SS
 import warnings

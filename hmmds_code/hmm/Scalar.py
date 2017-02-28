@@ -27,7 +27,7 @@ def initialize(x, shape, dtype=np.float64):
     allocate array of correct shape and type.
 
     '''
-    if x == None or x.shape != shape:
+    if type(x) == type(None) or x.shape != shape:
         return np.empty(shape, dtype)
     return x
 ## ----------------------------------------------------------------------

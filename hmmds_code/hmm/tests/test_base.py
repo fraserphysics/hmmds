@@ -1,13 +1,15 @@
-# export PYTHONPATH=/home/andy/projects/hmmds3/code/
-# export PYTHONPATH=/home/andy/projects/hmmds3/code/hmm/:$PYTHONPATH
+# In root of project, run:
+# conda create -n hmmds python=3.5 --file pip_req.txt
+# source activate hmmds
+# python setup.py develop
 # Copyright (c) 2013 Andrew M. Fraser
 import numpy as np
-from hmm.Scalar import initialize, Prob, Discrete_Observations, Class_y
-from hmm.Scalar import make_prob
-from hmm.base import HMM
+from hmmds_code.hmm.Scalar import initialize, Prob, Discrete_Observations, Class_y
+from hmmds_code.hmm.Scalar import make_prob
+from hmmds_code.hmm.base import HMM
 from numpy.testing import assert_, assert_allclose, run_module_suite
 from scipy.linalg import circulant
-import C
+from hmmds_code.hmm import C
 
 c2s = {
     0:[0,1],

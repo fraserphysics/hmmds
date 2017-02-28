@@ -2,12 +2,12 @@
 # export PYTHONPATH=/home/andy/projects/hmmds3/code/hmm/:$PYTHONPATH
 # Copyright (c) 2013 Andrew M. Fraser
 import numpy as np
-import Scalar
-import C as Sparse
+from hmmds_code.hmm import Scalar
+from hmmds_code.hmm import C as Sparse
 from numpy.testing import assert_, assert_allclose, assert_almost_equal
 from numpy.testing import run_module_suite, assert_equal
 from scipy.linalg import circulant
-import C
+from hmmds_code.hmm import C
 
 A = [
     [0, 2, 2.0],

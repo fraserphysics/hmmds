@@ -1,3 +1,7 @@
+
+Hidden Markoc Models and Dynamical Systems
+==========================================
+
 HMMDS3 provides python3 code that implements the following algorithms
 for hidden Markov models:
 
@@ -99,6 +103,13 @@ either version 3 of the License, or (at your option) any later
 version.  See the file "License" in the root directory of the
 hmmds3 distribution.
 
+--------------------------------------------------------------------
+Run:
+
+conda create -n hmmds python=3.5 --file pip_req.txt
+source activate hmmds
+python setup.py develop
+
 # Local Variables:
-# mode: text
+# mode: rst
 # End:
