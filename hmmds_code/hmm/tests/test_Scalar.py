@@ -1,6 +1,4 @@
-# export PYTHONPATH=/home/andy/projects/hmmds3/code/
-# export PYTHONPATH=/home/andy/projects/hmmds3/code/hmm/:$PYTHONPATH
-# Copyright (c) 2013 Andrew M. Fraser
+# Copyright (c) 2013 2017 Andrew M. Fraser
 import numpy as np
 from hmmds_code.hmm import Scalar
 from hmmds_code.hmm import C as Sparse
@@ -8,6 +6,7 @@ from numpy.testing import assert_, assert_allclose, assert_almost_equal
 from numpy.testing import run_module_suite, assert_equal
 from scipy.linalg import circulant
 from hmmds_code.hmm import C
+import unittest
 
 A = [
     [0, 2, 2.0],
@@ -21,8 +20,8 @@ C = [
     [0, 0, 2.0],
     [0, 0, 1.0],
     [6, 0, 0.0]]
-class TestScalar:
-    def setup(self):
+class TestScalar(unittest.TestCase):
+    def setUp(self):
         self.A = Scalar.make_prob(A)
         self.B = Scalar.make_prob(B)
         self.C = Scalar.make_prob(C)
@@ -93,8 +92,8 @@ class TestScalar:
     def test_values(self):
         for M in (self.C, self.C_s):
             self.values(M)
-class Test_Discrete_Observations:
-    def setup(self):
+class Test_Discrete_Observations(unittest.TestCase):
+    def setUp(self):
         P_YS = Scalar.make_prob(B)
         P_YS.normalize()
         self.y_mod = Scalar.Discrete_Observations(P_YS)

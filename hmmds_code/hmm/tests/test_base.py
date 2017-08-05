@@ -3,13 +3,14 @@
 # source activate hmmds
 # python setup.py develop
 # python -m pytest hmmds_code/ or pytest hmmds_code/hmm/tests/test_base.py
-# Copyright (c) 2013 Andrew M. Fraser
+# Copyright (c) 2013 2017 Andrew M. Fraser
 import numpy as np
 from numpy.testing import assert_, assert_allclose, run_module_suite
 from scipy.linalg import circulant
 import hmmds_code.hmm.Scalar
 import hmmds_code.hmm.base
 import hmmds_code.hmm.C
+import unittest
 
 c2s = {
     0:[0,1],
@@ -20,8 +21,8 @@ P_S0 = np.ones(6)/6.0
 P_S0_ergodic = np.ones(6)/6.0
 P_SS = circulant([0,  0, 0, 0, .5, .5])
 P_YS = circulant([.4, 0, 0, 0, .3, .3])
-class TestHMM:
-    def setup(self):
+class TestHMM(unittest.TestCase):
+    def setUp(self):
         self.mod = hmmds_code.hmm.base.HMM(
             P_S0.copy(),         # Initial distribution of states
             P_S0_ergodic.copy(), # Stationary distribution of states
@@ -74,8 +75,8 @@ class TestHMM:
     def test_multi_train(self):
         for mod in self.mods:
             self.multi_train(mod)
-class TestHMM_classy:
-    def setup(self):
+class TestHMM_classy(unittest.TestCase):
+    def setUp(self):
         pars = (hmmds_code.hmm.Scalar.Discrete_Observations, P_YS, c2s)
         self.mod = hmmds_code.hmm.base.HMM(P_S0, P_S0, pars, P_SS, hmmds_code.hmm.Scalar.Class_y, hmmds_code.hmm.Scalar.make_prob)
         self.S,CY = self.mod.simulate(1000)
@@ -93,8 +94,7 @@ class TestHMM_classy:
     def test_decode(self):
         D = self.mod.class_decode((self.CY[1],))
         E = np.where(D != self.CY[0])[0]
-        print('E={0}'.format(E))
-        assert_(len(E) < 150),'from assert E={0}'.format(E)
+        assert_(len(E) < 150),'from assert E={0}\nlen(E)={1}'.format(E,len(E))
 
 if __name__ == "__main__":
     run_module_suite()

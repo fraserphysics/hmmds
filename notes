@@ -4,6 +4,10 @@ source activate hmmds
 python setup.py develop
 python -m pytest hmmds_code/ or pytest hmmds_code/hmm/tests/test_base.py
 
+Alternatively one can run native unittest by:
+cd hmmds_code
+python -m unittest
+
 To test pip_req.txt
 source deactivate
 conda env remove -n hmmds
