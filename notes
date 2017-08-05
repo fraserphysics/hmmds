@@ -1,0 +1,85 @@
+In root of project, run:
+conda create -n hmmds --file pip_req.txt (takes 6 minutes)
+source activate hmmds
+python setup.py develop
+python -m pytest hmmds_code/ or pytest hmmds_code/hmm/tests/test_base.py
+
+To test pip_req.txt
+source deactivate
+conda env remove -n hmmds
+
+To update the anaconda environment (takes about a half hour):
+
+conda update --prefix /home/andy/anaconda3 anaconda
+
+After updating you might need to build cython code again:
+
+cd ~/projects/hmmds/hmmds_code/hmm
+python3 setup.py build_ext --inplace
+
+====================================================================
+
+https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
+http://www.python.org/dev/peps/pep-0008/
+
+To do:
+
+1. Test new class decode
+
+2. Run apnea application to completion
+
+3. Problem with import hmm.C using __init__.py package stuff
+
+4. Get book to build
+
+5. From single source (HMMDS) make two distribution tarballs: HMMpy
+   and HMM_DS
+
+6. Clean up EKF and put it in code/hmm.  Reduce it to Forward(),
+   Backward(), and Smooth().  Write test functions.
+
+7. Do the To Do list on page v of software.pdf
+
+-1. Get 2 axes rather than box for matplotlib plots and kill boxes on legends
+
+-2. Remember bug in argparse that makes empty file at default argument
+
+-3. Get __module__ or something like it to include "hmm/" so that
+    pickle works without including  "/home/andy/..../hmm/" in
+    PYTHONPATH
+
+-4. Get sphinx to parse cython
+
+-5. Study alternative build systems
+
+To run scripts from the command line rather than make, one must
+modify the PYTHONPATH environment variable.  The following lines work
+for my configuration:
+
+    export PYTHONPATH=/home/andy/projects/hmmds/code/
+    export PYTHONPATH=/home/andy/projects/hmmds/code/hmm/:$PYTHONPATH
+
+====================================================================
+====================================================================
+====================================================================
+Notes from talking to Stephen Andrews:
+
+root has F_UNCLE could be called src
+
+examples is not in F_UNCLE
+
+test dir can have any name but must have __init__.py
+
+pytest filename
+
+2017-8-4:
+
+    nosetests hmmds_code/hmm/tests/test_base.py
+
+Works, but
+
+    pytest hmmds_code/hmm/tests/test_base.py
+
+doesn't work
+
+Fix by changing __init__( to setup(

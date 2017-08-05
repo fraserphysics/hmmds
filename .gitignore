@@ -35,3 +35,4 @@ code/hmm/build
 /hmmds.egg-info/
 /hmmds_code/applications/synthetic/lor_C.c
 /hmmds_code/hmm/C.c
+/derived_data

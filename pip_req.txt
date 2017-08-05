@@ -10,4 +10,6 @@ setuptools
 wheel
 Cython
 ipython
+pytest
+python >= 3.5
 # conda fails to find twine

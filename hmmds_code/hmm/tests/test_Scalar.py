@@ -22,7 +22,7 @@ C = [
     [0, 0, 1.0],
     [6, 0, 0.0]]
 class TestScalar:
-    def __init__(self):
+    def setup(self):
         self.A = Scalar.make_prob(A)
         self.B = Scalar.make_prob(B)
         self.C = Scalar.make_prob(C)
@@ -94,7 +94,7 @@ class TestScalar:
         for M in (self.C, self.C_s):
             self.values(M)
 class Test_Discrete_Observations:
-    def __init__(self):
+    def setup(self):
         P_YS = Scalar.make_prob(B)
         P_YS.normalize()
         self.y_mod = Scalar.Discrete_Observations(P_YS)
