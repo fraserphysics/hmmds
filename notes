@@ -22,6 +22,21 @@ cd ~/projects/hmmds/hmmds_code/hmm
 python3 setup.py build_ext --inplace
 
 ====================================================================
+Directory structure:
+
+hmmds_code: Source for stand alone python package with __init__.py files
+
+     setup.py supports installation to user or system space
+
+     Contains code for examples in the book that rely entirely on
+     synthetic data
+
+examples: Code for examples.  Each example can have:
+
+     book_figs target
+     
+====================================================================
+====================================================================
 
 https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt
 http://www.python.org/dev/peps/pep-0008/
@@ -64,8 +79,6 @@ for my configuration:
     export PYTHONPATH=/home/andy/projects/hmmds/code/hmm/:$PYTHONPATH
 
 ====================================================================
-====================================================================
-====================================================================
 Notes from talking to Stephen Andrews:
 
 root has F_UNCLE could be called src
@@ -87,3 +100,8 @@ Works, but
 doesn't work
 
 Fix by changing __init__( to setup(
+
+#--------------------------------
+# Local Variables:
+# mode: text
+# End:
