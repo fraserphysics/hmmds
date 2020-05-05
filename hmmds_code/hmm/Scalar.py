@@ -27,7 +27,7 @@ def initialize(x, shape, dtype=np.float64):
     allocate array of correct shape and type.
 
     '''
-    if type(x) == type(None) or x.shape != shape:
+    if x is None or x.shape != shape:
         return np.empty(shape, dtype)
     return x
 ## ----------------------------------------------------------------------
@@ -337,7 +337,7 @@ class Gauss(Discrete_Observations):
         return
     def __str__(self):
         return '    mu=%s\nsigma2=%s '%(self.mu, self.sigma2)
-    def random_out(self, # Gauss observation model instance 
+    def random_out(self, # Gauss observation model instance
                    s):
         ''' For simulation, draw a random observation given state s
 
@@ -354,7 +354,7 @@ class Gauss(Discrete_Observations):
         '''
         import random
         return  (random.gauss(self.mu[s], self.sigma[s]),)
-    def calc(self, # Gauss observation model instance 
+    def calc(self, # Gauss observation model instance
              y_
          ):
         """
@@ -374,7 +374,7 @@ class Gauss(Discrete_Observations):
         d = self.mu - y.reshape((-1, 1))
         self.P_Y = np.exp(-d*d/(2*self.sigma2))*self.norm
         return self.P_Y
-    def reestimate(self,      # Gauss observation model instance 
+    def reestimate(self,      # Gauss observation model instance
                    w,         # Weights
                    y_,        # Observations
                    warn=True
@@ -403,7 +403,7 @@ class Gauss(Discrete_Observations):
         return
 class Class_y(Discrete_Observations):
     '''Observation model with classification
-    
+
     Parameters
     ----------
     pars : (y_class, theta, c2s)
