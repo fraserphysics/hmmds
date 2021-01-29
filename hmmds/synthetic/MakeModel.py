@@ -36,7 +36,10 @@ def skip_header(_file):
 
 
 def read_data(data_dir, data_file):
-    '''Read data and return as numpy array
+    '''Read quantized data and return as numpy array.  Shift values by -1
+    so that minimum for plots can be 1 while still using [0,n) for hmm
+    code.
+
     '''
     with open(os.path.join(data_dir, data_file), 'r') as file_:
         y = numpy.array([int(line) - 1 for line in skip_header(file_)],

@@ -145,7 +145,8 @@ def main(argv=None):
     # Calculate quantization parameters.  Use ceil and floor so that
     # quantization will be the same for most long series.  The
     # quantization results will range from 1 to args.levels including
-    # the end points.
+    # the end points.  I use 1 for the minimum so that plots look
+    # nice.
     _max = xyz[:,0].max()
     _min = xyz[:,0].min()
     scale = numpy.ceil((_max - _min)/args.levels)
