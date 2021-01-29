@@ -10,7 +10,7 @@ derived_data/synthetic/m12s.4y : hmmds/synthetic/MakeModel.py derived_data/synth
 	python hmmds/synthetic/MakeModel.py ${N_TRAIN} derived_data/synthetic lorenz.4 m12s.4y
 
 derived_data/synthetic/lorenz.xyz: hmmds/synthetic/lorenz.py
-	python $< --L 20000 --levels 4 --quantfile derived_data/synthetic/lorenz.4 --xyzfile $@
+	python $< --n_samples 20000 --levels 4 --quantfile derived_data/synthetic/lorenz.4 --xyzfile $@
 
 ## yapf                           : Force google format on all python code
 .PHONY : yapf
