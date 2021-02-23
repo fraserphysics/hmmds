@@ -1,4 +1,4 @@
-N_TRAIN = 10
+N_TRAIN = 50
 
 figs/Statesintro.pdf: hmmds/plotscripts/stateplot.py derived_data/synthetic/states
 	python  hmmds/plotscripts/stateplot.py --data_dir derived_data/synthetic --base_name state --fig_path $@
@@ -11,6 +11,7 @@ derived_data/synthetic/m12s.4y : hmmds/synthetic/MakeModel.py derived_data/synth
 
 derived_data/synthetic/lorenz.xyz: hmmds/synthetic/lorenz.py
 	python $< --n_samples 20000 --levels 4 --quantfile derived_data/synthetic/lorenz.4 --xyzfile $@
+
 
 ## yapf                           : Force google format on all python code
 .PHONY : yapf

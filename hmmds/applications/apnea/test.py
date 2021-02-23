@@ -43,7 +43,7 @@ class BaseClass(unittest.TestCase):
         respiration[name] = utilities.read_respiration(
             os.path.join(respiration_path, name))[:,1:]  #drop times
         heart_rate[name] = utilities.read_low_pass_heart_rate(
-            os.path.join(heartrate_path, name))[:,1:]  # drop times
+            os.path.join(heartrate_path, name))[:,-1]  # filtered only
 
     def random_name(self):
         """ Return the name of a data file drawn at random"""
@@ -110,3 +110,65 @@ class TestRespiration(BaseClass):
         self.model.reestimate(w)
         for norm in self.model.norm:
             self.assertTrue( abs(norm - 1.33) < .2)
+
+class TestFilteredHeartRate(BaseClass):
+    """ Test hmmds.applications.apnea.observation.FilteredHeartRate
+    """
+
+    def setUp(self):
+        self.n_files = 2
+        self.ar_order = 4
+        self.rng = numpy.random.default_rng(0)
+        ar_coefficients = numpy.ones((self.n_states, self.ar_order))/self.ar_order
+        offset = numpy.zeros(self.n_states)
+        variance = numpy.ones(self.n_states)
+
+        for state in range(self.n_states):
+            data = list((self.heart_rate[self.random_name()] for n in range(self.n_files)))
+            joined = numpy.concatenate(data)
+            n_joined = joined.shape[0]
+            average = joined.sum()/n_joined
+            delta = joined - average
+            variance[state] = (delta*delta).sum()/n_joined
+            offset[state] = average
+
+        self.model = observation.FilteredHeartRate(
+            ar_coefficients, offset, variance, self.rng)
+
+        self.test_data = list((
+            self.heart_rate[self.random_name()] for n in range(self.n_files)))
+
+    def test_random_out(self):
+        with self.assertRaises(RuntimeError):
+            self.model.random_out(0)
+
+    def test_str(self):
+        string = self.model.__str__()
+        n_instance = string.find('For')
+        part = string[n_instance:n_instance+12]
+        self.assertTrue(part == 'For state 0:')
+
+    def test_observe(self):
+        t_seg = self.model.observe(self.test_data)
+        self.assertTrue(len(t_seg) == self.n_files+1)
+        self.assertTrue(self.model._y.shape == (self.model.n_times,))
+        self.assertTrue(t_seg[-1] == self.model._y.shape[0])
+        self.assertTrue(t_seg[-1] > 1000)
+
+    def test_calculate(self):
+        self.model.observe(self.test_data)
+        likelihood = self.model.calculate()
+        self.assertTrue(likelihood.shape == (self.model.n_times,self.n_states))
+        self.assertTrue(likelihood.min() >= 0)
+        self.assertTrue(likelihood.max() < 10)
+
+    def test_reestimate(self):
+        self.model.observe(self.test_data)
+        n_times = self.model.t_seg[-1]
+        # Create a weight array
+        w = numpy.zeros((n_times, self.n_states))
+        for i in range(n_times):
+            w[i, i%self.n_states] = 1
+        self.model.reestimate(w)
+        for norm in self.model.norm:
+            self.assertTrue( abs(norm - 0.09) < .005)
