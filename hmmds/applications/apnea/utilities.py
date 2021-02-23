@@ -47,12 +47,7 @@ def read_respiration(path: str)->numpy.ndarray:
     return numpy.array(data)
 
 if __name__ == "__main__":
-    rng = numpy.random.default_rng(0)
-    i = rng.integers(0,10)
-    print(i)
-    sys.exit(0)
     rv = read_low_pass_heart_rate('../../../derived_data/apnea/respiration/a01')
-    #print(rv[0])
-    print(rv)
+    print(rv[0])
     sys.exit(0)
-    sys.exit(main())
+    #sys.exit(main())
