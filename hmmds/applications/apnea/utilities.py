@@ -2,15 +2,23 @@ import sys
 
 import numpy
 
+
 def common_args(parser):
     """ Add arguments required by many functions that operate on the apnea data
     """
     for dir_name in 'heart_rate respiration models data'.split():
-        parser.add_argument('--'+dir_name, type=str, help='path to directory')
-    parser.add_argument('--iterations', type=int, help='Training iterations', default=20)
-    parser.add_argument('--pass1', type=str, help='path to result of pass1', default='pass1_report')
+        parser.add_argument('--' + dir_name, type=str, help='path to directory')
+    parser.add_argument('--iterations',
+                        type=int,
+                        help='Training iterations',
+                        default=20)
+    parser.add_argument('--pass1',
+                        type=str,
+                        help='path to result of pass1',
+                        default='pass1_report')
 
-def read_low_pass_heart_rate(path: str)->numpy.ndarray:
+
+def read_low_pass_heart_rate(path: str) -> numpy.ndarray:
     """Args:
         path: File to read
 
@@ -28,10 +36,11 @@ def read_low_pass_heart_rate(path: str)->numpy.ndarray:
 
     """
     with open(path, 'r') as data_file:
-         data = [[float(x) for x in line.split()] for line in data_file]
+        data = [[float(x) for x in line.split()] for line in data_file]
     return numpy.array(data)
 
-def read_respiration(path: str)->numpy.ndarray:
+
+def read_respiration(path: str) -> numpy.ndarray:
     """Args:
         path: File to read
 
@@ -43,8 +52,9 @@ def read_respiration(path: str)->numpy.ndarray:
 
     """
     with open(path, 'r') as data_file:
-         data = [[float(x) for x in line.split()] for line in data_file]
+        data = [[float(x) for x in line.split()] for line in data_file]
     return numpy.array(data)
+
 
 if __name__ == "__main__":
     rv = read_low_pass_heart_rate('../../../derived_data/apnea/respiration/a01')
