@@ -304,6 +304,8 @@ class FilteredHeartRate_Respiration(hmm.base.Observation_0):
             (numpy.ndarray): Segment boundaries
 
         """
+        # Don't use self._concatenate because sub-models need their
+        # own t_segs to calculate likelihoods at borders
         self.t_seg = self.filtered_heart_rate_model.observe(
             list((y_dict['filtered_heart_rate_data'] for y_dict in y_list)))
         t_seg_r = self.respiration_model.observe(
@@ -315,6 +317,28 @@ class FilteredHeartRate_Respiration(hmm.base.Observation_0):
 
         self.n_times = self.t_seg[-1]
         return self.t_seg
+
+    def _concatenate(self: FilteredHeartRate_Respiration,
+                     y_list: list) -> tuple:
+        """
+        Args:
+           y_list Elements are dicts with keys
+               'filtered_heart_rate_data' and 'respiration_data'
+
+        Returns:
+            (dict, t_seg) with keys of dict being 'filtered_heart_rate_data' and 'respiration_data'
+
+        """
+
+        filtered_heart_rate_data, t_seg_f = self.filtered_heart_rate_model._concatenate(
+            list((y_dict['filtered_heart_rate_data'] for y_dict in y_list)))
+        respiration_data, t_seg_r = self.filtered_heart_rate_model._concatenate(
+            list((y_dict['respiration_data'] for y_dict in y_list)))
+        assert tuple(t_seg_f) == tuple(t_seg_r)
+        return {
+            'filtered_heart_rate_data': filtered_heart_rate_data,
+            'respiration_data': respiration_data
+        }, t_seg_f
 
     def calculate(self: FilteredHeartRate_Respiration) -> numpy.ndarray:
         """

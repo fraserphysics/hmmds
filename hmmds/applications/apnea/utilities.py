@@ -57,7 +57,7 @@ def read_respiration(path: str) -> numpy.ndarray:
 
 
 def read_expert(path: str, name: str) -> numpy.array:
-    """ Create boolean array for record specified by name.
+    """ Create int array for record specified by name.
     Args:
         path: Location of expert annotations file
         name: Record to report, eg, 'a01'
@@ -83,8 +83,8 @@ def read_expert(path: str, name: str) -> numpy.array:
             marks += parts[1]
             parts = data_file.readline().split()
             hour += 1
-    # Translate letters N,A to False,True and return numpy array
-    return numpy.array([mark_dict[mark] for mark in marks], numpy.bool)
+    # Translate letters N,A to 0,1 and return numpy array
+    return numpy.array([mark_dict[mark] for mark in marks], numpy.int32)
 
 
 if __name__ == "__main__":

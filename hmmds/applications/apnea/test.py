@@ -225,12 +225,12 @@ class TestFilteredHeartRate_Respiration(BaseClass):
             self.filtered_heart_rate_model, self.respiration_model, self.rng)
 
         # Use same records for both test data sets
-        data_names = list(
+        self.data_names = list(
             (self.random_name(self.train_names) for n in range(self.n_files)))
         self.test_data = list(({
             'respiration_data': self.respiration[name],
             'filtered_heart_rate_data': self.heart_rate[name]
-        } for name in data_names))
+        } for name in self.data_names))
 
     def test_random_out(self):
         with self.assertRaises(RuntimeError):
@@ -268,11 +268,61 @@ class TestFilteredHeartRate_Respiration(BaseClass):
             self.assertTrue(abs(norm - 1.37) < .02)
 
 
-# class TestBundle(TestFilteredHeartRate_Respiration):
-#     def setUp(self):
-#         super().setUp()
-#         self.bundle2state = {
-#             0:np.arange(7, dtype=np.int32),
-#             1:np.arange(7, 14, dtype=np.int32)
-#             }
-#         self.model = hmm.base.Observation_with_bundles(self.model, self.bundle2state, self.rng)
+class TestBundle(TestFilteredHeartRate_Respiration):
+    """Creates an instance of observation.FilteredHeartRate_Respiration
+    and uses it as the underlying model in an instance of
+    hmm.base.Observation_with_bundles.
+
+    That is the kind of model that will use the expert annotations to
+    train.
+
+    """
+
+    def setUp(self):
+        super().setUp()
+
+        # Assign states to bundles
+        self.bundle2state = {
+            0: numpy.arange(6, dtype=numpy.int32),
+            1: numpy.arange(6, self.n_states, dtype=numpy.int32)
+        }
+
+        # Get the FilteredHeartRate_Respiration from super
+        underlying_model = self.model
+
+        self.model = hmm.base.Observation_with_bundles(underlying_model,
+                                                       self.bundle2state,
+                                                       self.rng)
+
+        # The test data is a list with elements of type
+        # Bundle_segment.  For each Bundle_segment bundles is a time
+        # series of classifications and y is a dict with items for
+        # filtered heart rate data and respiration data.
+        self.test_data = []
+        for name in self.data_names:
+            tags = self.expert[name]
+            respiration_data = self.respiration[name]
+            filtered_heart_rate_data = self.heart_rate[name]
+            segment_length = min(len(tags), len(respiration_data),
+                                 len(filtered_heart_rate_data))
+            self.test_data.append(
+                hmm.base.Bundle_segment(
+                    tags[:segment_length], {
+                        'respiration_data':
+                            respiration_data[:segment_length],
+                        'filtered_heart_rate_data':
+                            filtered_heart_rate_data[:segment_length]
+                    }))
+
+    def test_reestimate(self):
+        self.model.observe(self.test_data)
+        n_times = self.model.t_seg[-1]
+        # Create a weight array
+        w = numpy.zeros((n_times, self.n_states))
+        for i in range(n_times):
+            w[i, i % self.n_states] = 1
+        self.model.reestimate(w)
+        for norm in self.model.underlying_model.filtered_heart_rate_model.norm:
+            self.assertTrue(abs(norm - 0.13) < .01)
+        for norm in self.model.underlying_model.respiration_model.norm:
+            self.assertTrue(abs(norm - 1.37) < .02)
