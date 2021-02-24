@@ -56,8 +56,41 @@ def read_respiration(path: str) -> numpy.ndarray:
     return numpy.array(data)
 
 
+def read_expert(path: str, name: str) -> numpy.array:
+    """ Create boolean array for record specified by name.
+    Args:
+        path: Location of expert annotations file
+        name: Record to report, eg, 'a01'
+
+    Returns:
+        array with array[t] = 0 for normal, and array[t] = 1 for apnea
+
+    """
+    mark_dict = {'N': 0, 'A': 1}
+    with open(path, 'r') as data_file:
+
+        # Skip to line that starts with name
+        parts = data_file.readline().split()
+        while len(parts) == 0 or parts[0] != name:
+            parts = data_file.readline().split()
+
+        hour = 0
+        marks = []
+        # Read lines like: "8 AAAAAAAAA"
+        parts = data_file.readline().split()
+        while len(parts) == 2:
+            assert hour == int(parts[0])
+            marks += parts[1]
+            parts = data_file.readline().split()
+            hour += 1
+    # Translate letters N,A to False,True and return numpy array
+    return numpy.array([mark_dict[mark] for mark in marks], numpy.bool)
+
+
 if __name__ == "__main__":
-    rv = read_low_pass_heart_rate('../../../derived_data/apnea/respiration/a01')
-    print(rv[0])
+    rv = read_expert('../../../raw_data/apnea/summary_of_training', 'a05')
+    samples_per_minute = 10
+    print(rv[13:15])
+    print(rv[13:15].repeat(samples_per_minute))
     sys.exit(0)
     #sys.exit(main())

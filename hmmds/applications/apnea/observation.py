@@ -292,20 +292,22 @@ class FilteredHeartRate_Respiration(hmm.base.Observation_0):
         return rv
 
     def observe(self: FilteredHeartRate_Respiration,
-                y_dict: dict) -> numpy.ndarray:
+                y_list: list) -> numpy.ndarray:
         """Attach observations to self.filtered_heart_rate_model and
         self.respiration_model
 
         Args:
-            y_dict: Has keys 'filtered_heart_rate_data' and 'respiration_data'
+            y_list: Each element is a dict with keys 'filtered_heart_rate_data'
+                and 'respiration_data'
 
         Returns:
             (numpy.ndarray): Segment boundaries
 
         """
         self.t_seg = self.filtered_heart_rate_model.observe(
-            y_dict['filtered_heart_rate_data'])
-        t_seg_r = self.respiration_model.observe(y_dict['respiration_data'])
+            list((y_dict['filtered_heart_rate_data'] for y_dict in y_list)))
+        t_seg_r = self.respiration_model.observe(
+            list((y_dict['respiration_data'] for y_dict in y_list)))
 
         # Ensure that segment boundaries match
         diff = t_seg_r - self.t_seg

@@ -31,15 +31,17 @@ class BaseClass(unittest.TestCase):
     n_states = 12
     respiration_path = '../../../derived_data/apnea/respiration/'
     heartrate_path = '../../../derived_data/apnea/low_pass_heart_rate'
+    expert_path = '../../../raw_data/apnea/summary_of_training'
     data_names = os.listdir(respiration_path)
-    n_names = len(data_names)
     a_names = list(filter(lambda name: name[0] == 'a', data_names))
     b_names = list(filter(lambda name: name[0] == 'b', data_names))
     c_names = list(filter(lambda name: name[0] == 'c', data_names))
     x_names = list(filter(lambda name: name[0] == 'x', data_names))
+    train_names = a_names + b_names + c_names
 
     respiration = {}
     heart_rate = {}
+    expert = {}
     for name in data_names:
         # Read all fields of files
         raw_r = utilities.read_respiration(os.path.join(respiration_path, name))
@@ -56,11 +58,18 @@ class BaseClass(unittest.TestCase):
         respiration[name] = raw_r[:, 1:]  # Don't store time data
         heart_rate[name] = raw_h[:n_r, -1]  # Store only filtered heart rate
         assert len(respiration[name]) == len(heart_rate[name])
+        if name[0] == 'x':
+            continue
 
-    def random_name(self):
+        # Read expert annotations
+        samples_per_minute = 10
+        expert[name] = utilities.read_expert(expert_path,
+                                             name).repeat(samples_per_minute)
+
+    def random_name(self, names):
         """ Return the name of a data file drawn at random"""
-        index = self.rng.integers(self.n_names)
-        return self.data_names[index]
+        index = self.rng.integers(len(names))
+        return names[index]
 
     def random_index(self, name):
         """Return a random index for a named data file"""
@@ -73,7 +82,8 @@ class BaseClass(unittest.TestCase):
         self.rng = numpy.random.default_rng(0)
 
         # Use same records for both data sets
-        data_names = list((self.random_name() for n in range(self.n_files)))
+        data_names = list(
+            (self.random_name(self.data_names) for n in range(self.n_files)))
 
         # Make respiration model
         self.dimension = 3
@@ -116,7 +126,8 @@ class TestRespiration(BaseClass):
         super().setUp()
         self.model = self.respiration_model
         self.test_data = list(
-            (self.respiration[self.random_name()] for n in range(self.n_files)))
+            (self.respiration[self.random_name(self.data_names)]
+             for n in range(self.n_files)))
 
     def test_random_out(self):
         with self.assertRaises(RuntimeError):
@@ -164,7 +175,8 @@ class TestFilteredHeartRate(BaseClass):
         self.model = self.filtered_heart_rate_model
 
         self.test_data = list(
-            (self.heart_rate[self.random_name()] for n in range(self.n_files)))
+            (self.heart_rate[self.random_name(self.data_names)]
+             for n in range(self.n_files)))
 
     def test_random_out(self):
         with self.assertRaises(RuntimeError):
@@ -213,13 +225,12 @@ class TestFilteredHeartRate_Respiration(BaseClass):
             self.filtered_heart_rate_model, self.respiration_model, self.rng)
 
         # Use same records for both test data sets
-        data_names = list((self.random_name() for n in range(self.n_files)))
-        self.test_data = {
-            'respiration_data':
-                list((self.respiration[name] for name in data_names)),
-            'filtered_heart_rate_data':
-                list((self.heart_rate[name] for name in data_names))
-        }
+        data_names = list(
+            (self.random_name(self.train_names) for n in range(self.n_files)))
+        self.test_data = list(({
+            'respiration_data': self.respiration[name],
+            'filtered_heart_rate_data': self.heart_rate[name]
+        } for name in data_names))
 
     def test_random_out(self):
         with self.assertRaises(RuntimeError):
@@ -254,4 +265,14 @@ class TestFilteredHeartRate_Respiration(BaseClass):
         for norm in self.model.filtered_heart_rate_model.norm:
             self.assertTrue(abs(norm - 0.13) < .01)
         for norm in self.model.respiration_model.norm:
-            self.assertTrue(abs(norm - 1.5) < .1)
+            self.assertTrue(abs(norm - 1.37) < .02)
+
+
+# class TestBundle(TestFilteredHeartRate_Respiration):
+#     def setUp(self):
+#         super().setUp()
+#         self.bundle2state = {
+#             0:np.arange(7, dtype=np.int32),
+#             1:np.arange(7, 14, dtype=np.int32)
+#             }
+#         self.model = hmm.base.Observation_with_bundles(self.model, self.bundle2state, self.rng)
