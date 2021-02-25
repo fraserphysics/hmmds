@@ -11,12 +11,15 @@ Small = 1.0e-25
 
 
 class Respiration(hmm.base.Observation_0):
-    """ Observation model for respiration signal.
+    """Observation model for respiration signal.
 
     Args:
         mu[n_states, 3]: Mean of distribution for each state
         sigma[n_states, 3, 3]: Covariance matrix for each state
         rng: Random number generator with state
+
+    ToDo: Since this is a simple multivariate Gaussian model, it be in
+    the hmm package.
 
     """
     _parameter_keys = "mu sigma".split()
@@ -26,21 +29,28 @@ class Respiration(hmm.base.Observation_0):
         mu: numpy.ndarray,
         sigma: numpy.ndarray,
         rng: numpy.random.Generator,
+        inverse_wishart_a=4,
+        inverse_wishart_b=0.1,
     ):
-        self.n_states, three = mu.shape
-        assert three == 3
-        assert sigma.shape == (self.n_states, 3, 3)
+        # Check arguments
+        self.n_states, dimension = mu.shape
+        assert dimension == 3
+        assert sigma.shape == (self.n_states, dimension, dimension)
         assert isinstance(rng, numpy.random.Generator)
 
+        # Assign arguments to self
         self.mu = mu
         self.sigma = sigma
-        self.inverse_sigma = numpy.empty((self.n_states, 3, 3))
+        self.inverse_sigma = numpy.empty((self.n_states, dimension, dimension))
         self.norm = numpy.empty(self.n_states)
         for i in range(self.n_states):
             self.inverse_sigma[i, :, :] = numpy.linalg.inv(self.sigma[i, :, :])
             determinant = numpy.linalg.det(sigma[i, :, :])
-            self.norm[i] = 1 / numpy.sqrt((2 * numpy.pi)**3 * determinant)
+            self.norm[i] = 1 / numpy.sqrt(
+                (2 * numpy.pi)**dimension * determinant)
         self._rng = rng
+        self.inverse_wishart_a = inverse_wishart_a
+        self.inverse_wishart_b = inverse_wishart_b
 
     def random_out(self: Respiration, s: int) -> numpy.ndarray:
         raise RuntimeError('random_out not implemented for Respiration')
@@ -93,14 +103,13 @@ class Respiration(hmm.base.Observation_0):
         wsum = w.sum(axis=0)
         self.mu = (numpy.inner(y.T, w.T) / wsum).T
         # Inverse Wishart prior parameters.  Without data sigma_sq = b/a
-        a = 4
-        b = 0.1
         for i in range(self.n_states):
             rrsum = numpy.zeros((dim, dim))
             for t in range(self.n_times):
                 r = y[t] - self.mu[i]
                 rrsum += w[t, i] * numpy.outer(r, r)
-            self.sigma = (b * numpy.eye(dim) + rrsum) / (a + wsum[i])
+            self.sigma = (self.inverse_wishart_b * numpy.eye(dim) +
+                          rrsum) / (self.inverse_wishart_a + wsum[i])
             det = numpy.linalg.det(self.sigma)
             assert (det > 0.0)
             self.inverse_sigma[i, :, :] = numpy.linalg.inv(self.sigma)
@@ -108,7 +117,7 @@ class Respiration(hmm.base.Observation_0):
 
 
 class FilteredHeartRate(hmm.base.Observation_0):
-    """ Observation model for filtered heart rate measurements.
+    r"""Observation model for filtered heart rate measurements.
 
     Args:
         ar_coefficients[n_states, ar_order]: Auto-regressive coefficients
@@ -120,6 +129,12 @@ class FilteredHeartRate(hmm.base.Observation_0):
            for t too close to segment boundaries, fill with self._y[boundary]
 
     Data: Simply the scalar filtered heart rate
+
+    ToDo: Treatment of boundaries between segments is not quite right.
+    2021-2-24 I think it's best to shorten each segment by the length
+    of ar_coefficients.  Since this is simply an auto-regressive
+    model, it could be in the hmm package.
+
     """
     _parameter_keys = "ar_coefficients offset variance".split()
 
@@ -183,6 +198,9 @@ class FilteredHeartRate(hmm.base.Observation_0):
         After values get assigned, context[t, :-1] = previous
         observations, and context[t, -1] = 1.0
 
+        ToDo: Truncate at segment boundaries for context in base
+        version in hmm.  Pad with copies in subclass for heart rate.
+
         """
         self.t_seg = super().observe(y_segs)  # assigns self._y
         self.context = numpy.ones((self.n_times, self.ar_order + 1))
@@ -238,7 +256,7 @@ class FilteredHeartRate(hmm.base.Observation_0):
             w_y = w1[:, i] * self._y
             w_context = (w1[:, i] * self.context.T).T
             fit, residuals, rank, singular_values = numpy.linalg.lstsq(
-                w_context, w_y)
+                w_context, w_y, rcond=None)
             assert rank == self.ar_order + 1
             self.ar_coefficients_offset[i, :] = fit
             delta = w_y - numpy.inner(w_context, fit)

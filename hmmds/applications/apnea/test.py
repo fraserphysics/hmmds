@@ -1,5 +1,5 @@
-"""test_apnea.py: T run "$ python -m pytest test_apnea.py" or
-"$ python -m pytest path"
+"""test_apnea.py: To run "$ py.test test.py" or
+"$ python -i -m unittest test.TestRespiration"
 
 """
 # Copyright (c) 2021 Andrew M. Fraser
@@ -20,9 +20,7 @@ class BaseClass(unittest.TestCase):
     """Holds common values and methods used by other test classes.
 
     Because this class has no method names that start with "test",
-    unittest will not discover and run any of the methods.  However
-    the methods of this class can be assigned to names that start with
-    "test" in subclasses where they will be discovered and run.
+    unittest will not discover and run any of the methods.
 
     """
     # Values here can be accessed by instances of subclasses as, eg,
@@ -117,6 +115,42 @@ class BaseClass(unittest.TestCase):
         self.filtered_heart_rate_model = observation.FilteredHeartRate(
             ar_coefficients, offset, variance, self.rng)
 
+    def random_out(self):
+        """ A test for subclasses
+        """
+        with self.assertRaises(RuntimeError):
+            self.model.random_out(0)
+
+    def calculate(self):
+        """A test for subclasses
+
+        """
+        self.model.observe(self.test_data)
+        likelihood = self.model.calculate()
+        self.assertTrue(likelihood.shape == (self.model.n_times, self.n_states))
+        self.assertTrue(likelihood.min() >= 0)
+        self.assertTrue(likelihood.max() < 10)
+
+    def string(self):
+        """A test for subclasses
+
+        """
+        string = self.model.__str__()
+        n_instance = string.find('For')
+        part = string[n_instance:n_instance + 12]
+        self.assertTrue(part == 'For state 0:')
+
+    def reestimate(self):
+        """Prepare for test_reestimate in subclasses
+        """
+        self.model.observe(self.test_data)
+        n_times = self.model.t_seg[-1]
+        # Create a weight array
+        w = numpy.zeros((n_times, self.n_states))
+        for i in range(n_times):
+            w[i, i % self.n_states] = 1
+        self.model.reestimate(w)
+
 
 class TestRespiration(BaseClass):
     """ Test hmmds.applications.apnea.observation.Respiration
@@ -129,15 +163,9 @@ class TestRespiration(BaseClass):
             (self.respiration[self.random_name(self.data_names)]
              for n in range(self.n_files)))
 
-    def test_random_out(self):
-        with self.assertRaises(RuntimeError):
-            self.model.random_out(0)
-
-    def test_str(self):
-        string = self.model.__str__()
-        n_instance = string.find('For')
-        part = string[n_instance:60]
-        self.assertTrue(part == 'For state 0')
+    test_calculate = BaseClass.calculate
+    test_str = BaseClass.string
+    test_random_out = BaseClass.random_out
 
     def test_observe(self):
         t_seg = self.model.observe(self.test_data)
@@ -147,21 +175,8 @@ class TestRespiration(BaseClass):
         self.assertTrue(t_seg[-1] == self.model._y.shape[0])
         self.assertTrue(t_seg[-1] > 1000)
 
-    def test_calculate(self):
-        self.model.observe(self.test_data)
-        likelihood = self.model.calculate()
-        self.assertTrue(likelihood.shape == (self.model.n_times, self.n_states))
-        self.assertTrue(likelihood.min() >= 0)
-        self.assertTrue(likelihood.max() < 10)
-
     def test_reestimate(self):
-        self.model.observe(self.test_data)
-        n_times = self.model.t_seg[-1]
-        # Create a weight array
-        w = numpy.zeros((n_times, self.n_states))
-        for i in range(n_times):
-            w[i, i % self.n_states] = 1
-        self.model.reestimate(w)
+        self.reestimate()
         for norm in self.model.norm:
             self.assertTrue(abs(norm - 1.33) < .2)
 
@@ -178,15 +193,9 @@ class TestFilteredHeartRate(BaseClass):
             (self.heart_rate[self.random_name(self.data_names)]
              for n in range(self.n_files)))
 
-    def test_random_out(self):
-        with self.assertRaises(RuntimeError):
-            self.model.random_out(0)
-
-    def test_str(self):
-        string = self.model.__str__()
-        n_instance = string.find('For')
-        part = string[n_instance:n_instance + 12]
-        self.assertTrue(part == 'For state 0:')
+    test_calculate = BaseClass.calculate
+    test_str = BaseClass.string
+    test_random_out = BaseClass.random_out
 
     def test_observe(self):
         t_seg = self.model.observe(self.test_data)
@@ -195,21 +204,8 @@ class TestFilteredHeartRate(BaseClass):
         self.assertTrue(t_seg[-1] == self.model._y.shape[0])
         self.assertTrue(t_seg[-1] > 1000)
 
-    def test_calculate(self):  # ToDo move to super?
-        self.model.observe(self.test_data)
-        likelihood = self.model.calculate()
-        self.assertTrue(likelihood.shape == (self.model.n_times, self.n_states))
-        self.assertTrue(likelihood.min() >= 0)
-        self.assertTrue(likelihood.max() < 10)
-
-    def test_reestimate(self):  # ToDo move to super?
-        self.model.observe(self.test_data)
-        n_times = self.model.t_seg[-1]
-        # Create a weight array
-        w = numpy.zeros((n_times, self.n_states))
-        for i in range(n_times):
-            w[i, i % self.n_states] = 1
-        self.model.reestimate(w)
+    def test_reestimate(self):
+        self.reestimate()
         for norm in self.model.norm:
             self.assertTrue(abs(norm - 0.099) < .01)
 
@@ -232,36 +228,17 @@ class TestFilteredHeartRate_Respiration(BaseClass):
             'filtered_heart_rate_data': self.heart_rate[name]
         } for name in self.data_names))
 
-    def test_random_out(self):
-        with self.assertRaises(RuntimeError):
-            self.model.random_out(0)
-
-    def test_str(self):
-        string = self.model.__str__()
-        n_instance = string.find('For')
-        part = string[n_instance:n_instance + 12]
-        self.assertTrue(part == 'For state 0:')
+    test_calculate = BaseClass.calculate
+    test_str = BaseClass.string
+    test_random_out = BaseClass.random_out
 
     def test_observe(self):
         t_seg = self.model.observe(self.test_data)
         self.assertTrue(len(t_seg) == self.n_files + 1)
         self.assertTrue(t_seg[-1] > 1000)
 
-    def test_calculate(self):  # ToDo move to super?
-        self.model.observe(self.test_data)
-        likelihood = self.model.calculate()
-        self.assertTrue(likelihood.shape == (self.model.n_times, self.n_states))
-        self.assertTrue(likelihood.min() >= 0)
-        self.assertTrue(likelihood.max() < 10)
-
-    def test_reestimate(self):  # ToDo move to super?
-        self.model.observe(self.test_data)
-        n_times = self.model.t_seg[-1]
-        # Create a weight array
-        w = numpy.zeros((n_times, self.n_states))
-        for i in range(n_times):
-            w[i, i % self.n_states] = 1
-        self.model.reestimate(w)
+    def test_reestimate(self):
+        self.reestimate()
         for norm in self.model.filtered_heart_rate_model.norm:
             self.assertTrue(abs(norm - 0.13) < .01)
         for norm in self.model.respiration_model.norm:
@@ -287,10 +264,8 @@ class TestBundle(TestFilteredHeartRate_Respiration):
             1: numpy.arange(6, self.n_states, dtype=numpy.int32)
         }
 
-        # Get the FilteredHeartRate_Respiration from super
-        underlying_model = self.model
-
-        self.model = hmm.base.Observation_with_bundles(underlying_model,
+        # Get the FilteredHeartRate_Respiration instance from super
+        self.model = hmm.base.Observation_with_bundles(self.model,
                                                        self.bundle2state,
                                                        self.rng)
 
@@ -315,13 +290,9 @@ class TestBundle(TestFilteredHeartRate_Respiration):
                     }))
 
     def test_reestimate(self):
-        self.model.observe(self.test_data)
-        n_times = self.model.t_seg[-1]
-        # Create a weight array
-        w = numpy.zeros((n_times, self.n_states))
-        for i in range(n_times):
-            w[i, i % self.n_states] = 1
-        self.model.reestimate(w)
+        """ Difference from super is "underlying"
+        """
+        self.reestimate()
         for norm in self.model.underlying_model.filtered_heart_rate_model.norm:
             self.assertTrue(abs(norm - 0.13) < .01)
         for norm in self.model.underlying_model.respiration_model.norm:

@@ -2,12 +2,16 @@ import sys
 
 import numpy
 
+import hmm.base
+
 
 def common_args(parser):
     """ Add arguments required by many functions that operate on the apnea data
     """
-    for dir_name in 'heart_rate respiration models data'.split():
-        parser.add_argument('--' + dir_name, type=str, help='path to directory')
+    for path_name in 'heart_rate respiration models data expert'.split():
+        parser.add_argument('--' + path_name,
+                            type=str,
+                            help='path to directory')
     parser.add_argument('--iterations',
                         type=int,
                         help='Training iterations',
@@ -85,6 +89,50 @@ def read_expert(path: str, name: str) -> numpy.array:
             hour += 1
     # Translate letters N,A to 0,1 and return numpy array
     return numpy.array([mark_dict[mark] for mark in marks], numpy.int32)
+
+
+#TODO: use this function in test.py
+def heart_rate_respiration_data(heart_rate_path: str,
+                                respiration_path: str,
+                                n_max=None) -> list:
+    """
+
+    n_max enables truncation to length of expert markings
+    """
+    raw_h = read_respiration(heart_rate_path)
+    raw_r = read_respiration(respiration_path)
+
+    # Ensure that measurement times are the same.  ToDo: Why are
+    # there more heart_rate data points?
+    n_r = len(raw_r)
+    n_h = len(raw_h)
+    limit = min(n_r, n_h)
+    if n_max is not None:
+        assert n_max <= limit
+        limit = n_max
+
+    time_difference = raw_r[:limit, 0] - raw_h[:limit, 0]
+    assert numpy.abs(time_difference).max() == 0.0
+
+    return {
+        'respiration_data':
+            raw_r[:limit, 1:],  # Don't store time data
+        'filtered_heart_rate_data':
+            raw_h[:limit, -1]  # Store only filtered heart rate
+    }
+
+
+#TODO: use this function in test.py
+def heart_rate_respiration_bundle_data(heart_rate_path, respiration_path,
+                                       expert_path, name) -> list:
+
+    samples_per_minute = 10
+    tags = read_expert(expert_path, name).repeat(samples_per_minute)
+    underlying = heart_rate_respiration_data(heart_rate_path,
+                                             respiration_path,
+                                             n_max=len(tags))
+
+    return hmm.base.Bundle_segment(tags, underlying)
 
 
 if __name__ == "__main__":
