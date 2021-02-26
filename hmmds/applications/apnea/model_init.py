@@ -150,12 +150,8 @@ def A2(args: argparse.Namespace) -> hmm.base.HMM:
         filtered_heart_rate_model(n_states, args.rng),
         respiration_model(n_states, args.rng), args.rng)
 
-    name = 'a01'
-    y_data = [
-        utilities.heart_rate_respiration_data(
-            os.path.join(args.heart_rate, name),
-            os.path.join(args.respiration, name))
-    ]  # a list whose only element is a dict
+    y_data = utilities.pattern_heart_rate_respiration_data(args, ['a'])
+    # a list with a dict for each a-file
 
     model = hmm.base.HMM(
         random_1d_prob(args.rng, 2),  # p_state_initial

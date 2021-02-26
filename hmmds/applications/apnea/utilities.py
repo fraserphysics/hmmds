@@ -1,4 +1,8 @@
+from __future__ import annotations  # Enables, eg, (self: Pass1Item,
+
 import sys
+import os
+import glob
 
 import numpy
 
@@ -12,6 +16,13 @@ def common_args(parser):
         parser.add_argument('--' + path_name,
                             type=str,
                             help='path to directory')
+    parser.add_argument('--Amodel',
+                        type=str,
+                        help='Model of a-files for first classification pass')
+    parser.add_argument(
+        '--BCmodel',
+        type=str,
+        help='Model of b and c files for first classification pass')
     parser.add_argument('--iterations',
                         type=int,
                         help='Training iterations',
@@ -20,6 +31,35 @@ def common_args(parser):
                         type=str,
                         help='path to result of pass1',
                         default='pass1_report')
+    parser.add_argument('--low_line',
+                        type=float,
+                        help='For first pass classification')
+    parser.add_argument('--high_line',
+                        type=float,
+                        help='For first pass classification')
+    parser.add_argument('--stat_slope',
+                        type=float,
+                        help='For first pass classification')
+
+
+class Pass1Item:
+    """ Essentially a namespace
+
+    Args:
+        name: eg, a01
+        llr: log likelihood ratio per time step; apnea/normal
+        r: Ratio of high peaks to average peaks
+        stat: (r + slope * llr) used to choose level
+        level: Low, Medium or Low.  Model to use for classifying each minute
+    """
+
+    def __init__(self: Pass1Item, name: str, llr: float, r: float, stat: float,
+                 level: str):
+        self.name = name
+        self.llr = llr
+        self.r = r
+        self.stat = stat
+        self.level = level
 
 
 def read_low_pass_heart_rate(path: str) -> numpy.ndarray:
@@ -94,10 +134,17 @@ def read_expert(path: str, name: str) -> numpy.array:
 #TODO: use this function in test.py
 def heart_rate_respiration_data(heart_rate_path: str,
                                 respiration_path: str,
-                                n_max=None) -> list:
+                                t_max=None) -> dict:
     """
+    Args:
+        heart_rate_path: path to a single file
+        respiration_path: path to a single file
+        t_max: Optional end of time series
 
-    n_max enables truncation to length of expert markings
+    Returns:
+        A single dict (not a list of dicts)
+
+    t_max enables truncation to the length of expert markings
     """
     raw_h = read_respiration(heart_rate_path)
     raw_r = read_respiration(respiration_path)
@@ -107,9 +154,9 @@ def heart_rate_respiration_data(heart_rate_path: str,
     n_r = len(raw_r)
     n_h = len(raw_h)
     limit = min(n_r, n_h)
-    if n_max is not None:
-        assert n_max <= limit
-        limit = n_max
+    if t_max is not None:
+        assert t_max <= limit
+        limit = t_max
 
     time_difference = raw_r[:limit, 0] - raw_h[:limit, 0]
     assert numpy.abs(time_difference).max() == 0.0
@@ -122,6 +169,30 @@ def heart_rate_respiration_data(heart_rate_path: str,
     }
 
 
+def pattern_heart_rate_respiration_data(args, patterns: list):
+    """Prepare a list data for records specified by patterns
+
+    Args:
+        args:
+        patterns: Eg, ['b','c']
+
+    Returns:
+        A list of dicts suitable as data for observaton.FilteredHeartRate_Respiration
+
+    use glob.glob to get lists of record names and
+    heart_rate_respiration_data to construct the list
+
+    """
+
+    return_list = []
+    for letter in patterns:
+        for hr_path in glob.glob('{0}/{1}*'.format(args.heart_rate, letter)):
+            r_path = '{0}/{1}'.format(args.respiration,
+                                      os.path.basename(hr_path))
+            return_list.append(heart_rate_respiration_data(hr_path, r_path))
+    return return_list
+
+
 #TODO: use this function in test.py
 def heart_rate_respiration_bundle_data(heart_rate_path, respiration_path,
                                        expert_path, name) -> list:
@@ -130,7 +201,7 @@ def heart_rate_respiration_bundle_data(heart_rate_path, respiration_path,
     tags = read_expert(expert_path, name).repeat(samples_per_minute)
     underlying = heart_rate_respiration_data(heart_rate_path,
                                              respiration_path,
-                                             n_max=len(tags))
+                                             t_max=len(tags))
 
     return hmm.base.Bundle_segment(tags, underlying)
 
