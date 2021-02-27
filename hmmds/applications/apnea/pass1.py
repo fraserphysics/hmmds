@@ -13,7 +13,7 @@ import pickle
 
 import numpy
 
-import utilities
+import hmmds.applications.apnea.utilities
 
 
 def r_stat(data: numpy.ndarray) -> float:
@@ -83,7 +83,7 @@ def make_reports(args, names: list):
         normal_model = pickle.load(_file)
     reports = []
     for name in names:
-        y_data = utilities.heart_rate_respiration_data(
+        y_data = hmmds.applications.apnea.utilities.heart_rate_respiration_data(
             os.path.join(args.heart_rate, name),
             os.path.join(args.respiration, name))
         # y_data is a dict
@@ -96,7 +96,7 @@ def make_reports(args, names: list):
             level = 'High'
         else:
             level = 'Medium'
-        reports.append(utilities.Pass1Item(name, llr, r, stat, level))
+        reports.append(hmmds.applications.apnea.utilities.Pass1Item(name, llr, r, stat, level))
     return reports
 
 
@@ -107,7 +107,7 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     parser = argparse.ArgumentParser("Create and write/pickle pass1_report")
-    utilities.common_args(parser)
+    hmmds.applications.apnea.utilities.common_args(parser)
     args = parser.parse_args(argv)
 
     def get_names(letter):

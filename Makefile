@@ -1,7 +1,13 @@
 N_TRAIN = 50
 
-figs/Statesintro.pdf: hmmds/plotscripts/stateplot.py derived_data/synthetic/states
-	python  hmmds/plotscripts/stateplot.py --data_dir derived_data/synthetic --base_name state --fig_path $@
+figs/pass1.pdf: plotscripts/apnea/pass1.py derived_data/apnea/pass1_report.pickle
+	python $^ $@
+
+derived_data/apnea/pass1_report.pickle:
+	cd hmmds/applications/apnea; make pass1_report.pickle
+
+figs/Statesintro.pdf: plotscripts/stateplot.py derived_data/synthetic/states
+	python  $< --data_dir derived_data/synthetic --base_name state --fig_path $@
 
 derived_data/synthetic/states: hmmds/synthetic/StatePic.py derived_data/synthetic/m12s.4y
 	python $<  derived_data/synthetic lorenz.4 lorenz.xyz m12s.4y

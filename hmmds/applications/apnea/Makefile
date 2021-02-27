@@ -8,8 +8,9 @@ EXPERT = ../../../raw_data/apnea/summary_of_training
 # sub-directories of ${DATA}: low_pass_heart_rate, respiration, models
 DATA = ../../../derived_data/apnea
 
-#${MODELS}/model_A2:
-${DATA}/pass1_report:
+## pass1_report                      : Classify records High Medium or Low
+.PHONY : pass1_report.pickle
+pass1_report: ${DATA}/pass1_report.pickle
 
 As = a01 a03 a05 a07 a09 a11 a13 a15 a17 a19 a02 a04 a06 a08 a10 a12	\
 a14 a16 a18 a20
@@ -47,7 +48,7 @@ ${MODELS}/model_C1: ${MODELS}/initial_C1
 # Use model_A2 and model_C1 to create file with lines like: x24 # Low
 # stat= 1.454 llr= -0.603 R= 1.755.  For each line, calculate
 # Low/Medium/High using stat, low_stat, and high_stat.
-${DATA}/pass1_report: pass1.py ${MODELS}/model_A2 ${MODELS}/model_C1
+${DATA}/pass1_report.pickle: pass1.py ${MODELS}/model_A2 ${MODELS}/model_C1
 	python pass1.py ${COMMON_ARGS}
 
 # Rule to make trained models: model_High, model_Medium, model_Low.  Make

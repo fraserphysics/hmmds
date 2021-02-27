@@ -1,0 +1,2 @@
+Any code that imports matplotlib will be under this directory to avoid
+pollution of other code.
