@@ -42,8 +42,36 @@ def common_args(parser):
                         help='For first pass classification')
 
 
+class Common:
+
+    def __init__(self, root):
+        """Parameters for the apnea application.
+
+        Args:
+            root: Path to root of the hmmds project
+
+        Essentially a namespace that functions like a FORTRAN common block.
+        """
+        # Paths:  ToDo: Change names, eg heart_rate_data
+        self.data = os.path.join(root, 'derived_data/apnea')
+        self.heart_rate = os.path.join(self.data, 'low_pass_heart_rate')
+        self.respiration = os.path.join(self.data, 'respiration')
+        self.expert = os.path.join(root, 'raw_data', 'apnea',
+                                   'summary_of_training')
+        self.pass1 = os.path.join(self.data, 'pass1_report')
+        self.models = os.path.join(self.data, 'models')
+        self.Amodel = os.path.join(self.models, 'model_A2')
+        self.BCmodel = os.path.join(self.models, 'model_C1')
+
+        self.iterations = 20
+        self.low_line = 1.82
+        self.high_line = 2.60
+        self.stat_slope = 0.5
+
+
 class Pass1Item:
-    """ Essentially a namespace
+    """Essentially a namespace.  ToDo: Replace with dict so that reader
+    needn't chase here to understand.
 
     Args:
         name: eg, a01
@@ -51,6 +79,7 @@ class Pass1Item:
         r: Ratio of high peaks to average peaks
         stat: (r + slope * llr) used to choose level
         level: Low, Medium or Low.  Model to use for classifying each minute
+
     """
 
     def __init__(self: Pass1Item, name: str, llr: float, r: float, stat: float,
@@ -153,10 +182,10 @@ def heart_rate_respiration_data(heart_rate_path: str,
     # there more heart_rate data points?
     n_r = len(raw_r)
     n_h = len(raw_h)
-    limit = min(n_r, n_h)
-    if t_max is not None:
-        assert t_max <= limit
-        limit = t_max
+    if t_max is None:
+        limit = min(n_r, n_h)
+    else:
+        limit = min(n_r, n_h, t_max)
 
     time_difference = raw_r[:limit, 0] - raw_h[:limit, 0]
     assert numpy.abs(time_difference).max() == 0.0
@@ -202,8 +231,12 @@ def heart_rate_respiration_bundle_data(heart_rate_path, respiration_path,
     underlying = heart_rate_respiration_data(heart_rate_path,
                                              respiration_path,
                                              t_max=len(tags))
-
-    return hmm.base.Bundle_segment(tags, underlying)
+    len_underlying = len(underlying['respiration_data'])
+    if len_underlying < len(tags):
+        return hmm.base.Bundle_segment(tags[:len_underlying], underlying)
+    else:
+        assert len_underlying == len(tags)
+        return hmm.base.Bundle_segment(tags, underlying)
 
 
 if __name__ == "__main__":

@@ -64,12 +64,12 @@ def log_likelihood_ratio(data, normal_model, apnea_model) -> float:
     return (a_ll - n_ll) / n_times
 
 
-def make_reports(args, names: list):
+def make_reports(common, names: list):
     """Make a list of reports for pass1
 
     Args:
 
-        args: heart_rate (path
+        common: heart_rate (path
             to heart rate data), respiration (path to respiration
             data), low_line (threshold for first pass classification),
             high_line (threshold for first pass classification)
@@ -77,26 +77,28 @@ def make_reports(args, names: list):
         names: Eg, [
 
     """
-    with open(os.path.join(args.models, args.Amodel), 'rb') as _file:
+    with open(os.path.join(common.models, common.Amodel), 'rb') as _file:
         apnea_model = pickle.load(_file)
-    with open(os.path.join(args.models, args.BCmodel), 'rb') as _file:
+    with open(os.path.join(common.models, common.BCmodel), 'rb') as _file:
         normal_model = pickle.load(_file)
     reports = []
     for name in names:
         y_data = hmmds.applications.apnea.utilities.heart_rate_respiration_data(
-            os.path.join(args.heart_rate, name),
-            os.path.join(args.respiration, name))
+            os.path.join(common.heart_rate, name),
+            os.path.join(common.respiration, name))
         # y_data is a dict
         r = r_stat(y_data['filtered_heart_rate_data'])
         llr = log_likelihood_ratio(y_data, normal_model, apnea_model)
-        stat = r + args.stat_slope * llr
-        if stat < args.low_line:
+        stat = r + common.stat_slope * llr
+        if stat < common.low_line:
             level = 'Low'
-        elif stat > args.high_line:
+        elif stat > common.high_line:
             level = 'High'
         else:
             level = 'Medium'
-        reports.append(hmmds.applications.apnea.utilities.Pass1Item(name, llr, r, stat, level))
+        reports.append(
+            hmmds.applications.apnea.utilities.Pass1Item(
+                name, llr, r, stat, level))
     return reports
 
 
@@ -107,27 +109,32 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     parser = argparse.ArgumentParser("Create and write/pickle pass1_report")
-    hmmds.applications.apnea.utilities.common_args(parser)
+    parser.add_argument('--root',
+                        type=str,
+                        default='../../../',
+                        help='Root directory of project')
     args = parser.parse_args(argv)
+    common = hmmds.applications.apnea.utilities.Common(args.root)
 
     def get_names(letter):
         return [
             os.path.basename(x)
-            for x in glob.glob('{0}/{1}*'.format(args.heart_rate, letter))
+            for x in glob.glob('{0}/{1}*'.format(common.heart_rate, letter))
         ]
 
     reports = make_reports(
-        args,
+        common,
         get_names('a') + get_names('b') + get_names('c') + get_names('x'))
     reports.sort(key=lambda x: x.stat)
-    with open(args.pass1 + '.pickle', 'wb') as _file:
+    with open(common.pass1 + '.pickle', 'wb') as _file:
         pickle.dump(reports, _file)
-    with open(args.pass1, 'w') as _file:
+    with open(common.pass1, 'w') as _file:
         for report in reports:
             _file.write(
-                '{0} # {1:6s} stat={2:6.3f} llr={3:6.3f} R={4:6.3f}\n'.format(
+                '{0} # {1:6s} stat= {2:6.3f} llr= {3:6.3f} R= {4:6.3f}\n'.format(
                     report.name, report.level, report.stat, report.llr,
                     report.r))
+    return 0
 
 
 if __name__ == "__main__":

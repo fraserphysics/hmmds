@@ -2,7 +2,7 @@
 
 From Makefile:
 
-python model_init.py  ${COMMON_ARGS} $* $@
+python model_init.py $* $@
 
 $* is one of: A2 C1 High Medium Low
 """
@@ -15,7 +15,7 @@ import numpy
 
 import hmm.base
 
-import utilities
+import hmmds.applications.apnea.utilities
 import observation
 
 
@@ -134,38 +134,39 @@ def register(func):
 
 
 @register
-def A2(args: argparse.Namespace) -> hmm.base.HMM:
+def A2(common, rng) -> hmm.base.HMM:
     """Two states, no bundles, AR-4 for heart rate, single Gaussian for
     respiration
 
     Args:
-        args: Collection of information for the apnea project.
-            args.rng is a numpy random number generator instance
+        rng: A numpy random number generator instance
+        common: A Collection of information for the apnea project.
 
     Use data from a01 to initialize parameters of the observation model
     """
     n_states = 2
 
     y_model = observation.FilteredHeartRate_Respiration(
-        filtered_heart_rate_model(n_states, args.rng),
-        respiration_model(n_states, args.rng), args.rng)
+        filtered_heart_rate_model(n_states, rng),
+        respiration_model(n_states, rng), rng)
 
-    y_data = utilities.pattern_heart_rate_respiration_data(args, ['a'])
+    y_data = hmmds.applications.apnea.utilities.pattern_heart_rate_respiration_data(
+        common, ['a'])
     # a list with a dict for each a-file
 
     model = hmm.base.HMM(
-        random_1d_prob(args.rng, 2),  # p_state_initial
-        random_1d_prob(args.rng, 2),  # p_state_time_average
-        random_conditional_prob(args.rng, (2, 2)),  # p_state2state
+        random_1d_prob(rng, 2),  # p_state_initial
+        random_1d_prob(rng, 2),  # p_state_time_average
+        random_conditional_prob(rng, (2, 2)),  # p_state2state
         y_model,
-        args.rng)
+        rng)
 
     model.initialize_y_model(y_data)
     return model
 
 
 @register
-def C1(args):
+def C1(common, rng):
     """One state, no bundles, AR-4 for heart rate, single Gaussian for
     respiration
 
@@ -173,14 +174,14 @@ def C1(args):
     n_states = 1
 
     y_model = observation.FilteredHeartRate_Respiration(
-        filtered_heart_rate_model(n_states, args.rng),
-        respiration_model(n_states, args.rng), args.rng)
+        filtered_heart_rate_model(n_states, rng),
+        respiration_model(n_states, rng), rng)
 
     name = 'c01'
     y_data = [
-        utilities.heart_rate_respiration_data(
-            os.path.join(args.heart_rate, name),
-            os.path.join(args.respiration, name))
+        hmmds.applications.apnea.utilities.heart_rate_respiration_data(
+            os.path.join(common.heart_rate, name),
+            os.path.join(common.respiration, name))
     ]
 
     model = hmm.base.HMM(
@@ -188,14 +189,14 @@ def C1(args):
         numpy.ones((1,), numpy.float64),  # p_state_time_average
         numpy.ones((1, 1), numpy.float64),  # p_state2state
         y_model,
-        args.rng)
+        rng)
 
     model.initialize_y_model(y_data)
     return model
 
 
 @register
-def Low(args):
+def Low(common, rng):
     n_states = 10
 
     bundle2state = {
@@ -204,33 +205,35 @@ def Low(args):
     }
 
     y_model = filtered_heart_rate_respiration_bundle_model(
-        n_states, bundle2state, args.rng)
+        n_states, bundle2state, rng)
 
     name = 'c01'
     y_data = [
-        utilities.heart_rate_respiration_bundle_data(
-            os.path.join(args.heart_rate, name),
-            os.path.join(args.respiration, name),
-            args.expert,
+        hmmds.applications.apnea.utilities.heart_rate_respiration_bundle_data(
+            os.path.join(common.heart_rate, name),
+            os.path.join(common.respiration, name),
+            common.expert,
             name,
         )
     ]
 
-    model = hmm.base.HMM(random_1d_prob(args.rng, n_states),
-                         random_1d_prob(args.rng, n_states),
+    model = hmm.base.HMM(random_1d_prob(rng, n_states),
+                         random_1d_prob(rng, n_states),
                          hmm.simple.Prob(P_SS_LowMedium).normalize(), y_model,
-                         args.rng)
+                         rng)
+    assert model.p_state_initial.min() > 0
     model.initialize_y_model(y_data)
+    assert model.p_state_initial.min() > 0
     return model
 
 
 @register
-def Medium(args):
-    return Low(args)
+def Medium(common, rng):
+    return Low(common, rng)
 
 
 @register
-def High(args):
+def High(common, rng):
     n_states = 14
 
     bundle2state = {
@@ -239,22 +242,22 @@ def High(args):
     }
 
     y_model = filtered_heart_rate_respiration_bundle_model(
-        n_states, bundle2state, args.rng)
+        n_states, bundle2state, rng)
 
-    name = 'a01'
+    # Without several a-names for initialization, training fails and
+    # reports that the data is not plausible
     y_data = [
-        utilities.heart_rate_respiration_bundle_data(
-            os.path.join(args.heart_rate, name),
-            os.path.join(args.respiration, name),
-            args.expert,
+        hmmds.applications.apnea.utilities.heart_rate_respiration_bundle_data(
+            os.path.join(common.heart_rate, name),
+            os.path.join(common.respiration, name),
+            common.expert,
             name,
-        )
+        ) for name in 'a01 a02 a03 a04 a05 a06'.split()
     ]
 
-    model = hmm.base.HMM(random_1d_prob(args.rng, n_states),
-                         random_1d_prob(args.rng, n_states),
-                         hmm.simple.Prob(P_SS_High).normalize(), y_model,
-                         args.rng)
+    model = hmm.base.HMM(random_1d_prob(rng, n_states),
+                         random_1d_prob(rng, n_states),
+                         hmm.simple.Prob(P_SS_High).normalize(), y_model, rng)
     model.initialize_y_model(y_data)
     return model
 
@@ -266,15 +269,19 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     parser = argparse.ArgumentParser("Create and write/pickle an initial model")
-    utilities.common_args(parser)
+    parser.add_argument('--root',
+                        type=str,
+                        default='../../../',
+                        help='Path to level above hmmds')
     parser.add_argument('key', type=str, help='One of A2 C1 High Medium Low')
     parser.add_argument('write_path', type=str, help='path of file to write')
     args = parser.parse_args(argv)
-    args.rng = numpy.random.default_rng()
+    rng = numpy.random.default_rng()
+    common = hmmds.applications.apnea.utilities.Common(args.root)
 
-    # Run the function specified by args.key and apply deallocate to
-    # the result to delete alpha, beta, and gamma
-    model = MODELS[args.key](args).deallocate()
+    # Run the function specified by args.key
+    model = MODELS[args.key](common, rng)
+    assert model.p_state_initial.min() > 0
 
     with open(args.write_path, 'wb') as _file:
         pickle.dump(model, _file)

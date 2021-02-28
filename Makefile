@@ -1,10 +1,12 @@
 N_TRAIN = 50
 
+#ToDo: Ensure that derived_data/apnea/pass1_report.pickle is up to
+#date using hmmds/applications/apnea/Makefile
 figs/pass1.pdf: plotscripts/apnea/pass1.py derived_data/apnea/pass1_report.pickle
 	python $^ $@
 
 derived_data/apnea/pass1_report.pickle:
-	cd hmmds/applications/apnea; make pass1_report.pickle
+	cd hmmds/applications/apnea && $(MAKE) pass1_report
 
 figs/Statesintro.pdf: plotscripts/stateplot.py derived_data/synthetic/states
 	python  $< --data_dir derived_data/synthetic --base_name state --fig_path $@

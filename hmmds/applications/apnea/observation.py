@@ -7,7 +7,9 @@ import numpy.linalg
 
 import hmm
 
-Small = 1.0e-25
+#ToDo: This small value of Small is required to run pass1 and perhaps to train
+#model_High Why?
+Small = 1.0e-50
 
 
 class Respiration(hmm.base.Observation_0):
@@ -84,6 +86,10 @@ class Respiration(hmm.base.Observation_0):
                     self._likelihood[t, i] = 0
                 else:
                     self._likelihood[t, i] = self.norm[i] * numpy.exp(-dQd / 2)
+            if self._likelihood[t, :].sum() < Small:
+                raise ValueError(
+                    'Observation is not possible from any state.  self.likelihood[{0},:]={1}'
+                    .format(t, self._likelihood[t, :]))
         return self._likelihood
 
     def reestimate(
@@ -228,6 +234,11 @@ class FilteredHeartRate(hmm.base.Observation_0):
                                            self.context[t])
             self._likelihood[t, :] = self.norm * numpy.exp(-delta * delta /
                                                            (2 * self.variance))
+
+            if self._likelihood[t, :].sum() < Small:
+                raise ValueError(
+                    'Observation is not possible from any state.  self.likelihood[{0},:]={1}'
+                    .format(t, self._likelihood[t, :]))
         return self._likelihood
 
     def reestimate(

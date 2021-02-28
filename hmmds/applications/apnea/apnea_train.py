@@ -4,7 +4,7 @@ From the Makefile:
 
 
 ${MODELS}/model_%:
-        python apnea_train.py ${COMMON_ARGS} $* ${MODELS}/initial_$* $@
+        python apnea_train.py --root ${ROOT} $* ${MODELS}/initial_$* $@
 
 $* is the pattern %
 $@ is the target
@@ -20,28 +20,37 @@ import argparse
 
 import numpy.random
 
-import utilities
+import hmmds.applications.apnea.utilities
 
 
-def make_data_a2(args):
-    """Prepare training data for A2 from all a records
+def make_data_level(common, level):
+    """ Make data for training with expert information
 
     Args:
-        args:
+        common: Information for apnea work
+        level: One of High, Medium, Low
 
     Returns:
-        A list of ducts
-
-    use glob.glob to get list of record names and
-    utilities.heart_rate_respiration_data to construct the list
+        list of hmm.base.Bundle_segment instances
 
     """
 
+    with open(common.pass1 + '.pickle', 'rb') as _file:
+        pass1 = pickle.load(_file)
+
     return_list = []
-    for hr_path in glob.glob(args.heart_rate + '/a*'):
-        r_path = '{0}/{1}'.format(args.respiration, os.path.basename(hr_path))
+    for record in pass1:
+        if not record.level == level:
+            continue
+        name = record.name
+        if name[0] == 'x':
+            continue
+
         return_list.append(
-            utilities.heart_rate_respiration_data(hr_path, r_path))
+            hmmds.applications.apnea.utilities.
+            heart_rate_respiration_bundle_data(
+                os.path.join(common.heart_rate, name),
+                os.path.join(common.respiration, name), common.expert, name))
     return return_list
 
 
@@ -52,24 +61,31 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     parser = argparse.ArgumentParser("Read initial model, train, write result")
-    utilities.common_args(parser)
+    parser.add_argument('--root',
+                        type=str,
+                        default='../../../',
+                        help='Root directory of project')
     parser.add_argument('model_name',
                         type=str,
                         help="eg, A2 or Low.  Determines training data")
     parser.add_argument('initial_path', type=str, help="path to initial model")
     parser.add_argument('write_path', type=str, help='path of file to write')
     args = parser.parse_args(argv)
-    args.rng = numpy.random.default_rng()
+    rng = numpy.random.default_rng()
+    common = hmmds.applications.apnea.utilities.Common(args.root)
 
     if args.model_name == 'A2':
-        y_data = utilities.pattern_heart_rate_respiration_data(args, ['a'])
+        y_data = hmmds.applications.apnea.utilities.pattern_heart_rate_respiration_data(
+            common, ['a'])
+    elif args.model_name in 'Low Medium High'.split():
+        y_data = make_data_level(common, args.model_name)
     else:
         raise RuntimeError('Unknown model_name: {0}'.format(args.model_name))
 
     with open(args.initial_path, 'rb') as _file:
         model = pickle.load(_file)
 
-    model.multi_train(y_data, args.iterations)
+    model.multi_train(y_data, common.iterations)
 
     with open(args.write_path, 'wb') as _file:
         pickle.dump(model, _file)
