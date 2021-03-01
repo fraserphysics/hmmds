@@ -2,17 +2,13 @@
 # See ~/projects/hmmds3/code/applications/apnea/SConscript
 # Several paths and parameters are shared in instances of utilities.Common.
 
-ROOT = ../../../
+ROOT = ../../..
 # HMMs go in ${MODELS}
-MODELS = ../../../derived_data/apnea/models
-EXPERT = ../../../raw_data/apnea/summary_of_training
+MODELS = ${ROOT}/derived_data/apnea/models
+EXPERT = ${ROOT}/raw_data/apnea/summary_of_training
+DATA = ${ROOT}/derived_data/apnea
 
-# sub-directories of ${DATA}: low_pass_heart_rate, respiration, models
-DATA = ../../../derived_data/apnea
-
-#${MODELS}/initial_Low:
-
-${DATA}/pass2_report:
+${DATA}/score_report:
 
 .PHONY : trained
 trained: ${MODELS}/model_Low ${MODELS}/model_Medium ${MODELS}/model_High
@@ -59,6 +55,12 @@ LMH_MODELS = $(addprefix ${MODELS}/, model_Low model_Medium model_High)
 # Classify each minute.
 ${DATA}/pass2_report: pass2.py ${DATA}/pass1_report ${LMH_MODELS}
 	python pass2.py --names ${As} ${Bs} ${Cs} ${Xs}  --root ${ROOT} $@
+
+## score_report                   : Text report comparing classifications by minute
+.PHONY : score_report
+score_report: ${DATA}/score_report
+$(DATA)/score_report: score.py ${DATA}/pass2_report
+	python score.py --root $(ROOT) $(DATA)/pass2_report ${EXPERT} $@ $(As) $(Bs) $(Cs)
 
 ## test                           : Run tests defined in test.py
 .PHONY : test
