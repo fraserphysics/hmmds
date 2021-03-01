@@ -9,39 +9,6 @@ import numpy
 import hmm.base
 
 
-def common_args(parser):
-    """ Add arguments required by many functions that operate on the apnea data
-    """
-    for path_name in 'heart_rate respiration models data expert'.split():
-        parser.add_argument('--' + path_name,
-                            type=str,
-                            help='path to directory')
-    parser.add_argument('--Amodel',
-                        type=str,
-                        help='Model of a-files for first classification pass')
-    parser.add_argument(
-        '--BCmodel',
-        type=str,
-        help='Model of b and c files for first classification pass')
-    parser.add_argument('--iterations',
-                        type=int,
-                        help='Training iterations',
-                        default=20)
-    parser.add_argument('--pass1',
-                        type=str,
-                        help='path to result of pass1',
-                        default='pass1_report')
-    parser.add_argument('--low_line',
-                        type=float,
-                        help='For first pass classification')
-    parser.add_argument('--high_line',
-                        type=float,
-                        help='For first pass classification')
-    parser.add_argument('--stat_slope',
-                        type=float,
-                        help='For first pass classification')
-
-
 class Common:
 
     def __init__(self, root):
@@ -52,21 +19,34 @@ class Common:
 
         Essentially a namespace that functions like a FORTRAN common block.
         """
-        # Paths:  ToDo: Change names, eg heart_rate_data
+
         self.data = os.path.join(root, 'derived_data/apnea')
-        self.heart_rate = os.path.join(self.data, 'low_pass_heart_rate')
-        self.respiration = os.path.join(self.data, 'respiration')
+        self.heart_rate_directory = os.path.join(self.data,
+                                                 'low_pass_heart_rate')
+        self.respiration_directory = os.path.join(self.data, 'respiration')
         self.expert = os.path.join(root, 'raw_data', 'apnea',
                                    'summary_of_training')
         self.pass1 = os.path.join(self.data, 'pass1_report')
         self.models = os.path.join(self.data, 'models')
         self.Amodel = os.path.join(self.models, 'model_A2')
         self.BCmodel = os.path.join(self.models, 'model_C1')
+        self.modelLow = os.path.join(self.models, 'model_Low')
+        self.modelMedium = os.path.join(self.models, 'model_Medium')
+        self.modelHigh = os.path.join(self.models, 'model_High')
 
         self.iterations = 20
         self.low_line = 1.82
         self.high_line = 2.60
         self.stat_slope = 0.5
+
+        self.all_names = (os.listdir(self.respiration_directory))
+        self.a_names = list(filter(lambda name: name[0] == 'a', self.all_names))
+        self.b_names = list(filter(lambda name: name[0] == 'b', self.all_names))
+        self.c_names = list(filter(lambda name: name[0] == 'c', self.all_names))
+        self.x_names = list(filter(lambda name: name[0] == 'x', self.all_names))
+
+    def get(self, key):
+        return getattr(self, key)
 
 
 class Pass1Item:
@@ -160,14 +140,11 @@ def read_expert(path: str, name: str) -> numpy.array:
     return numpy.array([mark_dict[mark] for mark in marks], numpy.int32)
 
 
-#TODO: use this function in test.py
-def heart_rate_respiration_data(heart_rate_path: str,
-                                respiration_path: str,
-                                t_max=None) -> dict:
+def heart_rate_respiration_data(name: str, common: Common, t_max=None) -> dict:
     """
     Args:
-        heart_rate_path: path to a single file
-        respiration_path: path to a single file
+        name: Eg, 'a01'
+        common: instance of Common that holds paths and parameters
         t_max: Optional end of time series
 
     Returns:
@@ -175,6 +152,8 @@ def heart_rate_respiration_data(heart_rate_path: str,
 
     t_max enables truncation to the length of expert markings
     """
+    heart_rate_path = os.path.join(common.heart_rate_directory, name)
+    respiration_path = os.path.join(common.respiration_directory, name)
     raw_h = read_respiration(heart_rate_path)
     raw_r = read_respiration(respiration_path)
 
@@ -198,45 +177,37 @@ def heart_rate_respiration_data(heart_rate_path: str,
     }
 
 
-def pattern_heart_rate_respiration_data(args, patterns: list):
-    """Prepare a list data for records specified by patterns
+def pattern_heart_rate_respiration_data(patterns: list, common: Common) -> list:
+    """Prepare a list of data for names specified by patterns
 
     Args:
-        args:
         patterns: Eg, ['b','c']
+        common: Instance of Common that holds paths and parameters
 
     Returns:
         A list of dicts suitable as data for observaton.FilteredHeartRate_Respiration
-
-    use glob.glob to get lists of record names and
-    heart_rate_respiration_data to construct the list
 
     """
 
     return_list = []
     for letter in patterns:
-        for hr_path in glob.glob('{0}/{1}*'.format(args.heart_rate, letter)):
-            r_path = '{0}/{1}'.format(args.respiration,
-                                      os.path.basename(hr_path))
-            return_list.append(heart_rate_respiration_data(hr_path, r_path))
+        paths = glob.glob('{0}/{1}*'.format(common.heart_rate_directory,
+                                            letter))
+        for name in (os.path.basename(path) for path in paths):
+            return_list.append(heart_rate_respiration_data(name, common))
     return return_list
 
 
-#TODO: use this function in test.py
-def heart_rate_respiration_bundle_data(heart_rate_path, respiration_path,
-                                       expert_path, name) -> list:
+def heart_rate_respiration_bundle_data(name: str, common: Common) -> list:
 
     samples_per_minute = 10
-    tags = read_expert(expert_path, name).repeat(samples_per_minute)
-    underlying = heart_rate_respiration_data(heart_rate_path,
-                                             respiration_path,
-                                             t_max=len(tags))
-    len_underlying = len(underlying['respiration_data'])
-    if len_underlying < len(tags):
-        return hmm.base.Bundle_segment(tags[:len_underlying], underlying)
-    else:
-        assert len_underlying == len(tags)
-        return hmm.base.Bundle_segment(tags, underlying)
+    tags = read_expert(common.expert, name).repeat(samples_per_minute)
+    underlying = heart_rate_respiration_data(name, common)
+    len_respiration = len(underlying['respiration_data'])
+    len_hr = len(underlying['filtered_heart_rate_data'])
+    n_times = min(len(tags), len_respiration, len_hr)
+    underlying = heart_rate_respiration_data(name, common, t_max=n_times)
+    return hmm.base.Bundle_segment(tags[:n_times], underlying)
 
 
 if __name__ == "__main__":

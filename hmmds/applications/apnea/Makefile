@@ -1,5 +1,6 @@
 ######################Apnea#########################################
 # See ~/projects/hmmds3/code/applications/apnea/SConscript
+# Several paths and parameters are shared in instances of utilities.Common.
 
 ROOT = ../../../
 # HMMs go in ${MODELS}
@@ -10,6 +11,8 @@ EXPERT = ../../../raw_data/apnea/summary_of_training
 DATA = ../../../derived_data/apnea
 
 #${MODELS}/initial_Low:
+
+${DATA}/pass2_report:
 
 .PHONY : trained
 trained: ${MODELS}/model_Low ${MODELS}/model_Medium ${MODELS}/model_High
@@ -30,6 +33,9 @@ x30 x33
 ${MODELS}/initial_%: model_init.py
 	python model_init.py --root ${ROOT} $* $@
 
+# The trained files are expensive to build.  Don't delete them
+.PRECIOUS: $(addprefix ${MODELS}/, modelA2 model_Low model_Medium model_High initial_Low)
+
 ${MODELS}/model_A2: ${MODELS}/initial_A2
 	python apnea_train.py --root ${ROOT} A2 ${MODELS}/initial_A2 $@
 
@@ -49,10 +55,10 @@ ${DATA}/pass1_report.pickle: pass1.py ${MODELS}/model_A2 ${MODELS}/model_C1
 ${MODELS}/model_%: apnea_train.py ${MODELS}/initial_% ${DATA}/pass1_report.pickle
 	python apnea_train.py --root ${ROOT} $* ${MODELS}/initial_$* $@
 
-LMH_MODELS = $(addprefix ${MODLES}/, model_Low model_Medium model_High)
+LMH_MODELS = $(addprefix ${MODELS}/, model_Low model_Medium model_High)
 # Classify each minute.
 ${DATA}/pass2_report: pass2.py ${DATA}/pass1_report ${LMH_MODELS}
-	python pass2.py --root {ROOT} --records ${As} ${Bs} ${Cs} ${Xs} --models ${LMH_MODELS} $@
+	python pass2.py --names ${As} ${Bs} ${Cs} ${Xs}  --root ${ROOT} $@
 
 ## test                           : Run tests defined in test.py
 .PHONY : test
@@ -63,6 +69,12 @@ test:
 .PHONY : yapf
 yapf :
 	yapf -i --recursive --style "google" .
+
+## variables     : Print selected variables.
+.PHONY : variables
+variables:
+	@echo LMH_MODLES: $(LMH_MODELS)
+	@echo MODELS: $(MODELS)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help

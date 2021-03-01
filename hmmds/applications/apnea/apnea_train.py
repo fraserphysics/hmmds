@@ -48,9 +48,7 @@ def make_data_level(common, level):
 
         return_list.append(
             hmmds.applications.apnea.utilities.
-            heart_rate_respiration_bundle_data(
-                os.path.join(common.heart_rate, name),
-                os.path.join(common.respiration, name), common.expert, name))
+            heart_rate_respiration_bundle_data(name, common))
     return return_list
 
 
@@ -76,7 +74,7 @@ def main(argv=None):
 
     if args.model_name == 'A2':
         y_data = hmmds.applications.apnea.utilities.pattern_heart_rate_respiration_data(
-            common, ['a'])
+            ['a'], common)
     elif args.model_name in 'Low Medium High'.split():
         y_data = make_data_level(common, args.model_name)
     else:

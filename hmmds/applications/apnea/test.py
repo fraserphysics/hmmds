@@ -27,41 +27,23 @@ class BaseClass(unittest.TestCase):
     # self.n_states.  # This imitates proj_hmm/hmm/tests/test_simple.py
 
     n_states = 12
-    respiration_path = '../../../derived_data/apnea/respiration/'
-    heartrate_path = '../../../derived_data/apnea/low_pass_heart_rate'
-    expert_path = '../../../raw_data/apnea/summary_of_training'
-    data_names = os.listdir(respiration_path)
-    a_names = list(filter(lambda name: name[0] == 'a', data_names))
-    b_names = list(filter(lambda name: name[0] == 'b', data_names))
-    c_names = list(filter(lambda name: name[0] == 'c', data_names))
-    x_names = list(filter(lambda name: name[0] == 'x', data_names))
-    train_names = a_names + b_names + c_names
+    common = utilities.Common('../../../')
+    train_names = common.a_names + common.b_names + common.c_names
 
     respiration = {}
     heart_rate = {}
     expert = {}
-    for name in data_names:
-        # Read all fields of files
-        raw_r = utilities.read_respiration(os.path.join(respiration_path, name))
-        raw_h = utilities.read_low_pass_heart_rate(
-            os.path.join(heartrate_path, name))
-
-        # Ensure that measurement times are the same.  ToDo: Why are
-        # there more heart_rate data points?
-        n_r = len(raw_r)
-        assert len(raw_h) > n_r
-        time_difference = raw_r[:, 0] - raw_h[:n_r, 0]
-        assert numpy.abs(time_difference).max() == 0.0
-
-        respiration[name] = raw_r[:, 1:]  # Don't store time data
-        heart_rate[name] = raw_h[:n_r, -1]  # Store only filtered heart rate
-        assert len(respiration[name]) == len(heart_rate[name])
+    for name in common.all_names:
+        # Build both so that the lengths of each are the same
+        both = utilities.heart_rate_respiration_data(name, common)
+        respiration[name] = both['respiration_data']
+        heart_rate[name] = both['filtered_heart_rate_data']
         if name[0] == 'x':
             continue
 
         # Read expert annotations
         samples_per_minute = 10
-        expert[name] = utilities.read_expert(expert_path,
+        expert[name] = utilities.read_expert(common.expert,
                                              name).repeat(samples_per_minute)
 
     def random_name(self, names):
@@ -80,8 +62,8 @@ class BaseClass(unittest.TestCase):
         self.rng = numpy.random.default_rng(0)
 
         # Use same records for both data sets
-        data_names = list(
-            (self.random_name(self.data_names) for n in range(self.n_files)))
+        data_names = list((self.random_name(self.common.all_names)
+                           for n in range(self.n_files)))
 
         # Make respiration model
         self.dimension = 3
@@ -160,7 +142,7 @@ class TestRespiration(BaseClass):
         super().setUp()
         self.model = self.respiration_model
         self.test_data = list(
-            (self.respiration[self.random_name(self.data_names)]
+            (self.respiration[self.random_name(self.common.all_names)]
              for n in range(self.n_files)))
 
     test_calculate = BaseClass.calculate
@@ -190,7 +172,7 @@ class TestFilteredHeartRate(BaseClass):
         self.model = self.filtered_heart_rate_model
 
         self.test_data = list(
-            (self.heart_rate[self.random_name(self.data_names)]
+            (self.heart_rate[self.random_name(self.common.all_names)]
              for n in range(self.n_files)))
 
     test_calculate = BaseClass.calculate
@@ -275,19 +257,8 @@ class TestBundle(TestFilteredHeartRate_Respiration):
         # filtered heart rate data and respiration data.
         self.test_data = []
         for name in self.data_names:
-            tags = self.expert[name]
-            respiration_data = self.respiration[name]
-            filtered_heart_rate_data = self.heart_rate[name]
-            segment_length = min(len(tags), len(respiration_data),
-                                 len(filtered_heart_rate_data))
             self.test_data.append(
-                hmm.base.Bundle_segment(
-                    tags[:segment_length], {
-                        'respiration_data':
-                            respiration_data[:segment_length],
-                        'filtered_heart_rate_data':
-                            filtered_heart_rate_data[:segment_length]
-                    }))
+                utilities.heart_rate_respiration_bundle_data(name, self.common))
 
     def test_reestimate(self):
         """ Difference from super is "underlying"

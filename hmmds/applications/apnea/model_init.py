@@ -151,7 +151,7 @@ def A2(common, rng) -> hmm.base.HMM:
         respiration_model(n_states, rng), rng)
 
     y_data = hmmds.applications.apnea.utilities.pattern_heart_rate_respiration_data(
-        common, ['a'])
+        ['a'], common)
     # a list with a dict for each a-file
 
     model = hmm.base.HMM(
@@ -180,8 +180,7 @@ def C1(common, rng):
     name = 'c01'
     y_data = [
         hmmds.applications.apnea.utilities.heart_rate_respiration_data(
-            os.path.join(common.heart_rate, name),
-            os.path.join(common.respiration, name))
+            name, common)
     ]
 
     model = hmm.base.HMM(
@@ -207,14 +206,11 @@ def Low(common, rng):
     y_model = filtered_heart_rate_respiration_bundle_model(
         n_states, bundle2state, rng)
 
-    name = 'c01'
+    # Without several c-names for initialization, training fails and
+    # reports that the data is not plausible
     y_data = [
         hmmds.applications.apnea.utilities.heart_rate_respiration_bundle_data(
-            os.path.join(common.heart_rate, name),
-            os.path.join(common.respiration, name),
-            common.expert,
-            name,
-        )
+            name, common) for name in 'c01 c02 c03 c04 c05 c06'.split()
     ]
 
     model = hmm.base.HMM(random_1d_prob(rng, n_states),
@@ -248,11 +244,7 @@ def High(common, rng):
     # reports that the data is not plausible
     y_data = [
         hmmds.applications.apnea.utilities.heart_rate_respiration_bundle_data(
-            os.path.join(common.heart_rate, name),
-            os.path.join(common.respiration, name),
-            common.expert,
-            name,
-        ) for name in 'a01 a02 a03 a04 a05 a06'.split()
+            name, common) for name in 'a01 a02 a03 a04 a05 a06'.split()
     ]
 
     model = hmm.base.HMM(random_1d_prob(rng, n_states),

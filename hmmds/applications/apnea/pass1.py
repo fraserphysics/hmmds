@@ -84,8 +84,7 @@ def make_reports(common, names: list):
     reports = []
     for name in names:
         y_data = hmmds.applications.apnea.utilities.heart_rate_respiration_data(
-            os.path.join(common.heart_rate, name),
-            os.path.join(common.respiration, name))
+            name, common)
         # y_data is a dict
         r = r_stat(y_data['filtered_heart_rate_data'])
         llr = log_likelihood_ratio(y_data, normal_model, apnea_model)
@@ -118,8 +117,8 @@ def main(argv=None):
 
     def get_names(letter):
         return [
-            os.path.basename(x)
-            for x in glob.glob('{0}/{1}*'.format(common.heart_rate, letter))
+            os.path.basename(x) for x in glob.glob('{0}/{1}*'.format(
+                common.heart_rate_directory, letter))
         ]
 
     reports = make_reports(
@@ -131,9 +130,9 @@ def main(argv=None):
     with open(common.pass1, 'w') as _file:
         for report in reports:
             _file.write(
-                '{0} # {1:6s} stat= {2:6.3f} llr= {3:6.3f} R= {4:6.3f}\n'.format(
-                    report.name, report.level, report.stat, report.llr,
-                    report.r))
+                '{0} # {1:6s} stat= {2:6.3f} llr= {3:6.3f} R= {4:6.3f}\n'.
+                format(report.name, report.level, report.stat, report.llr,
+                       report.r))
     return 0
 
 
