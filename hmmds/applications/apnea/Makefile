@@ -8,6 +8,8 @@ MODELS = ${ROOT}/derived_data/apnea/models
 EXPERT = ${ROOT}/raw_data/apnea/summary_of_training
 DATA = ${ROOT}/derived_data/apnea
 
+#$(MODELS)/model_A2:
+
 ${DATA}/score_report:
 
 .PHONY : trained
@@ -26,7 +28,7 @@ x14 x17 x20 x23 x26 x29 x32 x35 x03 x06 x09 x12 x15 x18 x21 x24 x27	\
 x30 x33
 
 # Rule for initial models: initial_A2, initial_C1, initial_High, initial_Medium, initial_Low
-${MODELS}/initial_%: model_init.py
+${MODELS}/initial_%: model_init.py utilities.py observation.py
 	python model_init.py --root ${ROOT} $* $@
 
 # The trained files are expensive to build.  Don't delete them
@@ -59,6 +61,7 @@ ${DATA}/pass2_report: pass2.py ${DATA}/pass1_report ${LMH_MODELS}
 ## score_report                   : Text report comparing classifications by minute
 .PHONY : score_report
 score_report: ${DATA}/score_report
+	cp $< $@
 $(DATA)/score_report: score.py ${DATA}/pass2_report
 	python score.py --root $(ROOT) $(DATA)/pass2_report ${EXPERT} $@ $(As) $(Bs) $(Cs)
 
