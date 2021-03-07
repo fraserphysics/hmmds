@@ -17,6 +17,7 @@ import hmm.base
 
 import hmmds.applications.apnea.utilities
 import observation
+import develop
 
 
 def random_1d_prob(rng: numpy.random.Generator, length: int) -> numpy.ndarray:
@@ -134,7 +135,7 @@ def register(func):
 
 
 @register
-def A2(common, rng) -> hmm.base.HMM:
+def A2(common, rng) -> develop.HMM:
     """Two states, no bundles, AR-4 for heart rate, single Gaussian for
     respiration
 
@@ -154,7 +155,7 @@ def A2(common, rng) -> hmm.base.HMM:
         ['a'], common)
     # a list with a dict for each a-file
 
-    model = hmm.base.HMM(
+    model = develop.HMM(
         random_1d_prob(rng, 2),  # p_state_initial
         random_1d_prob(rng, 2),  # p_state_time_average
         random_conditional_prob(rng, (2, 2)),  # p_state2state
@@ -183,7 +184,7 @@ def C1(common, rng):
             name, common)
     ]
 
-    model = hmm.base.HMM(
+    model = develop.HMM(
         numpy.ones((1,), numpy.float64),  # p_state_initial
         numpy.ones((1,), numpy.float64),  # p_state_time_average
         numpy.ones((1, 1), numpy.float64),  # p_state2state
@@ -213,10 +214,10 @@ def Low(common, rng):
             name, common) for name in 'c01 c02 c03 c04 c05 c06'.split()
     ]
 
-    model = hmm.base.HMM(random_1d_prob(rng, n_states),
-                         random_1d_prob(rng, n_states),
-                         hmm.simple.Prob(P_SS_LowMedium).normalize(), y_model,
-                         rng)
+    model = develop.HMM(random_1d_prob(rng, n_states),
+                        random_1d_prob(rng, n_states),
+                        hmm.simple.Prob(P_SS_LowMedium).normalize(), y_model,
+                        rng)
     assert model.p_state_initial.min() > 0
     model.initialize_y_model(y_data)
     assert model.p_state_initial.min() > 0
@@ -247,9 +248,9 @@ def High(common, rng):
             name, common) for name in 'a01 a02 a03 a04 a05 a06'.split()
     ]
 
-    model = hmm.base.HMM(random_1d_prob(rng, n_states),
-                         random_1d_prob(rng, n_states),
-                         hmm.simple.Prob(P_SS_High).normalize(), y_model, rng)
+    model = develop.HMM(random_1d_prob(rng, n_states),
+                        random_1d_prob(rng, n_states),
+                        hmm.simple.Prob(P_SS_High).normalize(), y_model, rng)
     model.initialize_y_model(y_data)
     return model
 

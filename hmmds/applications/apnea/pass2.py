@@ -27,25 +27,31 @@ import pickle
 import numpy
 
 import hmmds.applications.apnea.utilities
+import develop
 
 
 def analyze(name, model, common, report):
-    """
+    """Writes to the open file report a string that has the same form as
+        the expert file
 
     Args:
         name: Eg, 'a01'
-        model: An HMM with an observation model for both heart rate and respiration that supports decoding a sequence of groups
+        model: An HMM with an observation model for both heart rate and respiration
+            that supports decoding a sequence of groups
         common: Globally shared paths and parameters for the apnea project
+        report: A file open for writing
 
-    Returns:
-        A string that imitates the expert file
     """
 
+    print('decoding {0}'.format(name))
     data = hmmds.applications.apnea.utilities.heart_rate_respiration_data(
         name, common)
-    print('decoding {0}'.format(name))
-    class_sequence = (numpy.array(model.broken_decode([data])) -
-                      0.5) * 2  # +/- 1
+    sequence = model.bundle_weight([data], fudge=[1, 1])
+    #sequence = model.old_bundle_decode([data])
+
+    # The rest of the code writes the result in the same format as the
+    # expert file
+    class_sequence = (numpy.array(sequence) - 0.5) * 2  # +/- 1
     samples_per_minute = 10
     minutes_per_hour = 60
     samples_per_hour = minutes_per_hour * samples_per_minute
@@ -66,7 +72,6 @@ def analyze(name, model, common, report):
             else:
                 print('N', end='', file=report)
         print('\n', end='', file=report)
-    return
 
 
 def main(argv=None):
@@ -105,6 +110,7 @@ def main(argv=None):
         args.names = get_names('a') + get_names('b') + get_names(
             'c') + get_names('x')
 
+    # Build a dict by readings HMMs
     models = {}
     for name in 'Low Medium High'.split():
         with open(common.get('model' + name), 'rb') as _file:
@@ -113,6 +119,7 @@ def main(argv=None):
     with open(args.result, 'w') as report:
         for name in args.names:
             pass1item = pass1_dict[name]
+            # Choose the HMM based on the pass1 level
             model = models[pass1item.level]
             analyze(name, model, common, report)
 

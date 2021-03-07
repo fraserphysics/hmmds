@@ -55,8 +55,8 @@ ${MODELS}/model_%: apnea_train.py ${MODELS}/initial_% ${DATA}/pass1_report.pickl
 
 LMH_MODELS = $(addprefix ${MODELS}/, model_Low model_Medium model_High)
 # Classify each minute.
-${DATA}/pass2_report: pass2.py ${DATA}/pass1_report ${LMH_MODELS}
-	python pass2.py --names ${As} ${Bs} ${Cs} ${Xs}  --root ${ROOT} $@
+${DATA}/pass2_report: pass2.py ${DATA}/pass1_report ${LMH_MODELS} develop.py
+	python pass2.py --names ${As} ${Bs} ${Cs}  --root ${ROOT} $@
 
 ## score_report                   : Text report comparing classifications by minute
 .PHONY : score_report
