@@ -5,3 +5,5 @@
 *.log
 *.pdf
 *.pdf_t
+develop.nix
+__pycache__
