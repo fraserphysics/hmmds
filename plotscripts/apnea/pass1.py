@@ -16,6 +16,7 @@ import numpy
 
 import hmmds.applications.apnea.utilities  # For pickle
 
+
 def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
@@ -23,17 +24,15 @@ def parse_args(argv):
     if not argv:
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(description='Make a plot of first pass classification')
+    parser = argparse.ArgumentParser(
+        description='Make a plot of first pass classification')
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
-    parser.add_argument('pass1_report',
-                        type=str,
-                        default="path to report")
-    parser.add_argument('pass1_pdf',
-                        type=str,
-                        default="path to figure")
+    parser.add_argument('pass1_report', type=str, default="path to report")
+    parser.add_argument('pass1_pdf', type=str, default="path to figure")
     return parser.parse_args(argv)
+
 
 def main(argv=None):
     '''
@@ -53,12 +52,14 @@ def main(argv=None):
 
     with open(args.pass1_report, 'rb') as _file:
         data = pickle.load(_file)
-    params = {'axes.labelsize': 12,
-                   'text.fontsize': 10,
-                   'legend.fontsize': 10,
-                   'text.usetex': True,
-                   'xtick.labelsize': 11,
-                   'ytick.labelsize': 11}
+    params = {
+        'axes.labelsize': 12,
+        'text.fontsize': 10,
+        'legend.fontsize': 10,
+        'text.usetex': True,
+        'xtick.labelsize': 11,
+        'ytick.labelsize': 11
+    }
     #matplotlib.rcParams.update(params) ToDo: Fix this
 
     fig = matplotlib.pyplot.figure(figsize=(8, 4))
@@ -68,8 +69,8 @@ def main(argv=None):
     ax.set_ylabel('$R$')
     ax.set_ylim(1.4, 3.2)
     # ToDo: Use letters with colors?  Also want better legend
-    sym = {'a':'rs', 'b':'go', 'c':'bD', 'x':'mx'}
-    sym = {'Low':'go', 'Medium':'yx', 'High':'rs'}
+    sym = {'a': 'rs', 'b': 'go', 'c': 'bD', 'x': 'mx'}
+    sym = {'Low': 'go', 'Medium': 'yx', 'High': 'rs'}
     for record in data:
         key = record.name[0]
         key = record.level
@@ -77,15 +78,16 @@ def main(argv=None):
     x = numpy.array([-2.0, 3.0])
     low_line = 1.82
     high_line = 2.6
-    y = low_line-.5*x
-    ax.plot(x, y, 'm-', label=r'$R+\frac{llr}{2}=%4.2f$'%low_line)
-    y = high_line-.5*x
-    ax.plot(x, y, 'k-', label=r'$R+\frac{llr}{2}=%4.2f$'%high_line)
+    y = low_line - .5 * x
+    ax.plot(x, y, 'm-', label=r'$R+\frac{llr}{2}=%4.2f$' % low_line)
+    y = high_line - .5 * x
+    ax.plot(x, y, 'k-', label=r'$R+\frac{llr}{2}=%4.2f$' % high_line)
     ax.legend(loc='lower right')
     if args.show:
         matplotlib.pyplot.show()
     fig.savefig(args.pass1_pdf)
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

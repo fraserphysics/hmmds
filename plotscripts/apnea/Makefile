@@ -1,13 +1,20 @@
-DerivedDataApnea = ../../derived_data/apnea
-a03er_seg = $(DerivedDataApnea)/a03er_seg
-LPHR = $(addprefix $(DerivedDataApnea)/low_pass_heart_rate/, a03 a01 a12)
-PLOTS = a03erA_plot a03erN_plot a03HR_plot ApneaNLD
-# It takes 2 seconds to make all 4 plots.  Because make doesn't handle
-# multiple targets from a single rule well, I will write separate
-# rules for 4 targets
-a03erA.pdf:
-	python apnea_ts_plots.py $(a03er_seg) $(LPHR) $(PLOTS)
-#python apnea_ts_plots.py a03er_seg a03_lphr a01_lphr a12_lphr a03erA_plot a03erN_plot a03HR_plot ApneaNLD
+Figs = ../../figs/apnea
+DerivedData = ../../derived_data/apnea
+LPHR_DIR = $(DerivedData)/low_pass_heart_rate
+
+plots: $(addprefix $(Figs)/, $(addsuffix .pdf, a03erA a03erN a03HR ApneaNLD))
+
+$(Figs)/a03erA.pdf: apnea_ts_plots.py $(DerivedData)/a03er_seg
+	python apnea_ts_plots.py --data_dir $(DerivedData)  $@
+
+$(Figs)/a03erN.pdf: apnea_ts_plots.py $(DerivedData)/a03er_seg
+	python apnea_ts_plots.py --data_dir $(DerivedData)  $@
+
+$(Figs)/a03HR.pdf: apnea_ts_plots.py $(LPHR_DIR)/a03
+	python apnea_ts_plots.py --data_dir $(DerivedData)  $@
+
+$(Figs)/ApneaNLD.pdf: apnea_ts_plots.py $(LPHR_DIR)/a01 $(LPHR_DIR)/a12
+	python apnea_ts_plots.py --data_dir $(DerivedData)  $@
 
 ## yapf                           : Force google format on all python code
 .PHONY : yapf
@@ -17,8 +24,7 @@ yapf :
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo LPHR: $(LPHR)
-	@echo PLOTS: $(PLOTS)
+	@echo plots: $(plots)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help
