@@ -1,32 +1,43 @@
-Figs = ../../figs/apnea
-DerivedData = ../../derived_data/apnea
-LPHR_DIR = $(DerivedData)/low_pass_heart_rate
+# Makefile: For testing scripts in this directory from this directory.
 
-plots: $(addprefix $(Figs)/, $(addsuffix .pdf, a03erA a03erN a03HR ApneaNLD))
+ROOT = ../..
+ApneaPlotScripts = .
 
-$(Figs)/a03erA.pdf: apnea_ts_plots.py $(DerivedData)/a03er_seg
-	python apnea_ts_plots.py --data_dir $(DerivedData)  $@
+# The default target is test
+test:
 
-$(Figs)/a03erN.pdf: apnea_ts_plots.py $(DerivedData)/a03er_seg
-	python apnea_ts_plots.py --data_dir $(DerivedData)  $@
+# Rules.mk contains the real targets and rules to build them
+include Rules.mk
 
-$(Figs)/a03HR.pdf: apnea_ts_plots.py $(LPHR_DIR)/a03
-	python apnea_ts_plots.py --data_dir $(DerivedData)  $@
+# ALL is all the targets that Rules.mk is responsible for
+ALL = $(APNEA_FIGS)
 
-$(Figs)/ApneaNLD.pdf: apnea_ts_plots.py $(LPHR_DIR)/a01 $(LPHR_DIR)/a12
-	python apnea_ts_plots.py --data_dir $(DerivedData)  $@
+## test         : Build all targets
+.PHONY : test
+test: $(ALL)
+
+## list         : List all files built by this makefile
+.PHONY : list
+list:
+	ls -l $(ALL)
+
+## clean         : Remove all files built by this makefile
+.PHONY : clean
+clean:
+	rm -f $(ALL) *pdf*
+
+## variables     : Print selected variables.
+.PHONY : variables
+variables:
+	@echo ALL: $(ALL)
+
+## help                           : Print comments on targets from makefile
+.PHONY : help
+help :
+	@sed -n 's/^## / /p' Rules.mk
+	@sed -n 's/^## / /p' Makefile
 
 ## yapf                           : Force google format on all python code
 .PHONY : yapf
 yapf :
 	yapf -i --recursive --style "google" .
-
-## variables     : Print selected variables.
-.PHONY : variables
-variables:
-	@echo plots: $(plots)
-
-## help                           : Print comments on targets from makefile
-.PHONY : help
-help : Makefile
-	@sed -n 's/^## / /p' $<

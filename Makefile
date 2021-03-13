@@ -1,7 +1,22 @@
 N_TRAIN = 50
 
+# Look at: https://makefiletutorial.com/
+
+ROOT = .
+XFIGS = $(ROOT)/plotscripts/xfigs
+ApneaPlotScripts = $(ROOT)/plotscripts/apnea
+
+# Default target is bundles.pdf
+TeX/bundles.pdf:
+
+include $(XFIGS)/Rules.mk
+include $(ApneaPlotScripts)/Rules.mk
+
+TeX/bundles.pdf: TeX/bundles.tex  $(INTRODUCTION_FIGS) $(BASIC_ALGORITHMS_FIGS) $(APNEA_FIGS)
+	cd TeX && $(MAKE) bundles.pdf
+
 #ToDo: Ensure that derived_data/apnea/pass1_report.pickle is up to
-#date using hmmds/applications/apnea/Makefile
+#date using hmmds/applications/apnea/Rules.mk
 figs/pass1.pdf: plotscripts/apnea/pass1.py derived_data/apnea/pass1_report.pickle
 	python $^ $@
 
@@ -21,10 +36,21 @@ derived_data/synthetic/lorenz.xyz: hmmds/synthetic/lorenz.py
 	python $< --n_samples 20000 --levels 4 --quantfile derived_data/synthetic/lorenz.4 --xyzfile $@
 
 
+.PHONY : test
+test:
+	ls $(APNEA_FIGS)
+
 ## yapf                           : Force google format on all python code
 .PHONY : yapf
 yapf :
 	yapf -i --recursive --style "google" hmmds
+
+## variables     : Print selected variables.
+.PHONY : variables
+variables:
+	@echo INTRODUCTION_FIGS: $(INTRODUCTION_FIGS)
+	@echo BASIC_ALGORITHMS_FIGS: $(BASIC_ALGORITHMS_FIGS)
+	@echo APNEA_FIGS: $(APNEA_FIGS)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help
