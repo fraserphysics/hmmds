@@ -36,6 +36,14 @@
 {\endlist}
 \renewcommand{\comment}[1]{}
 
+% Commands for figures
+
+\newcommand*{\inputfig}[2]{\input{#1/#2.pdf_t}}
+\newcommand*{\InputIntroductionFig}[1]{\inputfig{../figs/introduction}{#1}}
+\newcommand*{\InputBasicAlgorithmsFig}[1]{\inputfig{../figs/basic_algorithms}{#1}}
+
+\newcommand{\IncludeApneaFig}[1]{\includegraphics[scale=0.7]{../figs/apnea/#1.pdf}}
+
 \title{Estimating Membership in Bundles of HMM States: Notes for
   Friends\footnote{Diane Vaughan}}
 
@@ -201,7 +209,7 @@ that
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \input{Markov_mm.pdf_t}
+    \InputIntroductionFig{Markov_mm}
   }
   \caption[\comment{fig:Markov }A Markov model.]{A Markov model}
   \label{fig:mm}
@@ -247,7 +255,7 @@ in a fashion that depends only on the state $\ti{s}{t}$.
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \input{Markov_dhmm.pdf_t}
+    \InputIntroductionFig{Markov_dhmm}
   }
   \caption[\comment{fig:Markov_dhmm }A hidden Markov model.]{A hidden Markov model}
   \label{fig:dhmm}
@@ -351,7 +359,7 @@ assumptions about \emph{conditional independence} relations.  Figure
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \input{Markov_dhmm_net.pdf_t}
+    \InputIntroductionFig{Markov_dhmm_net}
   }
   \caption[\comment{fig:dhmm-net }Bayes net schematic for a hidden Markov model.]%
   {Bayes net schematic for a hidden Markov model.  The drawn edges
@@ -481,7 +489,7 @@ parameters.  \setlength{\nomlabelwidth}{2.7cm}%
 
 Given $\parameters$, the forward algorithm calculates
 $P(\ts{y}{1}{T}|\parameters)$, and several useful intermediate terms.
-Figure~\ref{fig:forward} sketches the basic recursion's structure.
+Figure~\ref{fig:forward} sketches the structure of the recursion.
 Since I are considering only one set of parameters, I will drop the
 dependence of probabilities on $\parameters$ from the notation for the
 remainder of this section.  In the example of Eqn.~\eqref{eq:pcalc} I
@@ -547,7 +555,7 @@ impossible to do the sum for even modest lengths $T$.
         new $\alpha$'s\\%
         Eqn.~\eqref{eq:forwardD}
       \end{minipage}}%
-    \input{forward.pdf_t}
+    \InputBasicAlgorithmsFig{forward}
   }
   \vspace{5 em}
   \caption[\comment{fig:forward }Dependency relations in the forward algorithm.]%
@@ -936,7 +944,7 @@ the entire highest utility path.
         \qquad$+ \nu(s'(s,t),t-1)$.
       \end{minipage}}
     %%
-    \input{viterbiB.pdf_t}
+    \InputBasicAlgorithmsFig{viterbiB}
   }
   \vspace{7em}
   \caption[Dependency relations in the Viterbi algorithm.]%
@@ -1065,8 +1073,360 @@ Finally by substituting these values into the fraction of
     P_{\ti{S}{t}|\ti{S}{t-1}} \left(s|{\tilde s} \right)} {\ti{\gamma}{t}}.
 \end{align}
 
+\section{Apnea}
+\label{sec:Apnea}
+
+In my book \emph{Hidden Markov Models and Dynamical Systems} the only
+conceivably useful application was the analysis of EKG data in Chapter
+6, \emph{Obstructive Sleep Apnea}.  I wrote code to estimate sequences
+of classifications or bundles for that application.  As I said in the
+introduction to this document, the ideas behind that code are flawed,
+and I am writing this document as part of my effort to address those
+errors.  Rather than immediately discussing the flawed ideas, in this
+section I will pull some of the text about the application from the
+book to give a concrete example.
+
+The challenge for the \emph{Computers in Cardiology} %
+\index{Computers in Cardiology 2000 (CINC2000)}%
+meeting in 2000 (CINC2000) %
+\index{CINC2000 (Computers in Cardiology 2000)}%
+was to identify \emph{obstructive sleep apnea} on the basis of
+electrocardiograms alone.  With my colleague James \index*{McNames} at
+Portland State University, I won the prize for the best minute by
+minute analysis of data.  I prepared our first entry using HMMs, and
+James prepared the subsequent (and winning) entries by hand using
+spectrograms\footnote{This chapter is available as tech report
+  \#LA-UR-07-1969 from Los Alamos National Laboratory.}\footnote{A
+  spectrogram is display of power in Fourier spectral bands as a
+  function of time.  The x-axis is time, the y-axis is frequency, and
+  the image intensity at point $(t,f)$ is the power in that frequency
+  estimated in a window centered at that time.} to visualize the data.
+\index{spectrogram} In preparing the first entry, I discovered that
+using a sequence of states from the Viterbi algorithm to deduce a
+sequence of classifications produced obvious errors.  After some
+thought, I realized that a variant of the Viterbi algorithm that
+directly decoded sequences of \emph{classifications} rather than
+sequences of \emph{states} would yield better classification results.
+Although I did not implement such an algorithm in 2000, I have in
+preparing this book.
+
+While the more appropriate algorithm does not perform as well as
+James' eye, it does perform well enough to place among the top scores
+that appear on the \index*{PhysioNet}
+website.  Here, I will describe the algorithm for decoding
+sequences of classification and narrate in a less formal style of
+presentation my attempt at using it to \emph{re-win} the contest.
+
+\subsection{The  Challenge and the Data}
+\label{sec:challenge}
+
+The PhysioNet website announced the challenge and described the data
+as follows:
+
+{\it % italic to signify quote
+  {\rm \textbf{Introduction:}}
+  %
+  Obstructive sleep apnea (intermittent cessation of breathing) is a
+  common problem with major health implications, ranging from
+  excessive daytime drowsiness to serious cardiac arrhythmias.
+  Obstructive sleep apnea is associated with increased risks of high
+  blood pressure, myocardial infarction, and stroke, and with
+  increased mortality rates. Standard methods for detecting and
+  quantifying sleep apnea are based on respiration monitoring, which
+  often disturbs or interferes with sleep and is generally expensive.
+  A number of studies during the past 15 years have hinted at the
+  possibility of detecting sleep apnea using features of the
+  electrocardiogram. Such approaches are minimally intrusive,
+  inexpensive, and may be particularly well-suited for screening. The
+  major obstacle to use of such methods is that careful quantitative
+  comparisons of their accuracy against that of conventional
+  techniques for apnea detection have not been published.
+
+  We therefore offer a challenge to the biomedical research community:
+  demonstrate the efficacy of ECG-based methods for apnea detection
+  using a large, well-characterized, and representative set of data.
+  The goal of the contest is to stimulate effort and advance the state
+  of the art in this clinically significant problem, and to foster
+  both friendly competition and wide-ranging collaborations. We will
+  award prizes of US\$500 to the most successful entrant in each of two
+  events.
+
+  {\rm \textbf{Data for development and evaluation:}}
+  %
+  Data for this contest have kindly been provided by Dr. Thomas
+  Penzel \index{Penzel, Dr.\ Thomas}  of Philipps-University, Marburg,
+  Germany [available on the website].
+
+  The data to be used in the contest are divided into a learning set
+  and a test set of equal size. Each set consists of 35 recordings,
+  containing a single ECG signal digitized at 100 Hz with 12-bit
+  resolution, continuously for approximately 8 hours (individual
+  recordings vary in length from slightly less than 7 hours to nearly
+  10 hours). Each recording includes a set of reference annotations,
+  one for each minute of the recording, that indicate the presence or
+  absence of apnea during that minute. These reference annotations
+  were made by human experts on the basis of simultaneously recorded
+  respiration signals. Note that the reference annotations for the
+  test set will not be made available until the conclusion of the
+  contest. Eight of the recordings in the learning set include three
+  respiration signals (oronasal airflow measured using nasal
+  thermistors, and chest and abdominal respiratory effort measured
+  using inductive plethysmography) each digitized at 20 Hz, and an
+  oxygen saturation signal digitized at 1 Hz. These additional signals
+  can be used as reference material to understand how the apnea
+  annotations were made, and to study the relationships between the
+  respiration and ECG signals. [...]
+
+  {\rm \textbf{Data classes:}}
+  %
+  For the purposes of this challenge, based on these varied criteria,
+  we have defined three classes of recordings:
+  \begin{description}
+  \item[Class A (Apnea):] These meet all criteria. Recordings in class
+    A contain at least one hour with an apnea index of 10 or more, and
+    at least 100 minutes with apnea during the recording. The learning
+    and test sets each contain 20 class A recordings.
+  \item[Class B (Borderline):] These meet some but not all of the
+    criteria. Recordings in class B contain at least one hour with an
+    apnea index of 5 or more, and between 5 and 99 minutes with apnea
+    during the recording. The learning and test sets each contain 5
+    class B recordings.
+  \item[Class C (Control):] These meet none of the criteria, and may
+    be considered normal. Recordings in class C contain fewer than 5
+    minutes with apnea during the recording. The learning and test
+    sets each contain 10 class C recordings.
+  \end{description}
+
+  {\rm \textbf{Events and scoring:}}
+  %
+  Each entrant may compete in one or both of the following events:
+  \begin{description}
+  \item[1. Apnea screening:] In this event, your task is to design
+    software that can classify the 35 test set recordings into class A
+    (apnea) and class C (control or normal) groups, using the ECG
+    signal to determine if significant sleep apnea is present.  [...]
+  \item[2. Quantitative assessment of apnea:] In this event, your
+    software must generate a minute-by-minute annotation file for each
+    recording, in the same format as those provided with the learning
+    set, using the ECG signal to determine when sleep apnea occurs.
+    Your annotations will be compared with a set of reference
+    annotations to determine your score. Each annotation that matches
+    a reference annotation earns one point; thus the highest possible
+    score for this event will be approximately 16800 (480 annotations
+    in each of 35 records). It is important to understand that scores
+    approaching the maximum are very unlikely, since apnea assessment
+    can be very difficult even for human experts. Nevertheless, the
+    scores can be expected to provide a reasonable ranking of the
+    ability of the respective algorithms to mimic the decisions made
+    by human experts.
+  \end{description}
+}%% end \it for quote
+
+\subsection{The Data}
+\label{sec:data}
+%%% FixMe: In runs using CM fonts, I see too much space under
+%%% FixMe: fig:a03erA.  It and fig:a03erN get put on facing pages.
+%%% FixMe: The following text breaks right after "45 seconds and",
+%%% FixMe: and there is several inches of empty vertical whitespace
+%%% FixMe:  between the figure and the text.
+
+Briefly, one can fetch the following records from PhysioNet:
+\begin{description}
+\item[a01-a20:] The \emph{a records} from individuals that display
+  \emph{apnea}
+\item[b01-b05:] The \emph{b records}\footnote{The amplitude of the
+    \emph{b05} record varies dramatically over different segments of
+    time.  I found it unusable and discarded it entirely.} from
+  individuals diagnosed as \emph{borderline}
+\item[c01-c10:] The \emph{c records} from \emph{control} or normal
+  individuals
+\item[a01er-a04er and b01er and c01er:] Identical to \emph{a01-a04}
+  and \emph{b01} and \emph{c01} except augmented with respiration and
+  $SpO_2$ (percent of arterial hemoglobin saturated with oxygen)
+  \nomenclature[rSpO]{$SpO_2$}{Percent of arterial hemoglobin
+    saturated with oxygen.} signals
+\item[summary\_of\_training:] Expert classifications of each minute in
+  the $a$, $b$, and $c$ records
+\item[x01-x35:] The test set\footnote{The records \emph{x33} and
+    \emph{x34} are so similar that I suspect they are simultaneous
+    recordings from different ECG leads.  I did not explicitly exploit
+  the similarity in my analysis.}; records without classification
+\end{description}
+
+In 2000, using both the data and software to view it from PhysioNet, I
+saw striking oscillations in the apnea time series.  The patients stop
+breathing for tens of seconds, gasp a few breaths, and stop again.
+Each cycle takes about 45 seconds and can go on for most of the night.
+I've plotted two periods of such an oscillation from record \emph{a03}
+in Fig.~\ref{fig:a03erA}.  The reference or \emph{expert}
+classifications provided with the data indicate these are the last
+oscillations in the first apnea episode of the night.  Over the entire
+night's record of 8 hours and 39 minutes, the patient had apnea for a
+total of 4 hours and five minutes in 11 separate episodes.  In that
+time, more than once a minute, he was waking up enough to start
+breathing.  Ten and a half minutes after the end of the first apnea
+episode, the record, as plotted in Fig.~\ref{fig:a03erN}, looks
+normal.
+
+\begin{figure}
+  \centering{\plotsize%
+    \def\SpO{$SpO_2$}%
+    \def\ONR{\emph{ONR}}%
+    \def\ECG{\emph{ECG}}%
+    \IncludeApneaFig{a03erA}}
+  \caption[\comment{fig:a03erA }A segment of record a03]%
+  {A segment of record a03.  Two cycles of a large apnea
+    induced oscillation in $SpO_2$ are drawn in the lower plot.  The
+    middle plot is the oronasal airflow signal, and the upper plot is
+    the ECG (units of both ONR and ECG are unknown).  The time
+    axis is marked in \emph{hours:minutes}.  Notice the increased
+    heart rate just after 0:58 and just before 0:59.}
+  \label{fig:a03erA}
+\end{figure}
+
+\begin{figure}
+  \centering{\plotsize%
+    \def\SpO{$SpO_2$}%
+    \def\ONR{\emph{ONR}}%
+    \def\ECG{\emph{ECG}}%
+    \IncludeApneaFig{a03erN}}
+  \caption[\comment{fig:a03erN }A segment of record a03]%
+  {A segment of record a03 taken during a period of normal
+    respiration.  Signals the same as in Fig.~\ref{fig:a03erA}.}
+  \label{fig:a03erN}
+\end{figure}
+
+In plots like Fig.~\ref{fig:a03erA}, the heart rate visibly increases
+at the end of the gasping phase and then decreases during the phase of
+interrupted respiration.  That heart rate oscillation is the key I
+used in my initial attempts to classify periods of apnea.  In
+Fig.~\ref{fig:a03erHR}, I've plotted both a heart rate derived from
+the ECG \nomenclature[rECG]{ECG}{Electrocardiogram} and the $SpO_2$
+signal.  The oscillations in the signals track each other, and the
+expert classifies only the region of large heart rate oscillation as
+apnea.
+\begin{figure}
+  \centering{\plotsize%
+    \def\SpO{$SpO_2$}%
+    \def\HR{\emph{HR}}%
+    \IncludeApneaFig{a03HR}}
+  \caption[\comment{fig:a03HR }A segment of record 03 at the end of an episode of apnea]%
+  {A segment of record 03 at the end of an episode of apnea with
+    indications in both the $SpO_2$ signal and the heart rate
+    \emph{(HR)} signal.  The expert marked the time before 1:00 as
+    apnea and the time afterwards as normal.}
+  \label{fig:a03erHR}
+\end{figure}
+
+\section{First Classification Algorithms and Two Useful Features}
+\label{sec:NVG}
+
+\newcommand{\tmo}{i} % \tmo is t minus one
+\newcommand{\tex}{j} % \tex is t exactly
+\newcommand{\tpo}{k} % \tpo is t plus one
+
+\subsection{Using Information from Experts to Train}
+
+I first carefully considered the CINC2000 challenge when Andreas
+Rechtsteiner told me that he was going to use it as a final project
+for a class that James was teaching.  I suggested that he try a two
+state HMM with autoregressive observation models with scalar observations.  The performance of Andreas' two state model was not
+memorable.
+
+To use the expert classification information in training, Andreas and
+I found that we need only modify the observation model.  The technique
+is not limited to HMMs with only two states or two classes; it applies
+to an arbitrary number of classes and to arbitrary numbers of states
+associated with each class.  At each time $t$, let $\ti{c}{t}$ denote
+classification information from an expert about which states are
+possible.  Specifically $\ti{c}{t}$ is a vector that indicates that
+some states are possible and that the others are impossible.  We
+simply replace $P_{\ti{Y}{t}|\ti{S}{t},\ts{Y}{1}{t-1}}$ with
+$P_{\ti{Y}{t},\ti{C}{t}|\ti{S}{t},\ts{Y}{1}{t-1}}$ wherever it occurs
+in the Baum Welch algorithm.  Roughly, the modification forces the
+system into states associated with the right class during training.
+
+\subsection{Nonlinear Dynamics}
+\label{sec:NLD}
+
+After Andreas finished his class, I looked more carefully at heart
+rate time series and the classification errors of a two state model.
+I saw evidence of \emph{nonlinear dynamics} such as the period two
+waveform and the sawtooth in Fig.~\ref{fig:ApneaNLD}.  Superpositions
+of sinusoids can describe such patterns with the right amplitudes and
+relative phases of the harmonics.  Although a linear model can favor
+the correct frequencies and amplitudes of the component sinusoids,
+linear models cannot detect or enforce phase relationships.  The
+ability to distinguish phase relationships makes it possible to build
+nonlinear models that are more discriminating than any linear model.
+
+\begin{figure}
+  \centering{\plotsize%
+    \def\aT{\emph{a12} HR}%
+    \def\aZ{\emph{a01} HR}%
+    \IncludeApneaFig{ApneaNLD}}
+  \caption[\comment{fig:ApneaNLD }Nonlinear effects]%
+  {Nonlinear effects: The upper plot seems to be a period two
+    oscillation.  The lower plot is approximately sawtooth.}
+  \label{fig:ApneaNLD}
+\end{figure}
+
+Excited by these observations, I built an HMM with many chains of
+states.  Each chain modeled a different form of heart rate
+oscillation.  I trained the model on the expertly classified records,
+and then used the model to classify those same records.  For each
+record, I used the Viterbi algorithm to find the most likely state
+sequence given the observations.  Then I derived a classification
+sequence from the decoded state sequence by selecting class $C$ at
+time $t$ if the decoded state satisfied $\ti{s}{t}\in C$.  The
+technique performed terribly.  The sequences of classifications said
+every minute was \emph{normal} even though (actually \emph{because}) I had
+modeled the different kinds of \emph{apnea} oscillations so carefully.
+
+An analysis of the values of the conditional probabilities of states given
+the entire sequence of observations, $P_{\ti{S}{t}|\ts{Y}{1}{T}}
+\left(s_i|\ts{y}{1}{T} \right) = \alpha(s_i,t) \beta(s_i,t)$,
+revealed the problem and suggested a solution.  Because the model had
+many more apnea states than normal states, the state probability was
+rarely concentrated enough in a single apnea state for that state to
+be decoded.  To address the problem, I solved for the sequence of most
+likely classifications, \ie,
+\begin{equation}
+  \label{eq:smlc}
+  \ti{\tilde C}{t} \equiv \argmax_C \sum_{i:s_i\in C}
+  P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s_i|\ts{y}{1}{T} \right).
+\end{equation}
+instead of solving for the most likely sequence of states.  Using
+Eqn.~\eqref{eq:smlc} and the HMM with many chains of states, I
+classified the test data to prepare a contest entry.  When James
+submitted the entry % on April 24, 2000
+we found that it classified 78.91\% of the minutes correctly.
+
+In Section~2.3.3 of the book I presented a sequence of MAP states that
+not only failed to be a MAP sequence of states but that was actually
+an impossible sequence.  Since the analogous distinction holds for
+sequences of classifications, I developed the algorithm described in
+Section~\ref{sec:broken_decode} that finds
+\begin{equation}
+  \label{eq:mlsc}
+  {\ts{\hat C}{1}{T}} \equiv \argmax_{\ts{C}{1}{T} }
+  \sum_{\ts{s}{1}{T}:\ti{s}{t}\in \ti{C}{t}, 1 \leq t \leq T} P\left(
+    \ts{s}{1}{T} | \ts{y}{1}{T} \right),
+\end{equation}
+\ie, the MAP sequence of classifications rather than the sequence of
+MAP classifications.
+
+\section{Bundles}
+\label{sec:bundles}
+
+\subsection{Broken Decode}
+\label{sec:broken_decode}
+
 
 \end{document}
+
+Look at how you made ~/projects/hmmds3/figs/a03erHR.pdf
+~/projects/hmmds3/code/plotscripts/SConscript
 
 %%% Local Variables:
 %%% eval: (load-file "hmmkeys.el")
