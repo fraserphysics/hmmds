@@ -36,6 +36,8 @@
 {\endlist}
 \renewcommand{\comment}[1]{}
 
+\newcommand{\sbest}{s_{\text{best}}}
+
 % Commands for figures
 
 \newcommand*{\inputfig}[2]{\input{#1/#2.pdf_t}}
@@ -422,7 +424,7 @@ observation probabilities,
    \parameters \equiv \left\{
      \begin{aligned}
        &\left\{\; P_{\ti{S}{t+1}|\ti{S}{t}} \left(s'|s
-       \right)~\forall s,s' \;\right\},\\
+       \right)~\forall s',s \;\right\},\\
        & \left\{\; P_{\ti{S}{1}} \left(s \right)~\forall s
        \;\right\},\\
        &  \left\{\; P_{\ti{Y}{t}|\ti{S}{t}} \left(y_i|s' \right)
@@ -472,25 +474,27 @@ observation probabilities,
 Before describing the algorithms, I review the notation for the model
 parameters.  \setlength{\nomlabelwidth}{2.7cm}%
 \begin{symbdescription}
-\item[$\bm{P_{\ti{S}{t+1}|\ti{S}{t}}(s|{\tilde s})}$] The probability that
-  at time $t+1$ the system will be in state $s$ given that at time
-  $t$ it was in state ${\tilde s}$.  Notice that the parameter is independent
+\item[$\bm{P_{\ti{S}{t+1}|\ti{S}{t}}(s'|s)}$] The probability that
+  at time $t+1$ the system will be in state $s'$ given that at time
+  $t$ it was in state $s$.  Notice that the parameter is independent
   of time $t$.
 \item[$\bm{P_{\ti{S}{1}}(s)}$] The probability that the system will
   start in state $s$ at time 1.
-\item[$\bm{P_{\ti{Y}{t}|\ti{S}{t}}(y_k|{\tilde s})}$] The probability that
-  the observation value is $y_k$ given that the system is in state ${\tilde s}$.
+\item[$\bm{P_{\ti{Y}{t}|\ti{S}{t}}(y_k|s)}$] The probability that
+  the observation value is $y_k$ given that the system is in state $s$.
 \item[$\bm{\parameters}$] The entire collection of parameters.
 \end{symbdescription}
 
 \subsection{The Forward Algorithm}
 \label{sec:forward}
-\index{forward algorithm|textbf}
+\index{forward algorithm|textbf} \marginpar{Diane, I only include the
+  section to be complete.  There is no discrete optimization here.
+  Ignore it unless you are curious.}
 
 Given $\parameters$, the forward algorithm calculates
 $P(\ts{y}{1}{T}|\parameters)$, and several useful intermediate terms.
 Figure~\ref{fig:forward} sketches the structure of the recursion.
-Since I are considering only one set of parameters, I will drop the
+Since I am considering only one set of parameters, I will drop the
 dependence of probabilities on $\parameters$ from the notation for the
 remainder of this section.  In the example of Eqn.~\eqref{eq:pcalc} I
 found that I could calculate the right hand terms of
@@ -518,9 +522,8 @@ impossible to do the sum for even modest lengths $T$.
     \def\sumeqforwardAthree{%
       \begin{minipage}[t]{1.8in}
         \raggedright%
-        Weighted\\%
-        sum of prior\\%
-        $\alpha$'s\\%
+        \underline{Forecast} from\\%
+        prior $\alpha$'s,\\%
         Eqn.~\eqref{eq:forwardA3}
       \end{minipage}}%
     %% Column c
@@ -530,9 +533,9 @@ impossible to do the sum for even modest lengths $T$.
     \def\prdeqforwardBtwo{%
       \begin{minipage}[t]{2.3in}
         \raggedright%
-        Multiply\\%
-        observation\\%
-        probability\\%
+        \underline{Update} by\\%
+        incorporating\\%
+        observation $\ti{y}{t}$,\\%
         Eqn.~\eqref{eq:forwardB2}
       \end{minipage}}%
     %% Column d
@@ -540,8 +543,8 @@ impossible to do the sum for even modest lengths $T$.
     \def\prdeqforwardC{%
       \begin{minipage}[t]{1.8in}
         \raggedright%
-        Add, to get $\gamma(t)$\\%
-        $\equiv P \left(\ti{y}{t}|\ts{y}{1}{t-1} \right)$\\%
+        \underline{Sum} to get $\gamma(t)$\\%
+        $\equiv P \left(\ti{y}{t}|\ts{y}{1}{t-1} \right)$,\\%
         Eqn.~\eqref{eq:forwardC}
       \end{minipage}}%
     %% Column e
@@ -551,8 +554,8 @@ impossible to do the sum for even modest lengths $T$.
     \def\quoteqforwardD{%
       \begin{minipage}[t]{1.8in}
         \raggedright%
-        Normalize\\%
-        new $\alpha$'s\\%
+        \underline{Normalize}\\%
+        new $\alpha$'s,\\%
         Eqn.~\eqref{eq:forwardD}
       \end{minipage}}%
     \InputBasicAlgorithmsFig{forward}
@@ -585,7 +588,8 @@ avoids underflow:
 \end{equation}
 
 % Perhaps use \usepackage[most]{tcolorbox} for these boxes
-\definecolor{MyGreen}{rgb}{0,.5,0}%
+\definecolor{MyGreen}{rgb}{0,.7,0.2}%
+\definecolor{MyBlue}{rgb}{0.5,.2,1}%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 %%% #1 = time #2 = state
@@ -603,7 +607,7 @@ avoids underflow:
 }%
 %%%
 \newcommand{\gammax}{%
-  \tcboxmath[colback=white,colframe=blue]{%
+  \tcboxmath[colback=white,colframe=MyBlue]{%
     P(\ti{y}{t}|\ts{y}{1}{t-1})%
   }%
 }%
@@ -652,7 +656,9 @@ the previous observations.  To initialize the algorithm, one assigns
 ~\forall s \in \states
 \end{equation*}
 where the distributions $P_{\ti{S}{1}}$ and $P_{\ti{Y}{t}|\ti{S}{t}}$
-are model parameters.
+are model parameters.  Then, for each later time $t$ one does the
+calculations \emph{forecast, update, sum} and \emph{normalize} defined
+as follows:
 \begin{description}
 \item[\underline{Forecast} the Distribution of States] Find for time $t$ and each
   possible state $s$, the conditional probability, given the
@@ -689,12 +695,13 @@ are model parameters.
   \begin{subequations}
     \label{eq:forwardB}
     \begin{align}
+      & \pregamma = \nonumber \\
       \label{eq:forwardB1}
-      \pregamma &= P_{\ti{Y}{t} |
+      &\quad \quad P_{\ti{Y}{t} |
         \ti{S}{t},\ts{Y}{1}{t-1}}\left(\ti{y}{t} |s, \ts{y}{1}{t-1}
-      \right) \nonumber \\& \times \prealpha\\
+      \right) \times \prealpha\\
       \label{eq:forwardB2}
-      &= P_{\ti{Y}{t} | \ti{S}{t}}\left(\ti{y}{t} |s \right) \cdot
+      & \quad = P_{\ti{Y}{t} | \ti{S}{t}}\left(\ti{y}{t} |s \right) \times
       \prealpha .
     \end{align}
   \end{subequations}
@@ -735,6 +742,7 @@ Equation~\eqref{eq:forwardC} is an application of $P(a) = \sum_b P(a,b)$.
 
 \subsection{The Viterbi Algorithm}
 \label{sec:viterbi}
+\marginpar{Diane, this is \emph{dynamic programming}.}
 
 For some applications, one must estimate the sequence of states based
 on a sequence of observations.  The Viterbi algorithm %
@@ -790,11 +798,11 @@ notation and equations to describe and justify the algorithm.
     \nu(t,s) = \log\left( P\left(\ts{y}{1}{t}, \ts{\hat s}{1}{t}(s)
       \right) \right)
   \end{equation*}
-\item[$\bm{s'(s,t)}$ The best predecessor of state $\bm{s}$] This is
+\item[$\bm{\sbest(s,t)}$ The best predecessor of state $\bm{s}$] This is
   the state at time $t-1$ in the best sequence that ends at state $s$
   at time $t$, \ie
   \begin{equation*}
-    s'(s,t) = \argmax_{\tilde s} \left( \nu(t-1,\tilde s) + \log(
+    \sbest(s,t) = \argmax_{\tilde s} \left( \nu(t-1,\tilde s) + \log(
       P(s|\tilde s)) \right).
   \end{equation*}
 \end{description}
@@ -803,11 +811,11 @@ Equations~\eqref{eq:cat} and \eqref{eq:nuprop} summarize the Viterbi
 algorithm.  When finally deciphered, one finds Eqn.~\eqref{eq:cat} is
 the obvious statement that the best state sequence ending in $s$ at
 time $t+1$ consists of $s$ concatenated with the best sequence ending
-in $s'$ at time $t$, where $s'$ is the best predecessor of $s$.
+in $\sbest$ at time $t$, where $\sbest$ is the best predecessor of $s$.
 \begin{equation}
   \label{eq:cat}
   \ts{\hat s}{1}{t+1} (s) = \left( \left[\ts{\hat s}{1}{t}
-      (s'(s,t+1))\right],s \right)
+      (\sbest(s,t+1))\right],s \right)
 \end{equation}
 Equation~\eqref{eq:nuprop} says that the total utility of the best
 path to state $s$ at time $t+1$ is the utility of the best
@@ -815,20 +823,19 @@ predecessor plus two terms, one that accounts for the transition from
 the predecessor to $s$ and one that accounts for the probability of
 state $s$ producing the observation $\ti{y}{t+1}$.  The equation
 follows from taking logs of
-\begin{multline*}
-  P_{\ti{Y}{t+1},\ts{Y}{1}{t},\ti{S}{t+1},\ts{S}{1}{t}}
-  \left(\ti{y}{t+1},\ts{y}{1}{t},s,\ts{s}{1}{t} \right) =\\
-  P\left(\ts{y}{1}{t}, \ts{s}{1}{t} \right) \cdot
-  P_{\ti{S}{t+1}|\ti{S}{t}} \left(s|\ti{s}{t} \right) \cdot
-  P_{\ti{Y}{t+1}|\ti{S}{t+1}} \left(\ti{y}{t+1}|s \right)
-\end{multline*}
+\begin{align*}
+  P\left(\ti{y}{t+1},\ts{y}{1}{t},\ti{s}{t+1},\ts{s}{1}{t} \right) &=
+  P\left(\ts{y}{1}{t}, \ts{s}{1}{t} \right) \times \\
+  & \quad ~ P \left(\ti{s}{t+1}|\ti{s}{t} \right) \times
+  P\left(\ti{y}{t+1}|\ti{s}{t+1} \right)
+\end{align*}
 which in turn follows from the model assumptions
 (Eqn.~\eqref{eq:assume_markov} and Eqn.~\eqref{eq:assume_output}).
 \begin{equation}
   \label{eq:nuprop}
   \begin{split}
-    \nu (t+1,s) = \nu(t,s'(s,t+1)) +
-    \log\left(P_{\ti{S}{t+1}|\ti{S}{t}} \left(s|s'(s,t+1) \right)\right)\\
+    \nu (t+1,s) = \nu(t,\sbest(s,t+1)) +
+    \log\left(P_{\ti{S}{t+1}|\ti{S}{t}} \left(s|\sbest(s,t+1) \right)\right)\\
     \quad + \log \left( P_{\ti{Y}{t+1}|\ti{S}{t+1}}
       \left(\ti{y}{t+1}|s\right)\right)
   \end{split}
@@ -872,10 +879,10 @@ the entire highest utility path.
           for $t$ from 1 to $T$\\ \> \+
           Swap $\nu\tnext \leftrightarrow \nu\told$\\
           for each $s\tnext$\\ \> \+
-          \\ \# Find best predecessor\\
+          \\ \# \underline{Maximize} to find best predecessor\\
           $s\tbest = \argmax_{s\told}\left( \nu\told(s\told) + \log\left(
               P_{\ti{S}{t}|\ti{S}{t-1}} \left(s\tnext|s\told \right) \right)\right)$ \\
-          \\ \# Update $\nu$\\
+          \\ \# \underline{Update} $\nu$\\
           $\nu\tnext(s\tnext) =\,$ \= $\nu\told(s\tbest)$ \\ \> \+
           $+ \log\left( P_{\ti{S}{t}|\ti{S}{t-1}} \left(s\tnext|s\tbest
             \right) \right)$ \\
@@ -908,24 +915,24 @@ the entire highest utility path.
     \def\colab{$\nu(s_2,t-1)$}%
     \def\colac{$\nu(s_3,t-1)$}%
     %% Column b
-    \def\colba{$ \begin{matrix} s'(s_1,t) = \argmax_{{\tilde s}}\\%
+    \def\colba{$ \begin{matrix} \sbest(s_1,t) = \argmax_{{\tilde s}}\\%
         \log\left(P(s_1|{\tilde s}) \right)\\+ \nu({\tilde s},t-1)
       \end{matrix}$}%
-    \def\colbb{$ \begin{matrix} s'(s_2,t) = \argmax_{{\tilde s}}\\%
+    \def\colbb{$ \begin{matrix} \sbest(s_2,t) = \argmax_{{\tilde s}}\\%
         \log\left(P(s_2|{\tilde s}) \right)\\+ \nu({\tilde s},t-1)
       \end{matrix}$}%
-    \def\colbc{$ \begin{matrix} s'(s_3,t) = \argmax_{{\tilde s}}\\%
+    \def\colbc{$ \begin{matrix} \sbest(s_3,t) = \argmax_{{\tilde s}}\\%
         \log\left(P(s_3|{\tilde s}) \right)\\+ \nu({\tilde s},t-1)
       \end{matrix}$}%
     \def\bestpred{%
       \begin{minipage}[t]{3.9in}
         \raggedright%
-        For each state $s$ find the best\\%
-        predecessor $s'(s,t)$, \ie, the\\%
-        one that maximizes\\%
+        For each state $s$ find\\%
+        the best predecessor\\%
+        $\sbest(s,t)$, \ie, \underline{maximize}\\%
         $\log\left(P(s|s'(s,t)) \right) + \nu(s'(s,t),t-1)$.\\%
-        The bolder lines indicate best\\%
-        predecessors.
+        The bolder lines indicate\\%
+        best predecessors.
       \end{minipage}}%
     %% Column c
     \def\colca{$\nu(s_1,t)$}%
@@ -935,13 +942,10 @@ the entire highest utility path.
       \begin{minipage}[t]{2.7in}
         \raggedright%
         For each state $s$\\%
-        calculate $\nu(s,t)$\\%
+        \underline{update} $\nu(s,t)$\\%
         by including the\\%
         conditional probability\\%
-        of the observation $\ti{y}{t}$,\\%
-        \ie, $ \nu(s,t) = \log\left(P(\ti{y}{t}|s) \right) $\\
-        \qquad$+ \log\left(P(s|s'(s,t)) \right)$\\
-        \qquad$+ \nu(s'(s,t),t-1)$.
+        of the observation $\ti{y}{t}$.
       \end{minipage}}
     %%
     \InputBasicAlgorithmsFig{viterbiB}
@@ -954,6 +958,8 @@ the entire highest utility path.
 
 \subsection{The Backward Algorithm}
 \label{sec:backward}
+\marginpar{Diane, I've only included this to be complete.  It's not
+  directly related to discrete optimization.}
 
 The \index{backward algorithm} backward algorithm is similar to the
 forward algorithm in structure and complexity, but the terms are not
@@ -1052,7 +1058,7 @@ for $\beta(s,t)$ from Eqn.~\eqref{eq:bw4}:
            \cdot P_{\ti{Y}{t}|\ti{S}{t}} \left(\ti{y}{t}|s \right) \cdot
             P_{\ti{S}{t}|\ti{S}{t-1}} \left(s|{\tilde s} \right)
 \end{align*}
-Similarly, simplify the denominator of Eqn.~\eqref{eq:back2} using
+Similarly, factor the denominator of Eqn.~\eqref{eq:back2} using
 Bayes rule:
 \begin{equation*}
   P \left(\ts{y}{t}{T}|\ts{y}{1}{t-1} \right) = P
@@ -1075,6 +1081,7 @@ Finally by substituting these values into the fraction of
 
 \section{Apnea}
 \label{sec:Apnea}
+\marginpar{Diane, this is the motivating example.}
 
 In my book \emph{Hidden Markov Models and Dynamical Systems} the only
 conceivably useful application was the analysis of EKG data in Chapter
@@ -1095,20 +1102,20 @@ electrocardiograms alone.  With my colleague James \index*{McNames} at
 Portland State University, I won the prize for the best minute by
 minute analysis of data.  I prepared our first entry using HMMs, and
 James prepared the subsequent (and winning) entries by hand using
-spectrograms\footnote{This chapter is available as tech report
-  \#LA-UR-07-1969 from Los Alamos National Laboratory.}\footnote{A
-  spectrogram is display of power in Fourier spectral bands as a
-  function of time.  The x-axis is time, the y-axis is frequency, and
-  the image intensity at point $(t,f)$ is the power in that frequency
-  estimated in a window centered at that time.} to visualize the data.
-\index{spectrogram} In preparing the first entry, I discovered that
-using a sequence of states from the Viterbi algorithm to deduce a
-sequence of classifications produced obvious errors.  After some
-thought, I realized that a variant of the Viterbi algorithm that
-directly decoded sequences of \emph{classifications} rather than
-sequences of \emph{states} would yield better classification results.
-Although I did not implement such an algorithm in 2000, I have in
-preparing this book.
+spectrograms\footnote{A spectrogram is display of power in Fourier
+  spectral bands as a function of time.  The x-axis is time, the
+  y-axis is frequency, and the image intensity at point $(t,f)$ is the
+  power in that frequency estimated in a window centered at that
+  time.} to visualize the data.  \index{spectrogram} In preparing the
+first entry, I discovered that using a sequence of states from the
+Viterbi algorithm to deduce a sequence of classifications produced
+obvious errors.  After some thought, I realized that a variant of the
+Viterbi algorithm that directly decoded sequences of
+\emph{classifications} rather than sequences of \emph{states} would
+yield better classification results.  Although I did not implement
+such an algorithm in 2000, I have\footnote{I did write code in
+  2007-2008.  However the algorithim is flawed.} in preparing this
+book.
 
 While the more appropriate algorithm does not perform as well as
 James' eye, it does perform well enough to place among the top scores
@@ -1121,7 +1128,15 @@ presentation my attempt at using it to \emph{re-win} the contest.
 \label{sec:challenge}
 
 The PhysioNet website announced the challenge and described the data
-as follows:
+as follows\footnote{When I looked at the data in 2000, I saw that the
+  worst patients were not getting real rest all night long and that
+  they were not aware of what they were doing.  About fifteen years
+  later I saw data from the night Marguerite spent in a sleep lab.  In
+  addition to the kind of data described here, she had EEG
+  measurements taken.  The combination provided unambiguous evidence.
+  I would not substitute the analysis here for such data.  Also, for
+  screening at home, I think SpO$_2$ data from a pulse oximiter would
+  be better than the ECG data suggested by the contest.}:
 
 {\it % italic to signify quote
   {\rm \textbf{Introduction:}}
@@ -1318,7 +1333,7 @@ apnea.
   \label{fig:a03erHR}
 \end{figure}
 
-\section{First Classification Algorithms and Two Useful Features}
+\section{First Classification Algorithms}
 \label{sec:NVG}
 
 \newcommand{\tmo}{i} % \tmo is t minus one
@@ -1343,8 +1358,12 @@ possible.  Specifically $\ti{c}{t}$ is a vector that indicates that
 some states are possible and that the others are impossible.  We
 simply replace $P_{\ti{Y}{t}|\ti{S}{t},\ts{Y}{1}{t-1}}$ with
 $P_{\ti{Y}{t},\ti{C}{t}|\ti{S}{t},\ts{Y}{1}{t-1}}$ wherever it occurs
-in the Baum Welch algorithm.  Roughly, the modification forces the
-system into states associated with the right class during training.
+in the Baum Welch algorithm.\marginpar{The Baum Welch algorithm
+  searches for maximum likelihood model parameters given some training
+  data.  Running the forward algorithm and backward algorithm are the
+  most computationally expensive part of each iteration.} Roughly, the
+modification forces the system into states associated with the right
+class during training.
 
 \subsection{Nonlinear Dynamics}
 \label{sec:NLD}
@@ -1402,11 +1421,12 @@ classified the test data to prepare a contest entry.  When James
 submitted the entry % on April 24, 2000
 we found that it classified 78.91\% of the minutes correctly.
 
-In Section~2.3.3 of the book I presented a sequence of MAP states that
-not only failed to be a MAP sequence of states but that was actually
-an impossible sequence.  Since the analogous distinction holds for
-sequences of classifications, I developed the algorithm described in
-Section~\ref{sec:broken_decode} that finds
+In Section~2.3.3 of the book I presented a sequence of MAP
+(\emph{Maximum A posteriori Probability}) states that not only failed
+to be a MAP sequence of states but that was actually an impossible
+sequence.  Since the analogous distinction holds for sequences of
+classifications, I developed the flawed algorithm described in
+Section~\ref{sec:broken_decode} that seeks
 \begin{equation}
   \label{eq:mlsc}
   {\ts{\hat C}{1}{T}} \equiv \argmax_{\ts{C}{1}{T} }
@@ -1424,9 +1444,6 @@ MAP classifications.
 
 
 \end{document}
-
-Look at how you made ~/projects/hmmds3/figs/a03erHR.pdf
-~/projects/hmmds3/code/plotscripts/SConscript
 
 %%% Local Variables:
 %%% eval: (load-file "hmmkeys.el")
