@@ -4,6 +4,7 @@
 \usepackage{amsmath}
 \usepackage{bm}
 \usepackage{xspace}
+%\usepackage{showlabels}
 %\usepackage[pdftex]{graphicx,color} % For including pdfs
 
 \usepackage{graphicx}
@@ -37,6 +38,8 @@
 \renewcommand{\comment}[1]{}
 
 \newcommand{\sbest}{s_{\text{best}}}
+\newcommand{\cbest}{c_{\text{best}}}
+\newcommand{\is}{\texttt{=}}
 
 % Commands for figures
 
@@ -46,7 +49,7 @@
 
 \newcommand{\IncludeApneaFig}[1]{\includegraphics[scale=0.7]{../figs/apnea/#1.pdf}}
 
-\title{Estimating Membership in Bundles of HMM States: Notes for
+\title{Estimating Membership in Classes of HMM States: Notes for
   Friends\footnote{Diane Vaughan}}
 
 \author{Andrew Fraser}
@@ -61,24 +64,24 @@ In 2008, SIAM published my book \emph{Hidden Markov Models and
   Dynamical Systems.}  In the final chapter, I used HMMs to classify
 each minute of EKG records as either normal or as apnea.  The key to
 that effort was building HMMs with many states \eg 14 in which the
-states were partitioned into \emph{bundles}.  Half of the states could
-belong to the apnea bundle with the other half belonging to the normal
-bundle.  A few years after SIAM published the book, I began rewriting
+states were partitioned into \emph{classes}.  Half of the states could
+belong to the apnea class with the other half belonging to the normal
+class.  A few years after SIAM published the book, I began rewriting
 the software with the intention of illustrating exemplary software
 practices.  One such practice is \emph{unit testing}.  Unit testing
-revealed a conceptual error in my treatment of bundles.  Since then
+revealed a conceptual error in my treatment of classes.  Since then
 I've made a few starts at fixing the code and the book.  I've learned
 more about good software practices, but I haven't set aside enough
 time to finish the project.
 
 I am returning to the project now that I have retired from LANL.\@
 After rewriting the basic HMM code, I turned to the problem of
-bundles.  I have at least 3 different ways of handling them.  I'm
+classes.  I have at least 3 different ways of handling them.  I'm
 writing this document to clarify my own thoughts and to ask for help.
 
 Since even in this brief introduction I've used some jargon that I
 should explain before asking for help, I will review Hidden Markov
-Models, \emph{HMMs}, before describing how I treat bundles.  I've
+Models, \emph{HMMs}, before describing how I treat classes.  I've
 drawn some of the following text and figures from the book.
 
 \section{Hidden Markov Models with States and Observations Drawn from
@@ -1070,7 +1073,7 @@ of~\eqref{eq:back2}, I verify the recursion~\eqref{eq:backformula}
 In my book \emph{Hidden Markov Models and Dynamical Systems} the only
 conceivably useful application was the analysis of EKG data in Chapter
 6, \emph{Obstructive Sleep Apnea}.  I wrote code to estimate sequences
-of classifications or bundles for that application.  As I said in the
+of classifications for that application.  As I said in the
 introduction to this document, the ideas behind that code are flawed,
 and I am writing this document as part of my effort to address those
 errors.  Rather than immediately discussing the flawed ideas, in this
@@ -1097,7 +1100,7 @@ Viterbi algorithm that directly decoded sequences of
 \emph{classifications} rather than sequences of \emph{states} would
 yield better classification results.  Although I did not implement
 such an algorithm in 2000, I have\footnote{I did write code in
-  2007--2008.  However the algorithim is flawed.} in preparing this
+  2007--2008.  However the algorithm is flawed.} in preparing this
 book.
 
 While the more appropriate algorithm does not perform as well as
@@ -1411,10 +1414,366 @@ Section~\ref{sec:broken_decode} that seeks
 \ie, the MAP sequence of classifications rather than the sequence of
 MAP classifications.
 
-\section{Bundles}\label{sec:bundles}
+\section{Classes}\label{sec:classes}
+
+In the introduction (Sect.~\ref{sec:introduction}), I said ``I'm
+writing this document to clarify my own thoughts and to ask for
+help.''.  Now that I've written two dozen pages\footnote{In writing
+  the the previous pages, I've rewritten and restructured the software
+  and the structure for integrating results of calculations into a
+  document.  It's been a good way to start work on revising the book
+  and the supporting software.} I'll begin addressing the problem with
+Sect.~\ref{sec:broken_decode} which I copied without modification from
+the book.  Here, I will discuss points and errors in that section:
+\begin{description}
+\item[Equation~\eqref{eq:maskedLikelihood}:] I think the normalization
+  of the likelihood modified by class is OK.\@
+\item[Equation~\eqref{eq:cbest}:] The premise of the definition is
+  false.  If the best history ending with $\ti{c}{t+1}=d$ at time
+  $t+1$ is the particular sequence $\ts{c}{1}{t+1}$, and that sequence
+  ends with $\ti{c}{t-1}=a$, $\ti{c}{t}=b$, $\ti{c}{t+1}=d$, \ie,
+  $\ts{c}{1}{t+1} = (\ts{c}{1}{t-1}, a, b, d)$, it is not necessarily
+  true that the best sequence leading to $a$ at $t-1$ is
+  $\ts{c}{1}{t-1}$ because the random process of classifications is
+  not Markov.  Viterbi decoding for states works because the sequence
+  of states \emph{is} Markov.  In particular, given the state at time
+  $t$ the future is conditionally independent of the past.  That is
+  not true for the classifications.  For a given classification
+  $\ti{c}{t} = b$ at time $t$, the probability distribution of states
+  in the class may contain relevant information about the past.
+\item[Equation~\eqref{eq:Cat}:] Because of the flaw in
+  Eqn.~\eqref{eq:cbest}, Eqn.~\eqref{eq:Cat} is simply not true.  To
+  find the best sequence of classifications leading up to $d$ at time
+  $t+1$, one must consider all possible predecessor sequences of
+  length $t$.  The cardinality of that set is $\left|C\right|^t$,
+  where $\left|C\right|$ is the number of classes.  The corresponding
+  equation,~\eqref{eq:cat}, for Viterbi decoding lets you discard all
+  but one path leading to a state.  That discarding makes Viterbi
+  decoding linear in sequence length.
+\end{description}
 
 \subsection{Broken Decode}\label{sec:broken_decode}
 
+In this section, I present a modified Viterbi
+algorithm that finds the most likely sequence of classifications given
+a model and a sequence of observations.  Before a brief discussion,
+let me introduce the following notation and equations:
+\subsubsection*{Notation:}
+\begin{description}
+\item[$g:S^*\times C^* \mapsto \{0,1\}$:] A masking function,
+  $g(\ts{s}{1}{t},\ts{c}{1}{t}) = 1$ is equivalent to ``$\ts{s}{1}{t}$ is
+  consistent with $\ts{c}{1}{t}$''.  The principal application is
+  \begin{equation}\label{eq:maskedLikelihood}
+    P_{} \left(\ti{y}{t},\ti{c}{t}|\ti{s}{t} \right) =  P_{}
+    \left(\ti{y}{t}|\ti{s}{t} \right) g(\ti{s}{t},\ti{c}{t})
+  \end{equation}
+\item[$ \ts{\hat c}{1}{t} (c)$:] The best classification sequence ending
+  in $c$
+  \begin{equation*}
+     \ts{\hat c}{1}{t} (c) \equiv \argmax_{\ts{c}{1}{t}:\ti{c}{t}=c}
+     P\left(\ts{c}{1}{t}\ts{y}{1}{t}\right)
+  \end{equation*}
+\item[$\nu(t,c)$:] The \emph{utility} of the best sequence ending in $c$
+  \begin{equation*}
+    \nu(t,c) \equiv \log\left(P_{} \left(\ts{y}{1}{t},\ts{\hat c}{1}{t}(c)
+      \right) \right)
+  \end{equation*}
+\item[$f(t+1,s,c')$:] The probability of the state $s$ at time $t+1$,
+  and output $y(t+1)$ given class $c'$ at time $t$, the best
+  classification sequence leading to $c'$, and all previous outputs
+  \begin{equation*}
+    f(t+1,s,c') \equiv  P\left(\ti{s}{t+1}\is s,\ti{y}{t+1} | y_1^{t}, \ts{\hat c}{1}{t}(c')\right)
+  \end{equation*}
+\item[$\phi(t,s,c)$:] The probability of state $s$ at time $t$ given
+  the best classification sequence ending in $c$ at time $t$ and
+  $\ts{y}{1}{t}$.
+  \begin{equation*}
+    \phi(t,s,c) \equiv P_{} \left(s|\ts{y}{1}{t},\ts{\hat c}{1}{t}(c) \right)
+  \end{equation*}
+\item[$\cbest\left(c,t+1\right)$:] The best $\ti{c}{t}$ given $\ti{c}{t+1}=c$
+  \begin{equation}\label{eq:cbest}
+    \cbest\left(c,t+1\right) \equiv \argmax_{\bar c} P_{}
+    \left(\ts{y}{1}{t+1},\ts{\hat c}{1}{t}(\bar c),c \right)
+  \end{equation}
+\end{description}
+%
+\nomenclature[gf]{$\phi(t,s,c)$}{Used in discussing the Viterbi
+  algorithm for class sequences.  The probability of state $s$ at time
+  $t$ given the best classification sequence ending in $c$ at time $t$
+  and $\ts{y}{1}{t}$.} % end nomenclature
+
+\subsubsection*{Equations:}
+\begin{align}
+  \ts{\hat c}{1}{t}(c) &= \argmax_{\ts{c}{1}{t}:\ti{c}{t}=c}
+  \sum_{\ts{s}{1}{t}} g(\ts{s}{1}{t},\ts{c}{1}{t})
+  P\left(\ts{s}{1}{t},\ts{y}{1}{t}\right) \\
+  \label{eq:Cat}
+  \ts{\hat c}{1}{t+1}(c) &= \left( \left[ \ts{\hat c}{1}{t} (\cbest(c,t+1))\right],c
+  \right) \\
+  \label{eq:f}
+  f(t+1,s,c') &= \sum_{s'}\phi(t,s',c') P(s|s')P(\ti{y}{t+1}|s)\\
+  \nu(t+1,c) &= \nu(t,\cbest(c,t+1)) +
+  \log\left(\sum_{s} g(s,c) f(t+1,s,\cbest(c,t+1)) \right) \\
+  \label{eq:phi}
+  \phi(t+1,s,c) & = \frac{f(t+1,s,\cbest(c,t+1))}
+  {\sum_{\bar s} g(\bar s,c) f(t+1,\bar s, \cbest(c,t+1))}
+\end{align}
+
+Equation \eqref{eq:Cat} says that the best classification sequence
+ending in $c$ at time $t+1$ consists of $c$ concatenated with the best
+sequence ending in $\cbest$ at time $t$, where $\cbest$ is the best
+predecessor of $c$.
+
+Equation \eqref{eq:f} follows from the model assumptions
+\begin{equation*}
+  P(s|s',\ts{y}{1}{t},\ts{\hat c}{1}{t}(c')) =
+  P(s|s')
+\end{equation*} and
+\begin{equation*}
+  P(\ti{y}{t+1}|s,s',\ts{y}{1}{t},\ts{\hat c}{1}{t}(c')) = P(\ti{y}{t+1}|s)
+\end{equation*}
+and Bayes rule.
+
+To derive Eqn~\eqref{eq:phi} use the following\footnote{I use the
+  following abbreviations in this derivation:
+  \begin{align*}
+    \cbest(c,t+1) & \Rightarrow \cbest \\
+    \ts{\hat c}{1}{t}(c') & \Rightarrow \ts{c}{1}{t} \\
+    \ts{\hat c}{1}{t+1}(c) & \Rightarrow \ts{c}{1}{t+1}.
+  \end{align*}
+}
+\begin{align}
+  f(t+1,s,c') &= \frac{P(s,y_1^{t+1},\ts{c}{1}{t})}{P(\ts{y}{1}{t},\ts{c}{1}{t})}\\
+  \sum_{\bar s} g(\bar s,c) f(t+1,\bar s, \cbest(c,t+1)) &= \frac{
+    P(y_1^{t+1},\ts{c}{1}{t+1})}{P(\ts{y}{1}{t},\ts{c}{1}{t})}\\
+  P(c|s,y_1^{t+1},\ts{c}{1}{t}) &= g(s,c) \\
+  &= \frac{ P(s,y_1^{t+1},\ts{c}{1}{t+1})}{P(s,y_1^{t+1},\ts{c}{1}{t})}
+\end{align}
+and note
+\begin{align*}
+  \frac{f(t+1,s,c')}{\sum_{\bar s} g(\bar s,c) f(t+1,\bar s, c')}
+  P(c|s,y_1^{t+1},\ts{c}{1}{t}) &= \frac{P(s,y_1^{t+1},\ts{c}{1}{t})~ P(\ts{y}{1}{t},\ts{c}{1}{t})
+    ~ P(s,y_1^{t+1},\ts{c}{1}{t+1})} {P(\ts{y}{1}{t},\ts{c}{1}{t}) ~ P(y_1^{t+1},\ts{c}{1}{t+1})
+    ~ P(s,y_1^{t+1},\ts{c}{1}{t})}\\
+  &= P(s|y_1^{t+1},\ts{c}{1}{t+1}) \equiv \phi(t+1,s,c).
+\end{align*}
+
+\subsubsection*{Algorithm:}
+
+The algorithm makes a single pass through the sequence of observations
+going forward in time.  To move from time $t$ to time $t+1$, consider
+each possible classification $c_\text{next}$, and find the best
+predecessor classification $c_\text{best}$ at time $t$.  Then collect
+and store the best classification sequence ending in that
+classification, its log likelihood, and the conditional probabilities
+of the hidden states given that classification sequence.  At the last
+time step $T$, each possible final classification $\ti{C}{T}$ will be
+associated with the best sequence ending in that classification and
+the log likelihood of that sequence.  The algorithm simply selects the
+sequence with the highest log likelihood.  Figure~\ref{fig:viterbiC}
+provides pseudo-code for the algorithm.
+%
+%%% FixMe: \addcontentsline{loa}{section}{Pseudocode for the Viterbi Algorithm for class sequences}
+%%% FixMe: is this a "figure" or an "algorithm"?
+\begin{figure}[htbp]
+  \begin{center}
+    \newcommand{\tnext}{_{\text{next}}}
+    \newcommand{\told}{_{\text{old}}}
+    \newcommand{\tbest}{_{\text{best}}}
+    \newcommand{\ick}[1]{\log \left(\sum_{s} g(s,#1) f(t+1,s,#1) \right)}
+    \fbox{
+      \begin{minipage}{\columnwidth}
+        \begin{tabbing}
+          XX\=XX\=XX\=XX\=XX\=XX\=XX\=XX\= \kill
+          Initialize: \> \+ \\
+          for each $c$\\ \> \+
+          $\nu\tnext (c) = \log \left( \sum_{s} g(s,c) P_{\ti{Y}{1},\ti{S}{1}}
+            \left(\ti{y}{1},s \right)\right)$ \\ \\ \< \- \< \-
+          Iterate: \> \+ \\
+          for $t$ from 1 to $T$\\ \> \+
+          Swap $\nu\tnext \leftrightarrow \nu\told$\\
+          for each $c\tnext$\\ \> \+
+          \\ \# Find best predecessor\\
+          $c\tbest = \argmax_{c\told}\left( \nu\told(c\told) + \ick{c\told} \right)$ \\
+          \\ \# Update $\nu$\\
+          $\nu\tnext(c\tnext) =\,$ \= $\nu\told(c\tbest) + \ick{c\tbest}$ \\ \> \-
+          \\ \# Update predecessor array\\
+          Predecessor[$c\tnext,t$] = $c\tbest$\\
+          \\ \# Update $\phi$\\
+          for $s$ in $c\tnext$\\ \> \+
+          Assign $\phi\tnext(s,c\tnext)$ using Eqn.~\eqref{eq:phi}\\ \\
+          \< \- \< \- \< \- %This stuff is for tabs \< \-
+          Backtrack: \> \+ \\
+          $\ts{c}{1}{t} = \ts{\hat c}{1}{t}(\bar c)$, where $\bar c =
+          \argmax_c \nu\tnext(c)$ at $t=T$
+        \end{tabbing}
+      \end{minipage}
+    }
+    \caption[\comment{fig:viterbi }Pseudocode for the Viterbi
+    Algorithm for class sequences.]%
+    {Pseudocode for the Viterbi Algorithm for class sequences}
+    \label{fig:viterbiC}
+  \end{center}
+\end{figure}
+
+\subsection{Looking for a Good Classification Sequence}\label{good}
+
+Since the computational complexity of finding the best sequence of
+classifications is exponential in the length of the sequence, I've
+written code that looks for a \emph{pretty good} sequence.  As I worked on
+it, it seemed that my problem is similar to the traveling salesman
+problem.  Is that good or bad?
+
+Let's start by stating the goal.  I seek the maximum a posteriori
+probability sequence of classifications for a given sequence of
+observations $\ts{y}{1}{T}$, \ie:
+\begin{equation}
+  \label{eq:MAPclass}
+  \ts{\hat{c}}{1}{T} = \argmax_{\ts{c}{1}{T}}P\left(\ts{c}{1}{T}|\ts{y}{1}{T}\right).
+\end{equation}
+Since $\log$ is monotonic, this is equivalent to
+\begin{equation*}
+  \ts{\hat{c}}{1}{T} =
+  \argmax_{\ts{c}{1}{T}}\text{ score}(\ts{c}{1}{T}),
+\end{equation*}
+where the score of a classification sequences is
+\begin{equation}
+  \label{eq:score}
+  \text{score}(\ts{c}{1}{t}) \equiv \log\left(
+                               P\left(\ts{c}{1}{t}|\ts{y}{1}{t}\right)
+                               \right).
+\end{equation}
+
+My code grows partial sequences that have high scores.  It manages the
+following data structures that represent and grow partial
+classification sequences $\ts{c}{1}{t}$.
+\begin{description}
+\item[Tree:] Each node of the tree is associated with a partial
+  sequence, $\ts{c}{1}{t}$.  Each node has a link to its parent,
+  namely $\ts{c}{1}{t-1}$.  Each internal node has links to the
+  children $\ts{c}{1}{t+1}$, and each leaf has links to the two sorted
+  lists described below.  Each leaf node has the following data:
+  \begin{description}
+  \item[$\mathtt{score}\left(\ts{c}{1}{t} \right)$:] Defined
+    in~\eqref{eq:score} as
+    $\log\left( P\left(\ts{c}{1}{t}|\ts{y}{1}{t}\right) \right)$
+  \item[$P\left(\ti{s}{t}|\ts{c}{1}{t}, \ts{y}{1}{t}\right)$:]  The
+    conditional distribution of states given the sequences of classes
+    and observations up to the time $t$.
+  \end{description}
+Initialize the
+  tree with $\ti{c}{0} = \mathtt{None}$ where $\mathtt{None}$ is not
+  any class.  Assign this initial leaf a score of $0$.
+\item[List by scores:] A list of leaves $\ts{c}{1}{t}$ sorted by
+  score.  Initialize the list with the leaf
+  $\ti{c}{0} = \mathtt{None}$.  Note that the score will decrease
+  monotonically with length because at each time step the conditional
+  probability of the class is between zero and one.
+\item[List by priority:] A list of leaves $\ts{c}{1}{t}$ sorted by the
+  function:
+  \begin{equation}
+    \label{eq:priority}
+    \mathtt{priority}\left(\ts{c}{1}{t} \right) \equiv
+    \mathtt{score}\left(\ts{c}{1}{t} \right) + \lambda_1 t^{\lambda_2}.
+  \end{equation}
+  The term $\lambda_1 t^{\lambda_2}$ will give more priority to longer
+  sequences, and that will enable the code to find complete plausible
+  sequences before resources are exhausted.  I think a better priority
+  function is the key to improving performance of the code.
+  Initialize the list with the leaf $\ti{c}{0} = \mathtt{None}$.
+\item[Best complete sequence.] Initialize as $\mathtt{None}$
+\end{description}
+
+\subsubsection{Iteration}\label{iteration}
+
+My code iteratively executes the following sequences of steps:
+\begin{description}
+\item[Select the leaf with highest priority:] Call its associated sequence
+  $\ts{c}{1}{t}$ with $\ti{c}{t} = b$
+\item[Remove $\ts{c}{1}{t}$ from the lists of leaves:]
+\item[Create new leaves $\left( \ts{c}{1}{t}, \ti{c}{t+1} = d \right)
+  \forall d \in C$:] For each new leaf characterized by $\ti{c}{t+1} =
+  d$, do the following calculations:
+  \begin{align*}
+    \psi_0(s) &= P\left(\ti{s}{t}\is s|\ts{c}{1}{t}, \ts{y}{1}{t}\right)
+    && \text{From node }\ts{c}{1}{t} \\
+    \psi_1(q) &= P\left(\ti{s}{t+1}\is q|\ts{c}{1}{t},
+                \ts{y}{1}{t}\right) &&= \sum_s P(q|s) \psi_0(s) \\
+    \psi_2(q) &=  P\left(\ti{y}{t+1}, \ti{s}{t+1}\is q|\ts{c}{1}{t},
+                \ts{y}{1}{t}\right) &&= P(\ti{y}{t+1}|q) \psi_1(q) \\
+    \psi_3 &= P\left(\ti{y}{t+1}|\ts{c}{1}{t},
+             \ts{y}{1}{t}\right) &&= \sum_q \psi_2(q) \\
+    \psi_4(q) &= P\left(\ti{s}{t+1}\is q|\ts{c}{1}{t},
+                \ts{y}{1}{t+1}\right) &&= \frac{\psi_2(q)}{\psi_3} \\
+    \psi_5(q,d) &= P\left(\ti{c}{t+1}\is d, \ti{s}{t+1}\is q|\ts{c}{1}{t},
+                  \ts{y}{1}{t+1}\right) &&= g(d,q) \psi_4(q) \\
+    \psi_6(d) &= P\left(\ti{c}{t+1}\is d|\ts{c}{1}{t},
+                \ts{y}{1}{t+1}\right) &&= \sum_q \psi_5(q,d) \\
+    \psi_7(q) &= P\left(\ti{s}{t+1}\is d|\ts{c}{1}{t+1},
+                \ts{y}{1}{t+1}\right) &&= \frac{\psi_5(q,d)}{\psi_6(d)}
+  \end{align*}
+  Then use $\psi_7$ for the conditional distribution of states for the
+  leaf and assign
+  $\mathbf{score}\left(\ts{c}{1}{t+1}\right) = \log(\psi_6) +
+  \mathbf{score}\left( \ts{c}{1}{t} \right)$.
+\item[If $t+1 < T$:] The sequences in the newly created leaves are not
+  complete.  Discard leaves that are impossible ($\psi_6 = 0$), and
+  insert links to the remaining leaves in the sorted lists and
+  continue with the next iteration cycle.
+\item[If $t+1 = T$:] Compare the score of each new leaf $\ts{c}{1}{T}$
+  to \textbf{Best complete sequence}.  If the new score is better,
+  replace \textbf{Best complete sequence} and remove from lists all
+  leaves with lower scores.  Discard the new leaf if its score is not
+  better.
+\item[If the lists are empty:] The code has found
+  $\ts{\hat{c}}{1}{T}$.  Terminate and report the result.
+\item[If some resource is exhausted:] EG, runtime or length of lists;
+  terminate and report \textbf{Best complete sequence}.  If no
+  \textbf{Best complete sequence} has been found, report failure.
+\end{description}
+
+\subsection{Questions About Classes}
+\label{sec:questions}
+
+\begin{description}
+\item[Q:] Why bother with classes?
+\item[A:] The apnea classification problem needs classes for training,
+  and it illustrates the weakness of using Viterbi decoding to
+  estimate class.  Namely: Decoding will not find a class that is
+  richly modeled with many plausible states.
+\item[Q:] Why not use the sequence of most probable (MAP) states, ie,
+  \begin{equation}
+    \label{eq:mapStates}
+    \ts{\hat{c}}{1}{T}, \text{ with } \ti{\hat{c}}{t} = \argmax_{\tilde{c}}
+    P \left(\ti{\tilde{c}}{t}|\ts{y}{1}{T} \right)?
+  \end{equation}
+\item[A:] Well that might be the best thing to do for the apnea
+  problem where the objective function is the \% of minutes classified
+  correctly, but that procedure can in general yield an impossible
+  estimate, \ie, $P(\ts{\hat{c}}{1}{T}|\ts{y}{1}{T}) = 0$.  So, if
+  your objective function is the expected value of the probability of
+  the entire sequence being correct,~\eqref{eq:mapStates} is
+  inappropriate.
+\item[Q:] Why not just let this whole classes thing go?  Use the
+  sequence of MAP states for the apnea problem and move on.
+\item[A:] I feel hierarchies of something like classes is the way to
+  model multi-scale phenomena, and that it will be interesting and
+  valuable.  The notion of approximate invariance might be related.
+\item[Q:] What is an example or application?
+\item[A:] Well for spoken language, you have the following levels:
+  \begin{enumerate}
+  \item Vibration and movement of air
+  \item Position and movement of articulators (tongue, lips, etc.)
+  \item Structure of the articulators (influenced by gender)
+  \item Accent (many models of phonemes)
+  \item Words
+  \item Sentences
+  \item Topic
+  \end{enumerate}
+\item[Q:] Hasn't Google solved this with deep learning?
+\item[A:] Probably.  I need a simpler application, and I need better
+  theory and algorithms.
+\end{description}
 \end{document}
 
 

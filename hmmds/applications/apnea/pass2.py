@@ -46,8 +46,12 @@ def analyze(name, model, common, report):
     print('decoding {0}'.format(name))
     data = hmmds.applications.apnea.utilities.heart_rate_respiration_data(
         name, common)
-    sequence = model.bundle_weight([data], fudge=[1, 1])
+    sequence = model.bundle_decode([data], fudge=0.7, power=1.0)
     #sequence = model.old_bundle_decode([data])
+
+    if sequence is None:
+        raise RuntimeError(
+            'Failed to find any class sequence for {0}'.format(name))
 
     # The rest of the code writes the result in the same format as the
     # expert file

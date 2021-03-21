@@ -34,6 +34,7 @@ import sys
 import numpy
 import scipy.integrate
 
+
 def lorenz_dx_dt(x, t, s, b, r):
     """ Lorenz vector field
 
@@ -83,6 +84,7 @@ def lorenz_tangent(
     rv[3:] = numpy.dot(dF, dx_dx0).reshape(-1)
     return rv
 
+
 def main(argv=None):
     """Writes time series to files specified by options --xyzfile,
     --quantfile, and or --TSintro.
@@ -95,7 +97,10 @@ def main(argv=None):
 
     parser = argparse.ArgumentParser(
         description='Make files derived from Lorenz simulations')
-    parser.add_argument('--n_samples', type=int, default=100, help='Number of samples')
+    parser.add_argument('--n_samples',
+                        type=int,
+                        default=100,
+                        help='Number of samples')
     parser.add_argument('--IC',
                         type=float,
                         nargs=3,
@@ -136,24 +141,22 @@ def main(argv=None):
     def t_array(n, dt):
         return numpy.arange(n, dtype=float) * dt
 
-    xyz = scipy.integrate.odeint(
-        lorenz_dx_dt,
-        initial_conditions,
-        t_array(args.n_samples, args.dt),
-        lorenz_args)
+    xyz = scipy.integrate.odeint(lorenz_dx_dt, initial_conditions,
+                                 t_array(args.n_samples, args.dt), lorenz_args)
 
     # Calculate quantization parameters.  Use ceil and floor so that
     # quantization will be the same for most long series.  The
     # quantization results will range from 1 to args.levels including
     # the end points.  I use 1 for the minimum so that plots look
     # nice.
-    _max = xyz[:,0].max()
-    _min = xyz[:,0].min()
-    scale = numpy.ceil((_max - _min)/args.levels)
-    offset = numpy.floor(_min/scale)
+    _max = xyz[:, 0].max()
+    _min = xyz[:, 0].min()
+    scale = numpy.ceil((_max - _min) / args.levels)
+    offset = numpy.floor(_min / scale)
 
     def quant(x):
-        return int(numpy.ceil(x/scale - offset))
+        return int(numpy.ceil(x / scale - offset))
+
     assert quant(_max) == args.levels
     assert quant(_min) == 1
 
@@ -162,19 +165,19 @@ def main(argv=None):
         print('{0:d}'.format(quant(v[0])), file=args.quantfile)
     if args.TSintro is not None:
         from os.path import join
-        xyz = scipy.integrate.odeint(
-            lorenz_dx_dt,
-            initial_conditions,
-            t_array(args.n_samples, args.dt/50),
-            lorenz_args)
+        xyz = scipy.integrate.odeint(lorenz_dx_dt, initial_conditions,
+                                     t_array(args.n_samples, args.dt / 50),
+                                     lorenz_args)
         # Write x[0] to TSintro_fine with time step .003
         f = open(join(args.TSintro, 'TSintro_fine'), 'w')
         for i in range(0, args.n_samples):
-            print('{0:6.3f} {1:6.3f}'.format(args.dt / 50 * i, xyz[i, 0]), file=f)
+            print('{0:6.3f} {1:6.3f}'.format(args.dt / 50 * i, xyz[i, 0]),
+                  file=f)
         # Write x[0] to TSintro_qt with time step .15
         f = open(join(args.TSintro, 'TSintro_qt'), 'w')
         for i in range(0, args.n_samples, 50):
-            print('{0:6.3f} {1:6.3f}'.format(args.dt / 50 * i, xyz[i, 0]), file=f)
+            print('{0:6.3f} {1:6.3f}'.format(args.dt / 50 * i, xyz[i, 0]),
+                  file=f)
         # Write quantized x[0] to TSintro_qtx with time step .15
         q = numpy.ceil(xyz[:, 0] / 10 + 2)
         f = open(join(args.TSintro, 'TSintro_qtx'), 'w')

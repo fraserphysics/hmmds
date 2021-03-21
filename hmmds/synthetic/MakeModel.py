@@ -94,7 +94,7 @@ def main(argv=None):
     # Strip and then save model in <model_file>
     mod.deallocate()
     with open(os.path.join(args.data_dir, args.model_file), 'wb') as _file:
-        pickle.dump(mod, _file )
+        pickle.dump(mod, _file)
     return 0
 
 
