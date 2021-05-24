@@ -1,6 +1,6 @@
-\documentclass{beamer}
+\documentclass[usenames, dvipsnames]{beamer}
 \setbeamertemplate{navigation symbols}{} %no nav symbols
-\usepackage{graphicx,color}
+\usepackage{graphicx,xcolor}
 \usepackage{amsmath, amsfonts}% ToDo: compatible w/siammathtime.sty?
 \usepackage{amsthm}% Note: Conflicts with newsiambook
 \usepackage{xspace}
@@ -53,7 +53,7 @@
 \newcommand{\mlabel}[1]{\label{#1}}
 \newcommand{\EMmap}{{\mathcal T}} %
 
-\newcommand{\Green}[1]{{\color{red!10!green!100!blue!100}#1}}
+\newcommand{\Green}[1]{{\color{ForestGreen}#1}}
 \newcommand{\Red}[1]{{\color{red}#1}}
 \newcommand{\Blue}[1]{{\color{blue}#1}}
 \newcommand{\given}{~|~}
@@ -96,14 +96,13 @@
   \begin{description}
   \item[Reproducible:] Fetch source, type \emph{make}, wait $\sim 30$
     hours, view resulting \emph{main.pdf}.
-  \item[Readable Code:] In 2002 I chose python instead of \emph{C,
+  \item[Readable Code:] In 2002 I chose Python instead of \emph{C,
       Perl} and or \emph{Octave}.
   \item[Shortcomings:]$~$
     \begin{itemize}
     \item Unreadable \emph{Makefile}.  Love/hate relationship with
       \emph{make}.
-    \item We (Karl Hegbloom and I) focused on appearance of result at
-      expense of readability.
+    \item I focused on appearance of result at expense of readability.
     \item Code was difficult to read.
     \item \Red{No testing framework.}  % red
     \end{itemize}
@@ -117,18 +116,18 @@
   Discovered \emph{Software Carpentry} in 2015.  \emph{Best Practices
     for Scientific Computing} by G. Wilson et al. PLOS 2014 says:
   \begin{itemize}
-  \item Write programs for people, not computers.  (Tools like black
-    and pylint help.)
-  \item Let the computer do the work.  (Use a build tool.)
-  \item Make incremental changes.  (Put everything that has been
-    created manually in version control.)
-  \item Don't repeat yourself.  (Every piece of data must have a
+  \item \Red{Write programs for people}, not computers.  (Tools like
+    black and pylint help.)
+  \item Let the computer do the work.  (\Blue{Use a build tool.})
+  \item Make \Red{incremental changes}.  (Put everything that has been
+    created manually in \Blue{version control}.)
+  \item \Red{Don't repeat yourself}.  (Every piece of data must have a
     single authoritative representation in the system.)
-  \item Plan for mistakes.  (Use an off-the-shelf unit testing
+  \item \Red{Plan for mistakes}.  (Use an off-the-shelf \Blue{unit testing}
     library.)
   \item Optimize software only after it works correctly.
-  \item Document design and purpose, not mechanics.
-  \item Collaborate.
+  \item \Red{Document design and purpose}, not mechanics.
+  \item \Red{Collaborate}.
   \end{itemize}
 }
 
@@ -136,8 +135,8 @@
 \frame{ \frametitle{New Text and Software for Book}
   Goals: Follow best practices
   \begin{description}
-  \item[Implemented Testing:] Wham! Test of decoding sequences of
-    states fails.
+  \item[Implemented Testing:] Wham! Test of \Red{decoding sequences of
+    classes fails}.
   \item[Conceptual Error:] Code assumes classes have Markov property
     like states (more on this later).
   \item[Morals:] Follow best practices.  Listen to doubters.
@@ -145,14 +144,13 @@
 }
 
 \frame{ \frametitle{New Text and Software for Book (2)}
-  Progress:
+  Progress on new code after Lo Alamos:\medskip\\
   \begin{description}
-  \item[Fresh Start on New Code:]
   \item[Follow Google Coding Standards:]
   \item[Built in Documentation:]
   \item[Built in Testing:]
   \item[Investigated Class Decoding:] Complexity is
-    exponential in length.  Short cuts I've tried perform badly.
+    exponential in length.  Shortcuts I've tried perform badly.
   \end{description}
 }
 
@@ -165,13 +163,13 @@
   \begin{columns}[c]
     \column{0.45\textwidth}%
     \begin{center}
-      Apnea\\
-      \resizebox{\textwidth}{!}{\includegraphics{a03erA.pdf}}
+    Normal\\
+    \resizebox{\textwidth}{!}{\includegraphics{a03erN.pdf}}
     \end{center}
     \column{0.45\textwidth}%
     \begin{center}
-    Normal\\
-    \resizebox{\textwidth}{!}{\includegraphics{a03erN.pdf}}
+      Apnea\\
+      \resizebox{\textwidth}{!}{\includegraphics{a03erA.pdf}}
     \end{center}
   \end{columns}
 }
@@ -201,33 +199,34 @@
 
 \frame{ \frametitle{Estimating Sequences}
   \begin{description}
-  \item[Viterbi Decoding for States:] Computation is linear in $T$
+  \item[Viterbi Decoding for States:] Computation is \Red{linear in $T$.}
     \begin{equation*}
       \hat s[0:T] \equiv \argmax_{\text{state}[0:T]} P\left(
         \text{state}[0:T] \given \text{heart rate}[0:T] \right)
     \end{equation*}
   \item[Class Sequence from State Sequence:] More apnea modes
-    $\rightarrow$ Less apnea estimated.
+    $\rightarrow$ \Red{Less apnea estimated.}
     \begin{equation*}
       \hat c[t] = C\left( \hat s[t] \right)
     \end{equation*}
     Probability gets spread over many modes.
-  \item[Max A-posteriori Prob Class Sequence:]  Exponential in $T$.
+  \item[Max A-posteriori Prob Class Sequence:]  \Red{Exponential in $T$.}
     \begin{equation*}
       \hat c[0:T] \equiv \argmax_{\text{class}[0:T]} P\left(
         \text{class}[0:T] \given  \text{heart rate}[0:T] \right)
     \end{equation*}
   \item[Sequence of MAP Classes:] Linear in $T$, but can yield
-    impossible sequences.
+    \Red{impossible sequences.}
     \begin{equation*}
       \hat c[t] = \max_{\text{class}}
         P\left( \text{class}[t] \given \text{heart rate}[0:T] \right)
-    \end{equation*}
+      \end{equation*}
+      \Red{Appropriate for 2-class apnea problem.}
   \end{description}
 }
 
 \frame{ \frametitle{Graphical Representation of Conditional Independence}
-  Blocking out $s_{t+1}$ separates the past from the future, but
+  Blocking out \Red{$s_{t+1}$ separates the past from the future}, but
   blocking out $c_{t+1}$ doesn't.
   \begin{center}
     \resizebox{0.75\columnwidth}{!}{\input{class_net.pdf_t}}
@@ -242,160 +241,184 @@
   \item Collaborate and seek peer review.
   \item Consider advice about good practices.
   \item Focus on objectives before algorithms.
+  \item Estimating class sequences could be important and interesting.
   \end{itemize}
 }
 
 \end{document}
 
-1.  Hello, I'm Andy Fraser.  Since I quit Los Alamos National
-Laboratory in September, I've been working on utility issues in the
-town of Los Alamos and revising the text and code for my book ``Hidden
-Markov Models and Dynamical Systems''.  Today, I'll talk about
-progress on the book and some things I've learned.
+1.  Hello, I'm Andy Fraser.
+
+Since I quit Los Alamos National Laboratory in September, one of my
+goals has been revising the text and code for my book ``Hidden
+Markov Models and Dynamical Systems''.
+
+Today, I'll talk about progress towards that goal and some things I've
+learned.
 
 
 
-2. Here's a picture of the cover of the book.  The big lesson is if
-you put errors in your book, you will have to put green stickers on
-the covers.  The book arose from a couple of mini-symposiums that
-Kevin Vixie organized for this meeting in 2001.  When people asked
-where to learn about the subject, the consensus was that there was not
-a good resource.  Linda Theil, the SIAM book acquisition manager, was
-in the audience and she suggested that the speakers write a book.
+2. Here's a picture of the cover of the book.
 
-HMMs are the simplest dynamical system models that you can use for
-data assimilation.  Once you learn the fundamental ideas of data
-assimilation in the context of HMMs, you have a context for other
-models and techniques like Kalman filtering or particle filtering.
+The big lesson for today is that if you put errors in your book, you
+will have to put green stickers on the covers.
 
-In an HMM the states and observations are discrete.  Discrete
-conditional probability distributions define the model.
+The book arose from a couple of mini-symposiums that Kevin Vixie
+organized for this meeting 20 years ago in 2001.
 
-A subset of the speakers agreed to write a book, but I ended up being
-the sole author.  My favorite chapter of the book is the one on
-performance bounds, and it draws heavily from Kevin Vixie's
-dissertation.  I also got a lot of help organizing the code and
-figures from Karl Hegbloom.
+When people at that meeting asked where to learn about the subject,
+the consensus was that there was not a good resource.
 
-Going from my LaTeX to SIAM's version introduced some errors.  I did
-not read the proofs carefully enough.  It would be nice to have a tool
-to examine the significant differences between my LaTeX files and
-SIAM's.  But the big error that earned the sticker was a conceptual
-error that I made in an algorithm that estimates classification
-sequences based on sequences of observations.  I will talk more about
-that error in a few minutes.
+The SIAM book acquisition manager at the time was Linda Theil, and she
+was in the audience.  She suggested that the speakers write a book.
 
-HMMs are also graphical models.  I'll explain the error in terms of a
-picture of the graph that represents conditional independence
-relations.
+Hidden Markov Models represent the simplest kind of dynamical system
+that you can use for data assimilation.
+
+Once you learn the fundamental ideas of data assimilation using Hidden
+Markov Models, you have a context for other models and techniques like
+Kalman filtering or particle filtering.
+
+In a Hidden Markov Model the states and observations are discrete.
+These discrete conditional probability distributions define the model.
+
+A subset of the speakers in 2001 agreed to write a book.
+
+Now I ended up being the sole author, but my favorite chapter of the
+book is the one on performance bounds, and it draws heavily from Kevin
+Vixie's dissertation.  I also got a lot of help organizing the code
+and figures for the book from Karl Hegbloom.
+
+There are some errors in the book because I didn't read the galley
+proofs carefully enough.
+
+But the error that earned the green stickers was a conceptual error
+that I made in an algorithm that estimates classification sequences
+based on sequences of observations.
+
+I used that algorithm in the last chapter of the book on apnea
+classification.
+
+I will talk more about that in a few minutes.
+
+Hidden Markov Models are also graphical models.  I'll explain the
+error that I made in terms of a picture of the graph that represents
+conditional independence relations.
 
 
 3. When I started on the book in 2002, I wanted the project to be open
-source and all of the examples to be completely reproducible.  I was
-somewhat successful.  I could check out the original project from
-version control, type make, and after more than a day of grinding, my
-workstation would produce a pdf of the entire book.
+source and all of the examples to be completely reproducible.
 
-Others found it difficult but possible to configure their workstations
-to do the same thing and get the same result.
+I was somewhat successful.  I could check out the entire project
+from version control, type make, and after more than a day of
+grinding, my workstation would produce a pdf of the entire book.
 
-I also wanted the code to be easy to read.  I am pleased with my
-choice of python.  At the time people said ``python is executable
-pseudo-code and Perl is executable line noise''.  Since 2002
-scientific computing with python has improved and so have my ideas
-about readability.
+Others found it possible, if a little difficult, to configure their
+workstations to do the same thing and get the same result.
+
+I also wanted the code to be easy to read.  I am still pleased with my
+choice of Python.
+
+In the past 20 years scientific computing with Python has improved and
+so have my ideas about readability.
 
 The shortcomings of the original code included:
 
-* Unreadable Makefile.  I like what make does, but I wish there was
-  build system that made it easier to write readable build scripts
+* The Makefile was hard to read.  While the make utility automates and
+documents a build process adequately, I wish it was easier or even
+possible to write readable makefiles.
 
-* I focused on the appearance of the book at the expense of readable
-  code
+* I focused too much on the appearance of the book at the expense of
+readable code.
 
-* I didn't write unit tests.
+* And I didn't write unit tests.  That would have saved me from the
+green stickers.
 
-4. In 2005 when I started at Los Alamos, ``The LAB'', I was surprised
-to find many software projects were not using current tools.  The
-worst was that instead of using a version control tool, my colleagues
+4. In 2005 when I started working at Los Alamos, I was surprised to
+find many projects were not using modern software tools.
+
+The worst was that instead of using a version control tool, scientists
 were emailing versions of code back and forth.
 
-I began thinking about how to teach modern software practices.  I
-planned to teach summer students and then suggest the lessons to
-colleagues.
+I began thinking about how to teach modern software practices.
 
-To figure out a curriculum, I signed up for Software Carpentry
-Instructor Training at SciPy2016 and learned that Greg Wilson started
-Software Carpentry based on lessons that he and Brent Gorda gave at
-The Lab 9 times from 98 to 2002.
+I planned to formally teach summer students and then, on the side,
+suggest the lessons to colleagues.
+
+To figure out a curriculum for lessons, I signed up for Software
+Carpentry Instructor Training at the 2016 SciPy conference in Austin.
+
+There I learned that Greg Wilson started Software Carpentry based on
+lessons that he and a colleague gave at Los Alamos.  They gave those
+lessons several times between 1998 and 2002.
 
 As part of preparing for the instructor training, I read Best
 Practices for Scientific Computing by Wilson et al. which was derived
-from experience teaching Software Carpentry.  The paper hits all the
-right points with the right emphasis.  Here are the 8 main points from
-the paper.
+from experience teaching Software Carpentry.
 
-* Write programs for people to read.  Including yourself.
+The paper hits all the right points with the right emphasis.  Here are
+the 8 main points from the paper.  (I've used red to emphasize key
+goals, and I've used blue to emphasize key tools)
+
+I especially like these practices.
+
+* Write programs for people to read.  Including yourself after a few
+months or years.
 
 * Use a build tool.  After trying a few others, I'm still using make.
-I will look into others in the next year or two.
 
 * Use a version control tool. I've used several.  I use git now.
 
-* Do unit testing.  I've learned that unit testing is useful and
-really important.
+* Do unit testing.  I've learned that unit testing is really useful.
 
-* The seventh practice is ``Document design and purpose not
-mechanics''.  At conferences, as I listen to talks about ``my
-algorithm'', I usually wish I was hearing more about ``my objective
-function''.
+5.  I ended up organizing a team of instructors at Los Alamos who now
+offer Software Carpentry Workshops a few times every year.
 
-* Collaborate.  Eric Raymond wrote Linus's Law: "given enough
-eyeballs, all bugs are shallow" in 1999.
-
-5.  I ended up organizing a team of instructors at The Lab who now
-offer Software Carpentry Workshops a few times each year.  The
-experience has helped me formulate goals for new versions of the text
-and software for the book.
+The experience has helped me formulate goals for new versions of the
+text and software for the book.
 
 As a first step, I implemented some unit tests and WHAM, I discovered
 my idea for estimating sequences of classifications was wrong, wrong,
 wrong.
 
 6. I didn't make a lot of progress working on the project part time
-while going to The Lab every day.  Since I left The Lab, I've made a
-good start.
+while going to The Lab every day, but since I left Los Alamos, I've
+made a good start.
 
-I've converted my home systems to NIXOS which provides tightly
-controlled build environments.  Kind of like CONDA.
+I've set up a workstation to run NIXOS which provides tightly
+controlled build environments.  Like CONDA but stricter
 
 My new code follows the Google coding standards.
 
 I'm using SPHINX for documentation.
 
-I'm using python's built in unit testing framework.
+And I'm using Python's built in unit testing framework.
 
-I've written all of the basic HMM algorithms and enough code
-specifically for analyzing EKGs to look at the apnea classification
-example.  That's the example where I ran into trouble trying to
-estimate sequences of classifications.
+I've written all of the basic Hidden Markov Model algorithms and
+enough code specifically for analyzing electro-cardiograms to look at
+the apnea classification example.
 
-7. There was a contest in 2000 to use only EKG data to determine when
-patients were having episodes of obstructive sleep apnea.
+7. There was a contest in 2000 to use only electro-cardiogram data to
+determine when patients were having episodes of obstructive sleep
+apnea.
 
-Patients stop breathing roughly every 45 seconds and then wake up just
-enough to begin breathing again and keep living.  Since they don't
-wake up enough to remember the events, they don't know why they don't
-feel rested after ``sleeping'' eight hours.
+Apnea patients stop breathing roughly every 45 seconds and then wake
+up just enough to begin breathing again and keep living.
 
-Here's data from normal sleep.  The
-respiration is regular.  The Oxygen saturation is constant and
-above 90%.  And the heart rate is constant.
+Since they don't wake up enough to remember the events, they think
+they've slept 8 hours and don't know why they're so tired in the
+morning.
 
-Here's data from an apnea episode.  The respiration is blocked for
-about 35 seconds followed by 10 seconds of gasping.  The measured
-Oxygen saturation follows a cycle that ranges from above
-90% to below 60%.  And the heart rate fluctuates.
+Here's some data from normal sleep.  The respiration is regular.  The
+Oxygen saturation is constant and above 90\%.  And the heart rate is
+constant.
+
+And here's some data from an apnea episode.  The respiration is
+blocked for about 35 seconds followed by 10 seconds of gasping.
+
+The measured Oxygen saturation follows a cycle that ranges from above
+90\% to below 60\%.  And the heart rate fluctuates following the
+occlusion cycle.
 
 For different patients, the kinds of patterns that occur in the apnea
 episodes may differ.
@@ -403,70 +426,88 @@ episodes may differ.
 8. To accommodate those differences, I made a collection of models for
 different apnea modes.
 
-Because I have models of many apnea modes, for an interval of data, a
-decoding algorithm can assign more probability to the normal mode than
-the probability assigned to any single apnea mode even though the
-total probability assigned to apnea modes is larger than the
-probability assigned to the normal mode.
+In this figure the big boxes represent classes and each small box
+represents a model for a mode.  Each of those mode models can contain
+many states.
 
-In that case I want code to assign the class apnea to the interval
+With separate models for many apnea modes some estimation algorithms
+classify an interval as normal because the normal mode has higher
+probability than the probability of any single apnea mode.
 
-9. I've tried different approaches for estimating class (apnea or
-normal) based of heart rate data.
+That's even though the total probability assigned to the apnea modes
+combined is larger than the probability assigned to the normal mode.
+
+9. I've tried several different approaches for using heart rate data
+to estimate class (meaning apnea or normal).
 
 * The classic algorithm for calculating the Maximum A-posteriori
 Probability sequence of states given a sequence of observations is
-called the Viterbi Algorithm.  Named for Andrew Viterbi, co-founder of
-Linkabit and Qualcomm.  The Viterbi algorithm gives a best entire
-sequence of states.  The best is MAP or Maximum A-posteriori
-Probability
+called the Viterbi Algorithm.
+
+It's named for Andrew Viterbi, the co-founder of Linkabit and Qualcomm.
+
+The Viterbi algorithm calculates the best entire sequence of states.
+Where best is Maximum A-posteriori Probability.
 
 * To get an estimated sequence of classes, you can just look up to
-find which class contains each state from the Viterbi algorithm.  With
-that approach having lots of models of apnea modes leads to estimated
-sequences that are all normal.
+find which class contains each state from the Viterbi algorithm.
 
-* Seeking the best entire sequence of classes seems like a good idea,
-but the computational expense is exponential in the length of the
-data.  My original code aimed to produce exactly this MAP estimate
-with a linear computational expense.  It's really too bad that it
-didn't work.
+With that approach, having lots of models of apnea modes leads to
+estimated sequences of classes that are all normal.
 
-* At each time you can calculate the best guess of the class given all
-of the data.
+* Imitating the Viterbi algorithm to seek the best entire sequence of
+classes seems like a good idea, but the computational expense is
+exponential in the length of the data.
+
+My old code aimed to produce exactly such a Maximum A-posteriori
+Probability estimate with a linear computational expense.  It's too
+bad that it's not possible.
+
+* Alternatively, at each time you can calculate the best guess of the
+class given all of the data.
 
 In general that approach can give you a sequence of classifications
-that is impossible.
+that has class transitions that are impossible according to the model.
 
-For the two class apnea classification problem, no class sequence is
-impossible, and this approach is appropriate.
+But for the two class apnea classification problem, no class
+transitions are impossible, and this approach is appropriate.
 
 10. This graphical representation of the model shows the conditional
 independence relations of the variables.
 
 Notice that removing the node for the state at time t+1 breaks the
-graph into 4 disconnected pieces.  Those collections of variables are
-conditionally independent of each other given the value of the state
-at time t+1.  Thus knowing the value of the state at t+1 makes the
-values of earlier variables irrelevant for forecasts of future values.
+graph into 4 disconnected pieces.
+
+The collections of variables in each of those pieces are conditionally
+independent of each other given the value of the state at time t+1.
+
+Knowing the value of the state at time t+1 makes the values of earlier
+variables irrelevant for forecasting future values.
 
 That conditional independence is called the Markov property.  It is
-essential for all of the techniques for working with HMMs.
+essential for all of the techniques for working with Hidden Markov Models.
 
-Removing the class at time t+1 doesn't provide a similar partition.
-So knowing the class at time t+1 does not make the values of earlier
-variables independent of future values.
+On the other hand removing the class at time t+1 from the graph
+doesn't provide a similar partition.
 
-A bad subsequence of past classes may later become a portion of the
-best class sequence.  The number of subsequences you need to calculate
-and store is exponential in total sequence length.
+So knowing the class at time t+1 does not make the values of future
+variables conditionally independent of past values.
+
+And what appears to be a bad subsequence of past classes may, in view
+of later data, become a portion of the best class sequence.  So you
+need to keep track of a lot of subsequences
+
+In fact the number of subsequences you need to calculate and store is
+exponential in total sequence length.
 
 11. Let me conclude with these suggestions:
 
-  * Structure work and code for clarity.
+  * Structure your work and code for clarity.
   * Collaborate and seek peer review.
   * Consider advice about good practices.
   * Focus on objectives before algorithms.
+  * And further work on estimating class sequences could be important
+    and interesting.
 
 %%% Local Variables:
 %%% eval: (TeX-PDF-mode)

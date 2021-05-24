@@ -32,6 +32,9 @@ DS21FIGS = $(call ADD_PDF_PDF_T, includes21, happy apnea_w normal_0)
 ds21.pdf: ds21.tex $(DS21FIGS)
 	export TEXINPUTS=/mnt/precious/home/andy_nix/projects/dshmm/TeX//:; pdflatex ds21.tex; pdflatex ds21.tex
 
+talk21.ps: ds21.tex
+	tail +250 ds21.tex |enscript --output=talk21.ps --font=Times-Roman16
+
 .PHONY : variables
 variables:
 	@echo $(DS21FIGS)
