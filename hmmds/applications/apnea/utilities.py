@@ -80,7 +80,7 @@ def read_low_pass_heart_rate(path: str) -> numpy.ndarray:
          array[i,1] = unfiltered heart rate, array[i,2] = filtered
          heart rate
 
-    Here is the relevant code in hmmds3/code/applications/apnea/rr2hr.py
+    Here is the relevant code in hmmds/code/applications/apnea/rr2hr.py
 
     HR = rfft(hrL,131072) # 131072 is 18.2 Hrs at 2HZ
     HR[0:100] *=0 # Drop frequencies below (100*60)/65536=0.09/min
@@ -101,7 +101,7 @@ def read_respiration(path: str) -> numpy.ndarray:
          array with shape (ntimes,4) and array[i,0] = time in minutes,
          array[i,1:4] = Respiration vector (?Fisher linear discriminant?)
 
-    The relevant code is hmmds3/code/applications/apnea/respire.py
+    The relevant code is hmmds/code/applications/apnea/respire.py
 
     """
     with open(path, 'r') as data_file:

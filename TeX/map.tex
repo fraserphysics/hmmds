@@ -1,0 +1,95 @@
+% Notes on Maximum A posteriori Probabilty (MAP) estimation.
+
+% Copyright 2021 Andrew M. Fraser.
+\documentclass{article}
+\usepackage{amsmath, amsfonts}
+\newcommand{\parameters}{\theta}
+\newcommand{\parametersPrime}{\theta'}
+\newcommand{\Normal}{{\mathcal{N}}}
+\newcommand{\qmle}{Q_{\mathtt{MLE}}(\parametersPrime, \parameters)}
+\newcommand{\qmap}{Q_{\mathtt{MAP}}(\parametersPrime, \parameters)}
+
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\INTEGER}{\field{Z}}
+\newcommand{\REAL}{\field{R}}
+\newcommand{\COMPLEX}{\field{C}}
+\newcommand{\EV}{\field{E}}
+
+\begin{document}
+
+\subsection*{Normal inverse gamma}
+
+From Wikipedia on Normal inverse gamma:
+
+\begin{description}
+\item[Hyperparameters:] $\phi \equiv \left\{\mu, \lambda, \alpha, \beta
+  \right\}$ for
+\item[Gaussian:] $\Normal(x,\sigma^2)$ with
+\item[Distribution of mean:] $x|\sigma^2, \mu, \lambda \sim
+  \Normal\left(\mu, \frac{\sigma^2}{\lambda} \right)$
+\item[Distribution of variance:] $\sigma^2 | \alpha, \beta \sim
+  \Gamma^{-1}(\alpha, \beta) \equiv
+  \frac{\beta^\alpha}{\Gamma(\alpha)} \left( \sigma^2
+  \right)^{-\alpha - 1} e^{-\frac{\beta}{\sigma^2}}$
+\item[Mode of variance:]
+  $ \sigma ^{2}={\frac {\beta }{\alpha +1+1/2}}\;{\textrm
+    {(univariate)}},\sigma ^{2}={\frac {\beta }{\alpha
+      +1+k/2}}\;{\textrm {(multivariate)}}$
+\end{description}
+
+\subsection*{Inverse gamma}
+
+I drop the prior on $x$.  I think that's the limit
+$\lambda \rightarrow 0$ and $k=0$.  Or looking at the inverse gamma
+distribution, I find
+\begin{equation}
+  \label{eq:LogPriorSigmaSquare}
+  \log\left( P(\sigma^2|\alpha, \beta) \right) = C -
+  (\alpha+1)\log(\sigma^2) - \frac{\beta}{\sigma^2}
+\end{equation}
+
+That's what I need for the auxiliary function for MAP estimation of
+the observation function in the EM algorithm:
+\begin{align*}
+  \qmap &= \EV_{P(S|y,\parameters} \left( \log \left (
+          P\left (S,y,\parametersPrime \right) \right) \right) \\
+        &= \qmle + \log \left( P \left(\parametersPrime \right) \right)  \\
+        &= C -\sum_s (\alpha + 1 ) \log(\sigma_s^2) +
+          \frac{\beta}{\sigma^2} + \sum_t w(s,t)
+          \frac{\log(\sigma_s^2)}{2} + \frac{(y[t] - \mu_s)^2}{2 \sigma_s^2}
+\end{align*}
+I get the maximum by solving $\frac{d}{d \sigma_s^2} \qmap = 0$
+\emph{viz.}
+\begin{align*}
+  - \frac{d}{d \sigma_s^2} \qmap &= \frac{\alpha + 1}{\sigma_s^2} -
+                                   \frac{\beta}{(\sigma_s^2)^2} +
+                                   \sum_t w(s,t) \left(
+                                   \frac{1}{2\sigma_s^2} - \frac{(y[t]
+                                   - \mu_s)^2}{2(\sigma_s^2)^2}
+                                   \right) \\
+  \sigma_s^2\left(2(\alpha + 1) + \sum_t w(s,t) \right) &= 2\beta +
+  \sum_t w(s,t) (y[t] - \mu_s)^2 \\
+  \sigma_s^2 &= \frac{2 \beta + \sum_t w(s,t) (y[t] -
+               \mu_s)^2}{2\alpha + 2 + \sum_t w(s,t)}
+\end{align*}
+Unfortunately that formula does not yield monotonic training.  The
+following formula does
+\begin{equation}
+  \label{eq:hack}
+  \sigma_s^2 = \frac{2 \beta + \sum_t w(s,t) (y[t] -
+               \mu_s)^2}{2\alpha + 1 + \sum_t w(s,t)}
+\end{equation}
+\end{document}
+See
+
+Michael Jordan's class notes :
+https://people.eecs.berkeley.edu/~jordan/courses/260-spring10/lectures/lecture5.pdf
+
+Wikipedia on inverse gamma:
+https://en.wikipedia.org/wiki/Inverse-gamma_distribution
+
+Wikipedia on Normal inverse gamma:
+https://en.wikipedia.org/wiki/Normal-inverse-gamma_distribution
+
+Wikipedia on Normal inverse Wishart
+https://en.wikipedia.org/wiki/Normal-inverse-Wishart_distribution
