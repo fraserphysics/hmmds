@@ -12,6 +12,9 @@ TeX/bundles.pdf:
 include $(XFIGS)/Rules.mk
 include $(ApneaPlotScripts)/Rules.mk
 
+TeX/ds21/slides.pdf:
+	cd TeX/ds21 && $(MAKE) slides.pdf
+
 TeX/bundles.pdf: TeX/bundles.tex  $(INTRODUCTION_FIGS) $(BASIC_ALGORITHMS_FIGS) $(APNEA_FIGS)
 	cd TeX && $(MAKE) bundles.pdf
 

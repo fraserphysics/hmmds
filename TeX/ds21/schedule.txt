@@ -1,0 +1,94 @@
+Sunday
+
+  12:15 Nothing to watch
+
+  2:45 - 4:45
+
+    CP6 2:45-3:00 Yen Ting Lin and Marian Anghel
+
+  5-6pm SP1 LS Young
+
+Monday
+
+  1:45-3:45
+
+    CP10 2:05 My presentation  ***Join ZOOM at 1:30 EDT / 11:30 MDT
+
+  4-5pm SIAM/DS Business meeting
+
+  6:15-8:15pm
+
+    MS81 Reduced-Order Models for Data Assimilation - Part I of II
+    **** Collapse of particle filters in high dimension  ****
+
+Particle filters for data assimilation based on reduced order data models
+John Maclean, Erik S Van Vleck
+
+Tuesday
+
+  12:45-2:45
+
+    MS94 Insights into Climate Dynamics from Conceptual Models - Part I of II
+
+  3:00-3:45
+
+    IP4 Stochasticity, Nonlinear Dynamics, and Waves: The Mechanisms
+    that Underlie Cardiac Arrhythmias
+
+  4:15-6:15
+
+    MS110 Koopman Operators in Dynamical Systems: Theory - Part I of II
+
+  6:30-7:30 Poster Session I
+
+  7:45-8:30pm IP5 Title Tbd - Hengartner
+
+  8:45-10:45pm
+
+    Nothing
+
+Wednesday
+
+  9:30-10:30 PP2 Poster Session II
+
+  10:45-11:30	IP6 Algebraic Systems Biology
+
+  11:40am - 1:40pm
+
+    MS138 The Interplay between Dynamics and Data Science - Part I of
+      III
+
+  2:00-4:00
+
+    MS145 Homoclinic Snaking at 21, in Memory of Patrick Woods - Part II
+    of III (Edgar Knobloch)
+
+  4:20-6:20
+
+    Maybe MS164 Koopman Operators in Dynamical Systems: Theory - Part II
+    of II
+
+  6:30-7:15	IP7 Recent Developments of Computer-assisted Proofs in
+    Infinite Dimensional Dynamical Systems
+
+Thursday
+
+  4:45am-6:45am I'll be sleeping and I didn't see anything compelling
+    in the schedule except CP27 5:05-5:20am A Fluid Mechanic's
+    Analysis of the Tea-Cup Singularity Dwight Barkley
+
+  7:00-7:45am IP8 Machine Learning and Dynamical Systems.  Tim Sauer
+    is host.  I will be sleeping
+
+  8:00-10:00am
+
+    MS189 Control via Koopman Operators - Part I of II.  First talk
+      looks OK but not worth setting an alarm
+
+  10:15-11:15 IP9 Closing Remarks, Red Sock Announcements and
+    Presentation: A Mathematical Symphony of Life
+
+  11:30am-1:30pm
+
+    MS206 Control via Koopman Operators - Part II of II.  Best of
+      group.  Nothing essential.
