@@ -20,6 +20,7 @@ includes/%.pdf : includes/%.fig
 includes/%.pdf_t: includes/%.fig includes/%.pdf
 	fig2dev -L pdftex_t -p $(abspath includes/$*.pdf) $< $@
 
+# ADD_PDF_PDF_T is from $(XFIGS)/Rules.mk
 DS21FIGS = $(call ADD_PDF_PDF_T, includes, happy apnea_w normal_0 class_net)
 
 # The // after TeX includes subdirectories.  The : after // includes
