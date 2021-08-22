@@ -41,10 +41,14 @@ From Wikipedia on Normal inverse gamma:
 
 I drop the prior on $x$.  I think that's the limit
 $\lambda \rightarrow 0$ and $k=0$.  Or looking at the inverse gamma
-distribution, I find
+distribution from wikipedia
+\begin{equation*}
+  f(x;\alpha ,\beta )={\frac {\beta ^{\alpha }}{\Gamma (\alpha )}}(1/x)^{\alpha +1}\exp \left(-\beta /x\right)
+\end{equation*}
+where $x$ is the variance $\sigma^2$
 \begin{equation}
   \label{eq:LogPriorSigmaSquare}
-  \log\left( P(\sigma^2|\alpha, \beta) \right) = C -
+  \log\left( f(\sigma^2|\alpha, \beta) \right) = C -
   (\alpha+1)\log(\sigma^2) - \frac{\beta}{\sigma^2}
 \end{equation}
 
@@ -53,32 +57,84 @@ the observation function in the EM algorithm:
 \begin{align*}
   \qmap &= \EV_{P(S|y,\parameters} \left( \log \left (
           P\left (S,y,\parametersPrime \right) \right) \right) \\
-        &= \qmle + \log \left( P \left(\parametersPrime \right) \right)  \\
-        &= C -\sum_s (\alpha + 1 ) \log(\sigma_s^2) +
-          \frac{\beta}{\sigma^2} + \sum_t w(s,t)
-          \frac{\log(\sigma_s^2)}{2} + \frac{(y[t] - \mu_s)^2}{2 \sigma_s^2}
+        &=\log \left( P \left(\parametersPrime \right) \right) +  \qmle  \\
+        &= C -\sum_s \left((\alpha + 1 ) \log(\sigma_s^2) +
+          \frac{\beta}{\sigma_s^2} + \sum_t w(s,t)\left(
+          \frac{\log(\sigma_s^2)}{2} + \frac{(y[t] - \mu_s)^2}{2
+          \sigma_s^2} \right) \right)
 \end{align*}
 I get the maximum by solving $\frac{d}{d \sigma_s^2} \qmap = 0$
 \emph{viz.}
-\begin{align*}
+\begin{align}
   - \frac{d}{d \sigma_s^2} \qmap &= \frac{\alpha + 1}{\sigma_s^2} -
                                    \frac{\beta}{(\sigma_s^2)^2} +
                                    \sum_t w(s,t) \left(
                                    \frac{1}{2\sigma_s^2} - \frac{(y[t]
                                    - \mu_s)^2}{2(\sigma_s^2)^2}
-                                   \right) \\
-  \sigma_s^2\left(2(\alpha + 1) + \sum_t w(s,t) \right) &= 2\beta +
-  \sum_t w(s,t) (y[t] - \mu_s)^2 \\
-  \sigma_s^2 &= \frac{2 \beta + \sum_t w(s,t) (y[t] -
+                                   \right) \nonumber \\
+  \hat \sigma_s^2\left(2(\alpha + 1) + \sum_t w(s,t) \right)
+                                 &= 2\beta + \sum_t w(s,t) (y[t] - \mu_s)^2 \nonumber \\
+  \label{eq:mapNotWork}
+  \hat \sigma_s^2 &= \frac{2 \beta + \sum_t w(s,t) (y[t] -
                \mu_s)^2}{2\alpha + 2 + \sum_t w(s,t)}
-\end{align*}
-Unfortunately that formula does not yield monotonic training.  The
-following formula does
+\end{align}
+
+The EM procedure modified for a MAP estimate of the variance is:
+\begin{enumerate}
+\item Calculate $\log(P(y[0:T]|\parameters)$ via forward
+\item Use \eqref{eq:LogPriorSigmaSquare} to calculate $ \log\left(
+    f(\sigma^2|\alpha, \beta) \right)$
+\item Add and divide by the length $T$ to get the log a posteriori
+  probability per time step for $\parameters$
+\item Use \eqref{eq:mapNotWork} to get a new estimate of $\sigma^2$ for
+  each state.
+\end{enumerate}
+
+\subsection*{Inverse-Wishart}
+
+From Wikipedia:
+\begin{quote}
+
+In Bayesian statistics it is used as the conjugate prior for the
+covariance matrix of a multivariate normal distribution.
 \begin{equation}
-  \label{eq:hack}
-  \sigma_s^2 = \frac{2 \beta + \sum_t w(s,t) (y[t] -
-               \mu_s)^2}{2\alpha + 1 + \sum_t w(s,t)}
+  \label{eq:invWishartDensity}
+f_{\mathbf x}({\mathbf x}; {\mathbf \Psi}, \nu) = \frac{\left|{\mathbf\Psi}\right|^{\nu/2}}{2^{\nu p/2}\Gamma_p(\frac \nu 2)} \left|\mathbf{x}\right|^{-(\nu+p+1)/2} e^{-\frac{1}{2}\operatorname{tr}(\mathbf\Psi\mathbf{x}^{-1})}
 \end{equation}
+
+Suppose we wish to make inference about a covariance matrix
+${\mathbf{\Sigma}}$ whose [[prior probability|prior]]
+${p(\mathbf{\Sigma})}$ has a
+$\mathcal{W}^{-1}({\mathbf\Psi},\nu)$ distribution.  If the
+observations
+$\mathbf{X}=[\mathbf{x}_1,\ldots,\mathbf{x}_n]$ are
+independent p-variate Gaussian variables drawn from a
+$N(\mathbf{0},{\mathbf \Sigma})$ distribution, then the
+conditional distribution
+${p(\mathbf{\Sigma}\mid\mathbf{X})}$ has a
+$\mathcal{W}^{-1}({\mathbf A}+{\mathbf\Psi},n+\nu)$
+distribution, where ${\mathbf{A}}=\mathbf{X}\mathbf{X}^T$.
+
+The mode is $\frac{\mathbf{\Psi}}{\nu + p + 1}$.
+\end{quote}
+
+From \eqref{eq:invWishartDensity} I get that if the covariance for a
+state is $\mathbf{x}$ then the contribution to the $\log$ prior term
+is
+\begin{equation}
+  \label{eq:logfInvWishart}
+  \log\left(f_{\mathbf{x}}\left(\mathbf{x};\Psi,\nu\right)\right) = C
+  - \frac{\nu+p+1}{2}\log(|\mathbf{x}|) - \frac{1}{2}\operatorname{tr}(\mathbf\Psi\mathbf{x}^{-1})
+\end{equation}
+
+The update formula for the covariance of a state is
+\begin{equation}
+  \label{eq:updateMultivariate}
+  \hat \Sigma_s = \frac {\mathbf{\Psi} + \mathbf{A}}{w + \nu + p + 1}
+\end{equation}
+Where $\mathbf{A}$ is the square of the weighted residuals and $w$ is the
+sum of the weights.
+
 \end{document}
 See
 
