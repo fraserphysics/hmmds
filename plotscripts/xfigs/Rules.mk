@@ -11,12 +11,12 @@ BASIC_ALGORITHMS = $(ROOT)/figs/basic_algorithms
 # prepends prefix and appends pdf and pdf_t to names
 ADD_PDF_PDF_T = $(addprefix $(1)/, $(addsuffix .pdf, $(2)) $(addsuffix .pdf_t, $(2)))
 
-# The following *FIGS variables list all of the targets for which this
+# The following *XFIGS variables list all of the targets for which this
 # makefile is responsible.
 
-INTRODUCTION_FIGS = $(call ADD_PDF_PDF_T, $(INTRODUCTION), Markov_mm Markov_dhmm Markov_dhmm_net)
+INTRODUCTION_XFIGS = $(call ADD_PDF_PDF_T, $(INTRODUCTION), Markov_mm Markov_dhmm Markov_dhmm_net)
 
-BASIC_ALGORITHMS_FIGS = $(call ADD_PDF_PDF_T, $(BASIC_ALGORITHMS), forward viterbiB)
+BASIC_ALGORITHMS_XFIGS = $(call ADD_PDF_PDF_T, $(BASIC_ALGORITHMS), forward viterbiB)
 
 # The following pattern rules translate an xfig file into files
 # suitable to include in a LaTeX file.  The mysterious agruments to
@@ -53,7 +53,3 @@ $(INTRODUCTION)/Markov_dhmm.pdf_t: $(XFIGS)/Markov_mm.fig
 	fig2dev -L pdftex_t -D+40,50 -p $(abspath $(INTRODUCTION)/Markov_dhmm.pdf) $< $@
 $(INTRODUCTION)/Markov_dhmm.pdf: $(XFIGS)/Markov_mm.fig
 	fig2dev -L pdftex -D+40,50 $< $@
-
-# Local Variables:
-# mode: makefile
-# End:

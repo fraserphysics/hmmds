@@ -10,7 +10,7 @@ test:
 include Rules.mk
 
 # ALL is all the targets that Rules.mk is responsible for
-ALL = $(INTRODUCTION_FIGS) $(BASIC_ALGORITHMS_FIGS)
+ALL = $(INTRODUCTION_XFIGS) $(BASIC_ALGORITHMS_XFIGS)
 
 ## test         : Build all targets
 .PHONY : test
@@ -34,5 +34,4 @@ variables:
 ## help                           : Print comments on targets from makefile
 .PHONY : help
 help :
-	@sed -n 's/^## / /p' Rules.mk
 	@sed -n 's/^## / /p' Makefile
