@@ -8,6 +8,7 @@
 ROOT = ../..
 XFIGS = $(ROOT)/plotscripts/xfigs
 ApneaPlotScripts = $(ROOT)/plotscripts/apnea
+ABSROOT = $(abspath $(ROOT))
 
 ## slides.pdf                     : Slides for my talk
 slides.pdf:
@@ -26,7 +27,7 @@ DS21FIGS = $(call ADD_PDF_PDF_T, includes, happy apnea_w normal_0 class_net)
 # The // after TeX includes subdirectories.  The : after // includes
 # the standard latex search path
 slides.pdf: slides.tex $(DS21FIGS)
-	export TEXINPUTS=/mnt/precious/home/andy_nix/projects/dshmm//:; pdflatex slides.tex; pdflatex slides.tex
+	export TEXINPUTS=$(ABSROOT)//:; pdflatex slides.tex; pdflatex slides.tex
 
 ## words.ps                       : The words to say for my talk
 words.ps: slides.tex

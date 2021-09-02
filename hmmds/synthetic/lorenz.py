@@ -16,17 +16,17 @@ data files.  Here is the Lorenz system
 Copyright = """
 Copyright 2021 Andrew M. Fraser
 
-Hmmds is free software: you can redistribute it and/or modify it
+Dshmm is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
 Free Software Foundation, either version 3 of the License, or (at your
 option) any later version.
 
-Hmmds is distributed in the hope that it will be useful, but WITHOUT
+Dshmm is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-See the file gpl.txt in the root directory of the hmmds distribution
+See the file gpl.txt in the root directory of the dshmm distribution
 or see <http://www.gnu.org/licenses/>.
 """
 import sys
@@ -169,20 +169,20 @@ def main(argv=None):
                                      t_array(args.n_samples, args.dt / 50),
                                      lorenz_args)
         # Write x[0] to TSintro_fine with time step .003
-        f = open(join(args.TSintro, 'TSintro_fine'), 'w')
+        f = open(join(args.TSintro, 'fine'), 'w')
         for i in range(0, args.n_samples):
             print('{0:6.3f} {1:6.3f}'.format(args.dt / 50 * i, xyz[i, 0]),
                   file=f)
         # Write x[0] to TSintro_qt with time step .15
-        f = open(join(args.TSintro, 'TSintro_qt'), 'w')
+        f = open(join(args.TSintro, 'coarse'), 'w')
         for i in range(0, args.n_samples, 50):
             print('{0:6.3f} {1:6.3f}'.format(args.dt / 50 * i, xyz[i, 0]),
                   file=f)
         # Write quantized x[0] to TSintro_qtx with time step .15
         q = numpy.ceil(xyz[:, 0] / 10 + 2)
-        f = open(join(args.TSintro, 'TSintro_qtx'), 'w')
+        f = open(join(args.TSintro, 'quantized'), 'w')
         for i in range(0, args.n_samples, 50):
-            print('{0:2d} {1:6.3f}'.format(i / 50, q[i]), file=f)
+            print('{0:2d} {1:6.3f}'.format(int(i / 50), q[i]), file=f)
     return 0
 
 

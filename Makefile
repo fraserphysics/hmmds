@@ -7,9 +7,9 @@ XFIGS = $(ROOT)/plotscripts/xfigs
 ApneaPlotScripts = $(ROOT)/plotscripts/apnea
 
 # Default target
-## software.pdf                   : Explanation of how I make each figure for the book
-.PHONY : software.pdf
-software.pdf: TeX/software/software.pdf
+## skeleton                       : Explanation of how I make each figure for the book
+.PHONY : skeleton
+skeleton: TeX/skeleton/figures.pdf
 
 ## ds21.pdf                       : Slides for 2021 SIAM Dynamical Systems meeting
 .PHONY : ds21.pdf
@@ -18,8 +18,8 @@ ds21.pdf : TeX/ds21/slides.pdf
 include $(XFIGS)/Rules.mk
 include $(ApneaPlotScripts)/Rules.mk
 
-TeX/software/software.pdf:
-	cd TeX/software && $(MAKE) software.pdf
+TeX/skeleton/figures.pdf:
+	cd TeX/skeleton && $(MAKE) figures.pdf
 
 TeX/ds21/slides.pdf:
 	cd TeX/ds21 && $(MAKE) slides.pdf
