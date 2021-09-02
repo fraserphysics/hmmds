@@ -6,28 +6,18 @@
 # http://mirrors.ibiblio.org/CTAN/support/latex-make/latex-make.pdf
 
 ROOT = ../..
-PLOTSCRIPTS = $(ROOT)/plotscripts
-XFIGS = $(PLOTSCRIPTS)/xfigs
-IntroductionPlotScripts = $(PLOTSCRIPTS)/introduction
+BUILD = $(ROOT)/build
+TEX_SKELETON = ./
 
-ApneaPlotScripts = $(PLOTSCRIPTS)/apnea
+##                               : Default target is figures.pdf in build dir
+$(BUILD)/TeX/skeleton/figures.pdf:
 
-# Default target is figures.pdf
-figures.pdf:
+include Rules.mk
 
-include $(XFIGS)/Rules.mk # Defines $(INTRODUCTION_XFIGS) and $(BASIC_ALGORITHMS_FIGS)
-include $(IntroductionPlotScripts)/Rules.mk
-
-include $(ApneaPlotScripts)/Rules.mk # Defines $(APNEA_FIGS)
-
-## figures.pdf                   : Comments on software and all figures for book
-figures.pdf: figures.tex $(INTRODUCTION_XFIGS) $(BASIC_ALGORITHMS_XFIGS) $(APNEA_FIGS)
-	export TEXINPUTS=$(abspath $(ROOT))//:; pdflatex figures.tex; pdflatex figures.tex
-
-## clean                         : Remove derived files in this directory
+## clean                         : Remove files made by pdflatex et al.
 .PHONY : clean
 clean:
-	rm -f *.aux *.pdf *.log
+	rm -rf $(BUILD)/TeX/skeleton
 
 ## help                          : Print comments on targets from makefile
 .PHONY : help

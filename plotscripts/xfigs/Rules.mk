@@ -1,11 +1,12 @@
 # Rules.mk: This file can be included by a makefile anywhere as long
-# as ROOT and XFIGS are defined.  ROOT is the top directory of the
-# hmmds project and XFIGS is the directory of source files and where
-# this file is located.
+# as ROOT and BUILD are defined.
 
-INTRODUCTION = $(ROOT)/figs/introduction
+INTRODUCTION = $(BUILD)/figs/introduction
 
-BASIC_ALGORITHMS = $(ROOT)/figs/basic_algorithms
+BASIC_ALGORITHMS = $(BUILD)/figs/basic_algorithms
+
+XFIGS = $(ROOT)/plotscripts/xfigs
+# XFIGS is _this_ directory
 
 # Define a function with arguments prefix=$(1) names=$(2) that
 # prepends prefix and appends pdf and pdf_t to names
@@ -53,3 +54,7 @@ $(INTRODUCTION)/Markov_dhmm.pdf_t: $(XFIGS)/Markov_mm.fig
 	fig2dev -L pdftex_t -D+40,50 -p $(abspath $(INTRODUCTION)/Markov_dhmm.pdf) $< $@
 $(INTRODUCTION)/Markov_dhmm.pdf: $(XFIGS)/Markov_mm.fig
 	fig2dev -L pdftex -D+40,50 $< $@
+
+# Local Variables:
+# mode: makefile
+# End:

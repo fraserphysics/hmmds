@@ -1,12 +1,13 @@
 # Rules.mk: This file can be included by a makefile anywhere as long
-# as ROOT, FIGS_INTRO and IntroPlotScripts are defined.  Scripts will
-# read data from locations relative to ROOT, write figures to the
-# directory FIGS_INTRO and IntroPlotScripts is the directory where
-# this file is located.
+# as ROOT and BUILD are defined.
 
-TSINTRO = $(ROOT)/derived_data/synthetic/TSintro
+SYNTHETIC_DATA = $(BUILD)/derived_data/synthetic
+TSINTRO = $(SYNTHETIC_DATA)/TSintro
+IntroPlotScripts = $(ROOT)/plotscripts/introduction
+FIGS_INTRO = $(BUILD)/figs/introduction
 
-$(FIGS_INTRO)/TSintro.pdf: $(IntroPlotScripts)/TSintro.py
+$(FIGS_INTRO)/TSintro.pdf: $(IntroPlotScripts)/TSintro.py $(SYNTHETIC_DATA)/lorenz.flag
+	mkdir -p $(TSINTRO)
 	python $< $(TSINTRO)/fine $(TSINTRO)/coarse $(TSINTRO)/quantized $@
 
 ## ALL           : All of the targets that Rules.mk is responsible for
