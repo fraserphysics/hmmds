@@ -1,6 +1,7 @@
 # Makefile: For testing scripts in this directory from this directory
 
 ROOT = ../..
+BUILD = $(ROOT)/build
 XFIGS = .
 
 # The default target is test
