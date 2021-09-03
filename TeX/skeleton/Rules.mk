@@ -9,7 +9,8 @@ TEX_OUT = $(BUILD)/TeX/skeleton
 # prepends prefix and appends pdf and pdf_t to names
 ADD_PDF_PDF_T = $(addprefix $(1)/, $(addsuffix .pdf, $(2)) $(addsuffix .pdf_t, $(2)))
 
-INTRODUCTION_FIGS = $(addprefix $(BUILD)/figs/introduction/, TSintro.pdf)
+INTRODUCTION_FIGS = $(addsuffix .pdf, $(addprefix $(BUILD)/figs/introduction/, \
+TSintro Statesintro))
 INTRODUCTION_XFIGS = $(call ADD_PDF_PDF_T, $(BUILD)/figs/introduction, Markov_mm Markov_dhmm Markov_dhmm_net)
 
 BASIC_ALGORITHMS_XFIGS = $(call ADD_PDF_PDF_T, $(BUILD)/figs/basic_algorithms, forward viterbiB)

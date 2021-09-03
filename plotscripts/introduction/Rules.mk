@@ -6,12 +6,15 @@ TSINTRO = $(SYNTHETIC_DATA)/TSintro
 IntroPlotScripts = $(ROOT)/plotscripts/introduction
 FIGS_INTRO = $(BUILD)/figs/introduction
 
+# Note: The file lorenz.flag is touched after the files fine, coarse,
+# and quantized get built.
 $(FIGS_INTRO)/TSintro.pdf: $(IntroPlotScripts)/TSintro.py $(SYNTHETIC_DATA)/lorenz.flag
-	mkdir -p $(TSINTRO)
+	mkdir -p $(FIGS_INTRO)
 	python $< $(TSINTRO)/fine $(TSINTRO)/coarse $(TSINTRO)/quantized $@
 
-## ALL           : All of the targets that Rules.mk is responsible for
-ALL = $(FIGS_INTRO)/TSintro.pdf
+$(FIGS_INTRO)/Statesintro.pdf: $(IntroPlotScripts)/stateplot.py $(SYNTHETIC_DATA)/states
+	mkdir -p $(FIGS_INTRO)
+	python $<  --data_dir $(SYNTHETIC_DATA) --base_name state --fig_path $@
 
 # Local Variables:
 # mode: makefile

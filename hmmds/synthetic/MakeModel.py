@@ -4,19 +4,19 @@
 Copyright = '''
 Copyright 2021 Andrew M. Fraser
 
-This file is part of hmmds.
+This file is part of dshmm.
 
-Hmmds is free software: you can redistribute it and/or modify it
+Dshmm is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
 Free Software Foundation, either version 3 of the License, or (at your
 option) any later version.
 
-Hmmds is distributed in the hope that it will be useful, but WITHOUT
+Dshmm is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
-See the file gpl.txt in the root directory of the hmmds distribution
+See the file gpl.txt in the root directory of the dshmm distribution
 or see <http://www.gnu.org/licenses/>.
 '''
 import sys
@@ -26,9 +26,10 @@ import itertools
 import argparse
 
 import numpy
+import numpy.random
 
 import hmm.base
-import hmm.scalar
+import hmm.simple
 
 
 def skip_header(_file):
@@ -75,18 +76,15 @@ def main(argv=None):
 
     y_data, cardy = read_data(args.data_dir, args.data_file)
 
-    from hmm.scalar import make_random as random_p
-    from numpy import random
-
     # Set random values of initial model parameters
     rng = numpy.random.default_rng(args.random_seed)
-    p_state_initial = random_p((1, nstates), rng)[0]
-    p_state_time_average = random_p((1, nstates), rng)[0]
-    p_state2state = random_p((nstates, nstates), rng)
-    p_state2y = random_p((nstates, cardy), rng)
+    p_state_initial = hmm.simple.Prob(rng.random((1, nstates))).normalize()[0]
+    p_state_time_average = hmm.simple.Prob(rng.random((1, nstates))).normalize()[0]
+    p_state2state = hmm.simple.Prob(rng.random((nstates, nstates))).normalize()
+    p_state2y = hmm.simple.Prob(rng.random((nstates, cardy))).normalize()
 
     # Train the model
-    y_mod = hmm.base.Observation(p_state2state, rng)
+    y_mod = hmm.simple.Observation(p_state2state, rng)
     mod = hmm.base.HMM(p_state_initial, p_state_time_average, p_state2state,
                        y_mod, rng)
     mod.train(y_data, args.n_iterations)

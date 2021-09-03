@@ -1,18 +1,19 @@
 # Makefile: For testing scripts in this directory from this directory.
 
 ROOT = ../..
-FIGS_INTRO = $(ROOT)/figs/introduction
+BUILD = $(ROOT)/build
+FIGS_INTRO = $(BUILD)/figs/introduction
 IntroPlotScripts = ./
 
-# The default target is test
-test:
+## ALL           : All of the targets that Rules.mk is responsible for
+ALL = $(FIGS_INTRO)/TSintro.pdf
+
+## test          : Build all targets; the default target.
+.PHONY : test
+test: $(ALL)
 
 # Rules.mk contains the real targets and rules to build them
 include Rules.mk
-
-## test          : Build all targets
-.PHONY : test
-test: $(ALL)
 
 ## list          : List all files built by this makefile
 .PHONY : list
@@ -22,7 +23,7 @@ list:
 ## clean         : Remove all files built by this makefile
 .PHONY : clean
 clean:
-	rm -f $(ALL) *pdf*
+	rm -f $(ALL)
 
 ## variables     : Print selected variables.
 .PHONY : variables
