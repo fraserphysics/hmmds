@@ -11,7 +11,7 @@ test:
 include Rules.mk
 
 # ALL is all the targets that Rules.mk is responsible for
-ALL = $(INTRODUCTION_XFIGS) $(BASIC_ALGORITHMS_XFIGS)
+ALL = $(INTRODUCTION_XFIGS) $(BASIC_ALGORITHMS_XFIGS) $(VARIANTS_XFIGS) $(BOUNDS_XFIGS) $(APNEA_XFIGS)
 
 ## test         : Build all targets
 .PHONY : test
@@ -25,7 +25,7 @@ list:
 ## clean         : Remove all files built by this makefile
 .PHONY : clean
 clean:
-	rm -f $(ALL) *pdf*
+	rm -f $(ALL)
 
 ## variables     : Print selected variables.
 .PHONY : variables

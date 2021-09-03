@@ -5,6 +5,12 @@ INTRODUCTION = $(BUILD)/figs/introduction
 
 BASIC_ALGORITHMS = $(BUILD)/figs/basic_algorithms
 
+VARIANTS = $(BUILD)/figs/variants
+
+BOUNDS = $(BUILD)/figs/bounds
+
+APNEA = $(BUILD)/figs/apnea
+
 XFIGS = $(ROOT)/plotscripts/xfigs
 # XFIGS is _this_ directory
 
@@ -15,9 +21,15 @@ ADD_PDF_PDF_T = $(addprefix $(1)/, $(addsuffix .pdf, $(2)) $(addsuffix .pdf_t, $
 # The following *XFIGS variables list all of the targets for which this
 # makefile is responsible.
 
-INTRODUCTION_XFIGS = $(call ADD_PDF_PDF_T, $(INTRODUCTION), Markov_mm Markov_dhmm Markov_dhmm_net)
+INTRODUCTION_XFIGS = $(call ADD_PDF_PDF_T, $(INTRODUCTION), Markov_mm Markov_dhmm Markov_dhmm_net nonmm)
 
-BASIC_ALGORITHMS_XFIGS = $(call ADD_PDF_PDF_T, $(BASIC_ALGORITHMS), forward viterbiB)
+BASIC_ALGORITHMS_XFIGS = $(call ADD_PDF_PDF_T, $(BASIC_ALGORITHMS), forward viterbiB sequenceMAP)
+
+VARIANTS_XFIGS = $(call ADD_PDF_PDF_T, $(VARIANTS), ScalarGaussian)
+
+BOUNDS_XFIGS = $(call ADD_PDF_PDF_T, $(BOUNDS), QR)
+
+APNEA_XFIGS =  $(call ADD_PDF_PDF_T, $(APNEA), class_net)
 
 # The function double_rule defines pattern rules translate an xfig
 # file into files suitable to include in a LaTeX file.  The mysterious
@@ -29,13 +41,18 @@ BASIC_ALGORITHMS_XFIGS = $(call ADD_PDF_PDF_T, $(BASIC_ALGORITHMS), forward vite
 define double_rule
 # $(1), the first argument to this function, is the traget directory
 $(1)/%.pdf : $(XFIGS)/%.fig
+	mkdir -p $(1)
 	fig2dev -L pdftex -F $$< $$@
 $(1)/%.pdf_t: $(XFIGS)/%.fig
+	mkdir -p $(1)
 	fig2dev -L pdftex_t -p $(abspath $(1)/$$*.pdf) $$< $$@
 endef
 
 $(eval $(call double_rule, $(INTRODUCTION)))
 $(eval $(call double_rule, $(BASIC_ALGORITHMS)))
+$(eval $(call double_rule, $(VARIANTS)))
+$(eval $(call double_rule, $(BOUNDS)))
+$(eval $(call double_rule, $(APNEA)))
 
 # The remaining rules are for figures for which the pattern rules are
 # not adequate.
