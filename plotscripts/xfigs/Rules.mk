@@ -19,22 +19,23 @@ INTRODUCTION_XFIGS = $(call ADD_PDF_PDF_T, $(INTRODUCTION), Markov_mm Markov_dhm
 
 BASIC_ALGORITHMS_XFIGS = $(call ADD_PDF_PDF_T, $(BASIC_ALGORITHMS), forward viterbiB)
 
-# The following pattern rules translate an xfig file into files
-# suitable to include in a LaTeX file.  The mysterious agruments to
-# fig2dev are: -p name of the pdf file to be overlaid, -F Don't set
-# the font face, -series, or style.  In the rules for %.pdf_t, I use
-# the absolute path for the -p argument so that LaTeX can find the
-# $*.pdf file from any context.
+# The function double_rule defines pattern rules translate an xfig
+# file into files suitable to include in a LaTeX file.  The mysterious
+# agruments to fig2dev are: -p name of the pdf file to be overlaid, -F
+# Don't set the font face, -series, or style.  In the rules for
+# %.pdf_t, I use the absolute path for the -p argument so that LaTeX
+# can find the $*.pdf file from any context.
 
-$(INTRODUCTION)/%.pdf: $(XFIGS)/%.fig
-	fig2dev -L pdftex -F $< $@
-$(INTRODUCTION)/%.pdf_t: $(XFIGS)/%.fig
-	fig2dev -L pdftex_t -p $(abspath $(INTRODUCTION)/$*.pdf) $< $@
+define double_rule
+# $(1), the first argument to this function, is the traget directory
+$(1)/%.pdf : $(XFIGS)/%.fig
+	fig2dev -L pdftex -F $$< $$@
+$(1)/%.pdf_t: $(XFIGS)/%.fig
+	fig2dev -L pdftex_t -p $(abspath $(1)/$$*.pdf) $$< $$@
+endef
 
-$(BASIC_ALGORITHMS)/%.pdf: $(XFIGS)/%.fig
-	fig2dev -L pdftex -F $< $@
-$(BASIC_ALGORITHMS)/%.pdf_t: $(XFIGS)/%.fig
-	fig2dev -L pdftex_t -p $(abspath $(BASIC_ALGORITHMS)/$*.pdf) $< $@
+$(eval $(call double_rule, $(INTRODUCTION)))
+$(eval $(call double_rule, $(BASIC_ALGORITHMS)))
 
 # The remaining rules are for figures for which the pattern rules are
 # not adequate.
