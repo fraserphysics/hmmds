@@ -6,7 +6,7 @@ FIGS_BASIC = $(BUILD)/figs/basic_algorithms
 BasicPlotScripts = ./
 
 ## ALL           : All of the targets that Rules.mk is responsible for
-ALL = $(addsuffix .pdf, $(addprefix $(FIGS_BASIC)/, TrainChar))
+ALL = $(addsuffix .pdf, $(addprefix $(FIGS_BASIC)/, TrainChar GaussMix))
 
 ## test          : Build all targets; the default target.
 .PHONY : test

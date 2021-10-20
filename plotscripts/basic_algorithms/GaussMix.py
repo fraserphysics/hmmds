@@ -21,14 +21,14 @@ def main(argv=None):
     dict_file, fig_name = argv
 
     params = {'axes.labelsize': 12,
-                   'text.fontsize': 10,
+                   #'text.fontsize': 10,
                    'legend.fontsize': 10,
                    'text.usetex': True,
                    'xtick.labelsize': 11,
                    'ytick.labelsize': 11}
     if DEBUG:
         params['text.usetex'] = False
-    mpl.rcParams.update(params)
+    matplotlib.rcParams.update(params)
 
     _dict = pickle.load(open(dict_file,'rb'))
     def subplot(i_label):
