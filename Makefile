@@ -25,6 +25,7 @@ skeleton: $(BUILD)/TeX/skeleton/figures.pdf
 
 # Rules for making plots
 include $(ROOT)/plotscripts/introduction/Rules.mk
+include $(ROOT)/plotscripts/basic_algorithms/Rules.mk
 include $(XFIGS)/Rules.mk
 include $(ApneaPlotScripts)/Rules.mk
 

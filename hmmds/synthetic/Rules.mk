@@ -20,6 +20,12 @@ $(SYNTHETIC_DATA)/m12s.4y : $(SYNTHETIC_CODE)/MakeModel.py $(SYNTHETIC_DATA)/lor
 $(SYNTHETIC_DATA)/lorenz.xyz: $(SYNTHETIC_CODE)/lorenz.py
 	python $< --n_samples 20000 --levels 4 --quantfile $(SYNTHETIC_DATA)/lorenz.4 --xyzfile $@
 
+$(SYNTHETIC_DATA)/TrainChar: $(SYNTHETIC_CODE)/TrainChar.py  $(SYNTHETIC_DATA)/lorenz.flag
+	python $< $(SYNTHETIC_DATA)/lorenz.4 $@
+
+$(SYNTHETIC_DATA)/em.pickle: $(SYNTHETIC_CODE)/em.py
+	python $< $@
+
 # Local Variables:
 # mode: makefile
 # End:
