@@ -15,6 +15,10 @@ $(FIGS_Basic)/GaussMix.pdf: $(BasicPlotScripts)/GaussMix.py $(EMData)
 	mkdir -p $(FIGS_Basic)
 	python $^ $@
 
+$(FIGS_Basic)/EM.pdf: $(BasicPlotScripts)/EM.py
+	mkdir -p $(FIGS_Basic)
+	python $^ $@
+
 # Local Variables:
 # mode: makefile
 # End:

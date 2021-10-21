@@ -14,7 +14,7 @@ TSintro Statesintro))
 INTRODUCTION_XFIGS = $(call ADD_PDF_PDF_T, $(BUILD)/figs/introduction, Markov_mm Markov_dhmm Markov_dhmm_net)
 
 BASIC_ALGORITHMS_FIGS = $(addsuffix .pdf, $(addprefix $(BUILD)/figs/basic_algorithms/, \
-TrainChar))
+TrainChar GaussMix EM))
 BASIC_ALGORITHMS_XFIGS = $(call ADD_PDF_PDF_T, $(BUILD)/figs/basic_algorithms, forward viterbiB)
 
 SKELETON_FIGS = $(INTRODUCTION_FIGS) $(INTRODUCTION_XFIGS) $(BASIC_ALGORITHMS_FIGS) $(BASIC_ALGORITHMS_XFIGS)
