@@ -11,7 +11,8 @@ test:
 include Rules.mk
 
 # ALL is all the targets that Rules.mk is responsible for
-ALL = $(addprefix $(SYNTHETIC_DATA)/, lorenz.flag states m12s.4y lorenz.xyz TrainChar em.pickle)
+ALL = $(addprefix $(SYNTHETIC_DATA)/, \
+lorenz.flag states m12s.4y lorenz.xyz TrainChar em.pickle SGO)
 
 ## test         : Build all targets
 .PHONY : test

@@ -17,7 +17,14 @@ BASIC_ALGORITHMS_FIGS = $(addsuffix .pdf, $(addprefix $(BUILD)/figs/basic_algori
 TrainChar GaussMix EM))
 BASIC_ALGORITHMS_XFIGS = $(call ADD_PDF_PDF_T, $(BUILD)/figs/basic_algorithms, forward viterbiB)
 
-SKELETON_FIGS = $(INTRODUCTION_FIGS) $(INTRODUCTION_XFIGS) $(BASIC_ALGORITHMS_FIGS) $(BASIC_ALGORITHMS_XFIGS)
+VARIANTS_FIGS =  $(addprefix $(BUILD)/figs/variants/, SGO_bcd $(addsuffix .pdf, ))
+VARIANTS_XFIGS = $(call ADD_PDF_PDF_T, $(BUILD)/figs/variants, ScalarGaussian)
+
+SKELETON_FIGS = $(INTRODUCTION_FIGS) \
+$(INTRODUCTION_XFIGS) \
+$(BASIC_ALGORITHMS_FIGS) \
+$(BASIC_ALGORITHMS_XFIGS) \
+$(VARIANTS_FIGS)
 
 TEX_SKELETON = $(ROOT)/TeX/skeleton
 
