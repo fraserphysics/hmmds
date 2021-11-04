@@ -17,6 +17,7 @@ import hmm.observe_float
 
 import MakeModel
 
+
 def main(argv=None):
     '''Call with arguments: data_dir vector_file
 
@@ -29,9 +30,10 @@ def main(argv=None):
     '''
     from MakeModel import skip_header
 
-    if argv is None:                    # Usual case
+    if argv is None:  # Usual case
         argv = sys.argv[1:]
-    parser = argparse.ArgumentParser(description=
+    parser = argparse.ArgumentParser(
+        description=
         "Make data for figure of states from vector autoregressive model")
     parser.add_argument('--data_dir', type=str)
     parser.add_argument('--data_in', type=str)
@@ -40,8 +42,10 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     # Read in time series of vectors
-    vectors = np.array([list(map(float,line.split())) for line in
-               skip_header(open(join(args.data_dir, args.data_in),'r'))])
+    vectors = np.array([
+        list(map(float, line.split()))
+        for line in skip_header(open(join(args.data_dir, args.data_in), 'r'))
+    ])
     n_y, Odim = vectors.shape
     n_y -= 1
     Cdim = Odim + 1
@@ -49,21 +53,23 @@ def main(argv=None):
     n_states = 12
 
     y = (vectors,)
-    model = MakeVARG_HMM(n_states, Odim, Cdim, vectors) # Make initial model
+    model = MakeVARG_HMM(n_states, Odim, Cdim, vectors)  # Make initial model
     # Recall update formula:   Cov[s] = (Psi + rrsum)/(wsum[s]+nu+dimension+1)
-    for nu,psi in ((1e6, 4e6), (4.0, 1.0), (1.0, 0.25), (0.0, 0.0)):
+    for nu, psi in ((1e6, 4e6), (4.0, 1.0), (1.0, 0.25), (0.0, 0.0)):
         model.y_mod.nu = nu
-        model.y_mod.Psi = numpy.eye(3)*psi
-        model.train(y, 10) # ToDo: Printed LLps is not monotonic
-    states = model.decode(y)                 # Do Viterbi decoding
+        model.y_mod.Psi = numpy.eye(3) * psi
+        model.train(y, 10)  # ToDo: Printed LLps is not monotonic
+    states = model.decode(y)  # Do Viterbi decoding
 
-    f = list(open(join(args.data_dir, 'varg_state'+str(s)), 'w') for
-             s in range(n_states))
+    f = list(
+        open(join(args.data_dir, 'varg_state' + str(s)), 'w')
+        for s in range(n_states))
     for t in range(n_y):
-        print('%7.4f %7.4f %7.4f'%tuple(vectors[t]), file=f[states[t]])
+        print('%7.4f %7.4f %7.4f' % tuple(vectors[t]), file=f[states[t]])
     return 0
 
-def MakeVARG_HMM(n_states,out_dimension, context_dimension, vectors):
+
+def MakeVARG_HMM(n_states, out_dimension, context_dimension, vectors):
     '''Returns a normalized random initial model
     '''
     import numpy.random
@@ -79,27 +85,28 @@ def MakeVARG_HMM(n_states,out_dimension, context_dimension, vectors):
     # Set up forecast to work perfectly for state s at time ts[s]
     for s in range(n_states):
         # Assign one column at a time
-        a_forecast[s,:,0] = [1,0,0]
-        a_forecast[s,:,1] = [0,1,0]
-        a_forecast[s,:,2] = [0,0,1]
-        a_forecast[s,:,3] = vectors[ts[s]] - vectors[ts[s]-1]
+        a_forecast[s, :, 0] = [1, 0, 0]
+        a_forecast[s, :, 1] = [0, 1, 0]
+        a_forecast[s, :, 2] = [0, 0, 1]
+        a_forecast[s, :, 3] = vectors[ts[s]] - vectors[ts[s] - 1]
     mean = numpy.mean(vectors, axis=0)
     assert mean.shape == (3,)
     covariance = numpy.cov(vectors.T)
-    assert covariance.shape == (3,3)
+    assert covariance.shape == (3, 3)
     covariance_state = numpy.empty((n_states, 3, 3))
     for s in range(n_states):
         covariance_state[s] = covariance
     y_model = hmm.observe_float.VARG(a_forecast, covariance_state, rng)
 
     # Make other parameters for HMM
-    P_S0 = hmm.simple.Prob(rng.random((1,n_states))).normalize()[0]
-    P_S0_ergodic = hmm.simple.Prob(rng.random((1,n_states))).normalize()[0]
-    P_ScS = hmm.simple.Prob(rng.random((n_states,n_states))).normalize()
+    P_S0 = hmm.simple.Prob(rng.random((1, n_states))).normalize()[0]
+    P_S0_ergodic = hmm.simple.Prob(rng.random((1, n_states))).normalize()[0]
+    P_ScS = hmm.simple.Prob(rng.random((n_states, n_states))).normalize()
 
-    model = hmm.base.HMM(P_S0,P_S0_ergodic,P_ScS, y_model)
+    model = hmm.base.HMM(P_S0, P_S0_ergodic, P_ScS, y_model)
     assert model.p_state_initial.shape == (12,)
     return model
+
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -61,7 +61,18 @@ test:
 ## yapf                           : Force google format on all python code
 .PHONY : yapf
 yapf :
-	yapf -i --recursive --style "google" hmmds
+	yapf -i --recursive --style "google" hmmds/ plotscripts/
+
+## check-types                    : Checks type hints
+.PHONY : check-types
+check-types:
+	export MYPYPATH=$$PYTHONPATH; mypy --no-strict-optional hmmds
+# --no-strict-optional allows None as default value
+
+## lint                           : Run pylint
+.PHONY : lint
+lint :
+	pylint --rcfile=pylintrc hmmds plotscripts
 
 ## variables     : Print selected variables.
 .PHONY : variables

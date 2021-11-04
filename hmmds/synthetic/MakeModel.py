@@ -79,7 +79,8 @@ def main(argv=None):
     # Set random values of initial model parameters
     rng = numpy.random.default_rng(args.random_seed)
     p_state_initial = hmm.simple.Prob(rng.random((1, nstates))).normalize()[0]
-    p_state_time_average = hmm.simple.Prob(rng.random((1, nstates))).normalize()[0]
+    p_state_time_average = hmm.simple.Prob(rng.random(
+        (1, nstates))).normalize()[0]
     p_state2state = hmm.simple.Prob(rng.random((nstates, nstates))).normalize()
     p_state2y = hmm.simple.Prob(rng.random((nstates, cardy))).normalize()
 

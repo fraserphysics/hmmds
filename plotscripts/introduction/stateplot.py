@@ -14,6 +14,7 @@ Call with optional arguments: --data_dir, --base_name, --fig_path
 import sys
 import argparse
 
+
 def parse_args(argv=None):
     """ Convert command line arguments into a namespace
     """
