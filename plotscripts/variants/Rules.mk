@@ -1,0 +1,24 @@
+# Rules.mk: This file can be included by a makefile anywhere as long
+# as ROOT and BUILD are defined.
+
+SYNTHETIC_DATA = $(BUILD)/derived_data/synthetic
+SGOData =  $(SYNTHETIC_DATA)/SGO_sim
+VARGData =  $(SYNTHETIC_DATA)/vstates
+# vstates is a sentinel for $(addprefix $(SYNTHETIC_DATA)/varg_state, 0 1 2 3 4 5 6 7 8 9 10 11)
+VariantPlotScripts = $(ROOT)/plotscripts/variants
+STATEPLOT = $(ROOT)/plotscripts/introduction/stateplot.py
+FIGS_Variants = $(BUILD)/figs/variants
+
+# Rule for SGO_b, SGO_c, an SGO_d
+$(FIGS_Variants)/SGO_bcd: $(VariantPlotScripts)/ScalarGaussian.py $(SGOData)
+	mkdir -p $(FIGS_Variants)
+	python $^ $(FIGS_Variants)
+	touch $@
+
+$(FIGS_Variants)/VARGstates.pdf: $(STATEPLOT) $(VARGData)
+	mkdir -p  $(FIGS_Variants)
+	python $< --data_dir $(SYNTHETIC_DATA) --base_name varg_state --fig_path $@
+
+# Local Variables:
+# mode: makefile
+# End:
