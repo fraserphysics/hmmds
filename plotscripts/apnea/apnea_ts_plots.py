@@ -20,7 +20,7 @@ import argparse
 import os.path
 
 import numpy
-import matplotlib
+import matplotlib  # type: ignore
 
 
 def minutes_seconds(x: int) -> str:

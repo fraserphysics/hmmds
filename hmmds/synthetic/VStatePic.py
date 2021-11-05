@@ -16,7 +16,7 @@ import hmm.base
 import hmm.observe_float
 import hmm.simple
 
-import MakeModel
+import hmmds.synthetic.MakeModel
 
 
 def main(argv=None):
@@ -43,7 +43,8 @@ def main(argv=None):
 
     # Read in time series of vectors
     vectors = numpy.array([
-        list(map(float, line.split())) for line in MakeModel.skip_header(
+        list(map(float, line.split()))
+        for line in hmmds.synthetic.MakeModel.skip_header(
             open(join(args.data_dir, args.data_in), 'r'))
     ])
     n_y, Odim = vectors.shape

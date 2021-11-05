@@ -1,4 +1,4 @@
-''' ScalarGaussian.py data_dir
+""" ScalarGaussian.py data_dir
 
 Writes file SGO_sim with the following columns:
 
@@ -8,7 +8,7 @@ Writes file SGO_train containing:
 
     Two trained models
 
-'''
+"""
 
 import sys
 import os.path
@@ -21,23 +21,23 @@ import hmm.observe_float
 
 rng = numpy.random.default_rng(4)
 
-P_SS = [[0.93, 0.07], [0.13, 0.87]]
-P_S0 = [13. / 20, 7. / 20.]
-mu = [-1.0, 1.0]
+P_SS = numpy.array([[0.93, 0.07], [0.13, 0.87]])
+P_S0 = numpy.array([13. / 20, 7. / 20.])
+mu = numpy.array([-1.0, 1.0])
 var = numpy.ones(2)
 model_2a = hmm.base.HMM(P_S0, P_S0, P_SS, hmm.observe_float.Gauss(mu, var, rng),
                         rng)
 
-P_SS = [[0.5, 0.5], [0.5, 0.5]]
-P_S0 = [0.5, 0.5]
-mu = [-2.0, 2.0]
+P_SS = numpy.array([[0.5, 0.5], [0.5, 0.5]])
+P_S0 = numpy.array([0.5, 0.5])
+mu = numpy.array([-2.0, 2.0])
 var = numpy.ones(2) * 2
 model_2e = hmm.base.HMM(P_S0, P_S0, P_SS, hmm.observe_float.Gauss(mu, var, rng),
                         rng)
 
-P_SS = [[0.5, 0.5], [0.5, 0.5]]
-P_S0 = [0.5, 0.5]
-mu = [0.0, 3.6]
+P_SS = numpy.array([[0.5, 0.5], [0.5, 0.5]])
+P_S0 = numpy.array([0.5, 0.5])
+mu = numpy.array([0.0, 3.6])
 var = numpy.array([4.0**2, 0.126**2])
 model_3a = hmm.base.HMM(P_S0, P_S0, P_SS, hmm.observe_float.Gauss(mu, var, rng),
                         rng)

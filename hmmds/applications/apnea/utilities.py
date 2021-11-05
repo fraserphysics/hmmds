@@ -3,6 +3,7 @@ from __future__ import annotations  # Enables, eg, (self: Pass1Item,
 import sys
 import os
 import glob
+import typing
 
 import numpy
 
@@ -109,7 +110,7 @@ def read_respiration(path: str) -> numpy.ndarray:
     return numpy.array(data)
 
 
-def read_expert(path: str, name: str) -> numpy.array:
+def read_expert(path: str, name: str) -> numpy.ndarray:
     """ Create int array for record specified by name.
     Args:
         path: Location of expert annotations file
@@ -128,7 +129,7 @@ def read_expert(path: str, name: str) -> numpy.array:
             parts = data_file.readline().split()
 
         hour = 0
-        marks = []
+        marks: typing.List[str] = []
         # Read lines like: "8 AAAAAAAAA"
         parts = data_file.readline().split()
         while len(parts) == 2:
@@ -198,7 +199,8 @@ def pattern_heart_rate_respiration_data(patterns: list, common: Common) -> list:
     return return_list
 
 
-def heart_rate_respiration_bundle_data(name: str, common: Common) -> list:
+def heart_rate_respiration_bundle_data(
+        name: str, common: Common) -> hmm.base.Bundle_segment:
 
     samples_per_minute = 10
     tags = read_expert(common.expert, name).repeat(samples_per_minute)

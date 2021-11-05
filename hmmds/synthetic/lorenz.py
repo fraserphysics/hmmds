@@ -34,7 +34,7 @@ import argparse
 import os.path
 
 import numpy
-import scipy.integrate
+import scipy.integrate  # type: ignore
 
 
 def lorenz_dx_dt(x, _, s, b, r):

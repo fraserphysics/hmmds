@@ -14,7 +14,7 @@ import os.path
 
 import numpy
 
-import utilities
+import plotscripts.utilities
 
 
 def main(argv=None):
@@ -47,36 +47,36 @@ def main(argv=None):
     }
     matplotlib.rcParams.update(params)
 
-    data = utilities.read_data(sim_file)
-    X = utilities.axis(data=data[0],
-                       magnitude=False,
-                       label=r'$t$',
-                       ticks=numpy.arange(0, 100.1, 25))
+    data = plotscripts.utilities.read_data(sim_file)
+    X = plotscripts.utilities.axis(data=data[0],
+                                   magnitude=False,
+                                   label=r'$t$',
+                                   ticks=numpy.arange(0, 100.1, 25))
 
     def _plot(Y):
         fig = matplotlib.pyplot.figure(figsize=(3.5, 2.5))
-        ax = utilities.SubPlot(fig, (1, 1, 1), X, Y, color='b')
+        ax = plotscripts.utilities.SubPlot(fig, (1, 1, 1), X, Y, color='b')
         ax.set_ylim(-0.02, 1.02)
         fig.subplots_adjust(bottom=0.15)  # Make more space for label
         fig.subplots_adjust(left=.15, bottom=.18)
         return (ax, fig)
 
     ax, fig_b = _plot(
-        utilities.axis(data=data[1],
-                       magnitude=False,
-                       label=r'$S(t)$',
-                       ticks=numpy.arange(0, 1.1, 1)))
+        plotscripts.utilities.axis(data=data[1],
+                                   magnitude=False,
+                                   label=r'$S(t)$',
+                                   ticks=numpy.arange(0, 1.1, 1)))
     ax, fig_d = _plot(
-        utilities.axis(data=data[3],
-                       magnitude=False,
-                       label=r'$S(t)$',
-                       ticks=numpy.arange(0, 1.1, 1)))
+        plotscripts.utilities.axis(data=data[3],
+                                   magnitude=False,
+                                   label=r'$S(t)$',
+                                   ticks=numpy.arange(0, 1.1, 1)))
 
     ax, fig_c = _plot(
-        utilities.axis(data=data[2],
-                       magnitude=False,
-                       label=r'$y(t)$',
-                       ticks=numpy.arange(-4, 4.1, 4)))
+        plotscripts.utilities.axis(data=data[2],
+                                   magnitude=False,
+                                   label=r'$y(t)$',
+                                   ticks=numpy.arange(-4, 4.1, 4)))
     ax.set_ylim(-5, 5)
     fig_c.subplots_adjust(left=.2)
     if DEBUG:

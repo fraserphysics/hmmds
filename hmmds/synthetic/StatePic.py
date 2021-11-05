@@ -33,7 +33,7 @@ import numpy
 
 import hmm.base
 
-import MakeModel
+import hmmds.synthetic.MakeModel
 
 
 def main(argv=None):
@@ -60,7 +60,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     # Read in the output sequence
-    y_data, _ = MakeModel.read_data(args.data_dir, args.data_file)
+    y_data, _ = hmmds.synthetic.MakeModel.read_data(args.data_dir,
+                                                    args.data_file)
 
     # Read in model
     mod = pickle.load(open(join(args.data_dir, args.model_file), 'rb'))
@@ -77,7 +78,8 @@ def main(argv=None):
 
     # Read in time series of vectors
     vectors = [
-        list(map(float, line.split())) for line in MakeModel.skip_header(
+        list(map(float, line.split()))
+        for line in hmmds.synthetic.MakeModel.skip_header(
             open(join(args.data_dir, args.vector_file), 'r'))
     ]
 
