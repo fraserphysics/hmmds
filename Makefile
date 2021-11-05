@@ -72,7 +72,7 @@ check-types:
 ## lint                           : Run pylint
 .PHONY : lint
 lint :
-	pylint --rcfile=pylintrc hmmds plotscripts
+	find plotscripts hmmds/synthetic -name "*.py" | xargs pylint --rcfile=pylintrc
 
 ## variables     : Print selected variables.
 .PHONY : variables

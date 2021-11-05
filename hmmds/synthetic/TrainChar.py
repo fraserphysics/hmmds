@@ -9,12 +9,12 @@ import numpy
 import numpy.random
 
 import hmm.simple
-from hmm.simple import HMM  # change to c version if/when written
+# Instead of hmm.simple.HMM, use c version if/when written
 
 
 def random_hmm(Card_Y, N_states, seed):
-    '''
-    '''
+    """Create and return a hmm.simple.HMM
+    """
     rng = numpy.random.default_rng(seed)
 
     def random_prob(shape):
@@ -25,7 +25,7 @@ def random_hmm(Card_Y, N_states, seed):
     P_ScS = random_prob((N_states, N_states))
     P_YcS = random_prob((N_states, Card_Y))
     observation_model = hmm.simple.Observation(P_YcS, rng)
-    return HMM(P_S0, P_S0_ergodic, P_ScS, observation_model, rng)
+    return hmm.simple.HMM(P_S0, P_S0_ergodic, P_ScS, observation_model, rng)
 
 
 def main(argv=None):

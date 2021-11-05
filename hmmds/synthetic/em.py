@@ -8,11 +8,6 @@ import numpy
 import numpy.random
 
 
-def _print(*args, **kwargs):
-    if args.print:
-        print(*args, **kwargs)
-
-
 def main(argv=None):
     """Call: python em.py em.pickle
     """
@@ -81,7 +76,6 @@ def main(argv=None):
 
     mu_i.append(mu)  # Record initial model
     alpha.append(0.5)  # Record initial model
-    import pickle
     pickle.dump({
         'Y': Y,
         'alpha': alpha,

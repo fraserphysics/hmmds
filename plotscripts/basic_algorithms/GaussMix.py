@@ -15,8 +15,10 @@ import matplotlib.pyplot as plt
 
 
 def main(argv=None):
-    '''
-    '''
+    """Make Fig. 2.7.  Illustration of EM estimation for Gaussian Mixture
+    model.
+
+    """
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 

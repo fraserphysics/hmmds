@@ -60,7 +60,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     # Read in the output sequence
-    y_data, cardy = MakeModel.read_data(args.data_dir, args.data_file)
+    y_data, _ = MakeModel.read_data(args.data_dir, args.data_file)
 
     # Read in model
     mod = pickle.load(open(join(args.data_dir, args.model_file), 'rb'))

@@ -85,7 +85,7 @@ def main(argv=None):
     p_state2y = hmm.simple.Prob(rng.random((nstates, cardy))).normalize()
 
     # Train the model
-    y_mod = hmm.simple.Observation(p_state2state, rng)
+    y_mod = hmm.simple.Observation(p_state2y, rng)
     mod = hmm.base.HMM(p_state_initial, p_state_time_average, p_state2state,
                        y_mod, rng)
     mod.train(y_data, args.n_iterations)

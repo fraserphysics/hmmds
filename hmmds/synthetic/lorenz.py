@@ -30,17 +30,19 @@ See the file gpl.txt in the root directory of the dshmm distribution
 or see <http://www.gnu.org/licenses/>.
 """
 import sys
+import argparse
+import os.path
 
 import numpy
 import scipy.integrate
 
 
-def lorenz_dx_dt(x, t, s, b, r):
+def lorenz_dx_dt(x, _, s, b, r):
     """ Lorenz vector field
 
     Args:
         x (numpy.ndarray): State vector
-        t (float): Unused, but necessary argument for scipy.integrate.odeint
+        _ (float): Time.  Unused, but necessary argument for scipy.integrate.odeint
         s (float): Parameter of Lorenz model
         b (float): Parameter of Lorenz model
         r (float): Parameter of Lorenz model
@@ -68,7 +70,8 @@ def lorenz_tangent(
         r (float): Parameter of Lorenz model
 
     Return:
-        (numpy.ndarray): dx/dt at x augmented with d/dt (dx(0)/dx(t)) for Lorenz model.
+        (numpy.ndarray): dx/dt at x augmented with d/dt (dx(0)/dx(t))
+            for Lorenz model.
     """
     rv = numpy.empty(12)
     x = x_aug[:3]
@@ -90,7 +93,6 @@ def main(argv=None):
     --quantfile, and or --TSintro.
 
     """
-    import argparse
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]
@@ -164,23 +166,22 @@ def main(argv=None):
         print('{0:6.3f} {1:6.3f} {2:6.3f}'.format(*v), file=args.xyzfile)
         print('{0:d}'.format(quant(v[0])), file=args.quantfile)
     if args.TSintro is not None:
-        from os.path import join
         xyz = scipy.integrate.odeint(lorenz_dx_dt, initial_conditions,
                                      t_array(args.n_samples, args.dt / 50),
                                      lorenz_args)
         # Write x[0] to TSintro_fine with time step .003
-        f = open(join(args.TSintro, 'fine'), 'w')
+        f = open(os.path.join(args.TSintro, 'fine'), 'w')
         for i in range(0, args.n_samples):
             print('{0:6.3f} {1:6.3f}'.format(args.dt / 50 * i, xyz[i, 0]),
                   file=f)
         # Write x[0] to TSintro_qt with time step .15
-        f = open(join(args.TSintro, 'coarse'), 'w')
+        f = open(os.path.join(args.TSintro, 'coarse'), 'w')
         for i in range(0, args.n_samples, 50):
             print('{0:6.3f} {1:6.3f}'.format(args.dt / 50 * i, xyz[i, 0]),
                   file=f)
         # Write quantized x[0] to TSintro_qtx with time step .15
         q = numpy.ceil(xyz[:, 0] / 10 + 2)
-        f = open(join(args.TSintro, 'quantized'), 'w')
+        f = open(os.path.join(args.TSintro, 'quantized'), 'w')
         for i in range(0, args.n_samples, 50):
             print('{0:2d} {1:6.3f}'.format(int(i / 50), q[i]), file=f)
     return 0

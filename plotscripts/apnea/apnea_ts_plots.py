@@ -2,7 +2,7 @@
 
 Here is an example of use:
 
-python apnea_ts_plots.py --data_dir ../../derived_data/apnea  ../../figs/apnea/a03erA.pdf
+python apnea_ts_plots.py --data_dir derived_data/apnea  figs/apnea/a03erA.pdf
 
 This is the first line of the data file a03er_seg and the fields:
 
@@ -20,6 +20,7 @@ import argparse
 import os.path
 
 import numpy
+import matplotlib
 
 
 def minutes_seconds(x: int) -> str:
@@ -83,7 +84,6 @@ def plot_ECG_ONR_O2(args, start: int, stop: int, time_interval: tuple,
         ax.set_yticklabels([r'$% 2.0f$' % x for x in label_yvalues])
         ax.set_ylim(ylim)
         ax.set_xlim(time_interval)
-        return
 
     subplot(ax_ecg, a03er_segment[1, start:stop] / 1000, r'$ECG$', [],
             (-0.015, 0.035), numpy.arange(-10, 31, 10), 1e-3)
@@ -209,7 +209,7 @@ def ApneaNLD(args, subplots):
 
 
 def main(argv=None):
-    """
+    """Make first 4 plots of apnea chapter.  They are all time series.
 
     """
 
@@ -233,12 +233,11 @@ def main(argv=None):
         help='Path for storing the result, eg, ./../figs/apnea/a03HR.pdf')
     args = parser.parse_args(argv)
 
-    import matplotlib
     if args.show:
         matplotlib.use('Qt5Agg')
     else:
         matplotlib.use('PDF')  # Permits absence of enviroment variable DISPLAY
-    import matplotlib.pyplot  # Must be after matplotlib.use
+    import matplotlib.pyplot  # pylint: disable=import-outside-toplevel,redefined-outer-name
 
     params = {
         'axes.labelsize': 18,  # Plotting parameters for latex

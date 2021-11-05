@@ -4,22 +4,23 @@ Creates varg_stateN (N in 0..11) in the directory named by data
 
 """
 
-import numpy as np
 import sys
 from os.path import join
 import pickle
 import argparse
 
 import numpy
+import numpy.random
 
 import hmm.base
 import hmm.observe_float
+import hmm.simple
 
 import MakeModel
 
 
 def main(argv=None):
-    '''Call with arguments: data_dir vector_file
+    """Call with arguments: data_dir vector_file
 
     Writes files named ['state%d'%n for n in range(nstates)] to the
     data_dir.  Each file consists of points in vector_file that are
@@ -27,8 +28,7 @@ def main(argv=None):
     are assigned by using the model in model_file to Viterbi decode
     the data in data_file.
 
-    '''
-    from MakeModel import skip_header
+    """
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]
@@ -42,9 +42,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     # Read in time series of vectors
-    vectors = np.array([
-        list(map(float, line.split()))
-        for line in skip_header(open(join(args.data_dir, args.data_in), 'r'))
+    vectors = numpy.array([
+        list(map(float, line.split())) for line in MakeModel.skip_header(
+            open(join(args.data_dir, args.data_in), 'r'))
     ])
     n_y, Odim = vectors.shape
     n_y -= 1
@@ -70,13 +70,8 @@ def main(argv=None):
 
 
 def MakeVARG_HMM(n_states, out_dimension, context_dimension, vectors):
-    '''Returns a normalized random initial model
-    '''
-    import numpy.random
-
-    import hmm.base
-    import hmm.observe_float
-    import hmm.simple
+    """Returns a normalized random initial model
+    """
 
     # Make VARG observation model
     rng = numpy.random.default_rng(0)

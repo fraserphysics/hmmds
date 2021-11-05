@@ -13,6 +13,7 @@ import argparse
 import pickle
 
 import numpy
+import matplotlib
 
 import hmmds.applications.apnea.utilities  # For pickle
 
@@ -35,32 +36,32 @@ def parse_args(argv):
 
 
 def main(argv=None):
-    '''
-    '''
+    """Figure of first pass classifier.
+    """
 
     if not argv:
         argv = sys.argv[1:]
 
     args = parse_args(argv)
 
-    import matplotlib
     if args.show:
         matplotlib.use('Qt5Agg')
     else:
         matplotlib.use('PDF')  # Permits absence of enviroment variable DISPLAY
-    import matplotlib.pyplot  # Must be after matplotlib.use
+    # Must be after matplotlib.use
+    import matplotlib.pyplot  #  pylint: disable=import-outside-toplevel, redefined-outer-name
 
     with open(args.pass1_report, 'rb') as _file:
         data = pickle.load(_file)
     params = {
         'axes.labelsize': 12,
         'text.fontsize': 10,
-        'legend.fontsize': 10,
+        #'legend.fontsize': 10,
         'text.usetex': True,
         'xtick.labelsize': 11,
         'ytick.labelsize': 11
     }
-    #matplotlib.rcParams.update(params) ToDo: Fix this
+    matplotlib.rcParams.update(params)
 
     fig = matplotlib.pyplot.figure(figsize=(8, 4))
     ax = fig.add_subplot(1, 1, 1)

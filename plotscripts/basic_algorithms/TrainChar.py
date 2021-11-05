@@ -4,15 +4,16 @@ TrainChar.py ../../derived_data/synthetic/TrainChar ../../figs/TrainChar.pdf
 """
 import sys
 
+import numpy as np
+import matplotlib
+matplotlib.use('PDF')
+import matplotlib.pyplot
+
 
 def main(argv=None):
-    '''Call with arguments: data_file, fig_file
+    """Call with arguments: data_file, fig_file
 
-    '''
-    import numpy as np
-    import matplotlib as mpl
-    mpl.use('PDF')
-    import matplotlib.pyplot as plt
+    """
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]
@@ -26,9 +27,9 @@ def main(argv=None):
         'xtick.labelsize': 11,
         'ytick.labelsize': 11
     }
-    mpl.rcParams.update(params)
+    matplotlib.rcParams.update(params)
 
-    fig = plt.figure(figsize=(6, 3))
+    fig = matplotlib.pyplot.figure(figsize=(6, 3))
     ax = fig.add_subplot(1, 1, 1)
     ax.set_xlabel(r'$n$')
     #ax.set_xlim(-2, 9)
@@ -37,7 +38,7 @@ def main(argv=None):
     data = np.array([
         [float(part) for part in line.split()] for line in open(data_file, 'r')
     ])
-    n_max, n_seeds = data.shape
+    _, n_seeds = data.shape
     for i in range(1, n_seeds):
         ax.semilogx(data[:, 0] + 1, data[:, i])
         #ax.plot(data[:,0], data[:,i])
