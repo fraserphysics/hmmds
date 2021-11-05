@@ -35,18 +35,18 @@ def parse_args(argv=None):
 
 
 def main():
-    '''
-    '''
-
-    import matplotlib
+    """Make the cover figure.
+    """
 
     args = parse_args()
+
+    import matplotlib  # pylint: disable=import-outside-toplevel
 
     if args.show:
         matplotlib.use('Qt5Agg')
     else:
         matplotlib.use('PDF')  # Permits absence of enviroment variable DISPLAY
-    import matplotlib.pyplot  # Must be after matplotlib.use
+    import matplotlib.pyplot  # pylint: disable=import-outside-toplevel
 
     # Colors for the states
     plotcolor = [

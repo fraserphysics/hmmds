@@ -3,27 +3,32 @@
 DEBUG = False
 import sys
 
+import numpy
+
+import utilities
+
 
 def main(argv=None):
-    '''
+    """Make time series picture with fine, coarse, and quantized Lorenz
+    data.
 
-    '''
-    import numpy as np
-    import matplotlib as mpl
+    """
     global DEBUG
+
+    import matplotlib  # pylint: disable=import-outside-toplevel
+
     if DEBUG:
-        mpl.rcParams['text.usetex'] = False
+        matplotlib.rcParams['text.usetex'] = False
     else:
-        mpl.use('PDF')
-    import matplotlib.pyplot as plt
-    from utilities import axis, SubPlot
+        matplotlib.use('PDF')
+    import matplotlib.pyplot  # pylint: disable=import-outside-toplevel
     if argv is None:  # Usual case
         argv = sys.argv[1:]
     name_fine, name_coarse, name_quantized, plot_file = argv
 
     def read_data(name):
         with open(name, 'r') as file:
-            return np.array([
+            return numpy.array([
                 [float(x) for x in line.split()] for line in file.readlines()
             ]).T
 
@@ -39,14 +44,14 @@ def main(argv=None):
         'xtick.labelsize': 11,
         'ytick.labelsize': 11
     }
-    mpl.rcParams.update(params)
-    fig = plt.figure(figsize=(6, 4))
-    X = axis(data=fine[0], magnitude=False, label=r'$\tau$')
-    Y = axis(data=fine[1],
-             magnitude=False,
-             ticks=np.arange(-10, 10.1, 10),
-             label=r'$x_1(\tau)$')
-    ax = SubPlot(fig, (2, 1, 1), X, Y, color='b')
+    matplotlib.rcParams.update(params)
+    fig = matplotlib.pyplot.figure(figsize=(6, 4))
+    X = utilities.axis(data=fine[0], magnitude=False, label=r'$\tau$')
+    Y = utilities.axis(data=fine[1],
+                       magnitude=False,
+                       ticks=numpy.arange(-10, 10.1, 10),
+                       label=r'$x_1(\tau)$')
+    ax = utilities.SubPlot(fig, (2, 1, 1), X, Y, color='b')
     ax.plot(coarse[0], coarse[1], 'ro')
     ax.set_ylim(-17, 17)
     ax.set_xlim(0, 6)
@@ -56,12 +61,12 @@ def main(argv=None):
     ax.set_xlabel(r'$t$')
     ax.set_ylabel(r'$y(t)$')
     ax.set_ylim(0.5, 4.5)
-    ax.set_yticks(np.arange(1, 4.1, 1))
-    ax.set_xticks(np.arange(0, 40.1, 10))
+    ax.set_yticks(numpy.arange(1, 4.1, 1))
+    ax.set_xticks(numpy.arange(0, 40.1, 10))
     fig.subplots_adjust(hspace=0.3)
 
     if DEBUG:
-        plt.show()
+        matplotlib.pyplot.show()
     else:
         fig.savefig(plot_file)
     return 0

@@ -6,8 +6,11 @@ label_unit = lambda lab, unit: r'$%s/{\rm{%s}}$' % (lab, unit)
 label_magnitude = lambda lab, mag: r'$%s/10^{%d}$' % (lab, mag)
 magnitude = lambda A: int(np.log10(np.abs(A).max()))
 
+# The use of dicts in __init__ defeats pylint.  Hence the following line.
 
-class axis(object):
+
+# pylint: disable=no-member
+class axis:
     """ Class for managing scaling and labeling 1-d axes and data.
     """
 
@@ -17,7 +20,6 @@ class axis(object):
         """ Hides some logic that figures out how to format axis
         labels, ticks and tick labels.
         """
-        self.__dict__.update(kwargs)
         defaults = dict(
             data=None,  # np array
             magnitude='auto',  # Power of 10.  False to suppress
@@ -25,9 +27,9 @@ class axis(object):
             label=False,  # string, eg 'force'
             units=None,  # eg, 'dyn'
             tick_label_flag=True)
-        for key, value in defaults.items():
-            if not key in self.__dict__:
-                self.__dict__[key] = value
+        self.__dict__.update(defaults)
+        self.__dict__.update(kwargs)
+        # pylint: disable=access-member-before-definition
         if self.magnitude == 'auto' and isinstance(self.data, np.ndarray):
             self.magnitude = magnitude(self.data)
         if self.label == False:
@@ -45,7 +47,6 @@ class axis(object):
             (False, False):
                 r'$%s$' % (self.label,)
         }[(U, M)]
-        return
 
     def get_data(self,):
         if isinstance(self.magnitude, int):
@@ -57,7 +58,6 @@ class axis(object):
         """
         if self.label != False:
             func(self.label)
-        return
 
     def set_ticks(self, tick_func, label_func):
         """Apply functions, eg, mpl.axis.set_xticks() and
@@ -67,8 +67,8 @@ class axis(object):
             label_func([])
         if isinstance(self.ticks, str) and self.ticks == 'auto':
             return
-        else:
-            tick_func(self.ticks, minor=False)
+
+        tick_func(self.ticks, minor=False)
         if self.tick_label_flag:
             if np.abs(self.ticks - self.ticks.astype(int)).sum() == 0:
                 label_func([r'$%d$' % int(f) for f in self.ticks])

@@ -10,23 +10,26 @@ SGO_d.pdf  Decoded time series of states
 """
 DEBUG = False
 import sys
+import os.path
+
+import numpy
+
+import utilities
 
 
 def main(argv=None):
-    '''
+    """Make plots SGO_%.pdf for % in b,c,d
 
-    '''
-    import numpy as np
-    from utilities import read_data, SubPlot, axis
-    from os.path import join
+    """
 
-    import matplotlib as mpl
+    import matplotlib  # pylint: disable=import-outside-toplevel
+
     global DEBUG
     if DEBUG:
-        mpl.rcParams['text.usetex'] = False
+        matplotlib.rcParams['text.usetex'] = False
     else:
-        mpl.use('PDF')
-    import matplotlib.pyplot as plt
+        matplotlib.use('PDF')
+    import matplotlib.pyplot  # pylint: disable=import-outside-toplevel
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]
@@ -42,46 +45,46 @@ def main(argv=None):
         'xtick.labelsize': 15,
         'ytick.labelsize': 15
     }
-    mpl.rcParams.update(params)
+    matplotlib.rcParams.update(params)
 
-    data = read_data(sim_file)
-    X = axis(data=data[0],
-             magnitude=False,
-             label=r'$t$',
-             ticks=np.arange(0, 100.1, 25))
+    data = utilities.read_data(sim_file)
+    X = utilities.axis(data=data[0],
+                       magnitude=False,
+                       label=r'$t$',
+                       ticks=numpy.arange(0, 100.1, 25))
 
     def _plot(Y):
-        fig = plt.figure(figsize=(3.5, 2.5))
-        ax = SubPlot(fig, (1, 1, 1), X, Y, color='b')
+        fig = matplotlib.pyplot.figure(figsize=(3.5, 2.5))
+        ax = utilities.SubPlot(fig, (1, 1, 1), X, Y, color='b')
         ax.set_ylim(-0.02, 1.02)
         fig.subplots_adjust(bottom=0.15)  # Make more space for label
         fig.subplots_adjust(left=.15, bottom=.18)
         return (ax, fig)
 
     ax, fig_b = _plot(
-        axis(data=data[1],
-             magnitude=False,
-             label=r'$S(t)$',
-             ticks=np.arange(0, 1.1, 1)))
+        utilities.axis(data=data[1],
+                       magnitude=False,
+                       label=r'$S(t)$',
+                       ticks=numpy.arange(0, 1.1, 1)))
     ax, fig_d = _plot(
-        axis(data=data[3],
-             magnitude=False,
-             label=r'$S(t)$',
-             ticks=np.arange(0, 1.1, 1)))
+        utilities.axis(data=data[3],
+                       magnitude=False,
+                       label=r'$S(t)$',
+                       ticks=numpy.arange(0, 1.1, 1)))
 
     ax, fig_c = _plot(
-        axis(data=data[2],
-             magnitude=False,
-             label=r'$y(t)$',
-             ticks=np.arange(-4, 4.1, 4)))
+        utilities.axis(data=data[2],
+                       magnitude=False,
+                       label=r'$y(t)$',
+                       ticks=numpy.arange(-4, 4.1, 4)))
     ax.set_ylim(-5, 5)
     fig_c.subplots_adjust(left=.2)
     if DEBUG:
-        plt.show()
+        matplotlib.pyplot.show()
     else:
-        fig_b.savefig(join(fig_dir, 'SGO_b.pdf'))
-        fig_c.savefig(join(fig_dir, 'SGO_c.pdf'))
-        fig_d.savefig(join(fig_dir, 'SGO_d.pdf'))
+        fig_b.savefig(os.path.join(fig_dir, 'SGO_b.pdf'))
+        fig_c.savefig(os.path.join(fig_dir, 'SGO_c.pdf'))
+        fig_d.savefig(os.path.join(fig_dir, 'SGO_d.pdf'))
     return 0
 
 

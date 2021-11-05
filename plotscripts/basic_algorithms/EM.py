@@ -56,13 +56,14 @@ def main(argv=None):
     ax.set_xticks(numpy.arange(0.2, 0.8, .2))
     ax.set_yticks(numpy.arange(0.3, 0.8, .2))
     X, Y = numpy.meshgrid(xs, ys)
-    ax.plot_surface(X,
-                    Y,
-                    zs,
-                    rstride=1,
-                    cstride=1,
-                    cmap=matplotlib.cm.hsv,  # pylint: disable=no-member
-                    linewidth=1)
+    ax.plot_surface(
+        X,
+        Y,
+        zs,
+        rstride=1,
+        cstride=1,
+        cmap=matplotlib.cm.hsv,  # pylint: disable=no-member
+        linewidth=1)
     ax = fig.add_subplot(1, 2, 2)
     x = numpy.arange(0, 1.1, 1)
     y = 0.25 + x / 2.0
