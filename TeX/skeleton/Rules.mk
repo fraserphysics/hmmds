@@ -11,7 +11,7 @@ ADD_PDF_PDF_T = $(addprefix $(1)/, $(addsuffix .pdf, $(2)) $(addsuffix .pdf_t, $
 
 INTRODUCTION_FIGS = $(addsuffix .pdf, $(addprefix $(BUILD)/figs/introduction/, \
 TSintro Statesintro))
-INTRODUCTION_XFIGS = $(call ADD_PDF_PDF_T, $(BUILD)/figs/introduction, Markov_mm Markov_dhmm Markov_dhmm_net)
+INTRODUCTION_XFIGS = $(call ADD_PDF_PDF_T, $(BUILD)/figs/introduction, Markov_mm Markov_dhmm Markov_dhmm_net nonmm)
 
 BASIC_ALGORITHMS_FIGS = $(addsuffix .pdf, $(addprefix $(BUILD)/figs/basic_algorithms/, \
 TrainChar GaussMix EM))
@@ -24,7 +24,8 @@ SKELETON_FIGS = $(INTRODUCTION_FIGS) \
 $(INTRODUCTION_XFIGS) \
 $(BASIC_ALGORITHMS_FIGS) \
 $(BASIC_ALGORITHMS_XFIGS) \
-$(VARIANTS_FIGS)
+$(VARIANTS_FIGS) \
+$(VARIANTS_XFIGS)
 
 TEX_SKELETON = $(ROOT)/TeX/skeleton
 

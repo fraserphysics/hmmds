@@ -8,15 +8,15 @@ magnitude = lambda A: int(np.log10(np.abs(A).max()))
 
 
 class axis(object):
-    ''' Class for managing scaling and labeling 1-d axes and data.
-    '''
+    """ Class for managing scaling and labeling 1-d axes and data.
+    """
 
     def __init__(
             self,  # axis
             **kwargs):  # Any keyword argument is legal
-        ''' Hides some logic that figures out how to format axis
+        """ Hides some logic that figures out how to format axis
         labels, ticks and tick labels.
-        '''
+        """
         self.__dict__.update(kwargs)
         defaults = dict(
             data=None,  # np array
@@ -53,16 +53,16 @@ class axis(object):
         return self.data
 
     def set_label(self, func):
-        '''Apply func, eg, mpl.axis.set_xlabel(), to self._label
-        '''
+        """Apply func, eg, mpl.axis.set_xlabel(), to self._label
+        """
         if self.label != False:
             func(self.label)
         return
 
     def set_ticks(self, tick_func, label_func):
-        '''Apply functions, eg, mpl.axis.set_xticks() and
+        """Apply functions, eg, mpl.axis.set_xticks() and
         mpl.axis,set_xticklabels() to self.ticks
-        '''
+        """
         if self.tick_label_flag == False:
             label_func([])
         if isinstance(self.ticks, str) and self.ticks == 'auto':
@@ -78,8 +78,8 @@ class axis(object):
 
 
 def SubPlot(fig, position, x, y, plot_flag=True, label=None, color='b'):
-    ''' Make a subplot for fig using data and format in axis objects x and y
-    '''
+    """ Make a subplot for fig using data and format in axis objects x and y
+    """
     ax = fig.add_subplot(*position)
     if plot_flag:
         if x.data is None:
@@ -94,9 +94,9 @@ def SubPlot(fig, position, x, y, plot_flag=True, label=None, color='b'):
 
 
 def read_data(data_file):
-    '''Read in "data_file" as an array'''
-    f = file(data_file, 'r')
-    data = [[float(x) for x in line.split()] for line in f.xreadlines()]
+    """Read in "data_file" as an array"""
+    f = open(data_file, 'r')
+    data = [[float(x) for x in line.split()] for line in f.readlines()]
     f.close()
     return np.array(data).T
 
