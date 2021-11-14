@@ -11,7 +11,7 @@ $(FIGS_Basic)/TrainChar.pdf: $(BasicPlotScripts)/TrainChar.py $(TrainCharData)
 	mkdir -p $(FIGS_Basic)
 	python $< $(TrainCharData) $@
 
-$(FIGS_Basic)/GaussMix.pdf: $(BasicPlotScripts)/GaussMix.py $(EMData)
+$(FIGS_Basic)/GaussMix.pdf: $(BasicPlotScripts)/gauss_mix.py $(EMData)
 	mkdir -p $(FIGS_Basic)
 	python $^ $@
 

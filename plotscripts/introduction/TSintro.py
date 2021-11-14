@@ -46,14 +46,14 @@ def main(argv=None):
     }
     matplotlib.rcParams.update(params)
     fig = matplotlib.pyplot.figure(figsize=(6, 4))
-    X = plotscripts.utilities.axis(data=fine[0],
+    X = plotscripts.utilities.Axis(data=fine[0],
                                    magnitude=False,
                                    label=r'$\tau$')
-    Y = plotscripts.utilities.axis(data=fine[1],
+    Y = plotscripts.utilities.Axis(data=fine[1],
                                    magnitude=False,
                                    ticks=numpy.arange(-10, 10.1, 10),
                                    label=r'$x_1(\tau)$')
-    ax = plotscripts.utilities.SubPlot(fig, (2, 1, 1), X, Y, color='b')
+    ax = plotscripts.utilities.sub_plot(fig, (2, 1, 1), X, Y, color='b')
     ax.plot(coarse[0], coarse[1], 'ro')
     ax.set_ylim(-17, 17)
     ax.set_xlim(0, 6)

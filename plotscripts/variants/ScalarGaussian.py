@@ -48,32 +48,32 @@ def main(argv=None):
     matplotlib.rcParams.update(params)
 
     data = plotscripts.utilities.read_data(sim_file)
-    X = plotscripts.utilities.axis(data=data[0],
+    X = plotscripts.utilities.Axis(data=data[0],
                                    magnitude=False,
                                    label=r'$t$',
                                    ticks=numpy.arange(0, 100.1, 25))
 
     def _plot(Y):
         fig = matplotlib.pyplot.figure(figsize=(3.5, 2.5))
-        ax = plotscripts.utilities.SubPlot(fig, (1, 1, 1), X, Y, color='b')
+        ax = plotscripts.utilities.sub_plot(fig, (1, 1, 1), X, Y, color='b')
         ax.set_ylim(-0.02, 1.02)
         fig.subplots_adjust(bottom=0.15)  # Make more space for label
         fig.subplots_adjust(left=.15, bottom=.18)
         return (ax, fig)
 
     ax, fig_b = _plot(
-        plotscripts.utilities.axis(data=data[1],
+        plotscripts.utilities.Axis(data=data[1],
                                    magnitude=False,
                                    label=r'$S(t)$',
                                    ticks=numpy.arange(0, 1.1, 1)))
     ax, fig_d = _plot(
-        plotscripts.utilities.axis(data=data[3],
+        plotscripts.utilities.Axis(data=data[3],
                                    magnitude=False,
                                    label=r'$S(t)$',
                                    ticks=numpy.arange(0, 1.1, 1)))
 
     ax, fig_c = _plot(
-        plotscripts.utilities.axis(data=data[2],
+        plotscripts.utilities.Axis(data=data[2],
                                    magnitude=False,
                                    label=r'$y(t)$',
                                    ticks=numpy.arange(-4, 4.1, 4)))

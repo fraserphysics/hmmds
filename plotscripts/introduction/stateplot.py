@@ -14,6 +14,8 @@ Call with optional arguments: --data_dir, --base_name, --fig_path
 import sys
 import argparse
 
+import plotscripts.utilities
+
 
 def parse_args(argv=None):
     """ Convert command line arguments into a namespace
@@ -39,14 +41,8 @@ def main():
     """
 
     args = parse_args()
-
-    import matplotlib  # pylint: disable=import-outside-toplevel
-
-    if args.show:
-        matplotlib.use('Qt5Agg')
-    else:
-        matplotlib.use('PDF')  # Permits absence of enviroment variable DISPLAY
-    import matplotlib.pyplot  # pylint: disable=import-outside-toplevel
+    matplotlib, matplotlib.pyplot = plotscripts.utilities.import_matplotlib_pyplot(
+        args)
 
     # Colors for the states
     plotcolor = [

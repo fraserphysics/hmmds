@@ -66,7 +66,9 @@ yapf :
 ## check-types                    : Checks type hints
 .PHONY : check-types
 check-types:
-	export MYPYPATH=$$PYTHONPATH; mypy --no-strict-optional hmmds
+	export MYPYPATH=$$PYTHONPATH; mypy --no-strict-optional hmmds/synthetic plotscripts|grep -v matplotlib|grep -v mpl_toolkits|grep -v scipy
+#	export MYPYPATH=/mnt/precious/home/andy_nix/projects/proj_hmm/src; mypy --no-strict-optional hmmds/synthetic plotscripts
+#	export MYPYPATH=$$PYTHONPATH; mypy --no-strict-optional hmmds/synthetic plotscripts
 # --no-strict-optional allows None as default value
 
 ## lint                           : Run pylint

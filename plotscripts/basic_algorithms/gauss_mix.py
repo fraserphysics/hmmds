@@ -1,17 +1,32 @@
-"""
-GaussMix.py em.pickle GaussMix.pdf
+"""gauss_mix.py: Makes GaussMix.pdf
 
 """
-DEBUG = False
+
 import sys
 import pickle
+import argparse
+
 import numpy
 from numpy.linalg import inv as LAI
 from numpy.linalg import eigh as EIG
-import matplotlib
 
-matplotlib.use('PDF')
-import matplotlib.pyplot as plt
+import plotscripts.utilities
+
+
+def parse_args(argv=None):
+    """ Convert command line arguments into a namespace
+    """
+
+    if not argv:
+        argv = sys.argv[1:]
+
+    parser = argparse.ArgumentParser(description='Make GaussMix.pdf')
+    parser.add_argument('--show',
+                        action='store_true',
+                        help="display figure using Qt5")
+    parser.add_argument('dict_file', type=str, help="path to data")
+    parser.add_argument('fig_path', type=str, help="path to figure")
+    return parser.parse_args(argv)
 
 
 def main(argv=None):
@@ -22,21 +37,12 @@ def main(argv=None):
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    dict_file, fig_name = argv
+    args = parse_args()
+    matplotlib, matplotlib.pyplot = plotscripts.utilities.import_matplotlib_pyplot(
+        args)
+    plotscripts.utilities.update_matplotlib_params(matplotlib)
 
-    params = {
-        'axes.labelsize': 12,
-        #'text.fontsize': 10,
-        'legend.fontsize': 10,
-        'text.usetex': True,
-        'xtick.labelsize': 11,
-        'ytick.labelsize': 11
-    }
-    if DEBUG:
-        params['text.usetex'] = False
-    matplotlib.rcParams.update(params)
-
-    _dict = pickle.load(open(dict_file, 'rb'))
+    _dict = pickle.load(open(args.dict_file, 'rb'))
 
     def subplot(i_label):
         x = numpy.arange(-6, 6, 0.05)
@@ -54,7 +60,7 @@ def main(argv=None):
             ax.plot(x, y, label=label)
         ax.legend()
 
-    fig = plt.figure(figsize=(6, 5))
+    fig = matplotlib.pyplot.figure(figsize=(6, 5))
     ax = fig.add_subplot(2, 1, 1)
     subplot(((0, r'$\theta(1)$'), (-1, r'$\theta$')))
 
@@ -63,10 +69,9 @@ def main(argv=None):
     x = _dict['Y']
     ax.plot(x, numpy.ones(len(x)) * 0.01, 'rd')
 
-    if DEBUG:
-        plt.show()
-    else:
-        fig.savefig(fig_name)
+    if args.show:
+        matplotlib.pyplot.show()
+    fig.savefig(args.fig_path)  #Make sure to save it as a .pdf
     return 0
 
 
