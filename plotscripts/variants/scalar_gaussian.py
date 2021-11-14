@@ -8,83 +8,78 @@ SGO_c.pdf  Simulated time series of observations
 SGO_d.pdf  Decoded time series of states
 
 """
-DEBUG = False
 import sys
 import os.path
+import argparse
 
 import numpy
 
 import plotscripts.utilities
 
 
-def main(argv=None):
-    """Make plots SGO_%.pdf for % in b,c,d
-
+def parse_args(argv):
+    """ Convert command line arguments into a namespace
     """
 
-    import matplotlib  # pylint: disable=import-outside-toplevel
-
-    global DEBUG
-    if DEBUG:
-        matplotlib.rcParams['text.usetex'] = False
-    else:
-        matplotlib.use('PDF')
-    import matplotlib.pyplot  # pylint: disable=import-outside-toplevel
-
-    if argv is None:  # Usual case
+    if not argv:
         argv = sys.argv[1:]
-    sim_file, fig_dir = argv
 
-    params = {
-        'axes.labelsize': 18,  # Plotting parameters for latex
-        #'text.fontsize': 15,
-        'legend.fontsize': 15,
-        'text.usetex': True,
-        'font.family': 'serif',
-        'font.serif': 'Computer Modern Roman',
-        'xtick.labelsize': 15,
-        'ytick.labelsize': 15
-    }
-    matplotlib.rcParams.update(params)
+    parser = argparse.ArgumentParser(
+        description='Make 3 plots for the ScalarGaussian figure')
+    parser.add_argument('--show',
+                        action='store_true',
+                        help="display figure using Qt5")
+    parser.add_argument('data_path', type=str, help="path to data")
+    parser.add_argument('fig_path', type=str, help="path to figure")
+    return parser.parse_args(argv)
 
-    data = plotscripts.utilities.read_data(sim_file)
-    X = plotscripts.utilities.Axis(data=data[0],
+
+def main(argv=None):
+    """Make plots SGO_%.pdf for % in b,c,d
+    """
+
+    args = parse_args(argv)
+    matplotlib, pyplot = plotscripts.utilities.import_matplotlib_pyplot(args)
+    plotscripts.utilities.update_matplotlib_params(matplotlib)
+
+    data = plotscripts.utilities.read_data(args.data_path)
+    x = plotscripts.utilities.Axis(data=data[0],
                                    magnitude=False,
                                    label=r'$t$',
                                    ticks=numpy.arange(0, 100.1, 25))
 
-    def _plot(Y):
-        fig = matplotlib.pyplot.figure(figsize=(3.5, 2.5))
-        ax = plotscripts.utilities.sub_plot(fig, (1, 1, 1), X, Y, color='b')
-        ax.set_ylim(-0.02, 1.02)
+    def _plot(y):
+        fig = pyplot.figure(figsize=(3.5, 2.5))
+        axis = plotscripts.utilities.sub_plot(fig, (1, 1, 1), x, y, color='b')
+        axis.set_ylim(-0.02, 1.02)
         fig.subplots_adjust(bottom=0.15)  # Make more space for label
         fig.subplots_adjust(left=.15, bottom=.18)
-        return (ax, fig)
+        return (axis, fig)
 
-    ax, fig_b = _plot(
+    _, fig_b = _plot(
         plotscripts.utilities.Axis(data=data[1],
                                    magnitude=False,
                                    label=r'$S(t)$',
                                    ticks=numpy.arange(0, 1.1, 1)))
-    ax, fig_d = _plot(
+    _, fig_d = _plot(
         plotscripts.utilities.Axis(data=data[3],
                                    magnitude=False,
                                    label=r'$S(t)$',
                                    ticks=numpy.arange(0, 1.1, 1)))
 
-    ax, fig_c = _plot(
+    axis_c, fig_c = _plot(
         plotscripts.utilities.Axis(data=data[2],
                                    magnitude=False,
                                    label=r'$y(t)$',
                                    ticks=numpy.arange(-4, 4.1, 4)))
-    ax.set_ylim(-5, 5)
+    axis_c.set_ylim(-5, 5)
     fig_c.subplots_adjust(left=.2)
-    if DEBUG:
-        matplotlib.pyplot.show()
+    if args.show:
+        pyplot.show()
     else:
-        fig_b.savefig(os.path.join(fig_dir, 'SGO_b.pdf'))
-        fig_c.savefig(os.path.join(fig_dir, 'SGO_c.pdf'))
-        fig_d.savefig(os.path.join(fig_dir, 'SGO_d.pdf'))
+        fig_b.savefig(os.path.join(args.fig_path, 'SGO_b.pdf'))
+        fig_c.savefig(os.path.join(args.fig_path, 'SGO_c.pdf'))
+        fig_d.savefig(os.path.join(args.fig_path, 'SGO_d.pdf'))
     return 0
 
 

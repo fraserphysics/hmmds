@@ -7,7 +7,7 @@ EMData =  $(SYNTHETIC_DATA)/em.pickle
 BasicPlotScripts = $(ROOT)/plotscripts/basic_algorithms
 FIGS_Basic = $(BUILD)/figs/basic_algorithms
 
-$(FIGS_Basic)/TrainChar.pdf: $(BasicPlotScripts)/TrainChar.py $(TrainCharData)
+$(FIGS_Basic)/TrainChar.pdf: $(BasicPlotScripts)/train_char.py $(TrainCharData)
 	mkdir -p $(FIGS_Basic)
 	python $< $(TrainCharData) $@
 
@@ -15,7 +15,7 @@ $(FIGS_Basic)/GaussMix.pdf: $(BasicPlotScripts)/gauss_mix.py $(EMData)
 	mkdir -p $(FIGS_Basic)
 	python $^ $@
 
-$(FIGS_Basic)/EM.pdf: $(BasicPlotScripts)/EM.py
+$(FIGS_Basic)/EM.pdf: $(BasicPlotScripts)/em.py
 	mkdir -p $(FIGS_Basic)
 	python $^ $@
 

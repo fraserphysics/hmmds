@@ -10,7 +10,7 @@ STATEPLOT = $(ROOT)/plotscripts/introduction/stateplot.py
 FIGS_Variants = $(BUILD)/figs/variants
 
 # Rule for SGO_b, SGO_c, an SGO_d
-$(FIGS_Variants)/SGO_bcd: $(VariantPlotScripts)/ScalarGaussian.py $(SGOData)
+$(FIGS_Variants)/SGO_bcd: $(VariantPlotScripts)/scalar_gaussian.py $(SGOData)
 	mkdir -p $(FIGS_Variants)
 	python $^ $(FIGS_Variants)
 	touch $@

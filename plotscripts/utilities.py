@@ -118,7 +118,7 @@ def import_matplotlib_pyplot(args):
     return matplotlib, matplotlib.pyplot
 
 
-def update_matplotlib_params(
+def update_matplotlib_params(  # pylint: disable=dangerous-default-value
     matplotlib,
     params={
         'axes.labelsize': 12,
@@ -128,6 +128,8 @@ def update_matplotlib_params(
         'xtick.labelsize': 11,
         'ytick.labelsize': 11
     }):
+    """This function provides a single place to specify standard font
+    sizes for plots."""
     matplotlib.rcParams.update(params)
 
 

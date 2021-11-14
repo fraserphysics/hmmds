@@ -8,7 +8,7 @@ FIGS_INTRO = $(BUILD)/figs/introduction
 
 # Note: The file lorenz.flag is touched after the files fine, coarse,
 # and quantized get built.
-$(FIGS_INTRO)/TSintro.pdf: $(IntroPlotScripts)/TSintro.py $(SYNTHETIC_DATA)/lorenz.flag
+$(FIGS_INTRO)/TSintro.pdf: $(IntroPlotScripts)/ts_intro.py $(SYNTHETIC_DATA)/lorenz.flag
 	mkdir -p $(FIGS_INTRO)
 	python $< $(TSINTRO)/fine $(TSINTRO)/coarse $(TSINTRO)/quantized $@
 

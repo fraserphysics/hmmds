@@ -7,8 +7,6 @@ import pickle
 import argparse
 
 import numpy
-from numpy.linalg import inv as LAI
-from numpy.linalg import eigh as EIG
 
 import plotscripts.utilities
 
@@ -34,43 +32,36 @@ def main(argv=None):
     model.
 
     """
-    if argv is None:  # Usual case
-        argv = sys.argv[1:]
-
-    args = parse_args()
-    matplotlib, matplotlib.pyplot = plotscripts.utilities.import_matplotlib_pyplot(
-        args)
+    args = parse_args(argv)
+    matplotlib, pyplot = plotscripts.utilities.import_matplotlib_pyplot(args)
     plotscripts.utilities.update_matplotlib_params(matplotlib)
 
     _dict = pickle.load(open(args.dict_file, 'rb'))
 
-    def subplot(i_label):
+    def subplot(axis, i_label):
         x = numpy.arange(-6, 6, 0.05)
 
-        def Gauss(mean, var):
-            d = x - mean
-            return (1 / (numpy.sqrt(2 * numpy.pi * var))) * numpy.exp(-d * d /
-                                                                      (2 * var))
+        def gauss(mean, var):
+            difference = x - mean
+            return (1 / (numpy.sqrt(2 * numpy.pi * var))) * numpy.exp(
+                -difference * difference / (2 * var))
 
         def mix(alpha, means):
-            return alpha * Gauss(means[0], 1) + (1 - alpha) * Gauss(means[1], 1)
+            return alpha * gauss(means[0], 1) + (1 - alpha) * gauss(means[1], 1)
 
         for i, label in i_label:
             y = mix(_dict['alpha'][i], _dict['mu_i'][i])
-            ax.plot(x, y, label=label)
-        ax.legend()
+            axis.plot(x, y, label=label)
+        axis.legend()
 
-    fig = matplotlib.pyplot.figure(figsize=(6, 5))
-    ax = fig.add_subplot(2, 1, 1)
-    subplot(((0, r'$\theta(1)$'), (-1, r'$\theta$')))
-
-    ax = fig.add_subplot(2, 1, 2)
-    subplot(((1, r'$\theta(2)$'),))
+    fig, axes = pyplot.subplots(2, 1, figsize=(6, 5))
+    subplot(axes[0], ((0, r'$\theta(1)$'), (-1, r'$\theta$')))
+    subplot(axes[1], ((1, r'$\theta(2)$'),))
     x = _dict['Y']
-    ax.plot(x, numpy.ones(len(x)) * 0.01, 'rd')
+    axes[1].plot(x, numpy.ones(len(x)) * 0.01, 'rd')
 
     if args.show:
-        matplotlib.pyplot.show()
+        pyplot.show()
     fig.savefig(args.fig_path)  #Make sure to save it as a .pdf
     return 0
 

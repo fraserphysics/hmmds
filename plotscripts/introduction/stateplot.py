@@ -17,7 +17,7 @@ import argparse
 import plotscripts.utilities
 
 
-def parse_args(argv=None):
+def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
 
@@ -36,13 +36,12 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
-def main():
+def main(argv=None):
     """Make the cover figure.
     """
 
-    args = parse_args()
-    matplotlib, matplotlib.pyplot = plotscripts.utilities.import_matplotlib_pyplot(
-        args)
+    args = parse_args(argv)
+    _, pyplot = plotscripts.utilities.import_matplotlib_pyplot(args)
 
     # Colors for the states
     plotcolor = [
@@ -55,13 +54,13 @@ def main():
         [0, 0, 0]  # Black
     ]
 
-    fig = matplotlib.pyplot.figure(figsize=(15, 15))
+    fig = pyplot.figure(figsize=(15, 15))
     n_subplot = 0
     skiplist = [1, 2, 5, 6]  # Positions for the combined plot
 
     # The first loop is to graph each individual set of points, the
     # second is to get all of them at once.
-    def subplot(ax, n_state, markersize):
+    def subplot(axis, n_state, markersize):
         name = '{0}/{1}{2}'.format(args.data_dir, args.base_name, n_state)
         xlist = []
         ylist = []
@@ -71,32 +70,31 @@ def main():
             xlist.append(x)
             ylist.append(y)
             zlist.append(z)
-        ax.set_xticks([])
-        ax.set_yticks([])
-        ax.plot(xlist,
-                zlist,
-                color=plotcolor[n_state % 7],
-                marker=',',
-                markersize=markersize,
-                linestyle='None')
-        ax.set_xlim(-20, 20)
-        ax.set_ylim(0, 50)
+        axis.set_xticks([])
+        axis.set_yticks([])
+        axis.plot(xlist,
+                  zlist,
+                  color=plotcolor[n_state % 7],
+                  marker=',',
+                  markersize=markersize,
+                  linestyle='None')
+        axis.set_xlim(-20, 20)
+        axis.set_ylim(0, 50)
 
     for n_state in range(0, 12):  # The last file is state11.
         n_subplot += 1
         while n_subplot in skiplist:  #This is to make space for putting in the
             n_subplot += 1  #figure with all the assembled pieces.
-
-        ax = fig.add_subplot(4, 4, n_subplot)
         # There are 2 kinds of calls to fig.add_subplot; one here
         # that's 4x4 and one before the next loop that's 2x2
-        subplot(ax, n_state, 1)
+        subplot(fig.add_subplot(4, 4, n_subplot), n_state, 1)
 
-    ax = fig.add_subplot(2, 2, 1)
+    axis_all = fig.add_subplot(2, 2, 1)
     for n_state in range(0, 12):
-        subplot(ax, n_state, 2)
+        subplot(axis_all, n_state, 2)
+
     if args.show:
-        matplotlib.pyplot.show()
+        pyplot.show()
     fig.savefig(args.fig_path)  #Make sure to save it as a .pdf
     return 0
 
