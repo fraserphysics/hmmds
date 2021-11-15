@@ -1,24 +1,7 @@
 ''' MakeModel.py <H_dir> <data_dir> <data_file> <model_file>
  EG. python MakeModel.py data lorenz.4 m12s.4y
 '''
-Copyright = '''
-Copyright 2021 Andrew M. Fraser
 
-This file is part of dshmm.
-
-Dshmm is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
-
-Dshmm is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-for more details.
-
-See the file gpl.txt in the root directory of the dshmm distribution
-or see <http://www.gnu.org/licenses/>.
-'''
 import sys
 import os.path
 import pickle
@@ -33,6 +16,11 @@ import hmm.simple
 
 
 def skip_header(_file):
+    """Skip lines that start with #.
+    Args:
+        _file: An open file object
+
+    """
     return itertools.dropwhile(lambda line: line.startswith("#"), _file)
 
 
