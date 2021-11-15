@@ -6,34 +6,13 @@ EG. ${PYTHON} ${P}/StatePic.py ${D} lorenz.4 m12s.4y lorenz.xyz m12s.4y
 
 2. data_dir/states that has a single decoded state trajectory
 """
-Copyright = '''
-Copyright 2021 Andrew M. Fraser
 
-This file is part of hmmds.
-
-Hmmds is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation, either version 3 of the License, or (at your
-option) any later version.
-
-Hmmds is distributed in the hope that it will be useful, but WITHOUT
-ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-for more details.
-
-See the file gpl.txt in the root directory of the hmmds distribution
-or see <http://www.gnu.org/licenses/>.
-'''
 import sys
-from os.path import join
+import os.path
 import pickle
 import argparse
 
-import numpy
-
-import hmm.base
-
-import hmmds.synthetic.MakeModel
+import hmmds.synthetic.make_model
 
 
 def main(argv=None):
@@ -59,38 +38,41 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
-    # Read in the output sequence
-    y_data, _ = hmmds.synthetic.MakeModel.read_data(args.data_dir,
-                                                    args.data_file)
-
     # Read in model
-    mod = pickle.load(open(join(args.data_dir, args.model_file), 'rb'))
-    nstates = mod.p_state_initial.shape[-1]
+    mod = pickle.load(open(os.path.join(args.data_dir, args.model_file), 'rb'))
+    n_states = mod.p_state_initial.shape[-1]
 
-    # Viterbi decode to get time series of states, ie, state sequence
-    ss = mod.decode(y_data)
+    # Read in the sequence of observations, ie, a time series, and
+    # Viterbi decode it to get a sequence of states.
+    state_sequence = mod.decode(
+        hmmds.synthetic.make_model.read_data(args.data_dir, args.data_file)[0])
 
-    # Write state sequence to file named "states"
-    f = open(join(args.data_dir, 'states'), 'w')
-    for s in ss:
-        print(s, file=f)
-    f.close()
+    # Write the state sequence to file named "states".
+    with open(os.path.join(args.data_dir, 'states'), 'w') as states_file:
+        for state in state_sequence:
+            print(state, file=states_file)
 
-    # Read in time series of vectors
-    vectors = [
-        list(map(float, line.split()))
-        for line in hmmds.synthetic.MakeModel.skip_header(
-            open(join(args.data_dir, args.vector_file), 'r'))
-    ]
+    # Read in the sequence of original vectors.
+    with open(os.path.join(args.data_dir, args.vector_file),
+              'r') as vector_file:
+        vector_sequence = [
+            map(float, line.split())
+            for line in hmmds.synthetic.make_model.skip_header(vector_file)
+        ]
+    assert len(state_sequence) == len(vector_sequence)
+
+    ss_file = open(os.path.join(args.data_dir, 'state_sequence'), 'w')
+
+    # Create a list of open files, one for each state
+    state_files = list(
+        open(os.path.join(args.data_dir, 'state{0}'.format(state)), 'w')
+        for state in range(n_states))
 
     # Write vectors to each state file, ie, state0, state1, .. state11
-    ssf = open(join(args.data_dir, 'state_sequence'), 'w')
-    f = list(
-        open(join(args.data_dir, 'state' + str(s)), 'w')
-        for s in range(nstates))
-    for t in range(len(ss)):
-        print('{0:5d} {1:d}'.format(t, ss[t]), file=ssf)
-        print('{0:7.4f} {1:7.4f} {2:7.4f}'.format(*vectors[t]), file=f[ss[t]])
+    for t, state_t in enumerate(state_sequence):
+        ss_file.write('{0:5d} {1:d}\n'.format(t, state_t))
+        state_files[state_t].write(
+            '{0:7.4f} {1:7.4f} {2:7.4f}\n'.format(*vector_sequence[t]))
     return 0
 
 
