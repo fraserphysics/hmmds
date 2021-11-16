@@ -15,9 +15,6 @@ def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
 
-    if not argv:
-        argv = sys.argv[1:]
-
     parser = argparse.ArgumentParser(description='Make GaussMix.pdf')
     parser.add_argument('--show',
                         action='store_true',
@@ -31,9 +28,9 @@ def main(argv=None):
     algorithm.
 
     """
-    args = parse_args(argv)
-    matplotlib, pyplot = plotscripts.utilities.import_matplotlib_pyplot(args)
-    plotscripts.utilities.update_matplotlib_params(matplotlib)
+
+    args, matplotlib, pyplot = plotscripts.utilities.import_and_parse(
+        parse_args, argv)
 
     fig = pyplot.figure(figsize=(9, 5))
     axis_0 = fig.add_subplot(1, 2, 1, projection='3d', azim=-109, elev=30)

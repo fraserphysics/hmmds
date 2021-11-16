@@ -21,9 +21,6 @@ def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
 
-    if not argv:
-        argv = sys.argv[1:]
-
     parser = argparse.ArgumentParser(description='Make plot for cover of book')
     parser.add_argument('--show',
                         action='store_true',
@@ -40,8 +37,7 @@ def main(argv=None):
     """Make the cover figure.
     """
 
-    args = parse_args(argv)
-    _, pyplot = plotscripts.utilities.import_matplotlib_pyplot(args)
+    args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
     # Colors for the states
     plotcolor = [
@@ -58,44 +54,45 @@ def main(argv=None):
     n_subplot = 0
     skiplist = [1, 2, 5, 6]  # Positions for the combined plot
 
-    # The first loop is to graph each individual set of points, the
-    # second is to get all of them at once.
-    def subplot(axis, n_state, markersize):
-        name = '{0}/{1}{2}'.format(args.data_dir, args.base_name, n_state)
-        xlist = []
-        ylist = []
-        zlist = []
-        for line in open(name, 'r').readlines():  #Read the data file
-            x, y, z = [float(w) for w in line.split()]
-            xlist.append(x)
-            ylist.append(y)
-            zlist.append(z)
+    def subplot(axis, state, markersize):
+        """Plot points decoded as state.
+        """
+        name = '{0}/{1}{2}'.format(args.data_dir, args.base_name, state)
+        x_list = []
+        z_list = []
+        with open(name, 'r') as data_file:
+            for line in data_file.readlines():
+                x, _, z = [float(w) for w in line.split()]
+                x_list.append(x)
+                z_list.append(z)
         axis.set_xticks([])
         axis.set_yticks([])
-        axis.plot(xlist,
-                  zlist,
-                  color=plotcolor[n_state % 7],
+        axis.plot(x_list,
+                  z_list,
+                  color=plotcolor[state % 7],
                   marker=',',
                   markersize=markersize,
                   linestyle='None')
         axis.set_xlim(-20, 20)
         axis.set_ylim(0, 50)
 
-    for n_state in range(0, 12):  # The last file is state11.
+    # Make separate plots for each decoded state.
+    for state in range(0, 12):  # The last file is state11.
         n_subplot += 1
         while n_subplot in skiplist:  #This is to make space for putting in the
             n_subplot += 1  #figure with all the assembled pieces.
         # There are 2 kinds of calls to fig.add_subplot; one here
         # that's 4x4 and one before the next loop that's 2x2
-        subplot(fig.add_subplot(4, 4, n_subplot), n_state, 1)
+        subplot(fig.add_subplot(4, 4, n_subplot), state, 1)
 
+    # Make a single plot in which colors identify the different states.
     axis_all = fig.add_subplot(2, 2, 1)
-    for n_state in range(0, 12):
-        subplot(axis_all, n_state, 2)
+    for state in range(0, 12):
+        subplot(axis_all, state, 2)
 
     if args.show:
         pyplot.show()
-    fig.savefig(args.fig_path)  #Make sure to save it as a .pdf
+    fig.savefig(args.fig_path)
     return 0
 
 

@@ -16,7 +16,7 @@ $(SYNTHETIC_DATA)/states: $(SYNTHETIC_CODE)/state_pic.py $(SYNTHETIC_DATA)/m12s.
 
 # vstates is a sentinel for varg_stateN (N in 0...11)  ToDo: implement this
 $(SYNTHETIC_DATA)/vstates: $(SYNTHETIC_CODE)/v_state_pic.py $(SYNTHETIC_DATA)/lorenz.flag
-	python $<  --data_dir $(SYNTHETIC_DATA) --data_in lorenz.xyz --out_preface varg_state
+	python $<  $(SYNTHETIC_DATA) lorenz.xyz varg_state
 	touch $@
 
 $(SYNTHETIC_DATA)/m12s.4y : $(SYNTHETIC_CODE)/make_model.py $(SYNTHETIC_DATA)/lorenz.xyz
@@ -25,8 +25,9 @@ $(SYNTHETIC_DATA)/m12s.4y : $(SYNTHETIC_CODE)/make_model.py $(SYNTHETIC_DATA)/lo
 $(SYNTHETIC_DATA)/lorenz.xyz: $(SYNTHETIC_CODE)/lorenz.py
 	python $< --n_samples 20000 --levels 4 --quantfile $(SYNTHETIC_DATA)/lorenz.4 --xyzfile $@
 
+# This takes about 11 minutes
 $(SYNTHETIC_DATA)/TrainChar: $(SYNTHETIC_CODE)/train_char.py  $(SYNTHETIC_DATA)/lorenz.flag
-	python $< $(SYNTHETIC_DATA)/lorenz.4 $@
+	python $< --n_iterations=500 $(SYNTHETIC_DATA)/lorenz.4 $@
 
 $(SYNTHETIC_DATA)/em.pickle: $(SYNTHETIC_CODE)/em.py
 	python $< $@

@@ -3,6 +3,8 @@
 
 from __future__ import annotations  # Enables, eg, (self: HMM,
 
+import sys
+
 import numpy as np
 # Utilities for axis labels in LaTeX with units in \rm font
 label_magnitude_unit = lambda lab, mag, unit: (r'$%s/(10^{%d}\ {\rm{%s}})$' %
@@ -104,33 +106,36 @@ def read_data(data_file):
     return np.array(data).T
 
 
-def import_matplotlib_pyplot(args):
-    """Boilerplate that sets up matplotlib.pyplot for either writing a pdf
-    or displaying on the screen.
+def import_and_parse(parse_args, argv):
+    """ Boilerplate for plotscripts.
+
+    Args:
+        parse_args: Function that parses argv
+        args: The command line
     """
     import matplotlib  # pylint: disable=import-outside-toplevel
+
+    if not argv:
+        argv = sys.argv[1:]
+    args = parse_args(argv)
 
     if args.show:
         matplotlib.use('Qt5Agg')
     else:
         matplotlib.use('PDF')  # Permits absence of enviroment variable DISPLAY
     import matplotlib.pyplot  # pylint: disable=import-outside-toplevel
-    return matplotlib, matplotlib.pyplot
 
-
-def update_matplotlib_params(  # pylint: disable=dangerous-default-value
-    matplotlib,
-    params={
+    params = {
         'axes.labelsize': 12,
         #'text.fontsize': 10,
         'legend.fontsize': 10,
         'text.usetex': True,
         'xtick.labelsize': 11,
         'ytick.labelsize': 11
-    }):
-    """This function provides a single place to specify standard font
-    sizes for plots."""
+    }
     matplotlib.rcParams.update(params)
+
+    return args, matplotlib, matplotlib.pyplot
 
 
 #---------------

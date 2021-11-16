@@ -14,10 +14,8 @@ def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
 
-    if not argv:
-        argv = sys.argv[1:]
-
-    parser = argparse.ArgumentParser(description='Make plot of many training characteristics')
+    parser = argparse.ArgumentParser(
+        description='Make plot of many training characteristics')
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
@@ -31,9 +29,8 @@ def main(argv=None):
 
     """
 
-    args = parse_args(argv)
-    matplotlib, pyplot = plotscripts.utilities.import_matplotlib_pyplot(args)
-    plotscripts.utilities.update_matplotlib_params(matplotlib)
+    args, matplotlib, pyplot = plotscripts.utilities.import_and_parse(
+        parse_args, argv)
 
     fig, axis = pyplot.subplots(1, 1, figsize=(6, 3))
     axis.set_xlabel(r'$n$')

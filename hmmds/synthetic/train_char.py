@@ -4,6 +4,7 @@ Read an integer time series from the file "y_data" and write 5
 training characteristics to a file named "out_data".
 """
 import sys
+import argparse
 
 import numpy
 import numpy.random
@@ -12,7 +13,20 @@ import hmm.simple
 # Instead of hmm.simple.HMM, use c version if/when written
 
 
-def random_hmm(Card_Y, N_states, seed):
+def parse_args(argv):
+    """Parse the command line.
+    """
+    parser = argparse.ArgumentParser(
+        description='Train starting from several different intial models')
+    parser.add_argument('--n_iterations', type=int, default=5)
+    parser.add_argument('--n_states', type=int, default=12)
+    parser.add_argument('--n_seeds', type=int, default=5)
+    parser.add_argument('in_path', type=str)
+    parser.add_argument('out_path', type=str)
+    return parser.parse_args(argv)
+
+
+def random_hmm(n_y, n_states, seed):
     """Create and return a hmm.simple.HMM
     """
     rng = numpy.random.default_rng(seed)
@@ -20,34 +34,38 @@ def random_hmm(Card_Y, N_states, seed):
     def random_prob(shape):
         return hmm.simple.Prob(rng.random(shape)).normalize()
 
-    P_S0 = random_prob((1, N_states))[0]
-    P_S0_ergodic = random_prob((1, N_states))[0]
-    P_ScS = random_prob((N_states, N_states))
-    P_YcS = random_prob((N_states, Card_Y))
-    observation_model = hmm.simple.Observation(P_YcS, rng)
-    return hmm.simple.HMM(P_S0, P_S0_ergodic, P_ScS, observation_model, rng)
+    p_s0 = random_prob((1, n_states))[0]
+    p_s0_ergodic = random_prob((1, n_states))[0]
+    p_s_to_s = random_prob((n_states, n_states))
+    p_s_to_y = random_prob((n_states, n_y))
+    observation_model = hmm.simple.Observation(p_s_to_y, rng)
+    return hmm.simple.HMM(p_s0, p_s0_ergodic, p_s_to_s, observation_model, rng)
 
 
 def main(argv=None):
-    if argv is None:  # Usual case
-        argv = sys.argv[1:]
-    assert len(argv) == 2
-    y_file, out_name = argv
+    """Make data for "Training characteristics" figure.
 
-    niterations = 500
-    N_states = 12
-    Y = numpy.array([int(line) for line in open(y_file, 'r')], numpy.int32)
-    Card_Y = Y.max()
-    Y -= 1
-    n_seeds = 5
-    LL = numpy.empty((niterations, n_seeds))
-    for seed in range(n_seeds):
-        model = random_hmm(Card_Y, N_states, seed)
-        LL[:, seed] = model.train(Y, niterations, display=False)
-    f = open(out_name, 'w')
-    for i in range(niterations):
-        print('%3d' % i, (n_seeds * ' %7.4f') % tuple(LL[i]), file=f)
-    f.close()
+    """
+    if argv is None:
+        argv = sys.argv[1:]
+    args = parse_args(argv)
+
+    y = numpy.array([int(line) for line in open(args.in_path, 'r')],
+                    numpy.int32)
+    # EG y.shape = (20000,) and values are from set {1,2,3,4}
+    n_y = y.max()
+    y -= 1
+    log_likelihood = numpy.empty((args.n_iterations, args.n_seeds))
+    for seed in range(args.n_seeds):
+        model = random_hmm(n_y, args.n_states, seed)
+        log_likelihood[:, seed] = model.train(y,
+                                              args.n_iterations,
+                                              display=False)
+    with open(args.out_path, 'w') as output:
+        for i in range(args.n_iterations):
+            print('%3d' % i,
+                  (args.n_seeds * ' %7.4f') % tuple(log_likelihood[i]),
+                  file=output)
     return 0
 
 

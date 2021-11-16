@@ -21,9 +21,6 @@ def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
 
-    if not argv:
-        argv = sys.argv[1:]
-
     parser = argparse.ArgumentParser(
         description='Make 3 plots for the ScalarGaussian figure')
     parser.add_argument('--show',
@@ -38,9 +35,7 @@ def main(argv=None):
     """Make plots SGO_%.pdf for % in b,c,d
     """
 
-    args = parse_args(argv)
-    matplotlib, pyplot = plotscripts.utilities.import_matplotlib_pyplot(args)
-    plotscripts.utilities.update_matplotlib_params(matplotlib)
+    args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
     data = plotscripts.utilities.read_data(args.data_path)
     x = plotscripts.utilities.Axis(data=data[0],

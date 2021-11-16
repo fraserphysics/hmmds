@@ -11,8 +11,6 @@ import plotscripts.utilities
 def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
-    if not argv:
-        argv = sys.argv[1:]
 
     parser = argparse.ArgumentParser(description='Make GaussMix.pdf')
     parser.add_argument('--show',
@@ -37,11 +35,11 @@ def main(argv=None):
 
     """
 
-    args = parse_args(argv)
-    matplotlib, pyplot = plotscripts.utilities.import_matplotlib_pyplot(args)
-    plotscripts.utilities.update_matplotlib_params(matplotlib)
+    args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
     def read_data(name):
+        """Read a text file and return an array of floats.
+        """
         with open(name, 'r') as file:
             return numpy.array([
                 [float(x) for x in line.split()] for line in file.readlines()
@@ -60,27 +58,31 @@ def main(argv=None):
                                         magnitude=False,
                                         ticks=numpy.arange(-10, 10.1, 10),
                                         label=r'$x_1(\tau)$')
+
+    # Initialize the subplots.
     upper = plotscripts.utilities.sub_plot(fig, (2, 1, 1),
                                            x_fine,
                                            y_fine,
                                            color='b')
+    lower = fig.add_subplot(2, 1, 2)
+
     upper.plot(coarse[0], coarse[1], 'ro')
     upper.set_ylim(-17, 17)
     upper.set_xlim(0, 6)
 
-    lower = fig.add_subplot(2, 1, 2)
     lower.plot(quantized[0], quantized[1], 'kd')
     lower.set_xlabel(r'$t$')
     lower.set_ylabel(r'$y(t)$')
     lower.set_ylim(0.5, 4.5)
     lower.set_yticks(numpy.arange(1, 4.1, 1))
     lower.set_xticks(numpy.arange(0, 40.1, 10))
+
     fig.subplots_adjust(hspace=0.3)
 
     if args.show:
         pyplot.show()
-    else:
-        fig.savefig(args.fig_path)
+    fig.savefig(args.fig_path)
+
     return 0
 
 

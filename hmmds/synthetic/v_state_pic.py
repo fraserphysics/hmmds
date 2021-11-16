@@ -6,7 +6,6 @@ Creates varg_stateN (N in 0..11) in the directory named by data
 
 import sys
 from os.path import join
-import pickle
 import argparse
 
 import numpy
@@ -16,7 +15,21 @@ import hmm.base
 import hmm.observe_float
 import hmm.simple
 
-import hmmds.synthetic.MakeModel
+import hmmds.synthetic.make_model
+
+
+def parse_args(argv):
+    """Parse the command line.
+    """
+
+    parser = argparse.ArgumentParser(
+        description=
+        "Make data for figure of states from vector autoregressive model")
+    parser.add_argument('--n_states', type=int, default=12)
+    parser.add_argument('data_dir', type=str)
+    parser.add_argument('data_in', type=str)
+    parser.add_argument('out_preface', type=str)
+    return parser.parse_args(argv)
 
 
 def main(argv=None):
@@ -32,74 +45,90 @@ def main(argv=None):
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]
-    parser = argparse.ArgumentParser(
-        description=
-        "Make data for figure of states from vector autoregressive model")
-    parser.add_argument('--data_dir', type=str)
-    parser.add_argument('--data_in', type=str)
-    parser.add_argument('--out_preface', type=str)
-
-    args = parser.parse_args(argv)
+    args = parse_args(argv)
 
     # Read in time series of vectors
     vectors = numpy.array([
         list(map(float, line.split()))
-        for line in hmmds.synthetic.MakeModel.skip_header(
+        for line in hmmds.synthetic.make_model.skip_header(
             open(join(args.data_dir, args.data_in), 'r'))
     ])
-    n_y, Odim = vectors.shape
-    n_y -= 1
-    Cdim = Odim + 1
-    assert Cdim == 4
-    n_states = 12
-
     y = (vectors,)
-    model = MakeVARG_HMM(n_states, Odim, Cdim, vectors)  # Make initial model
-    # Recall update formula:   Cov[s] = (Psi + rrsum)/(wsum[s]+nu+dimension+1)
+
+    n_t, vector_dim = vectors.shape
+    n_t -= 1
+    context_dim = vector_dim + 1
+    assert context_dim == 4
+
+    # Make initial model
+    model = make_varg_hmm(args.n_states, vector_dim, context_dim, vectors)
+
+    # Train while loosening prior.  Recall update formula: Cov[s] =
+    # (Psi + rrsum)/(wsum[s]+nu+dimension+1)
     for nu, psi in ((1e6, 4e6), (4.0, 1.0), (1.0, 0.25), (0.0, 0.0)):
         model.y_mod.nu = nu
         model.y_mod.Psi = numpy.eye(3) * psi
-        model.train(y, 10)  # ToDo: Printed LLps is not monotonic
-    states = model.decode(y)  # Do Viterbi decoding
+        model.train(y, 10)
 
-    f = list(
-        open(join(args.data_dir, 'varg_state' + str(s)), 'w')
-        for s in range(n_states))
-    for t in range(n_y):
-        print('%7.4f %7.4f %7.4f' % tuple(vectors[t]), file=f[states[t]])
+    # Do Viterbi decoding
+    states = model.decode(y)
+
+    # Write the vectors that were decoded for each state.
+    state_files = list(
+        open(join(args.data_dir, 'varg_state' + str(state)), 'w')
+        for state in range(args.n_states))
+    for t in range(n_t):
+        print('%7.4f %7.4f %7.4f' % tuple(vectors[t]),
+              file=state_files[states[t]])
     return 0
 
 
-def MakeVARG_HMM(n_states, out_dimension, context_dimension, vectors):
-    """Returns a normalized random initial model
+def make_varg_hmm(n_states, out_dimension, context_dimension, vectors):
+    """Returns a normalized random initial model.
+
+    Args:
+        n_states:
+        out_dimension:
+        context_dimension:
+        vectors: A sequence of observations
+
+    Return:
+        A model that is consistent with the data "vectors".
+
     """
 
     # Make VARG observation model
     rng = numpy.random.default_rng(0)
-    ts = rng.integers(1, len(vectors), n_states)
+
+    # Generate a random time for each state
+    t_state = rng.integers(1, high=len(vectors), size=n_states)
+
+    # Setup forecast and to work perfectly for state s at time t_state[state]
     a_forecast = numpy.zeros((n_states, out_dimension, context_dimension))
-    # Set up forecast to work perfectly for state s at time ts[s]
-    for s in range(n_states):
+    for state in range(n_states):
         # Assign one column at a time
-        a_forecast[s, :, 0] = [1, 0, 0]
-        a_forecast[s, :, 1] = [0, 1, 0]
-        a_forecast[s, :, 2] = [0, 0, 1]
-        a_forecast[s, :, 3] = vectors[ts[s]] - vectors[ts[s] - 1]
-    mean = numpy.mean(vectors, axis=0)
-    assert mean.shape == (3,)
+        a_forecast[state, :, 0] = [1, 0, 0]
+        a_forecast[state, :, 1] = [0, 1, 0]
+        a_forecast[state, :, 2] = [0, 0, 1]
+        a_forecast[state, :,
+                   3] = vectors[t_state[state]] - vectors[t_state[state] - 1]
+
+    # Setup covariance of each state to be the covariance of all of the data
     covariance = numpy.cov(vectors.T)
     assert covariance.shape == (3, 3)
     covariance_state = numpy.empty((n_states, 3, 3))
-    for s in range(n_states):
-        covariance_state[s] = covariance
-    y_model = hmm.observe_float.VARG(a_forecast, covariance_state, rng)
+    for state in range(n_states):
+        covariance_state[state] = covariance
 
     # Make other parameters for HMM
-    P_S0 = hmm.simple.Prob(rng.random((1, n_states))).normalize()[0]
-    P_S0_ergodic = hmm.simple.Prob(rng.random((1, n_states))).normalize()[0]
-    P_ScS = hmm.simple.Prob(rng.random((n_states, n_states))).normalize()
+    p_s0 = hmm.simple.Prob(rng.random((1, n_states))).normalize()[0]
+    p_s0_ergodic = hmm.simple.Prob(rng.random((1, n_states))).normalize()[0]
+    p_s_to_s = hmm.simple.Prob(rng.random((n_states, n_states))).normalize()
 
-    model = hmm.base.HMM(P_S0, P_S0_ergodic, P_ScS, y_model)
+    # Make the model
+    model = hmm.base.HMM(
+        p_s0, p_s0_ergodic, p_s_to_s,
+        hmm.observe_float.VARG(a_forecast, covariance_state, rng))
     assert model.p_state_initial.shape == (12,)
     return model
 

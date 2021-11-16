@@ -11,12 +11,9 @@ import numpy
 import plotscripts.utilities
 
 
-def parse_args(argv=None):
+def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
-
-    if not argv:
-        argv = sys.argv[1:]
 
     parser = argparse.ArgumentParser(description='Make GaussMix.pdf')
     parser.add_argument('--show',
@@ -32,22 +29,36 @@ def main(argv=None):
     model.
 
     """
-    args = parse_args(argv)
-    matplotlib, pyplot = plotscripts.utilities.import_matplotlib_pyplot(args)
-    plotscripts.utilities.update_matplotlib_params(matplotlib)
+
+    args, matplotlib, pyplot = plotscripts.utilities.import_and_parse(
+        parse_args, argv)
 
     _dict = pickle.load(open(args.dict_file, 'rb'))
+    assert set(_dict.keys()) == set(('Y', 'alpha', 'mu_i'))
+
+    # Y is a set of 10 observations.  alpha and mu_i are sequences of
+    # model parameters.
 
     def subplot(axis, i_label):
+        """Plot the distribution for a means[i], alpha[i].
+        
+        Args:
+            axis: An axis from pyplot.subplots
+            i_label: (i, label) where i is the index for means and alpha.
+
+        """
         x = numpy.arange(-6, 6, 0.05)
 
         def gauss(mean, var):
+            """Return y values for Normal(mean, var) over range of x."""
             difference = x - mean
             return (1 / (numpy.sqrt(2 * numpy.pi * var))) * numpy.exp(
                 -difference * difference / (2 * var))
 
         def mix(alpha, means):
-            return alpha * gauss(means[0], 1) + (1 - alpha) * gauss(means[1], 1)
+            _var = 1.0
+            return alpha * gauss(means[0], _var) + (1 - alpha) * gauss(
+                means[1], _var)
 
         for i, label in i_label:
             y = mix(_dict['alpha'][i], _dict['mu_i'][i])
@@ -55,8 +66,14 @@ def main(argv=None):
         axis.legend()
 
     fig, axes = pyplot.subplots(2, 1, figsize=(6, 5))
+
+    # Plot the distributions for the initial and true parameters
     subplot(axes[0], ((0, r'$\theta(1)$'), (-1, r'$\theta$')))
+
+    # Plot the distribution for parameters after one EM iteration
     subplot(axes[1], ((1, r'$\theta(2)$'),))
+
+    # Plot the observations
     x = _dict['Y']
     axes[1].plot(x, numpy.ones(len(x)) * 0.01, 'rd')
 

@@ -1,6 +1,6 @@
-''' MakeModel.py <H_dir> <data_dir> <data_file> <model_file>
- EG. python MakeModel.py data lorenz.4 m12s.4y
-'''
+""" MakeModel.py <n_iterations> <data_dir> <data_file> <model_file>
+ EG. python MakeModel.py 50 data lorenz.4 m12s.4y
+"""
 
 import sys
 import os.path
@@ -15,6 +15,19 @@ import hmm.base
 import hmm.simple
 
 
+def parse_args(argv):
+    """Parse the command line
+    """
+    parser = argparse.ArgumentParser(
+        description="Make data for figure on cover")
+    parser.add_argument('--random_seed', type=int, default=0)
+    parser.add_argument('n_iterations', type=int)
+    parser.add_argument('data_dir', type=str)
+    parser.add_argument('data_file', type=str)
+    parser.add_argument('model_file', type=str)
+    return parser.parse_args(argv)
+
+
 def skip_header(_file):
     """Skip lines that start with #.
     Args:
@@ -25,11 +38,11 @@ def skip_header(_file):
 
 
 def read_data(data_dir, data_file):
-    '''Read quantized data and return as numpy array.  Shift values by -1
+    """Read quantized data and return as numpy array.  Shift values by -1
     so that minimum for plots can be 1 while still using [0,n) for hmm
     code.
 
-    '''
+    """
     with open(os.path.join(data_dir, data_file), 'r') as file_:
         y = numpy.array([int(line) - 1 for line in skip_header(file_)],
                         numpy.int32)
@@ -37,7 +50,7 @@ def read_data(data_dir, data_file):
 
 
 def main(argv=None):
-    '''Call with arguments: n, data_dir, data_file, model_file
+    """Call with arguments: n, data_dir, data_file, model_file
 
     n = number of iterations
 
@@ -46,20 +59,12 @@ def main(argv=None):
     data_file = name of data file
 
     model_file = name of the file into which resulting model to be written
-    '''
+    """
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(
-        description="Make data for figure on cover")
-    parser.add_argument('--random_seed', type=int, default=0)
-    parser.add_argument('n_iterations', type=int)
-    parser.add_argument('data_dir', type=str)
-    parser.add_argument('data_file', type=str)
-    parser.add_argument('model_file', type=str)
-    args = parser.parse_args(argv)
-
+    args = parse_args(argv)
     nstates = 12
 
     y_data, cardy = read_data(args.data_dir, args.data_file)
