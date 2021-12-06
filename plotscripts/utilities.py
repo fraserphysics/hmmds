@@ -1,6 +1,10 @@
 """utilities.py: Support for making figures with matplotlib
 """
 
+# Try something like:
+
+# fig, (ax_ecg, ax_onr, ax_O2) = matplotlib.pyplot.subplots(nrows=3, ncols=1, sharex=True)
+
 from __future__ import annotations  # Enables, eg, (self: HMM,
 
 import sys
