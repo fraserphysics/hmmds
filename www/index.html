@@ -1,0 +1,39 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta content="text/html;charset=ISO-8859-1" http-equiv="Content-Type">
+  <title>Hidden Markov Models and Dynamical Systems</title>
+  <meta content="Andrew Fraser" name="author">
+  <meta content="Documentation for the software and links to book and software"
+ name="description">
+</head>
+<body>
+Hidden Markov Models and Dynamical Systems<br>
+<a href="https://epubs.siam.org/doi/book/10.1137/1.9780898717747?mobileUi=0"><img
+ alt="Image of the book" src="OT107.jpg"
+ style="border: 3px solid ; width: 157px; height: 221px;" align="left"
+ hspace="20" vspace="20"></a><br>
+<br>
+In 2021, I returned to the task of rewriting the code for my
+book <em>Hidden Markov Models and Dynamical Systems</em>, which
+is <a href="https://epubs.siam.org/doi/book/10.1137/1.9780898717747?mobileUi=0">available
+  from SIAM</a>.
+
+I have split the project into two parts each of which I host at
+GitLab.  The <a href="https://gitlab.com/fraserphysics1/hmm">hmm</a>
+project comprises general code for hmms and other data assimilation
+techniques.  It should be useful as stand alone code.
+The <a href="https://gitlab.com/fraserphysics/hmmds">hmmds</a> project
+comprises code specifically for the book.  It is my goal that if you
+install hmm then clone hmmds and cd to its root directory, you can then
+type make and have the book built after some hours.
+
+<br>
+The new code will be superior to the code that I distributed here in
+the past. It is easier to read, use and extend.  It's fast and has
+better documentation.  However the new code does not exactly reproduce
+the results in the book.  The differences are not due to errors, but
+are due to different code, libraries and random number generators.<br>
+
+</body>
+</html>
