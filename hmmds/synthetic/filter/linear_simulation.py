@@ -20,9 +20,11 @@ respectively and the parameters \omega, dt, a, b, c, and d are
 arguments to the module.
 
 """
+
+from __future__ import annotations  # Enables, eg, (self: LinearGaussian
+
 import sys
 import argparse
-import os.path
 
 import numpy
 import numpy.random
@@ -82,29 +84,56 @@ def parse_args(argv):
                         help='Write y data to this file')
     return parser.parse_args(argv)
 
-def args_to_parameters(args):
-    """
-    """
-    args.A = numpy.array([
-        [numpy.cos(args.omega*args.dt), numpy.sin(args.omega*args.dt)],
-        [-numpy.sin(args.omega*args.dt), numpy.cos(args.omega*args.dt)]
-        ]) * numpy.exp(-args.a * args.dt)
-    args.B = numpy.eye(2) * args.b
-    args.C = numpy.array([[args.c, 0.0],])
-    args.D = numpy.array([args.d],dtype=numpy.float64)
-    args.mu = numpy.array(args.mean)
-    args.covariance = numpy.array([
-        [args.covariance[0], args.covariance[1]],
-        [args.covariance[1], args.covariance[0]]
-        ])
+class LinearGaussian:
+    """State space system model with linear dynamics and observations with
+    Gaussian noise.
 
-def step(args, x, rng):
+    Args:
+        a: System dynamics
+        b: System noise
+        c: Observation map
+        d: Observation noise
+        mean: Mean of initial state
+        covariance: Covariance of initial state
+        rng: Random number generator
     """
-    """
-    y_dim, x_dim = args.C.shape
-    x_next = numpy.dot(args.A, x) + numpy.dot(args.B, rng.standard_normal(x_dim))
-    y = numpy.dot(args.C, x_next) + numpy.dot(args.D, rng.standard_normal(y_dim))
-    return x_next, y
+    def __init__(self: LinearGaussian, a: numpy.ndarray,
+                 b: numpy.ndarray, c: numpy.ndarray, d: numpy.ndarray,
+                 mean: numpy.ndarray, covariance: numpy.ndarray,
+                 rng: numpy.random.Generator):
+        # pylint: disable = invalid-name
+        self.a = a
+        self.b = b
+        self.c = c
+        self.d = d
+        self.mean = mean
+        self.covariance = covariance
+        self.rng = rng
+        self.y_dim, self.x_dim = self.c.shape
+        self.x = None
+        self.y = None
+        self.filtered_x = None
+        self.smoothed_x = None
+
+    def simulate_1_step(self: LinearGaussian, x): # pylint: disable = missing-function-docstring
+        next_x = numpy.dot(self.a, x) + numpy.dot(self.b, self.rng.standard_normal(self.x_dim))
+        y = numpy.dot(self.c, next_x) + numpy.dot(self.d, self.rng.standard_normal(self.y_dim))
+        return next_x, y
+
+    def simulate_n_steps(self: LinearGaussian, n_samples: int):
+        """Populate self.x and self.y starting from random initial condition.
+
+        Args:
+
+        n_samples: Length of self.x and self.y
+
+        """
+        self.x = numpy.empty((n_samples, self.x_dim))
+        self.y = numpy.empty((n_samples, self.y_dim))
+        self.x[0] = self.rng.multivariate_normal(self.mean, self.covariance)
+        self.y[0] = numpy.dot(self.c, self.x[0]) + numpy.dot(self.d, self.rng.standard_normal(self.y_dim))
+        for t in range(1, n_samples):
+            self.x[t], self.y[t] = self.simulate_1_step(self.x[t-1])
 
 def main(argv=None):
     """Writes time series to files specified by options --xyzfile,
@@ -116,22 +145,33 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     args = parse_args(argv)
-    rng = numpy.random.default_rng(args.random_seed)
-    args_to_parameters(args)
 
-    x = numpy.empty((args.n_samples, 2))
-    y = numpy.empty((args.n_samples, 1))
-    x[0] = rng.multivariate_normal(args.mu, args.covariance)
-    y[0] = numpy.dot(args.C, x[0]) + numpy.dot(args.D, rng.standard_normal(1))
-    for t in range(1, args.n_samples):
-        x[t], y[t] = step(args, x[t-1], rng)
+    rng = numpy.random.default_rng(args.random_seed)
+
+    # pylint: disable = invalid-name
+    a = numpy.array([
+        [numpy.cos(args.omega*args.dt), numpy.sin(args.omega*args.dt)],
+        [-numpy.sin(args.omega*args.dt), numpy.cos(args.omega*args.dt)]
+        ]) * numpy.exp(-args.a * args.dt)
+    b = numpy.eye(2) * args.b
+    c = numpy.array([[args.c, 0.0],])
+    d = numpy.array([args.d],dtype=numpy.float64)
+    mean = numpy.array(args.mean)
+    covariance = numpy.array([
+        [args.covariance[0], args.covariance[1]],
+        [args.covariance[1], args.covariance[0]]
+        ])
+
+    system = LinearGaussian(a, b, c, d, mean, covariance, rng)
+
+    system.simulate_n_steps(args.n_samples)
 
     # Write the results
     for t in range(0, args.n_samples):
-        args.xfile.write(f'{x[t,0]:6.3f} {x[t,1]:6.3f}\n')
+        args.xfile.write(f'{system.x[t,0]:6.3f} {system.x[t,1]:6.3f}\n')
 
     for t in range(0, args.n_samples):
-        args.yfile.write(f'{y[t,0]:6.3f}\n')
+        args.yfile.write(f'{system.y[t,0]:6.3f}\n')
     return 0
 
 

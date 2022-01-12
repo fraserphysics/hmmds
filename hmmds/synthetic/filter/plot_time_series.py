@@ -44,9 +44,8 @@ def main(argv=None):
 
     x_data = read_data(args.x_path)
     y_data = read_data(args.y_path)
-    fig, (axis_x,axis_y) = pyplot.subplots(nrows=2, ncols=1, figsize=(6, 4))
+    fig, (axis_x,axis_y) = pyplot.subplots(nrows=2, ncols=1, figsize=(6, 10))
 
-    print(f'y_data.shape={y_data.shape}')
     axis_x.plot(x_data[:,0], x_data[:,1])
     axis_y.plot(y_data)
     axis_y.plot(x_data[:,0]*.5)
