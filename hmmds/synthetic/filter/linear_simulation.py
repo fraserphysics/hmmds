@@ -21,13 +21,13 @@ arguments to the module.
 
 """
 
-from __future__ import annotations  # Enables, eg, (self: LinearGaussian
-
 import sys
 import argparse
 
 import numpy
 import numpy.random
+
+import hmm.state_space
 
 def parse_args(argv):
     """Parse the command line.
@@ -82,58 +82,10 @@ def parse_args(argv):
     parser.add_argument('yfile',
                         type=argparse.FileType('w', encoding='utf-8'),
                         help='Write y data to this file')
+    parser.add_argument('filtered',
+                        type=argparse.FileType('w', encoding='utf-8'),
+                        help='Write filtered data to this file')
     return parser.parse_args(argv)
-
-class LinearGaussian:
-    """State space system model with linear dynamics and observations with
-    Gaussian noise.
-
-    Args:
-        a: System dynamics
-        b: System noise
-        c: Observation map
-        d: Observation noise
-        mean: Mean of initial state
-        covariance: Covariance of initial state
-        rng: Random number generator
-    """
-    def __init__(self: LinearGaussian, a: numpy.ndarray,
-                 b: numpy.ndarray, c: numpy.ndarray, d: numpy.ndarray,
-                 mean: numpy.ndarray, covariance: numpy.ndarray,
-                 rng: numpy.random.Generator):
-        # pylint: disable = invalid-name
-        self.a = a
-        self.b = b
-        self.c = c
-        self.d = d
-        self.mean = mean
-        self.covariance = covariance
-        self.rng = rng
-        self.y_dim, self.x_dim = self.c.shape
-        self.x = None
-        self.y = None
-        self.filtered_x = None
-        self.smoothed_x = None
-
-    def simulate_1_step(self: LinearGaussian, x): # pylint: disable = missing-function-docstring
-        next_x = numpy.dot(self.a, x) + numpy.dot(self.b, self.rng.standard_normal(self.x_dim))
-        y = numpy.dot(self.c, next_x) + numpy.dot(self.d, self.rng.standard_normal(self.y_dim))
-        return next_x, y
-
-    def simulate_n_steps(self: LinearGaussian, n_samples: int):
-        """Populate self.x and self.y starting from random initial condition.
-
-        Args:
-
-        n_samples: Length of self.x and self.y
-
-        """
-        self.x = numpy.empty((n_samples, self.x_dim))
-        self.y = numpy.empty((n_samples, self.y_dim))
-        self.x[0] = self.rng.multivariate_normal(self.mean, self.covariance)
-        self.y[0] = numpy.dot(self.c, self.x[0]) + numpy.dot(self.d, self.rng.standard_normal(self.y_dim))
-        for t in range(1, n_samples):
-            self.x[t], self.y[t] = self.simulate_1_step(self.x[t-1])
 
 def main(argv=None):
     """Writes time series to files specified by options --xyzfile,
@@ -162,13 +114,17 @@ def main(argv=None):
         [args.covariance[1], args.covariance[0]]
         ])
 
-    system = LinearGaussian(a, b, c, d, mean, covariance, rng)
+    system = hmm.state_space.LinearGaussian(a, b, c, d, mean.copy(), covariance.copy(), rng)
 
     system.simulate_n_steps(args.n_samples)
+    system.filter()  # Run Kalman filter on simulated observations
 
     # Write the results
     for t in range(0, args.n_samples):
         args.xfile.write(f'{system.x[t,0]:6.3f} {system.x[t,1]:6.3f}\n')
+
+    for t in range(0, args.n_samples):
+        args.filtered.write(f'{system.filtered_x[t,0]:6.3f} {system.filtered_x[t,1]:6.3f}\n')
 
     for t in range(0, args.n_samples):
         args.yfile.write(f'{system.y[t,0]:6.3f}\n')

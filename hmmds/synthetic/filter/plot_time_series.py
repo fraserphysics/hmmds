@@ -22,6 +22,9 @@ def parse_args(argv):
     parser.add_argument('y_path',
                         type=str,
                         help="path to data")
+    parser.add_argument('filtered',
+                        type=str,
+                        help="path to data")
     parser.add_argument('fig_path', type=str, help="path to figure")
     return parser.parse_args(argv)
 
@@ -44,12 +47,19 @@ def main(argv=None):
 
     x_data = read_data(args.x_path)
     y_data = read_data(args.y_path)
-    fig, (axis_x,axis_y) = pyplot.subplots(nrows=2, ncols=1, figsize=(6, 10))
+    filtered_data = read_data(args.filtered)
+    fig, (axis_x, axis_y, axis_filtered_0, axis_filtered_1) = pyplot.subplots(nrows=4, ncols=1, figsize=(6, 15))
 
-    axis_x.plot(x_data[:,0], x_data[:,1])
-    axis_y.plot(y_data)
-    axis_y.plot(x_data[:,0]*.5)
+    axis_x.plot(x_data[:,0], x_data[:,1], label='x')
+    axis_y.plot(y_data, label='y')
+    axis_filtered_0.plot(x_data[:,0], label='$x_0$')
+    axis_filtered_0.plot(filtered_data[:,0], label='filtered')
+    axis_filtered_1.plot(x_data[:,1], label='$x_1$')
+    axis_filtered_1.plot(filtered_data[:,1], label='filtered')
 
+    for axis in (axis_x, axis_y, axis_filtered_0, axis_filtered_1):
+        axis.legend()
+    
     if args.show:
         pyplot.show()
     fig.savefig(args.fig_path)
