@@ -23,6 +23,7 @@ arguments to the module.
 
 import sys
 import argparse
+import os.path
 
 import numpy
 import numpy.random
@@ -37,10 +38,12 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser(
         description='Generate a sequence of observations from a state space model.')
-    parser.add_argument('--n_samples',
-                        type=int,
-                        default=1000,
-                        help='Number of samples')
+    parser.add_argument('--data_dir', type=str, default='./',
+                        help='Writes data to this directory')
+    parser.add_argument('--sample_rate', type=float, default=10.0, help='number of samples per cycle')
+    parser.add_argument('--sample_ratio', type=int, default=10, help='Number of fine samples per coarse sample')
+    parser.add_argument('--n_fine', type=int, default=1000, help='Number of fine samples')
+    parser.add_argument('--n_coarse', type=int, default=1000, help='Number of coarse samples')
     parser.add_argument('--mean',
                         type=float,
                         nargs=2,
@@ -59,13 +62,9 @@ def parse_args(argv):
                         type=float,
                         default=0.001*omega,
                         help='system dissipation rate')
-    parser.add_argument('--dt',
-                        type=float,
-                        default=period/10.0,
-                        help='Sample frequency')
     parser.add_argument('--b',
                         type=float,
-                        default=.1,
+                        default=.01,
                         help='System noise multiplier')
     parser.add_argument('--c',
                         type=float,
@@ -76,18 +75,8 @@ def parse_args(argv):
                         default=0.2,
                         help='Observation noise multiplier')
     parser.add_argument('--random_seed', type=int, default=3)
-    parser.add_argument('xfile',
-                        type=argparse.FileType('w', encoding='utf-8'),
-                        help='Write x data to this file')
-    parser.add_argument('yfile',
-                        type=argparse.FileType('w', encoding='utf-8'),
-                        help='Write y data to this file')
-    parser.add_argument('filtered',
-                        type=argparse.FileType('w', encoding='utf-8'),
-                        help='Write filtered data to this file')
-    parser.add_argument('covariances',
-                        type=argparse.FileType('w', encoding='utf-8'),
-                        help='Write filtered data to this file')
+    for name in 'x_fine y_fine x_coarse y_coarse filtered_coarse'.split():
+        parser.add_argument(name, type=str, default=name, help='Name of file for result')
     return parser.parse_args(argv)
 
 def main(argv=None):
@@ -103,14 +92,25 @@ def main(argv=None):
 
     rng = numpy.random.default_rng(args.random_seed)
 
-    # pylint: disable = invalid-name
-    a = numpy.array([
-        [numpy.cos(args.omega*args.dt), numpy.sin(args.omega*args.dt)],
-        [-numpy.sin(args.omega*args.dt), numpy.cos(args.omega*args.dt)]
-        ]) * numpy.exp(-args.a * args.dt)
-    b = numpy.eye(2) * args.b  # State noise is b * Normal(0,I)
-    c = numpy.array([[args.c, 0.0],])
-    d = numpy.array([args.d],dtype=numpy.float64) # Observation noise is c * Normal(0,I)
+    def make_system(args, dt):
+        """Make a system instance
+        
+        Args:
+            args: Command line arguments
+            dt: Sample interval
+
+        Returns:
+            A system instance
+        """
+        # pylint: disable = invalid-name
+        a = numpy.array([
+            [numpy.cos(args.omega*dt), numpy.sin(args.omega*dt)],
+            [-numpy.sin(args.omega*dt), numpy.cos(args.omega*dt)]
+        ]) * numpy.exp(-args.a * dt)
+        b = numpy.eye(2) * args.b * numpy.sqrt(dt)  # State noise is b * Normal(0,I)
+        c = numpy.array([[args.c, 0.0],])
+        d = numpy.array([args.d],dtype=numpy.float64) # Observation noise is c * Normal(0,I)
+        return hmm.state_space.LinearGaussian(a, b, c, d, rng)
     mean = numpy.array(args.mean)
     covariance = numpy.array([
         [args.covariance[0], args.covariance[1]],
@@ -118,24 +118,37 @@ def main(argv=None):
         ])
 
     initial_dist = hmm.state_space.MultivariateNormal(mean, covariance, rng)
-    system = hmm.state_space.LinearGaussian(a, b, c, d, rng)
+    system_fine = make_system(args, 2*numpy.pi/(args.omega*args.sample_rate))
+    system_coarse = make_system(args, 2*numpy.pi*args.sample_ratio/(args.omega*args.sample_rate))
+    x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_dist, args.n_coarse)
 
-    x, y = system.simulate_n_steps(initial_dist, args.n_samples)
-    means, covariances = system.filter(initial_dist, y)  # Run Kalman filter on simulated observations
+    x_fine, y_fine = system_fine.simulate_n_steps(initial_dist, args.n_fine)
 
-    # Write the results
-    for t in range(0, args.n_samples):
-        args.xfile.write(f'{x[t,0]:6.3f} {x[t,1]:6.3f}\n')
+    # Write fine time series
+    with open(os.path.join(args.data_dir, args.x_fine), mode='w', encoding='utf') as x_file:
+        for t in range(0, args.n_fine):
+            x_file.write(f'{x_fine[t,0]:6.3f} {x_fine[t,1]:6.3f}\n')
+    with open(os.path.join(args.data_dir, args.y_fine), mode='w', encoding='utf') as y_file:
+        for t in range(0, args.n_fine):
+            y_file.write(f'{y_fine[t,0]:6.3f}\n')
 
-    for t in range(0, args.n_samples):
-        args.filtered.write(f'{means[t,0]:6.3f} {means[t,1]:6.3f}\n')
+    means, covariances = system_coarse.filter(initial_dist, y_coarse)  # Run Kalman filter on simulated observations
 
-    for t in range(0, args.n_samples):
-        args.covariances.write(f"""{t:3d} {covariances[t,0,0]:6.3f} {covariances[t,0,1]:6.3f}
-    {covariances[t,1,0]:6.3f} {covariances[t,1,1]:6.3f}\n""")
-
-    for t in range(0, args.n_samples):
-        args.yfile.write(f'{y[t,0]:6.3f}\n')
+    # Write coarse time series
+    with open(os.path.join(args.data_dir, args.x_coarse), mode='w', encoding='utf') as x_file:
+        for t in range(0, args.n_coarse):
+            x_file.write(f'{x_coarse[t,0]:6.3f} {x_coarse[t,1]:6.3f}\n')
+    with open(os.path.join(args.data_dir, args.y_coarse), mode='w', encoding='utf') as y_file:
+        for t in range(0, args.n_coarse):
+            y_file.write(f'{y_coarse[t,0]:6.3f}\n')
+    with open(os.path.join(args.data_dir, args.filtered_coarse), mode='w', encoding='utf') as filtered_file:
+        for t in range(0, args.n_coarse):
+            filtered_file.write(f'{t:4d} {means[t,0]:6.3f} {means[t,1]:6.3f}\n')
+            filtered_file.write(
+f"""
+    {covariances[t,0,0]:6.3f} {covariances[t,0,1]:6.3f}
+    {covariances[t,1,0]:6.3f} {covariances[t,1,1]:6.3f}
+\n""")
     return 0
 
 

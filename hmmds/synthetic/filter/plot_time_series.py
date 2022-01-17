@@ -50,6 +50,8 @@ def main(argv=None):
     filtered_data = read_data(args.filtered)
     fig, (axis_x, axis_y, axis_filtered_0, axis_filtered_1) = pyplot.subplots(nrows=4, ncols=1, figsize=(6, 15))
 
+    axis_filtered_0.sharex(axis_filtered_1)
+    
     axis_x.plot(x_data[:,0], x_data[:,1], label='x')
     axis_y.plot(y_data, label='y')
     axis_filtered_0.plot(x_data[:,0], label='$x_0$')
