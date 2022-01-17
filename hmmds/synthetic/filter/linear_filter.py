@@ -80,7 +80,7 @@ def main(argv=None):
     axis_y_short.plot(y_fine)
     axis_y_short.plot(list(range(len(y_fine)))[::10], y_fine[::10], marker='.', markersize=8, linestyle='None', label=r'$y$ short')
     # Observations long-coarse time
-    axis_y_long.plot(y_coarse, label='$y_\rm{long}$')
+    axis_y_long.plot(y_coarse, label='$y_\mathrm{long}$')
     # x_0 component and filtered estimate
     axis_x0_long.plot(x_coarse[:,0], label='$x_0$')
     axis_x0_long.plot(filtered_mean[:,0], label='filtered')

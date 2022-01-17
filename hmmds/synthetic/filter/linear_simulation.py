@@ -118,8 +118,11 @@ def main(argv=None):
         ])
 
     initial_dist = hmm.state_space.MultivariateNormal(mean, covariance, rng)
+    initial_estimate = hmm.state_space.MultivariateNormal(mean, covariance, rng)
+
     system_fine = make_system(args, 2*numpy.pi/(args.omega*args.sample_rate))
     system_coarse = make_system(args, 2*numpy.pi*args.sample_ratio/(args.omega*args.sample_rate))
+
     x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_dist, args.n_coarse)
 
     x_fine, y_fine = system_fine.simulate_n_steps(initial_dist, args.n_fine)
@@ -132,7 +135,7 @@ def main(argv=None):
         for t in range(0, args.n_fine):
             y_file.write(f'{y_fine[t,0]:6.3f}\n')
 
-    means, covariances = system_coarse.filter(initial_dist, y_coarse)  # Run Kalman filter on simulated observations
+    means, covariances = system_coarse.filter(initial_estimate, y_coarse)  # Run Kalman filter on simulated observations
 
     # Write coarse time series
     with open(os.path.join(args.data_dir, args.x_coarse), mode='w', encoding='utf') as x_file:
