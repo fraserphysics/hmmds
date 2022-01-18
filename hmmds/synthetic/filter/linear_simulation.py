@@ -19,6 +19,11 @@ V and W are unit variance iid Gaussian noise with dimension 2 and 1
 respectively and the parameters \omega, dt, a, b, c, and d are
 arguments to the module.
 
+
+After relaxing, the following equation gives the scale of x
+
+   E(x^2) = \frac{b^2}{1 - e^{-2*a*dt}}
+
 """
 
 import sys
@@ -32,42 +37,17 @@ import numpy.random
 import hmm.state_space
 
 
-def parse_args(argv):
-    """Parse the command line.
+def system_args(parser: argparse.ArgumentParser):
+    """I separated these so that other modules can import.
     """
+
     period = 1.0
     omega = (2 * numpy.pi) / period
 
-    parser = argparse.ArgumentParser(
-        description=
-        'Generate a sequence of observations from a state space model.')
     parser.add_argument('--sample_rate',
                         type=float,
                         default=10.0,
                         help='number of samples per cycle')
-    parser.add_argument('--sample_ratio',
-                        type=int,
-                        default=10,
-                        help='Number of fine samples per coarse sample')
-    parser.add_argument('--n_fine',
-                        type=int,
-                        default=1000,
-                        help='Number of fine samples')
-    parser.add_argument('--n_coarse',
-                        type=int,
-                        default=1000,
-                        help='Number of coarse samples')
-    parser.add_argument('--mean',
-                        type=float,
-                        nargs=2,
-                        default=[0, 0],
-                        help='Initial mean')
-    parser.add_argument(
-        '--covariance',
-        type=float,
-        nargs=3,
-        default=[.25, 0, .25],
-        help='Initial covariance components (1,1), (1,2), and (2,2)')
     parser.add_argument('--omega',
                         type=float,
                         default=omega,
@@ -85,6 +65,28 @@ def parse_args(argv):
                         type=float,
                         default=0.2,
                         help='Observation noise multiplier')
+
+
+def parse_args(argv):
+    """Parse the command line.
+    """
+
+    parser = argparse.ArgumentParser(
+        description=
+        'Generate a sequence of observations from a state space model.')
+    system_args(parser)
+    parser.add_argument('--sample_ratio',
+                        type=int,
+                        default=10,
+                        help='Number of fine samples per coarse sample')
+    parser.add_argument('--n_fine',
+                        type=int,
+                        default=1000,
+                        help='Number of fine samples')
+    parser.add_argument('--n_coarse',
+                        type=int,
+                        default=1000,
+                        help='Number of coarse samples')
     parser.add_argument('data', type=str, help='Path to store data')
     parser.add_argument('--random_seed', type=int, default=3)
     return parser.parse_args(argv)
@@ -127,31 +129,29 @@ def main(argv=None):
         d = numpy.array(
             [args.d],
             dtype=numpy.float64)  # Observation noise is c * Normal(0,I)
-        return hmm.state_space.LinearGaussian(a, b, c, d, rng)
+        sigma_squared = b[0, 0]**2 / (1 - numpy.exp(-2 * args.a * dt))
+        stationary_distribution = hmm.state_space.MultivariateNormal(
+            numpy.zeros(2),
+            numpy.eye(2) * sigma_squared, rng)
+        return hmm.state_space.LinearGaussian(a, b, c, d,
+                                              rng), stationary_distribution
 
-    mean = numpy.array(args.mean)
-    covariance = numpy.array([[args.covariance[0], args.covariance[1]],
-                              [args.covariance[1], args.covariance[0]]])
+    dt_fine = 2 * numpy.pi / (args.omega * args.sample_rate)
+    system_fine, initial_fine = make_system(args, dt_fine)
+    dt_coarse = dt_fine * args.sample_ratio
+    system_coarse, initial_coarse = make_system(args, dt_coarse)
 
-    initial_dist = hmm.state_space.MultivariateNormal(mean, covariance, rng)
-    initial_estimate = hmm.state_space.MultivariateNormal(mean, covariance, rng)
-
-    system_fine = make_system(args,
-                              2 * numpy.pi / (args.omega * args.sample_rate))
-    system_coarse = make_system(
-        args,
-        2 * numpy.pi * args.sample_ratio / (args.omega * args.sample_rate))
-
-    x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_dist,
+    x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_coarse,
                                                         args.n_coarse)
     means, covariances = system_coarse.filter(
-        initial_estimate,
-        y_coarse)  # Run Kalman filter on simulated observations
-    x_fine, y_fine = system_fine.simulate_n_steps(initial_dist, args.n_fine)
+        initial_coarse, y_coarse)  # Run Kalman filter on simulated observations
+    x_fine, y_fine = system_fine.simulate_n_steps(initial_fine, args.n_fine)
 
     with open(args.data, 'wb') as _file:
         pickle.dump(
             {
+                'dt_fine': dt_fine,
+                'dt_coarse': dt_coarse,
                 'x_fine': x_fine,
                 'y_fine': y_fine,
                 'x_coarse': x_coarse,

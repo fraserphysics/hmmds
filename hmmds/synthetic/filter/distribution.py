@@ -1,28 +1,6 @@
 r"""distibution.py
 
-Characterize the distribution of states for the following state space
-model:
-
-.. math::
-    x_{t+1} = A x_t + B V_n
-
-    y_t = C x_t + D W_n
-
-    A = [cos(\omega * dt) sin(\omega * dt)] * \exp(-a dt)
-        [-sin(\omega * dt) cos(\omega * dt)]
-
-    B = [b 0]
-        [0 b]
-
-    C = [c 0]
-
-V and W are unit variance iid Gaussian noise with dimension 2 and 1
-respectively and the parameters \omega, dt, a, b, c, and d are
-arguments to the module.
-
-After relaxing, the following equation gives the scale of x
-
-   E(x^2) = \frac{b^2}{1 - e^{-2*a*dt}}
+Characterize the distribution of states for the state space model defined in linear_simulatinon.py
 
 """
 
@@ -31,50 +9,27 @@ import argparse
 
 import numpy
 import numpy.random
+import scipy.stats
 
 import hmm.state_space
 import plotscripts.utilities
+
+import linear_simulation
 
 
 def parse_args(argv):
     """Parse the command line.
     """
-    period = 1.0
-    omega = (2 * numpy.pi) / period
 
     parser = argparse.ArgumentParser(
         description=
         'Characterize the distribution of states of a stochastic system.')
-    parser.add_argument('--sample_rate',
-                        type=float,
-                        default=5.0,
-                        help='number of samples per cycle')
+    linear_simulation.system_args(parser)
+
     parser.add_argument('--n_samples',
                         type=int,
                         default=1000,
                         help='Number of samples')
-    parser.add_argument('--initial_state',
-                        type=float,
-                        nargs=2,
-                        default=[0, 0],
-                        help='Initial state')
-    parser.add_argument('--omega',
-                        type=float,
-                        default=omega,
-                        help='system rotation rate')
-    parser.add_argument('--a',
-                        type=float,
-                        default=0.001 * omega,
-                        help='system dissipation rate')
-    parser.add_argument('--b',
-                        type=float,
-                        default=.01,
-                        help='System noise multiplier')
-    parser.add_argument('--c', type=float, default=0.5, help='Observation map')
-    parser.add_argument('--d',
-                        type=float,
-                        default=0.2,
-                        help='Observation noise multiplier')
     parser.add_argument('--random_seed', type=int, default=3)
     parser.add_argument('--show',
                         action='store_true',
@@ -141,31 +96,29 @@ def main(argv=None):
             hmm.state_space.MultivariateNormal(mean, covariance, rng),
             args.n_samples)
         variance = (x01[:, 0]**2).sum() / args.n_samples
-        return x01, variance, a_dt, b
+        return x01, variance, dt
 
-    variance = []
-    a_dts = []
-    as_ = numpy.linspace(.002, .02, 11)
-    for a in as_:
-        args.a = a
-        x01, variance_, a_dt, b_root_dt = simulate(args.n_samples)
-        variance.append(variance_)
-        a_dts.append(a_dt)
+    x01, variance, dt = simulate(args.n_samples)
+    x0 = x01[:, 0]
 
     fig, (axis_a, axis_b) = pyplot.subplots(nrows=2, figsize=(6, 8))
 
-    #histogram, edges = numpy.histogram(x[:,0], bins=100)
-    # axis_b.plot(edges[:-1], numpy.log(histogram))
+    axis_a.plot(numpy.array(range(len(x0))) * dt,
+                x0,
+                marker='.',
+                linestyle='None')
+    #axis_a.plot(x0)
+    axis_a.set_xlabel('t')
+    axis_a.set_ylabel('$x_0$')
 
-    a_dts = numpy.array(a_dts)
-    axis_a.plot(a_dts, variance)
-
-    axis_a.plot(a_dts, b_root_dt**2 / (1 - numpy.exp(-2 * a_dts)))
-
-    axis_a.set_xlabel('a\_dts')
-    axis_a.set_ylabel('variance')
-
-    axis_b.plot(x01[::100, 0])
+    quantiles, sorted = scipy.stats.probplot(x0,
+                                             dist='norm',
+                                             sparams=(0.0, variance**.5),
+                                             fit=False)
+    #res = scipy.stats.probplot(x0, fit=True, dist='norm', sparams=(0.0, .5*variance**.5), plot=axis_b)
+    axis_b.plot(quantiles, sorted, marker='.', linestyle='None')
+    ends = [quantiles[0], quantiles[-1]]
+    axis_b.plot(ends, ends)
     if args.show:
         pyplot.show()
     fig.savefig(args.fig_path)
