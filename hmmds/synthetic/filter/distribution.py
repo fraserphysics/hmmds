@@ -1,7 +1,8 @@
-r"""linear_simulation.py
+r"""distibution.py
 
-Generate a sequence of observations from the following state space
-model
+Characterize the distribution of states for the following state space
+model:
+
 .. math::
     x_{t+1} = A x_t + B V_n
 
@@ -19,17 +20,20 @@ V and W are unit variance iid Gaussian noise with dimension 2 and 1
 respectively and the parameters \omega, dt, a, b, c, and d are
 arguments to the module.
 
+After relaxing, the following equation gives the scale of x
+
+   E(x^2) = \frac{b^2}{1 - e^{-2*a*dt}}
+
 """
 
 import sys
 import argparse
-import os.path
-import pickle
 
 import numpy
 import numpy.random
 
 import hmm.state_space
+import plotscripts.utilities
 
 
 def parse_args(argv):
@@ -40,34 +44,20 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser(
         description=
-        'Generate a sequence of observations from a state space model.')
+        'Characterize the distribution of states of a stochastic system.')
     parser.add_argument('--sample_rate',
                         type=float,
-                        default=10.0,
+                        default=5.0,
                         help='number of samples per cycle')
-    parser.add_argument('--sample_ratio',
-                        type=int,
-                        default=10,
-                        help='Number of fine samples per coarse sample')
-    parser.add_argument('--n_fine',
+    parser.add_argument('--n_samples',
                         type=int,
                         default=1000,
-                        help='Number of fine samples')
-    parser.add_argument('--n_coarse',
-                        type=int,
-                        default=1000,
-                        help='Number of coarse samples')
-    parser.add_argument('--mean',
+                        help='Number of samples')
+    parser.add_argument('--initial_state',
                         type=float,
                         nargs=2,
                         default=[0, 0],
-                        help='Initial mean')
-    parser.add_argument(
-        '--covariance',
-        type=float,
-        nargs=3,
-        default=[.25, 0, .25],
-        help='Initial covariance components (1,1), (1,2), and (2,2)')
+                        help='Initial state')
     parser.add_argument('--omega',
                         type=float,
                         default=omega,
@@ -85,8 +75,11 @@ def parse_args(argv):
                         type=float,
                         default=0.2,
                         help='Observation noise multiplier')
-    parser.add_argument('data', type=str, help='Path to store data')
     parser.add_argument('--random_seed', type=int, default=3)
+    parser.add_argument('--show',
+                        action='store_true',
+                        help="display figure using Qt5")
+    parser.add_argument('fig_path', type=str, help="path to figure")
     return parser.parse_args(argv)
 
 
@@ -96,16 +89,13 @@ def main(argv=None):
 
     """
 
-    if argv is None:  # Usual case
-        argv = sys.argv[1:]
-
-    args = parse_args(argv)
+    args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
     rng = numpy.random.default_rng(args.random_seed)
 
     def make_system(args, dt):
         """Make a system instance
-        
+
         Args:
             args: Command line arguments
             dt: Sample interval
@@ -119,47 +109,66 @@ def main(argv=None):
             numpy.sin(args.omega * dt)
         ], [-numpy.sin(args.omega * dt),
             numpy.cos(args.omega * dt)]]) * numpy.exp(-args.a * dt)
+        # The sqrt(dt) factor in b enables changing dt without
+        # changing the variance of x.  The variance of x is
+        # proportional to args.b**2
         b = numpy.eye(2) * args.b * numpy.sqrt(
-            dt)  # State noise is b * Normal(0,I)
+            dt)  # State noise is b * Normal(0,I), covariance is b*b
         c = numpy.array([
             [args.c, 0.0],
         ])
         d = numpy.array(
             [args.d],
             dtype=numpy.float64)  # Observation noise is c * Normal(0,I)
-        return hmm.state_space.LinearGaussian(a, b, c, d, rng)
+        return hmm.state_space.LinearGaussian(a, b, c, d,
+                                              rng), args.a * dt, b[0, 0]
 
-    mean = numpy.array(args.mean)
-    covariance = numpy.array([[args.covariance[0], args.covariance[1]],
-                              [args.covariance[1], args.covariance[0]]])
+    def simulate(n_samples: int):
+        """Draw a scalar time series and estimate variance.
 
-    initial_dist = hmm.state_space.MultivariateNormal(mean, covariance, rng)
-    initial_estimate = hmm.state_space.MultivariateNormal(mean, covariance, rng)
+        Args:
+            system: A linear system
+            n_samples: Number of samples to return
+        """
 
-    system_fine = make_system(args,
-                              2 * numpy.pi / (args.omega * args.sample_rate))
-    system_coarse = make_system(
-        args,
-        2 * numpy.pi * args.sample_ratio / (args.omega * args.sample_rate))
+        dt = 2 * numpy.pi / (args.omega * args.sample_rate)
+        system, a_dt, b = make_system(args, dt)
 
-    x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_dist,
-                                                        args.n_coarse)
-    means, covariances = system_coarse.filter(
-        initial_estimate,
-        y_coarse)  # Run Kalman filter on simulated observations
-    x_fine, y_fine = system_fine.simulate_n_steps(initial_dist, args.n_fine)
+        mean = numpy.zeros(2)
+        covariance = numpy.eye(2) * args.b**2 * dt
 
-    with open(args.data, 'wb') as _file:
-        pickle.dump(
-            {
-                'x_fine': x_fine,
-                'y_fine': y_fine,
-                'x_coarse': x_coarse,
-                'y_coarse': y_coarse,
-                'means': means,
-                'covariances': covariances
-            }, _file)
+        x01, _ = system.simulate_n_steps(
+            hmm.state_space.MultivariateNormal(mean, covariance, rng),
+            args.n_samples)
+        variance = (x01[:, 0]**2).sum() / args.n_samples
+        return x01, variance, a_dt, b
 
+    variance = []
+    a_dts = []
+    as_ = numpy.linspace(.002, .02, 11)
+    for a in as_:
+        args.a = a
+        x01, variance_, a_dt, b_root_dt = simulate(args.n_samples)
+        variance.append(variance_)
+        a_dts.append(a_dt)
+
+    fig, (axis_a, axis_b) = pyplot.subplots(nrows=2, figsize=(6, 8))
+
+    #histogram, edges = numpy.histogram(x[:,0], bins=100)
+    # axis_b.plot(edges[:-1], numpy.log(histogram))
+
+    a_dts = numpy.array(a_dts)
+    axis_a.plot(a_dts, variance)
+
+    axis_a.plot(a_dts, b_root_dt**2 / (1 - numpy.exp(-2 * a_dts)))
+
+    axis_a.set_xlabel('a\_dts')
+    axis_a.set_ylabel('variance')
+
+    axis_b.plot(x01[::100, 0])
+    if args.show:
+        pyplot.show()
+    fig.savefig(args.fig_path)
     return 0
 
 
