@@ -76,9 +76,12 @@ def main(argv=None):
                  axis_x0_long, axis_error):
         axis.legend()
 
-    # Drop tick labels on shared axes
+    # Force matching ticks
     axis_y_short.get_shared_x_axes().join(axis_x_01_short, axis_y_short)
     axis_error.get_shared_x_axes().join(axis_error, axis_x0_long, axis_y_long)
+    axis_error.get_shared_y_axes().join(axis_error, axis_x0_long)
+    
+    # Drop tick labels on some shared axes
     for axis in (axis_x_01_short, axis_y_long, axis_x0_long):
         axis.set_xticklabels([])
 
