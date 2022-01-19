@@ -30,18 +30,14 @@ def main(argv=None):
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
+    data = pickle.load(open(args.data, 'rb'))
+    t_fine = numpy.array(range(len(data['y_fine']))) * data['dt_fine']
+    t_coarse = numpy.array(range(len(data['y_coarse']))) * data['dt_coarse']
+
     fig, ((axis_x_short, axis_y_long), (axis_x_01_short, axis_x0_long),
           (axis_y_short, axis_error)) = pyplot.subplots(nrows=3,
                                                         ncols=2,
                                                         figsize=(6, 10))
-
-    axis_x_01_short.sharex(axis_y_short)
-    axis_y_long.sharex(axis_error)
-    axis_x0_long.sharex(axis_error)
-
-    data = pickle.load(open(args.data, 'rb'))
-    t_fine = numpy.array(range(len(data['y_fine']))) * data['dt_fine']
-    t_coarse = numpy.array(range(len(data['y_coarse']))) * data['dt_coarse']
 
     # Phase portrait
     axis_x_short.plot(data['x_fine'][:, 0], data['x_fine'][:, 1], label='$x$')
@@ -61,6 +57,7 @@ def main(argv=None):
                       markersize=8,
                       linestyle='None',
                       label=r'$y$ short')
+
     # Observations long-coarse time
     axis_y_long.plot(t_coarse, data['y_coarse'], label='$y_\mathrm{long}$')
     # x_0 component and filtered estimate
@@ -74,9 +71,16 @@ def main(argv=None):
     axis_error.plot(t_coarse, sigma, color='red', label='$\pm\sigma$')
     axis_error.plot(t_coarse, -sigma, color='red')
 
+    # Legends for all axes
     for axis in (axis_x_short, axis_x_01_short, axis_y_short, axis_y_long,
                  axis_x0_long, axis_error):
         axis.legend()
+
+    # Drop tick labels on shared axes
+    axis_y_short.get_shared_x_axes().join(axis_x_01_short, axis_y_short)
+    axis_error.get_shared_x_axes().join(axis_error, axis_x0_long, axis_y_long)
+    for axis in (axis_x_01_short, axis_y_long, axis_x0_long):
+        axis.set_xticklabels([])
 
     if args.show:
         pyplot.show()

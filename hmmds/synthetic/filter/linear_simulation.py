@@ -92,6 +92,35 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
+def make_system(args, dt, rng):
+    """Make a system instance
+    
+    Args:
+        args: Command line arguments
+        dt: Sample interval
+
+    Returns:
+        A system instance
+    """
+    # pylint: disable = invalid-name
+    a = numpy.array([[numpy.cos(args.omega * dt),
+                      numpy.sin(args.omega * dt)],
+                     [-numpy.sin(args.omega * dt),
+                      numpy.cos(args.omega * dt)]]) * numpy.exp(-args.a * dt)
+    b = numpy.eye(2) * args.b * numpy.sqrt(dt)  # State noise is b * Normal(0,I)
+    c = numpy.array([
+        [args.c, 0.0],
+    ])
+    d = numpy.array([args.d],
+                    dtype=numpy.float64)  # Observation noise is c * Normal(0,I)
+    sigma_squared = b[0, 0]**2 / (1 - numpy.exp(-2 * args.a * dt))
+    stationary_distribution = hmm.state_space.MultivariateNormal(
+        numpy.zeros(2),
+        numpy.eye(2) * sigma_squared, rng)
+    return hmm.state_space.LinearGaussian(a, b, c, d,
+                                          rng), stationary_distribution
+
+
 def main(argv=None):
     """Writes time series to files specified by options --xyzfile,
     --quantfile, and or --TSintro.
@@ -105,41 +134,10 @@ def main(argv=None):
 
     rng = numpy.random.default_rng(args.random_seed)
 
-    def make_system(args, dt):
-        """Make a system instance
-        
-        Args:
-            args: Command line arguments
-            dt: Sample interval
-
-        Returns:
-            A system instance
-        """
-        # pylint: disable = invalid-name
-        a = numpy.array([[
-            numpy.cos(args.omega * dt),
-            numpy.sin(args.omega * dt)
-        ], [-numpy.sin(args.omega * dt),
-            numpy.cos(args.omega * dt)]]) * numpy.exp(-args.a * dt)
-        b = numpy.eye(2) * args.b * numpy.sqrt(
-            dt)  # State noise is b * Normal(0,I)
-        c = numpy.array([
-            [args.c, 0.0],
-        ])
-        d = numpy.array(
-            [args.d],
-            dtype=numpy.float64)  # Observation noise is c * Normal(0,I)
-        sigma_squared = b[0, 0]**2 / (1 - numpy.exp(-2 * args.a * dt))
-        stationary_distribution = hmm.state_space.MultivariateNormal(
-            numpy.zeros(2),
-            numpy.eye(2) * sigma_squared, rng)
-        return hmm.state_space.LinearGaussian(a, b, c, d,
-                                              rng), stationary_distribution
-
     dt_fine = 2 * numpy.pi / (args.omega * args.sample_rate)
-    system_fine, initial_fine = make_system(args, dt_fine)
+    system_fine, initial_fine = make_system(args, dt_fine, rng)
     dt_coarse = dt_fine * args.sample_ratio
-    system_coarse, initial_coarse = make_system(args, dt_coarse)
+    system_coarse, initial_coarse = make_system(args, dt_coarse, rng)
 
     x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_coarse,
                                                         args.n_coarse)
