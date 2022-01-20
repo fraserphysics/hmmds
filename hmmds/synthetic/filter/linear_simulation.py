@@ -88,7 +88,7 @@ def parse_args(argv):
                         default=1000,
                         help='Number of coarse samples')
     parser.add_argument('data', type=str, help='Path to store data')
-    parser.add_argument('--random_seed', type=int, default=3)
+    parser.add_argument('--random_seed', type=int, default=9)
     return parser.parse_args(argv)
 
 
@@ -135,15 +135,19 @@ def main(argv=None):
     rng = numpy.random.default_rng(args.random_seed)
 
     dt_fine = 2 * numpy.pi / (args.omega * args.sample_rate)
-    system_fine, initial_fine = make_system(args, dt_fine, rng)
     dt_coarse = dt_fine * args.sample_ratio
+
+    system_fine, initial_fine = make_system(args, dt_fine, rng)
     system_coarse, initial_coarse = make_system(args, dt_coarse, rng)
 
+    x_fine, y_fine = system_fine.simulate_n_steps(initial_fine, args.n_fine)
     x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_coarse,
                                                         args.n_coarse)
-    means, covariances = system_coarse.filter(
-        initial_coarse, y_coarse)  # Run Kalman filter on simulated observations
-    x_fine, y_fine = system_fine.simulate_n_steps(initial_fine, args.n_fine)
+
+    means, covariances = system_coarse.forward_filter(initial_coarse, y_coarse)
+    back_means, back_covariances = system_coarse.backward_filter(y_coarse)
+    smooth_means, smooth_covariances = system_coarse.smooth(
+        initial_coarse, y_coarse)
 
     with open(args.data, 'wb') as _file:
         pickle.dump(
@@ -155,7 +159,11 @@ def main(argv=None):
                 'x_coarse': x_coarse,
                 'y_coarse': y_coarse,
                 'means': means,
-                'covariances': covariances
+                'covariances': covariances,
+                'back_means': back_means,
+                'back_covariances': back_covariances,
+                'smooth_means': smooth_means,
+                'smooth_covariances': smooth_covariances,
             }, _file)
 
     return 0

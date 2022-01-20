@@ -14,12 +14,23 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser(description='plot_linear_simulation.pdf')
+    parser.add_argument('--sample_ratio',
+                        type=int,
+                        default=10,
+                        help='ratio of fine to coarse')
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
     parser.add_argument('data', type=str, help='Path to data')
     parser.add_argument('fig_path', type=str, help="path to figure")
     return parser.parse_args(argv)
+
+
+def plot_error(axis, sample_times, covariance, difference, label):
+    axis.plot(sample_times, difference, label=label)
+    sigma = numpy.sqrt(covariance[:, 0, 0])
+    axis.plot(sample_times, 2 * sigma, color='red', label='$\pm2\sigma$')
+    axis.plot(sample_times, -2 * sigma, color='red')
 
 
 def main(argv=None):
@@ -45,14 +56,14 @@ def main(argv=None):
     axis_x_01_short.plot(t_fine, data['x_fine'][:, 0], label='$x_0$')
     axis_x_01_short.plot(t_fine, data['x_fine'][:, 1], label='$x_1$')
     # Observations short-fine vs time
-    axis_x_01_short.plot(t_fine[::10],
-                         data['x_fine'][::10, 0],
+    axis_x_01_short.plot(t_fine[::args.sample_ratio],
+                         data['x_fine'][::args.sample_ratio, 0],
                          marker='.',
                          markersize=8,
                          linestyle='None')
     axis_y_short.plot(t_fine, data['y_fine'])
-    axis_y_short.plot(t_fine[::10],
-                      data['y_fine'][::10],
+    axis_y_short.plot(t_fine[::args.sample_ratio],
+                      data['y_fine'][::args.sample_ratio],
                       marker='.',
                       markersize=8,
                       linestyle='None',
@@ -64,12 +75,8 @@ def main(argv=None):
     axis_x0_long.plot(t_coarse, data['x_coarse'][:, 0], label='$x_0$')
     axis_x0_long.plot(t_coarse, data['means'][:, 0], label='filtered')
     # Error of filter estimate and calculated variance of filter
-    axis_error.plot(t_coarse,
-                    data['x_coarse'][:, 0] - data['means'][:, 0],
-                    label='error')
-    sigma = numpy.sqrt(data['covariances'][:, 0, 0])
-    axis_error.plot(t_coarse, sigma, color='red', label='$\pm\sigma$')
-    axis_error.plot(t_coarse, -sigma, color='red')
+    plot_error(axis_error, t_coarse, data['covariances'],
+               data['x_coarse'][:, 0] - data['means'][:, 0], 'filter error')
 
     # Legends for all axes
     for axis in (axis_x_short, axis_x_01_short, axis_y_short, axis_y_long,
@@ -80,7 +87,7 @@ def main(argv=None):
     axis_y_short.get_shared_x_axes().join(axis_x_01_short, axis_y_short)
     axis_error.get_shared_x_axes().join(axis_error, axis_x0_long, axis_y_long)
     axis_error.get_shared_y_axes().join(axis_error, axis_x0_long)
-    
+
     # Drop tick labels on some shared axes
     for axis in (axis_x_01_short, axis_y_long, axis_x0_long):
         axis.set_xticklabels([])
