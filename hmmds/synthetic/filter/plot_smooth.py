@@ -42,7 +42,6 @@ def main(argv=None):
         axis.set_ylim(-0.9, 0.9)
     axis_x.get_shared_x_axes().join(*all_axes)
 
-
     x_0 = data['x_coarse'][:, 0]
     forward = data['means'][:, 0]
     backward = data['back_means'][:, 0]
