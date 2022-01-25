@@ -1,7 +1,19 @@
 r"""linear_simulation.py
 
-Generate a sequence of observations from the following state space
-model
+Using a LinearGaussian state space model make the following data for plotting:
+
+1. Sequences of states and observation with a fine sampling interval
+
+2. Sequences of states and observation with a coarse sampling interval
+
+3. Means and covariances from Kalman filtering the coarse observations
+
+4. Means and covariances from backward filtering the coarse observations
+
+5. Means and covariances from smoothing the coarse observations
+
+Here is a description of the LinearGaussian system:
+
 .. math::
     x_{t+1} = A x_t + B V_n
 
@@ -72,8 +84,7 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser(
-        description=
-        'Generate a sequence of observations from a state space model.')
+        description='Generate data for a state space model figure.')
     system_args(parser)
     parser.add_argument('--sample_ratio',
                         type=int,
@@ -92,28 +103,30 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def make_system(args, dt, rng):
+def make_system(args, d_t, rng):
     """Make a system instance
     
     Args:
         args: Command line arguments
-        dt: Sample interval
+        d_t: Sample interval
 
     Returns:
         A system instance
     """
     # pylint: disable = invalid-name
-    a = numpy.array([[numpy.cos(args.omega * dt),
-                      numpy.sin(args.omega * dt)],
-                     [-numpy.sin(args.omega * dt),
-                      numpy.cos(args.omega * dt)]]) * numpy.exp(-args.a * dt)
-    b = numpy.eye(2) * args.b * numpy.sqrt(dt)  # State noise is b * Normal(0,I)
+    a = numpy.array(
+        [[numpy.cos(args.omega * d_t),
+          numpy.sin(args.omega * d_t)],
+         [-numpy.sin(args.omega * d_t),
+          numpy.cos(args.omega * d_t)]]) * numpy.exp(-args.a * d_t)
+    b = numpy.eye(2) * args.b * numpy.sqrt(
+        d_t)  # State noise is b * Normal(0,I)
     c = numpy.array([
         [args.c, 0.0],
     ])
     d = numpy.array([args.d],
                     dtype=numpy.float64)  # Observation noise is c * Normal(0,I)
-    sigma_squared = b[0, 0]**2 / (1 - numpy.exp(-2 * args.a * dt))
+    sigma_squared = b[0, 0]**2 / (1 - numpy.exp(-2 * args.a * d_t))
     stationary_distribution = hmm.state_space.MultivariateNormal(
         numpy.zeros(2),
         numpy.eye(2) * sigma_squared, rng)
@@ -144,7 +157,8 @@ def main(argv=None):
     x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_coarse,
                                                         args.n_coarse)
 
-    means, covariances = system_coarse.forward_filter(initial_coarse, y_coarse)
+    forward_means, forward_covariances = system_coarse.forward_filter(
+        initial_coarse, y_coarse)
     back_means, back_covariances = system_coarse.backward_filter(y_coarse)
     smooth_means, smooth_covariances = system_coarse.smooth(
         initial_coarse, y_coarse)
@@ -158,8 +172,8 @@ def main(argv=None):
                 'y_fine': y_fine,
                 'x_coarse': x_coarse,
                 'y_coarse': y_coarse,
-                'means': means,
-                'covariances': covariances,
+                'forward_means': forward_means,
+                'forward_covariances': forward_covariances,
                 'back_means': back_means,
                 'back_covariances': back_covariances,
                 'smooth_means': smooth_means,

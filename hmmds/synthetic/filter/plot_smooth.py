@@ -43,15 +43,16 @@ def main(argv=None):
     axis_x.get_shared_x_axes().join(*all_axes)
 
     x_0 = data['x_coarse'][:, 0]
-    forward = data['means'][:, 0]
+    forward = data['forward_means'][:, 0]
     backward = data['back_means'][:, 0]
     smooth = data['smooth_means'][:, 0]
     t_ = numpy.array(range(len(x_0))) * data['dt_coarse']
 
     axis_x.plot(t_, forward, label='forwards')
     axis_x.plot(t_, x_0, label='$x_0$')
-    linear_filter.plot_error(axis_forward_error, t_, data['covariances'],
-                             x_0 - forward, 'forward error')
+    linear_filter.plot_error(axis_forward_error, t_,
+                             data['forward_covariances'], x_0 - forward,
+                             'forward error')
 
     axis_backward.plot(t_, backward, label='backwards')
     linear_filter.plot_error(axis_backward_error, t_[:-1],

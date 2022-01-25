@@ -73,10 +73,11 @@ def main(argv=None):
     axis_y_long.plot(t_coarse, data['y_coarse'], label='$y_\mathrm{long}$')
     # x_0 component and filtered estimate
     axis_x0_long.plot(t_coarse, data['x_coarse'][:, 0], label='$x_0$')
-    axis_x0_long.plot(t_coarse, data['means'][:, 0], label='filtered')
+    axis_x0_long.plot(t_coarse, data['forward_means'][:, 0], label='filtered')
     # Error of filter estimate and calculated variance of filter
-    plot_error(axis_error, t_coarse, data['covariances'],
-               data['x_coarse'][:, 0] - data['means'][:, 0], 'filter error')
+    plot_error(axis_error, t_coarse, data['forward_covariances'],
+               data['x_coarse'][:, 0] - data['forward_means'][:, 0],
+               'filter error')
 
     # Legends for all axes
     for axis in (axis_x_short, axis_x_01_short, axis_y_short, axis_y_long,
