@@ -82,10 +82,14 @@ def make_system(args, d_t, rng):
                                     state_noise=args.state_noise,
                                     observation_noise=args.observation_noise,
                                     rng=rng)
+    relax = hmm.state_space.Lorenz(d_t=1,
+                                   state_noise=args.state_noise,
+                                   observation_noise=args.observation_noise,
+                                   rng=rng)
     n_relax = 1000
     initial_time = 0.0
-    states, observations = lorenz.simulate_n_steps(numpy.ones(3), initial_time,
-                                                   n_relax)
+    states, observations = relax.simulate_n_steps(numpy.ones(3), initial_time,
+                                                  n_relax)
     assert states.shape == (n_relax, 3)
     mean = numpy.sum(states, axis=0) / n_relax
     assert mean.shape == (3,)
