@@ -1,4 +1,4 @@
-"""mimic.py Imitate linear_simulation.py but use EKF
+"""mimic.py Make linear_simulation.py exercise all methods of EKF.
 
 """
 import sys
@@ -20,12 +20,17 @@ def make_system(args, d_t, rng):
     Returns:
         (A system instance, an initial state, an inital distribution)
 
+    Wrap under, a LinearGaussian instance, in system, an Linear
+    instance.  Then wrap system in result, an EKF instance.  The goal
+    is to get linear_simulation.main to exercise all of the EKF
+    methods.
+
     """
 
-    under, stationary_distribution = linear_simulation.make_system(
+    under, stationary_distribution = linear_simulation.make_linear_gaussian(
         args, d_t, rng)
     system = hmm.examples.ekf.Linear(under, d_t)
-    result = hmm.state_space.EKF(system, d_t, rng)
+    result = hmm.state_space.EKF(system, d_t, None)  # rng in EKF not used
     assert isinstance(result.system.under, hmm.state_space.LinearGaussian)
     assert isinstance(result.system, hmm.examples.ekf.Linear)
     assert isinstance(result, hmm.state_space.EKF)

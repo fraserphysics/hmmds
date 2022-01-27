@@ -103,7 +103,7 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def make_system(args, d_t, rng):
+def make_linear_gaussian(args, d_t, rng):
     """Make a system instance
     
     Args:
@@ -133,10 +133,7 @@ def make_system(args, d_t, rng):
     return hmm.state_space.LinearGaussian(a, b, c, d,
                                           rng), stationary_distribution
 
-
-# Redefine make_system so that other modules can call this main with
-# alternative definitions
-def main(argv=None, make_system=make_system):
+def main(argv=None, make_system=make_linear_gaussian):
     """Writes time series to files specified by options --xyzfile,
     --quantfile, and or --TSintro.
 
