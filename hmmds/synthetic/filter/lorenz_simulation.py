@@ -22,7 +22,7 @@ import pickle
 import numpy
 import numpy.random
 
-import hmm.state_space
+import hmm.examples.ekf
 
 
 def system_args(parser: argparse.ArgumentParser):
@@ -78,18 +78,19 @@ def make_system(args, d_t, rng):
     Returns:
         (A system instance, an initial state, an inital distribution)
     """
-    lorenz = hmm.state_space.Lorenz(d_t=d_t,
+    lorenz = hmm.examples.ekf.Lorenz(d_t=d_t,
+                                     state_noise=args.state_noise,
+                                     observation_noise=args.observation_noise,
+                                     rng=rng)
+    relax = hmm.examples.ekf.Lorenz(d_t=1,
                                     state_noise=args.state_noise,
                                     observation_noise=args.observation_noise,
                                     rng=rng)
-    relax = hmm.state_space.Lorenz(d_t=1,
-                                   state_noise=args.state_noise,
-                                   observation_noise=args.observation_noise,
-                                   rng=rng)
     n_relax = 1000
-    initial_time = 0.0
-    states, observations = relax.simulate_n_steps(numpy.ones(3), initial_time,
-                                                  n_relax)
+    initial_distribution = hmm.state_space.MultivariateNormal(
+        numpy.ones(3),
+        numpy.eye(3) * .01)
+    states, observations = relax.simulate_n_steps(initial_distribution, n_relax)
     assert states.shape == (n_relax, 3)
     mean = numpy.sum(states, axis=0) / n_relax
     assert mean.shape == (3,)
@@ -124,11 +125,13 @@ def main(argv=None):
     ekf_coarse, coarse_state, coarse_distribution = make_system(
         args, d_t_coarse, rng)
 
-    t_initial = 0.0  # A place holder
-    x_fine, y_fine = ekf_fine.system.simulate_n_steps(fine_state, t_initial,
+    def distribution(state):
+        return hmm.state_space.MultivariateNormal(state, numpy.eye(3) * 1e-8)
+
+    x_fine, y_fine = ekf_fine.system.simulate_n_steps(distribution(fine_state),
                                                       args.n_fine)
     x_coarse, y_coarse = ekf_coarse.system.simulate_n_steps(
-        coarse_state, t_initial, args.n_coarse)
+        distribution(coarse_state), args.n_coarse)
 
     forward_means, forward_covariances = ekf_coarse.forward_filter(
         coarse_distribution, y_coarse)

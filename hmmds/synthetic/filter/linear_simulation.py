@@ -134,7 +134,9 @@ def make_system(args, d_t, rng):
                                           rng), stationary_distribution
 
 
-def main(argv=None):
+# Redefine make_system so that other modules can call this main with
+# alternative definitions
+def main(argv=None, make_system=make_system):
     """Writes time series to files specified by options --xyzfile,
     --quantfile, and or --TSintro.
 

@@ -27,10 +27,20 @@ $(LinearSystemFigures)/system_and_filter.pdf: linear_filter.py $(DATA)
 ## Stuff that belongs in Rules.mk here
 
 
+LINEAR_ARGS = --sample_rate 100 --sample_ratio $(SAMPLE_RATIO) \
+--n_fine 1000 --n_coarse 500 --a 0.01 --b 0.04 --d 0.5
 $(DATA): $(LinearSystemCode)/linear_simulation.py
 	mkdir -p $(LinearSystemData)
-	python $< --sample_rate 100 --sample_ratio $(SAMPLE_RATIO) \
---n_fine 1000 --n_coarse 500 --a 0.01 --b 0.04 --d 0.5 $@
+	python $< $(LINEAR_ARGS) $@
+
+mimic_data: mimic.py
+	python $< $(LINEAR_ARGS) $@
+
+mimic.pdf: mimic_data
+	python linear_filter.py --show  --sample_ratio $(SAMPLE_RATIO) $< $@
+
+mimic_smooth.pdf: mimic_data
+	python plot_smooth.py --show $< $@
 
 ## Stuff that belongs in plotscripts/linearsystems
 
