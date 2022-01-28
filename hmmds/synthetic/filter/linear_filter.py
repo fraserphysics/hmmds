@@ -78,7 +78,7 @@ def main(argv=None):
     axis_x0_long.plot(t_coarse, data['forward_means'][:, 0], label='filtered')
     # Error of filter estimate and calculated variance of filter
     plot_error(axis_error, t_coarse, data['forward_covariances'],
-               data['x_coarse'][:, 0] - data['forward_means'][:, 0],
+               data['forward_means'][:, 0] - data['x_coarse'][:, 0],
                'filter error')
 
     # Legends for all axes

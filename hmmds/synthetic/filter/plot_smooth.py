@@ -39,7 +39,7 @@ def main(argv=None):
     all_axes = (axis_x, axis_forward_error, axis_backward, axis_backward_error,
                 axis_smooth, axis_smooth_error)
     for axis in all_axes:
-        axis.set_ylim(-0.9, 0.9)
+        axis.set_ylim(-40, 40)
     axis_x.get_shared_x_axes().join(*all_axes)
 
     x_0 = data['x_coarse'][:, 0]

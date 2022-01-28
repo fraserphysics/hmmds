@@ -11,11 +11,13 @@ DATA = data
 
 SAMPLE_RATIO = 5
 
+L_RATIO = 5
+
 ekf.pdf: linear_filter.py ekf_data
-	python $< --show  --sample_ratio $(SAMPLE_RATIO) ekf_data $@
+	python $< --show  --sample_ratio $(L_RATIO) ekf_data $@
 
 ekf_data: lorenz_simulation.py
-	python $< --state_noise .1 --observation_noise 2.0 --coarse_d_t 0.1 --sample_ratio $(SAMPLE_RATIO) --n_fine 200 --n_coarse 101 $@
+	python $< --state_noise .1 --observation_noise 2.0 --coarse_d_t 0.1 --sample_ratio $(L_RATIO) --n_fine 200 --n_coarse 101 $@
 
 ll.pdf: max_like.py
 	python max_like.py --show --n_samples 1000 --n_b 10 --b_range .8 1.2 ll.pdf
@@ -28,7 +30,7 @@ $(LinearSystemFigures)/system_and_filter.pdf: linear_filter.py $(DATA)
 
 
 LINEAR_ARGS = --sample_rate 100 --sample_ratio $(SAMPLE_RATIO) \
---n_fine 1000 --n_coarse 500 --a 0.01 --b 0.04 --d 0.5
+--n_fine 1000 --n_coarse 500 --a 0.01 --b 2.0 --d 25.0
 $(DATA): $(LinearSystemCode)/linear_simulation.py
 	mkdir -p $(LinearSystemData)
 	python $< $(LINEAR_ARGS) $@
