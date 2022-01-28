@@ -41,6 +41,10 @@ def system_args(parser: argparse.ArgumentParser):
                         type=float,
                         default=0.01,
                         help='Std deviation of observation noise')
+    parser.add_argument('--fudge',
+                        type=float,
+                        default=1.0,
+                        help='Multiplier of state noise for filtering')
 
 
 def parse_args(argv):
@@ -81,11 +85,13 @@ def make_system(args, d_t, rng):
     lorenz = hmm.examples.ekf.Lorenz(d_t=d_t,
                                      state_noise=args.state_noise,
                                      observation_noise=args.observation_noise,
-                                     rng=rng)
+                                     rng=rng,
+                                     fudge=args.fudge)
     relax = hmm.examples.ekf.Lorenz(d_t=1,
                                     state_noise=args.state_noise,
                                     observation_noise=args.observation_noise,
-                                    rng=rng)
+                                    rng=rng,
+                                    fudge=args.fudge)
     n_relax = 1000
     initial_distribution = hmm.state_space.MultivariateNormal(
         numpy.ones(3),

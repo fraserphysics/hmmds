@@ -3,8 +3,9 @@ import pickle
 
 import numpy
 
+
 def main(argv=None):
-    
+
     data = pickle.load(open('data', 'rb'))
     mimic_data = pickle.load(open('mimic_data', 'rb'))
 
@@ -21,8 +22,10 @@ def main(argv=None):
             for i, value in enumerate(difference):
                 if value == 0.0:
                     true[i] = 1
-            relative = difference/numpy.abs(true)
-            print(f'{key} differs absolute: {difference.max()} relative: {relative.max()}')
+            relative = difference / numpy.abs(true)
+            print(
+                f'{key} differs absolute: {difference.max()} relative: {relative.max()}'
+            )
     return 0
 
 

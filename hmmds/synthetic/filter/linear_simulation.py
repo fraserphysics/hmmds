@@ -133,6 +133,7 @@ def make_linear_gaussian(args, d_t, rng):
     return hmm.state_space.LinearGaussian(a, b, c, d,
                                           rng), stationary_distribution
 
+
 def main(argv=None, make_system=make_linear_gaussian):
     """Writes time series to files specified by options --xyzfile,
     --quantfile, and or --TSintro.
