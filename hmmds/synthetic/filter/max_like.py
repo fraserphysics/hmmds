@@ -56,8 +56,8 @@ def main(argv=None):
     rng = numpy.random.default_rng(args.random_seed)
 
     # Make the nominal model and simulate the data
-    d_t = 2 * numpy.pi / (args.omega * args.sample_rate)
-    system, initial_dist = linear_simulation.make_system(args, d_t, rng)
+    dt = 2 * numpy.pi / (args.omega * args.sample_rate)
+    system, initial_dist = linear_simulation.make_linear_gaussian(args, dt, rng)
     x_data, y_data = system.simulate_n_steps(initial_dist, args.n_samples)
 
     # Calculate the log likelihood for models with a range of b
@@ -67,7 +67,7 @@ def main(argv=None):
     log_like = numpy.empty(b_array.shape)
     for i, b_i in enumerate(b_array):
         args.b = b_i
-        system_b, b_dist = linear_simulation.make_system(args, d_t, rng)
+        system_b, b_dist = linear_simulation.make_linear_gaussian(args, dt, rng)
         log_like[i] = system_b.log_likelihood(b_dist, y_data)
 
     fig, (axis_a, axis_b) = pyplot.subplots(nrows=2, figsize=(6, 8))

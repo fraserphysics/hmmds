@@ -50,8 +50,8 @@ def main(argv=None):
 
     rng = numpy.random.default_rng(args.random_seed)
 
-    d_t = 2 * numpy.pi / (args.omega * args.sample_rate)
-    system, initial_dist = linear_simulation.make_system(args, d_t, rng)
+    dt = 2 * numpy.pi / (args.omega * args.sample_rate)
+    system, initial_dist = linear_simulation.make_system(args, dt, rng)
     std_deviation = numpy.sqrt(initial_dist.covariance[0, 0])
 
     x_01, _ = system.simulate_n_steps(initial_dist, args.n_samples)
@@ -61,7 +61,7 @@ def main(argv=None):
         pickle.dump({
             'x_0': x_0,
             'std_deviation': std_deviation,
-            'd_t': d_t,
+            'dt': dt,
         }, _file)
 
     # The following will be in plotscripts:
@@ -77,7 +77,7 @@ def main(argv=None):
 
     fig, (axis_a, axis_b) = pyplot.subplots(nrows=2, figsize=(6, 8))
 
-    axis_a.plot(numpy.array(range(len(data['x_0']))) * data['d_t'],
+    axis_a.plot(numpy.array(range(len(data['x_0']))) * data['dt'],
                 data['x_0'],
                 marker='.',
                 linestyle='None')

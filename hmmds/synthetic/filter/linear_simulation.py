@@ -103,30 +103,28 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def make_linear_gaussian(args, d_t, rng):
+def make_linear_gaussian(args, dt, rng):
     """Make a system instance
     
     Args:
         args: Command line arguments
-        d_t: Sample interval
+        dt: Sample interval
 
     Returns:
         A system instance
     """
     # pylint: disable = invalid-name
-    a = numpy.array(
-        [[numpy.cos(args.omega * d_t),
-          numpy.sin(args.omega * d_t)],
-         [-numpy.sin(args.omega * d_t),
-          numpy.cos(args.omega * d_t)]]) * numpy.exp(-args.a * d_t)
-    b = numpy.eye(2) * args.b * numpy.sqrt(
-        d_t)  # State noise is b * Normal(0,I)
+    a = numpy.array([[numpy.cos(args.omega * dt),
+                      numpy.sin(args.omega * dt)],
+                     [-numpy.sin(args.omega * dt),
+                      numpy.cos(args.omega * dt)]]) * numpy.exp(-args.a * dt)
+    b = numpy.eye(2) * args.b * numpy.sqrt(dt)  # State noise is b * Normal(0,I)
     c = numpy.array([
         [args.c, 0.0],
     ])
     d = numpy.array([args.d],
                     dtype=numpy.float64)  # Observation noise is c * Normal(0,I)
-    sigma_squared = b[0, 0]**2 / (1 - numpy.exp(-2 * args.a * d_t))
+    sigma_squared = b[0, 0]**2 / (1 - numpy.exp(-2 * args.a * dt))
     stationary_distribution = hmm.state_space.MultivariateNormal(
         numpy.zeros(2),
         numpy.eye(2) * sigma_squared, rng)

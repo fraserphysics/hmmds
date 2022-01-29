@@ -13,11 +13,23 @@ SAMPLE_RATIO = 5
 
 L_RATIO = 5
 
+ALL_DATA = ekf_data data mimic_data
+.PHONY: test
+test:
+	rm -f $(ALL_DATA) all_data
+	make all_data
+	python compare.py
+all_data: $(ALL_DATA)
+	touch $@
+
+.PHONY: all_figs
+all_figs: ekf.pdf ll.pdf smooth.pdf system_and_filter.pdf
+
 ekf.pdf: linear_filter.py ekf_data
 	python $< --show  --sample_ratio $(L_RATIO) ekf_data $@
 
 ekf_data: lorenz_simulation.py
-	python $< --state_noise .1 --observation_noise 2.0 --coarse_d_t 0.1 \
+	python $< --state_noise .1 --observation_noise 2.0 --coarse_dt 0.1 \
 --fudge 100 --sample_ratio $(L_RATIO) --n_fine 200 --n_coarse 301 $@
 
 ll.pdf: max_like.py
@@ -47,6 +59,7 @@ mimic_smooth.pdf: mimic_data
 
 ## Stuff that belongs in plotscripts/linearsystems
 
+# Writes dist_data and distribution.pdf
 distribution.pdf: distribution.py
 	python $< --n_samples 10000 --a 0.05 --b 0.2 --show dist_data $@
 

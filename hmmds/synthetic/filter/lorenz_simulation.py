@@ -29,7 +29,7 @@ def system_args(parser: argparse.ArgumentParser):
     """I separated these so that other modules can import.
     """
 
-    parser.add_argument('--coarse_d_t',
+    parser.add_argument('--coarse_dt',
                         type=float,
                         default=0.15,
                         help='Sample interval')
@@ -71,23 +71,23 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def make_system(args, d_t, rng):
+def make_system(args, dt, rng):
     """Make a system instance
     
     Args:
         args: Command line arguments
-        d_t: Sample interval
+        dt: Sample interval
         rng:
 
     Returns:
         (A system instance, an initial state, an inital distribution)
     """
-    lorenz = hmm.examples.ekf.Lorenz(d_t=d_t,
+    lorenz = hmm.examples.ekf.Lorenz(dt=dt,
                                      state_noise=args.state_noise,
                                      observation_noise=args.observation_noise,
                                      rng=rng,
                                      fudge=args.fudge)
-    relax = hmm.examples.ekf.Lorenz(d_t=1,
+    relax = hmm.examples.ekf.Lorenz(dt=1,
                                     state_noise=args.state_noise,
                                     observation_noise=args.observation_noise,
                                     rng=rng,
@@ -107,7 +107,7 @@ def make_system(args, d_t, rng):
     initial_state = states[-1]
     initial_distribution = hmm.state_space.MultivariateNormal(
         mean, covariance, rng)
-    return hmm.state_space.EKF(lorenz, d_t,
+    return hmm.state_space.EKF(lorenz, dt,
                                rng), initial_state, initial_distribution
 
 
@@ -124,12 +124,12 @@ def main(argv=None):
 
     rng = numpy.random.default_rng(args.random_seed)
 
-    d_t_coarse = args.coarse_d_t
-    d_t_fine = d_t_coarse / args.sample_ratio
+    dt_coarse = args.coarse_dt
+    dt_fine = dt_coarse / args.sample_ratio
 
-    ekf_fine, fine_state, fine_distribution = make_system(args, d_t_fine, rng)
+    ekf_fine, fine_state, fine_distribution = make_system(args, dt_fine, rng)
     ekf_coarse, coarse_state, coarse_distribution = make_system(
-        args, d_t_coarse, rng)
+        args, dt_coarse, rng)
 
     def distribution(state):
         return hmm.state_space.MultivariateNormal(state, numpy.eye(3) * 1e-8)
@@ -145,8 +145,8 @@ def main(argv=None):
     with open(args.data, 'wb') as _file:
         pickle.dump(
             {
-                'dt_fine': d_t_fine,
-                'dt_coarse': d_t_coarse,
+                'dt_fine': dt_fine,
+                'dt_coarse': dt_coarse,
                 'x_fine': x_fine,
                 'y_fine': y_fine,
                 'x_coarse': x_coarse,
