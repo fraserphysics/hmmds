@@ -30,7 +30,7 @@ ekf.pdf: linear_filter.py ekf_data
 
 ekf_data: lorenz_simulation.py
 	python $< --state_noise .1 --observation_noise 2.0 --coarse_dt 0.1 \
---fudge 100 --sample_ratio $(L_RATIO) --n_fine 200 --n_coarse 301 $@
+--fudge 100 --sample_ratio $(L_RATIO) --n_fine 200 --n_coarse 101 $@
 
 ll.pdf: max_like.py
 	python max_like.py --show --n_samples 1000 --n_b 10 --b_range .8 1.2 ll.pdf

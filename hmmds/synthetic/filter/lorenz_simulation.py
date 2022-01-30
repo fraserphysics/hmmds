@@ -87,28 +87,27 @@ def make_system(args, dt, rng):
                                      observation_noise=args.observation_noise,
                                      rng=rng,
                                      fudge=args.fudge)
-    relax = hmm.examples.ekf.Lorenz(dt=1,
+    averages = hmm.examples.ekf.Lorenz(dt=1,
                                     state_noise=args.state_noise,
                                     observation_noise=args.observation_noise,
                                     rng=rng,
                                     fudge=args.fudge)
-    n_relax = 1000
+    n_averages = 200
     initial_distribution = hmm.state_space.MultivariateNormal(
-        numpy.ones(3),
+        averages.relax,
         numpy.eye(3) * .01)
-    states, observations = relax.simulate_n_steps(initial_distribution, n_relax)
-    assert states.shape == (n_relax, 3)
-    mean = numpy.sum(states, axis=0) / n_relax
+    states, _ = averages.simulate_n_steps(initial_distribution, n_averages)
+    assert states.shape == (n_averages, 3)
+    mean = numpy.sum(states, axis=0) / n_averages
     assert mean.shape == (3,)
     diffs = states - mean
-    assert diffs.shape == (n_relax, 3)
-    covariance = numpy.dot(diffs.T, diffs) / n_relax
+    assert diffs.shape == (n_averages, 3)
+    covariance = numpy.dot(diffs.T, diffs) / n_averages
     assert covariance.shape == (3, 3)
-    initial_state = states[-1]
     initial_distribution = hmm.state_space.MultivariateNormal(
         mean, covariance, rng)
     return hmm.state_space.EKF(lorenz, dt,
-                               rng), initial_state, initial_distribution
+                               rng), averages.relax, initial_distribution
 
 
 def main(argv=None):
