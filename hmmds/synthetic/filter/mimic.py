@@ -40,7 +40,7 @@ def make_system(args, dt, rng):
 def main():
     """
     """
-    args = linear_simulation.parse_args(sys.argv[1:])
+    args = linear_simulation.parse_args(sys.argv[1:], (linear_simulation.system_args,))
     return linear_simulation.main(sys.argv[1:], make_system=make_system)
 
 

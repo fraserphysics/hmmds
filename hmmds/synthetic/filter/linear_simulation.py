@@ -79,13 +79,14 @@ def system_args(parser: argparse.ArgumentParser):
                         help='Observation noise multiplier')
 
 
-def parse_args(argv):
+def parse_args(argv, additional_args):
     """Parse the command line.
     """
 
     parser = argparse.ArgumentParser(
         description='Generate data for a state space model figure.')
-    system_args(parser)
+    for more in additional_args:
+        more(parser)
     parser.add_argument('--sample_ratio',
                         type=int,
                         default=10,
@@ -132,7 +133,7 @@ def make_linear_gaussian(args, dt, rng):
                                           rng), stationary_distribution
 
 
-def main(argv=None, make_system=make_linear_gaussian):
+def main(argv=None, make_system=make_linear_gaussian, additional_args=(system_args,)):
     """Writes time series to files specified by options --xyzfile,
     --quantfile, and or --TSintro.
 
@@ -141,7 +142,7 @@ def main(argv=None, make_system=make_linear_gaussian):
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    args = parse_args(argv)
+    args = parse_args(argv, additional_args)
 
     rng = numpy.random.default_rng(args.random_seed)
 
