@@ -5,6 +5,7 @@ import argparse
 import pickle
 
 import numpy
+import numpy.linalg
 
 import plotscripts.utilities
 import linear_filter
@@ -31,7 +32,18 @@ def main(argv=None):
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
     data = pickle.load(open(args.data, 'rb'))
-
+    informations = data['informations']
+    information_means = data['information_means']
+    n_t = len(informations)
+    backward = numpy.zeros(n_t)
+    backward_covariances = numpy.zeros(informations.shape)
+    for t in range(n_t):
+        try:
+            backward[t] = numpy.linalg.solve(informations[t], information_means[t])[0]
+            backward_covariances[t] = numpy.linalg.inv(informations[t])
+        except:
+            pass
+        
     fig, ((axis_x, axis_forward_error), (axis_backward, axis_backward_error),
           (axis_smooth, axis_smooth_error)) = pyplot.subplots(nrows=3,
                                                               ncols=2,
@@ -39,12 +51,12 @@ def main(argv=None):
     all_axes = (axis_x, axis_forward_error, axis_backward, axis_backward_error,
                 axis_smooth, axis_smooth_error)
     for axis in all_axes:
-        axis.set_ylim(-40, 40)
+        axis.set_ylim(-45, 45)
     axis_x.get_shared_x_axes().join(*all_axes)
+    axis_x.get_shared_y_axes().join(*all_axes)
 
     x_0 = data['x_coarse'][:, 0]
     forward = data['forward_means'][:, 0]
-    backward = data['back_means'][:, 0]
     smooth = data['smooth_means'][:, 0]
     t_ = numpy.array(range(len(x_0))) * data['dt_coarse']
 
@@ -56,7 +68,7 @@ def main(argv=None):
 
     axis_backward.plot(t_, backward, label='backwards')
     linear_filter.plot_error(axis_backward_error, t_[:-1],
-                             data['back_covariances'][:-1],
+                             backward_covariances[:-1],
                              backward[1:] - x_0[:-1], 'backward error')
 
     axis_smooth.plot(t_, smooth, label='smooth')

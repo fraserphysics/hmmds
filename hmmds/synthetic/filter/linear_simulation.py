@@ -104,7 +104,7 @@ def parse_args(argv, additional_args):
     return parser.parse_args(argv)
 
 
-def make_linear_gaussian(args, dt, rng):
+def make_linear_stationary(args, dt, rng):
     """Make a system instance
     
     Args:
@@ -129,11 +129,11 @@ def make_linear_gaussian(args, dt, rng):
     stationary_distribution = hmm.state_space.MultivariateNormal(
         numpy.zeros(2),
         numpy.eye(2) * sigma_squared, rng)
-    return hmm.state_space.LinearGaussian(a, b, c, d,
+    return hmm.state_space.LinearStationary(a, b, c, d,
                                           rng), stationary_distribution
 
 
-def main(argv=None, make_system=make_linear_gaussian, additional_args=(system_args,)):
+def main(argv=None, make_system=make_linear_stationary, additional_args=(system_args,)):
     """Writes time series to files specified by options --xyzfile,
     --quantfile, and or --TSintro.
 
@@ -158,7 +158,7 @@ def main(argv=None, make_system=make_linear_gaussian, additional_args=(system_ar
 
     forward_means, forward_covariances = system_coarse.forward_filter(
         initial_coarse, y_coarse)
-    back_means, back_covariances = system_coarse.backward_filter(y_coarse)
+    information_means, informations = system_coarse.backward_information_filter(y_coarse)
     smooth_means, smooth_covariances = system_coarse.smooth(
         initial_coarse, y_coarse)
 
@@ -173,10 +173,10 @@ def main(argv=None, make_system=make_linear_gaussian, additional_args=(system_ar
                 'y_coarse': y_coarse,
                 'forward_means': forward_means,
                 'forward_covariances': forward_covariances,
-                'back_means': back_means,
-                'back_covariances': back_covariances,
                 'smooth_means': smooth_means,
                 'smooth_covariances': smooth_covariances,
+                'information_means': information_means,
+                'informations': informations,
             }, _file)
 
     return 0
