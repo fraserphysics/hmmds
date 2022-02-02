@@ -27,13 +27,13 @@ def make_system(args, dt, rng):
 
     """
 
-    under, stationary_distribution = linear_simulation.make_linear_gaussian(
+    under, stationary_distribution = linear_simulation.make_linear_stationary(
         args, dt, rng)
     system = hmm.examples.ekf.Linear(under, dt)
-    result = hmm.state_space.EKF(system, dt, None)  # rng in EKF not used
-    assert isinstance(result.system.under, hmm.state_space.LinearGaussian)
+    result = hmm.state_space.NonStationary(system, dt, None)  # rng in Nonstationary not used
+    assert isinstance(result.system.under, hmm.state_space.LinearStationary)
     assert isinstance(result.system, hmm.examples.ekf.Linear)
-    assert isinstance(result, hmm.state_space.EKF)
+    assert isinstance(result, hmm.state_space.NonStationary)
     return result, stationary_distribution
 
 
