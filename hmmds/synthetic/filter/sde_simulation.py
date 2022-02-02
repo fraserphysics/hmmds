@@ -34,7 +34,7 @@ def make_system(args, dt, rng):
         [0.01, 0]
     ])
 
-    observation_noise = numpy.eye(2)*0.1
+    observation_noise = numpy.eye(2) * 0.1
 
     def observation_function(t, x):
         return numpy.dot(c, x), c
@@ -55,12 +55,12 @@ def make_system(args, dt, rng):
     state_noise = numpy.ones(2) * args.b
     dt = 2 * numpy.pi / 10  # 10 samples per cycle
     x_dim = 2
-    system = hmm.state_space.SDE(dx_dt, tangent, state_noise, observation_function,
-                 observation_noise, dt, x_dim)
+    system = hmm.state_space.SDE(dx_dt, tangent, state_noise,
+                                 observation_function, observation_noise, dt,
+                                 x_dim)
     initial_state = system.relax(500)[0]
     stationary_distribution = system.relax(500, initial_state=initial_state)[1]
-    result = hmm.state_space.NonStationary(
-        system, dt, rng)
+    result = hmm.state_space.NonStationary(system, dt, rng)
     return result, stationary_distribution
 
 

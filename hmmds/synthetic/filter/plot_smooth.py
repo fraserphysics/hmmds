@@ -69,7 +69,7 @@ def main(argv=None):
 
     axis_backward.plot(t_, backward, label='backwards')
     linear_filter.plot_error(axis_backward_error, t_[:-1],
-                             backward_covariances[:-1], backward[1:] - x_0[:-1],
+                             backward_covariances[:-1], (backward - x_0)[:-1],
                              'backward error')
 
     axis_smooth.plot(t_, smooth, label='smooth')
