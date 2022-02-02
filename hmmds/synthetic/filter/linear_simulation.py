@@ -130,10 +130,12 @@ def make_linear_stationary(args, dt, rng):
         numpy.zeros(2),
         numpy.eye(2) * sigma_squared, rng)
     return hmm.state_space.LinearStationary(a, b, c, d,
-                                          rng), stationary_distribution
+                                            rng), stationary_distribution
 
 
-def main(argv=None, make_system=make_linear_stationary, additional_args=(system_args,)):
+def main(argv=None,
+         make_system=make_linear_stationary,
+         additional_args=(system_args,)):
     """Writes time series to files specified by options --xyzfile,
     --quantfile, and or --TSintro.
 
@@ -158,7 +160,8 @@ def main(argv=None, make_system=make_linear_stationary, additional_args=(system_
 
     forward_means, forward_covariances = system_coarse.forward_filter(
         initial_coarse, y_coarse)
-    information_means, informations = system_coarse.backward_information_filter(y_coarse)
+    information_means, informations = system_coarse.backward_information_filter(
+        y_coarse)
     smooth_means, smooth_covariances = system_coarse.smooth(
         initial_coarse, y_coarse)
 

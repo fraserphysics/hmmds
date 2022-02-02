@@ -88,10 +88,10 @@ def make_system(args, dt, rng):
                                      rng=rng,
                                      fudge=args.fudge)
     averages = hmm.examples.ekf.Lorenz(dt=1,
-                                    state_noise=args.state_noise,
-                                    observation_noise=args.observation_noise,
-                                    rng=rng,
-                                    fudge=args.fudge)
+                                       state_noise=args.state_noise,
+                                       observation_noise=args.observation_noise,
+                                       rng=rng,
+                                       fudge=args.fudge)
     n_averages = 200
     initial_distribution = hmm.state_space.MultivariateNormal(
         averages.relax,

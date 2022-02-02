@@ -23,7 +23,7 @@ all_data: $(ALL_DATA)
 	touch $@
 
 .PHONY: all_figs
-all_figs: ekf.pdf ll.pdf smooth.pdf system_and_filter.pdf
+all_figs: ekf.pdf ll.pdf smooth.pdf system_and_filter.pdf distribution.pdf
 
 ekf.pdf: linear_filter.py ekf_data
 	python $< --show  --sample_ratio $(L_RATIO) ekf_data $@

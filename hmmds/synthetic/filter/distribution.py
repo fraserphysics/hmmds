@@ -51,7 +51,8 @@ def main(argv=None):
     rng = numpy.random.default_rng(args.random_seed)
 
     dt = 2 * numpy.pi / (args.omega * args.sample_rate)
-    system, initial_dist = linear_simulation.make_system(args, dt, rng)
+    system, initial_dist = linear_simulation.make_linear_stationary(
+        args, dt, rng)
     std_deviation = numpy.sqrt(initial_dist.covariance[0, 0])
 
     x_01, _ = system.simulate_n_steps(initial_dist, args.n_samples)

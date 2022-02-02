@@ -30,7 +30,8 @@ def make_system(args, dt, rng):
     under, stationary_distribution = linear_simulation.make_linear_stationary(
         args, dt, rng)
     system = hmm.examples.ekf.Linear(under, dt)
-    result = hmm.state_space.NonStationary(system, dt, None)  # rng in Nonstationary not used
+    result = hmm.state_space.NonStationary(
+        system, dt, None)  # rng in Nonstationary not used
     assert isinstance(result.system.under, hmm.state_space.LinearStationary)
     assert isinstance(result.system, hmm.examples.ekf.Linear)
     assert isinstance(result, hmm.state_space.NonStationary)
@@ -40,7 +41,8 @@ def make_system(args, dt, rng):
 def main():
     """
     """
-    args = linear_simulation.parse_args(sys.argv[1:], (linear_simulation.system_args,))
+    args = linear_simulation.parse_args(sys.argv[1:],
+                                        (linear_simulation.system_args,))
     return linear_simulation.main(sys.argv[1:], make_system=make_system)
 
 

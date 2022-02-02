@@ -39,11 +39,12 @@ def main(argv=None):
     backward_covariances = numpy.zeros(informations.shape)
     for t in range(n_t):
         try:
-            backward[t] = numpy.linalg.solve(informations[t], information_means[t])[0]
+            backward[t] = numpy.linalg.solve(informations[t],
+                                             information_means[t])[0]
             backward_covariances[t] = numpy.linalg.inv(informations[t])
         except:
             pass
-        
+
     fig, ((axis_x, axis_forward_error), (axis_backward, axis_backward_error),
           (axis_smooth, axis_smooth_error)) = pyplot.subplots(nrows=3,
                                                               ncols=2,
@@ -68,8 +69,8 @@ def main(argv=None):
 
     axis_backward.plot(t_, backward, label='backwards')
     linear_filter.plot_error(axis_backward_error, t_[:-1],
-                             backward_covariances[:-1],
-                             backward[1:] - x_0[:-1], 'backward error')
+                             backward_covariances[:-1], backward[1:] - x_0[:-1],
+                             'backward error')
 
     axis_smooth.plot(t_, smooth, label='smooth')
     linear_filter.plot_error(axis_smooth_error, t_, data['smooth_covariances'],
