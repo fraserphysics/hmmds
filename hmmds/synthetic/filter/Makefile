@@ -48,6 +48,15 @@ $(DATA): $(LinearSystemCode)/linear_simulation.py
 	mkdir -p $(LinearSystemData)
 	python $< $(LINEAR_ARGS) $@
 
+sde_data: sde_simulation.py
+	python $< $(LINEAR_ARGS) $@
+
+sde.pdf: sde_data linear_filter.py
+	python linear_filter.py --show  --sample_ratio $(SAMPLE_RATIO) $< $@
+
+sde_smooth.pdf: sde_data plot_smooth.py
+	python plot_smooth.py --show $< $@
+
 mimic_data: mimic.py
 	python $< $(LINEAR_ARGS) $@
 
