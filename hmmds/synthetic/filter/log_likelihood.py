@@ -1,6 +1,7 @@
-r"""max_like.py
+r"""log_likelihood.py
 
-Check likelihood of data from the state space model defined in linear_simulatinon.py
+Check likelihood of data from the state space model defined in
+linear_map_simulatinon.py
 
 """
 
@@ -10,12 +11,8 @@ import pickle
 
 import numpy
 import numpy.random
-import scipy.stats
 
-import hmm.state_space
-import plotscripts.utilities
-
-import linear_simulation
+import linear_map_simulation
 
 
 def parse_args(argv):
@@ -23,7 +20,7 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser(description='Illustrate MLE.')
-    linear_simulation.system_args(parser)
+    linear_map_simulation.system_args(parser)
 
     parser.add_argument('--n_samples',
                         type=int,
@@ -39,25 +36,24 @@ def parse_args(argv):
                         default=[.75, 1.25],
                         help='Fractional range of b values')
     parser.add_argument('--random_seed', type=int, default=9)
-    parser.add_argument('--show',
-                        action='store_true',
-                        help="display figure using Qt5")
-    parser.add_argument('fig_path', type=str, help="path to figure")
+    parser.add_argument('data', type=str)
     return parser.parse_args(argv)
 
 
 def main(argv=None):
-    """Make a plot of log likelihood vs b
+    """Make data for a plot of log likelihood vs b
 
     """
 
-    args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
+    if argv is None:
+        argv = sys.argv[1:]
+    args = parse_args(argv)
 
     rng = numpy.random.default_rng(args.random_seed)
 
     # Make the nominal model and simulate the data
     dt = 2 * numpy.pi / (args.omega * args.sample_rate)
-    system, initial_dist = linear_simulation.make_linear_stationary(
+    system, initial_dist = linear_map_simulation.make_linear_stationary(
         args, dt, rng)
     x_data, y_data = system.simulate_n_steps(initial_dist, args.n_samples)
 
@@ -68,23 +64,17 @@ def main(argv=None):
     log_like = numpy.empty(b_array.shape)
     for i, b_i in enumerate(b_array):
         args.b = b_i
-        system_b, b_dist = linear_simulation.make_linear_stationary(
+        system_b, b_dist = linear_map_simulation.make_linear_stationary(
             args, dt, rng)
         log_like[i] = system_b.log_likelihood(b_dist, y_data)
 
-    fig, (axis_a, axis_b) = pyplot.subplots(nrows=2, figsize=(6, 8))
-
-    axis_a.plot(x_data[:, 0])
-    axis_a.set_xlabel('$t$')
-    axis_a.set_ylabel('$x_0$')
-
-    axis_b.plot(b_array, log_like)
-    axis_b.set_xlabel('$b$')
-    axis_b.set_ylabel('Log Likelihood')
-
-    if args.show:
-        pyplot.show()
-    fig.savefig(args.fig_path)
+    with open(args.data, 'wb') as _file:
+        pickle.dump(
+            {
+                'b_array': b_array,
+                'log_like': log_like,
+                'x_data': x_data,
+            }, _file)
     return 0
 
 

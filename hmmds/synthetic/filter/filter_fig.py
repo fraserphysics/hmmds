@@ -46,54 +46,54 @@ def main(argv=None):
     t_fine = numpy.array(range(len(data['y_fine']))) * data['dt_fine']
     t_coarse = numpy.array(range(len(data['y_coarse']))) * data['dt_coarse']
 
-    fig, ((axis_x_short, axis_y_long), (axis_x_all, axis_x0_long),
-          (axis_y_short, axis_error)) = pyplot.subplots(nrows=3,
-                                                        ncols=2,
-                                                        figsize=(6, 10))
+    fig, ((phase_portrait, observations), (states, filtered),
+          (sampled_observations, errors)) = pyplot.subplots(nrows=3,
+                                                            ncols=2,
+                                                            figsize=(6, 10))
 
-    # Phase portrait
-    axis_x_short.plot(data['x_fine'][:, 0], data['x_fine'][:, 1], label='$x$')
+    phase_portrait.plot(data['x_fine'][:, 0], data['x_fine'][:, 1], label='$x$')
     # All components vs time
     for i, x_i in enumerate(data['x_fine'].T):
-        axis_x_all.plot(t_fine, x_i, label=f'$x_{i}$')
-    # Observations short-fine vs time
-    axis_x_all.plot(t_fine[::args.sample_ratio],
-                    data['x_fine'][::args.sample_ratio, 0],
-                    marker='.',
-                    markersize=8,
-                    linestyle='None')
+        states.plot(t_fine, x_i, label=f'$x_{i}$')
+    # Plot states vs time.  Short time finely sampled
+    states.plot(t_fine[::args.sample_ratio],
+                data['x_fine'][::args.sample_ratio, 0],
+                marker='.',
+                markersize=8,
+                linestyle='None')
+    # Plot observations vs time.  Short time finely sampled
     for i, y_i in enumerate(data['y_fine'].T):
-        axis_y_short.plot(t_fine, y_i)
-        axis_y_short.plot(t_fine[::args.sample_ratio],
-                          y_i[::args.sample_ratio],
-                          marker='.',
-                          markersize=8,
-                          linestyle='None',
-                          label=f'$y_{i}$')
+        sampled_observations.plot(t_fine, y_i)
+        sampled_observations.plot(t_fine[::args.sample_ratio],
+                                  y_i[::args.sample_ratio],
+                                  marker='.',
+                                  markersize=8,
+                                  linestyle='None',
+                                  label=f'$y_{i}$')
 
-    # Plot observation components vs time
+    # Plot observations vs time.  Long time coarsely sampled
     for i, y_i in enumerate(data['y_coarse'].T):
-        axis_y_long.plot(t_coarse, y_i, label=f'$y_{i}$')
-    # x_0 component and filtered estimate
-    axis_x0_long.plot(t_coarse, data['x_coarse'][:, 0], label='$x_0$')
-    axis_x0_long.plot(t_coarse, data['forward_means'][:, 0], label='filtered')
+        observations.plot(t_coarse, y_i, label=f'$y_{i}$')
+    # First component of state and filtered estimate.
+    filtered.plot(t_coarse, data['x_coarse'][:, 0], label='$x_0$')
+    filtered.plot(t_coarse, data['forward_means'][:, 0], label='filtered')
     # Error of filter estimate and calculated variance of filter
-    plot_error(axis_error, t_coarse, data['forward_covariances'],
+    plot_error(errors, t_coarse, data['forward_covariances'],
                data['forward_means'][:, 0] - data['x_coarse'][:, 0],
                'filter error')
 
     # Legends for all axes
-    for axis in (axis_x_short, axis_x_all, axis_y_short, axis_y_long,
-                 axis_x0_long, axis_error):
+    for axis in (phase_portrait, states, sampled_observations, observations,
+                 filtered, errors):
         axis.legend()
 
     # Force matching ticks
-    axis_y_short.get_shared_x_axes().join(axis_x_all, axis_y_short)
-    axis_error.get_shared_x_axes().join(axis_error, axis_x0_long, axis_y_long)
-    axis_error.get_shared_y_axes().join(axis_error, axis_x0_long)
+    sampled_observations.get_shared_x_axes().join(states, sampled_observations)
+    errors.get_shared_x_axes().join(errors, filtered, observations)
+    errors.get_shared_y_axes().join(errors, filtered)
 
     # Drop tick labels on some shared axes.  FixMe: Drop some more
-    for axis in (axis_x_all, axis_y_long, axis_x0_long):
+    for axis in (states, observations, filtered):
         axis.set_xticklabels([])
 
     if args.show:

@@ -86,8 +86,6 @@ def make_system(args, dt, rng):
 def main(argv=None):
     """
     """
-    #args = linear_map_simulation.parse_args(
-    #    sys.argv[1:], (linear_map_simulation.system_args,))
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]

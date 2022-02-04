@@ -125,6 +125,7 @@ def make_linear_stationary(args, dt, rng):
     ])
     d = numpy.array([[args.d]],
                     dtype=numpy.float64)  # Observation noise is c * Normal(0,I)
+    # Calculate stationary distribution
     sigma_squared = b[0, 0]**2 / (1 - numpy.exp(-2 * args.a * dt))
     stationary_distribution = hmm.state_space.MultivariateNormal(
         numpy.zeros(2),
