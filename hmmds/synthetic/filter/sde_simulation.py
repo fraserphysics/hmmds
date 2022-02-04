@@ -29,13 +29,11 @@ def make_system(args, dt, rng):
     # State dynamics d/dt x(t) = a * x
     a = numpy.array([[-.01, 1], [-1, -.01]])
     # Observation y = c * x
-    c = numpy.array([
-        [0, .5],
-        [0.01, 0]
-    ])
+    c = numpy.array([[0, 0.5]])
 
-    observation_noise = numpy.eye(2) * 0.1
+    observation_noise = numpy.eye(1) * args.d
 
+    # The next three functions are passed to SDE.__init__
     def observation_function(t, x):
         return numpy.dot(c, x), c
 

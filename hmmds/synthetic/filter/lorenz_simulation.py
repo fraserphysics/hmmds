@@ -1,78 +1,20 @@
-r"""lorenz_simulation.py Make data for Extended Kalman Filtering plots
-
-Imitate linear_simulation.py and make the following data:
-
-1. Sequences of states and observation with a fine sampling interval
-
-2. Sequences of states and observation with a coarse sampling interval
-
-3. Means and covariances from Kalman filtering the coarse observations
-
-4. Means and covariances from backward filtering the coarse observations
-
-5. Means and covariances from smoothing the coarse observations
+"""lorenz_simulation.py Simulate Lorenz system to make data.  Then
+exercise filter and smooth.
 
 """
-
 import sys
-import argparse
-import os.path
+import typing
 import pickle
 
 import numpy
-import numpy.random
 
-import hmm.examples.ekf
+import hmm.state_space
 
-
-def system_args(parser: argparse.ArgumentParser):
-    """I separated these so that other modules can import.
-    """
-
-    parser.add_argument('--coarse_dt',
-                        type=float,
-                        default=0.15,
-                        help='Sample interval')
-    parser.add_argument('--state_noise',
-                        type=float,
-                        default=.001,
-                        help='Std deviation of system noise')
-    parser.add_argument('--observation_noise',
-                        type=float,
-                        default=0.01,
-                        help='Std deviation of observation noise')
-    parser.add_argument('--fudge',
-                        type=float,
-                        default=1.0,
-                        help='Multiplier of state noise for filtering')
-
-
-def parse_args(argv):
-    """Parse the command line.
-    """
-
-    parser = argparse.ArgumentParser(
-        description='Generate Lorenz data for an EKF figure.')
-    system_args(parser)
-    parser.add_argument('--sample_ratio',
-                        type=int,
-                        default=10,
-                        help='Number of fine samples per coarse sample')
-    parser.add_argument('--n_fine',
-                        type=int,
-                        default=1000,
-                        help='Number of fine samples')
-    parser.add_argument('--n_coarse',
-                        type=int,
-                        default=1000,
-                        help='Number of coarse samples')
-    parser.add_argument('data', type=str, help='Path to store data')
-    parser.add_argument('--random_seed', type=int, default=9)
-    return parser.parse_args(argv)
+import linear_simulation
 
 
 def make_system(args, dt, rng):
-    """Make a system instance
+    """Make an SDE system instance
     
     Args:
         args: Command line arguments
@@ -80,66 +22,97 @@ def make_system(args, dt, rng):
         rng:
 
     Returns:
-        (A system instance, an initial state, an inital distribution)
+        (An SDE instance, an initial state, an inital distribution)
+
+    The goal is to get linear_simulation.main to exercise all of the
+    SDE methods on the Lorenz system.
+
     """
-    lorenz = hmm.examples.ekf.Lorenz(dt=dt,
-                                     state_noise=args.state_noise,
-                                     observation_noise=args.observation_noise,
-                                     rng=rng,
-                                     fudge=args.fudge)
-    averages = hmm.examples.ekf.Lorenz(dt=1,
-                                       state_noise=args.state_noise,
-                                       observation_noise=args.observation_noise,
-                                       rng=rng,
-                                       fudge=args.fudge)
-    n_averages = 200
-    initial_distribution = hmm.state_space.MultivariateNormal(
-        averages.relax,
-        numpy.eye(3) * .01)
-    states, _ = averages.simulate_n_steps(initial_distribution, n_averages)
-    assert states.shape == (n_averages, 3)
-    mean = numpy.sum(states, axis=0) / n_averages
-    assert mean.shape == (3,)
-    diffs = states - mean
-    assert diffs.shape == (n_averages, 3)
-    covariance = numpy.dot(diffs.T, diffs) / n_averages
-    assert covariance.shape == (3, 3)
-    initial_distribution = hmm.state_space.MultivariateNormal(
-        mean, covariance, rng)
-    return hmm.state_space.EKF(lorenz, dt,
-                               rng), averages.relax, initial_distribution
+
+    # The next three functions are passed to SDE.__init__
+
+    def dx_dt(t, x):
+        s, r, b = (10.0, 28.0, 8.0 / 3)
+        return numpy.array([
+            s * (x[1] - x[0]), x[0] * (r - x[2]) - x[1], x[0] * x[1] - b * x[2]
+        ])
+
+    def tangent(t, x_dx):
+        result = numpy.empty(12)  # Allocate storage for result
+        s, r, b = (10.0, 28.0, 8.0 / 3)
+
+        # Unpack state and derivative from argument
+        x = x_dx[:3]
+        dx_dx0 = x_dx[3:].reshape((3, 3))
+
+        # First three components are the value of the vector field F(x)
+        result[:3] = dx_dt(t, x)
+
+        dF = numpy.array([  # The derivative of F wrt x
+            [-s, s, 0], [r - x[2], -1, -x[0]], [x[1], x[0], -b]
+        ])
+
+        # Assign the tangent part of the return value.
+        result[3:] = numpy.dot(dF, dx_dx0).reshape(-1)
+
+        return result
+
+    def observation_function(
+            t, state) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+        """Calculate observation and its derivative
+        """
+        g = numpy.array([[0, 0, .5], [-2.0, 2.0, 0]])
+        return numpy.dot(g, state), g
+
+    x_dim = 3
+    state_noise = numpy.ones(x_dim) * args.b
+    y_dim = observation_function(0, numpy.ones(x_dim))[0].shape[0]
+    observation_noise = numpy.eye(y_dim) * args.d
+
+    system = hmm.state_space.SDE(dx_dt,
+                                 tangent,
+                                 state_noise,
+                                 observation_function,
+                                 observation_noise,
+                                 dt,
+                                 x_dim,
+                                 fudge=100)
+    initial_state = system.relax(500)[0]
+    stationary_distribution = system.relax(500, initial_state=initial_state)[1]
+    result = hmm.state_space.NonStationary(system, dt, rng)
+    return result, stationary_distribution
 
 
 def main(argv=None):
-    """Writes time series to files specified by options --xyzfile,
-    --quantfile, and or --TSintro.
-
     """
+    """
+    args = linear_simulation.parse_args(sys.argv[1:],
+                                        (linear_simulation.system_args,))
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    args = parse_args(argv)
+    args = linear_simulation.parse_args(argv, (linear_simulation.system_args,))
 
     rng = numpy.random.default_rng(args.random_seed)
 
-    dt_coarse = args.coarse_dt
-    dt_fine = dt_coarse / args.sample_ratio
+    dt = 0.15
+    dt_fine = dt / args.sample_ratio
+    dt_coarse = dt
 
-    ekf_fine, fine_state, fine_distribution = make_system(args, dt_fine, rng)
-    ekf_coarse, coarse_state, coarse_distribution = make_system(
-        args, dt_coarse, rng)
+    system_fine, initial_fine = make_system(args, dt_fine, rng)
+    system_coarse, initial_coarse = make_system(args, dt_coarse, rng)
 
-    def distribution(state):
-        return hmm.state_space.MultivariateNormal(state, numpy.eye(3) * 1e-8)
+    x_fine, y_fine = system_fine.simulate_n_steps(initial_fine, args.n_fine)
+    x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_coarse,
+                                                        args.n_coarse)
 
-    x_fine, y_fine = ekf_fine.system.simulate_n_steps(distribution(fine_state),
-                                                      args.n_fine)
-    x_coarse, y_coarse = ekf_coarse.system.simulate_n_steps(
-        distribution(coarse_state), args.n_coarse)
-
-    forward_means, forward_covariances = ekf_coarse.forward_filter(
-        coarse_distribution, y_coarse)
+    forward_means, forward_covariances = system_coarse.forward_filter(
+        initial_coarse, y_coarse)
+    # information_means, informations = system_coarse.backward_information_filter(
+    #     y_coarse)
+    # smooth_means, smooth_covariances = system_coarse.smooth(
+    #     initial_coarse, y_coarse)
 
     with open(args.data, 'wb') as _file:
         pickle.dump(
@@ -152,7 +125,12 @@ def main(argv=None):
                 'y_coarse': y_coarse,
                 'forward_means': forward_means,
                 'forward_covariances': forward_covariances,
-            }, _file)
+                # 'smooth_means': smooth_means,
+                # 'smooth_covariances': smooth_covariances,
+                # 'information_means': information_means,
+                # 'informations': informations,
+            },
+            _file)
 
     return 0
 

@@ -1,4 +1,6 @@
-""" plot_time_series.py <data> <plot_file>
+"""linear_filter.py <data> <plot_file>.  Make a 6 plot figure
+displaying forward filtering.
+
 """
 import sys
 import argparse
@@ -34,8 +36,7 @@ def plot_error(axis, sample_times, covariance, difference, label):
 
 
 def main(argv=None):
-    """Make time series picture with fine, coarse, and quantized Lorenz
-    data.
+    """Make time series picture with fine, coarse, filtered data.
 
     """
 
