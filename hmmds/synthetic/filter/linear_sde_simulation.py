@@ -27,7 +27,7 @@ def make_system(args, dt, rng):
     """
 
     # State dynamics d/dt x(t) = a * x
-    a = numpy.array([[-.01, 1], [-1, -.01]])
+    a = numpy.array([[-.01, .2], [-.2, -.01]])
     # Observation y = c * x
     c = numpy.array([[0, 0.5]])
 

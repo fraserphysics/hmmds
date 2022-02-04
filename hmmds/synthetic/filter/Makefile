@@ -22,17 +22,12 @@ distribution.pdf log_likelihood.pdf
 LINEAR_ARGS = --sample_rate 100 --sample_ratio $(SAMPLE_RATIO) \
 --n_fine 1000 --n_coarse 500 --a 0.01 --b 2.0 --d 25.0
 
-linear_map_data: linear_map_simulation.py
-	python $< $(LINEAR_ARGS) $@
-
-mimic_data: mimic_simulation.py
-	python $< $(LINEAR_ARGS) $@
-
-linear_sde_data: linear_sde_simulation.py
+%_data: %_simulation.py
 	python $< $(LINEAR_ARGS) $@
 
 lorenz_data: lorenz_simulation.py
-	python $< --b .1 --d 2.0 --sample_ratio 5 --n_fine 200 --n_coarse 101 $@
+	python $< --fudge 200 --dt 0.2 --b .1 --d 2.0 --sample_ratio 5 \
+--n_fine 101 --n_coarse 51 --random_seed 12 $@
 
 .PHONY: test
 test:
@@ -46,14 +41,7 @@ all_data: $(ALL_DATA)
 all_figs: $(ALL_FIGS)
 	touch $@
 
-#$(LinearSystemFigures)/system_and_filter.pdf: linear_filter.py $(DATA)#
-#	python $< --show  --sample_ratio $(SAMPLE_RATIO) $(DATA) $@
-
 ## Stuff that belongs in Rules.mk here
-
-$(DATA): $(LinearSystemCode)/linear_simulation.py
-	mkdir -p $(LinearSystemData)
-	python $< $(LINEAR_ARGS) $@
 
 distribution_data: distribution.py
 	python $< --n_samples 10000 --a 0.05 --b 0.2 $@

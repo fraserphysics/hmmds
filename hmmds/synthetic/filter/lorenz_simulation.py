@@ -5,6 +5,7 @@ exercise filter and smooth.
 import sys
 import typing
 import pickle
+import argparse
 
 import numpy
 
@@ -76,11 +77,25 @@ def make_system(args, dt, rng):
                                  observation_noise,
                                  dt,
                                  x_dim,
-                                 fudge=100)
+                                 fudge=args.fudge)
     initial_state = system.relax(500)[0]
-    stationary_distribution = system.relax(500, initial_state=initial_state)[1]
+    final_state, stationary_distribution = system.relax(
+        500, initial_state=initial_state)
     result = hmm.state_space.NonStationary(system, dt, rng)
-    return result, stationary_distribution
+    return result, stationary_distribution, final_state
+
+
+def more_args(parser: argparse.ArgumentParser):
+    """Arguments to add to those from linear_map_simulation.py
+    """
+    parser.add_argument('--dt',
+                        type=float,
+                        default=0.15,
+                        help='sampling interval')
+    parser.add_argument('--fudge',
+                        type=float,
+                        default=100,
+                        help='sampling interval')
 
 
 def main(argv=None):
@@ -91,20 +106,23 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     args = linear_map_simulation.parse_args(
-        argv, (linear_map_simulation.system_args,))
+        argv, (linear_map_simulation.system_args, more_args))
 
     rng = numpy.random.default_rng(args.random_seed)
 
-    dt = 0.15
-    dt_fine = dt / args.sample_ratio
-    dt_coarse = dt
+    dt_fine = args.dt / args.sample_ratio
+    dt_coarse = args.dt
 
-    system_fine, initial_fine = make_system(args, dt_fine, rng)
-    system_coarse, initial_coarse = make_system(args, dt_coarse, rng)
+    system_coarse, initial_coarse, coarse_state = make_system(
+        args, dt_coarse, rng)
+    system_fine, initial_fine, fine_state = make_system(args, dt_fine, rng)
 
-    x_fine, y_fine = system_fine.simulate_n_steps(initial_fine, args.n_fine)
+    x_fine, y_fine = system_fine.simulate_n_steps(initial_fine,
+                                                  args.n_fine,
+                                                  states_0=coarse_state)
     x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_coarse,
-                                                        args.n_coarse)
+                                                        args.n_coarse,
+                                                        states_0=coarse_state)
 
     forward_means, forward_covariances = system_coarse.forward_filter(
         initial_coarse, y_coarse)
