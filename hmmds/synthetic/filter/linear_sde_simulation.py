@@ -1,4 +1,4 @@
-"""mimic.py Make linear_simulation.py exercise all methods of EKF.
+"""linear_sde_simulation.py Exercise SDE class with simple linear ODE.
 
 """
 import sys
@@ -7,7 +7,7 @@ import numpy
 
 import hmm.state_space
 
-import linear_simulation
+import linear_map_simulation
 
 
 def make_system(args, dt, rng):
@@ -21,7 +21,7 @@ def make_system(args, dt, rng):
     Returns:
         (An SDE instance, an initial state, an inital distribution)
 
-    The goal is to get linear_simulation.main to exercise all of the
+    The goal is to get linear_map_simulation.main to exercise all of the
     SDE methods on an ODE that is easy to integrate.
 
     """
@@ -65,9 +65,7 @@ def make_system(args, dt, rng):
 def main():
     """
     """
-    args = linear_simulation.parse_args(sys.argv[1:],
-                                        (linear_simulation.system_args,))
-    return linear_simulation.main(sys.argv[1:], make_system=make_system)
+    return linear_map_simulation.main(sys.argv[1:], make_system=make_system)
 
 
 if __name__ == "__main__":

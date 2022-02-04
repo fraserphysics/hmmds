@@ -10,7 +10,7 @@ import numpy
 
 import hmm.state_space
 
-import linear_simulation
+import linear_map_simulation
 
 
 def make_system(args, dt, rng):
@@ -24,7 +24,7 @@ def make_system(args, dt, rng):
     Returns:
         (An SDE instance, an initial state, an inital distribution)
 
-    The goal is to get linear_simulation.main to exercise all of the
+    The goal is to get linear_map_simulation.main to exercise all of the
     SDE methods on the Lorenz system.
 
     """
@@ -86,13 +86,14 @@ def make_system(args, dt, rng):
 def main(argv=None):
     """
     """
-    args = linear_simulation.parse_args(sys.argv[1:],
-                                        (linear_simulation.system_args,))
+    #args = linear_map_simulation.parse_args(
+    #    sys.argv[1:], (linear_map_simulation.system_args,))
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    args = linear_simulation.parse_args(argv, (linear_simulation.system_args,))
+    args = linear_map_simulation.parse_args(
+        argv, (linear_map_simulation.system_args,))
 
     rng = numpy.random.default_rng(args.random_seed)
 

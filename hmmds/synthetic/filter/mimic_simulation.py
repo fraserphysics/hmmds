@@ -1,4 +1,5 @@
-"""mimic.py Make linear_simulation.py exercise all methods of EKF.
+"""mimic_simulation.py Make linear_simulation.py exercise all methods
+of NonStationary.
 
 """
 import sys
@@ -6,7 +7,7 @@ import sys
 import hmm.examples.ekf
 import hmm.state_space
 
-import linear_simulation
+import linear_map_simulation
 
 
 def make_system(args, dt, rng):
@@ -22,12 +23,12 @@ def make_system(args, dt, rng):
 
     Wrap under, a LinearGaussian instance, in system, an Linear
     instance.  Then wrap system in result, an EKF instance.  The goal
-    is to get linear_simulation.main to exercise all of the EKF
-    methods.
+    is to get linear_map_simulation.main to exercise all of the
+    NonStationary methods.
 
     """
 
-    under, stationary_distribution = linear_simulation.make_linear_stationary(
+    under, stationary_distribution = linear_map_simulation.make_linear_stationary(
         args, dt, rng)
     system = hmm.examples.ekf.Linear(under, dt)
     result = hmm.state_space.NonStationary(
@@ -41,9 +42,7 @@ def make_system(args, dt, rng):
 def main():
     """
     """
-    args = linear_simulation.parse_args(sys.argv[1:],
-                                        (linear_simulation.system_args,))
-    return linear_simulation.main(sys.argv[1:], make_system=make_system)
+    return linear_map_simulation.main(sys.argv[1:], make_system=make_system)
 
 
 if __name__ == "__main__":

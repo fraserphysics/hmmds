@@ -1,4 +1,4 @@
-""" plot_time_series.py <data> <plot_file>
+""" smooth_fig.py <data> <plot_file>
 """
 import sys
 import argparse
@@ -8,7 +8,7 @@ import numpy
 import numpy.linalg
 
 import plotscripts.utilities
-import linear_filter
+import filter_fig
 
 
 def parse_args(argv):
@@ -63,18 +63,17 @@ def main(argv=None):
 
     axis_x.plot(t_, forward, label='forwards')
     axis_x.plot(t_, x_0, label='$x_0$')
-    linear_filter.plot_error(axis_forward_error, t_,
-                             data['forward_covariances'], x_0 - forward,
-                             'forward error')
+    filter_fig.plot_error(axis_forward_error, t_, data['forward_covariances'],
+                          x_0 - forward, 'forward error')
 
     axis_backward.plot(t_, backward, label='backwards')
-    linear_filter.plot_error(axis_backward_error, t_[:-1],
-                             backward_covariances[:-1], (backward - x_0)[:-1],
-                             'backward error')
+    filter_fig.plot_error(axis_backward_error, t_[:-1],
+                          backward_covariances[:-1], (backward - x_0)[:-1],
+                          'backward error')
 
     axis_smooth.plot(t_, smooth, label='smooth')
-    linear_filter.plot_error(axis_smooth_error, t_, data['smooth_covariances'],
-                             smooth - x_0, 'smooth error')
+    filter_fig.plot_error(axis_smooth_error, t_, data['smooth_covariances'],
+                          smooth - x_0, 'smooth error')
 
     for axis in all_axes:
         axis.legend()

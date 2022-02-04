@@ -1,4 +1,4 @@
-r"""linear_simulation.py
+r"""linear_map_simulation.py
 
 Using a LinearGaussian state space model make the following data for plotting:
 
@@ -123,7 +123,7 @@ def make_linear_stationary(args, dt, rng):
     c = numpy.array([
         [args.c, 0.0],
     ])
-    d = numpy.array([args.d],
+    d = numpy.array([[args.d]],
                     dtype=numpy.float64)  # Observation noise is c * Normal(0,I)
     sigma_squared = b[0, 0]**2 / (1 - numpy.exp(-2 * args.a * dt))
     stationary_distribution = hmm.state_space.MultivariateNormal(
