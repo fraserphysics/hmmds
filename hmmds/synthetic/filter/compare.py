@@ -1,3 +1,10 @@
+"""compare.py \
+../../../build/derived_data/synthetic/filter/linear_map_data \
+../../../build/derived_data/synthetic/filter/mimc_data
+
+Should report that the data in the two pickled dictionaries match.
+"""
+
 import sys
 import pickle
 
@@ -5,9 +12,13 @@ import numpy
 
 
 def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    data = argv[0]
+    mimic_data = argv[1]
 
-    data = pickle.load(open('data', 'rb'))
-    mimic_data = pickle.load(open('mimic_data', 'rb'))
+    data = pickle.load(open(data, 'rb'))
+    mimic_data = pickle.load(open(mimic_data, 'rb'))
 
     for key in data.keys():
         true = data[key]
