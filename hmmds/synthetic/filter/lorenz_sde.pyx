@@ -14,6 +14,97 @@ cimport numpy
 DTYPE = numpy.float64
 ctypedef numpy.float64_t DTYPE_t
 
+def lorenz_integrate(
+        numpy.ndarray[DTYPE_t, ndim=1] x_initial,
+        float t_initial,
+        float t_final,
+        float h_max = 0.0025,
+        float h_min =-0.001):
+    """Integrate lorenz system from (x_initial, t_initial) to t_final.
+
+    Args:
+        x_initial: Initial state
+        t_initial: Initial time
+        t_final: Final time (Note t_final < t_initial is OK)
+        h_max: Largest size of Runge-Kutta step
+        h_min: Smallest size of Runge-Kutta step (Requre h_min < 0)
+
+    Returns:
+        x_final: The state at time t_final
+
+    Experiments suggest that integrating forward for 1.0 units of time
+    with h_max > .0025 gets far enough off of the attractor that
+    integrating backwards for 1.0 units of time is pretty far off.
+    Going backwards 0 > h_min > -0.001 seems OK for 1.0 units of time.
+
+    """
+    
+    s, r, b = (10.0, 28.0, 8.0 / 3)
+    assert h_min < 0 < h_max
+    x_final = numpy.empty(3)
+
+    # Get "memoryviews".  These enable calling functions with c style arguments
+    cdef double[::1] initial_view = x_initial
+    cdef double[::1] final_view = x_final
+
+    # Calculate number of Runge-Kutta steps
+    delta_t = t_final - t_initial
+    if h_min < delta_t < h_max:
+        lorenz_step(&initial_view[0], &final_view[0], delta_t, s, b, r)
+        return x_final
+    if delta_t > 0:
+        n_steps = int(delta_t/h_max) + 1
+    else:
+        n_steps = int(delta_t/h_min) + 1
+    assert n_steps > 1
+    
+    # Call multi-step integrate function
+    lorenz_n_steps(&initial_view[0], &final_view[0], delta_t/n_steps, s, b, r, n_steps)
+    return x_final
+
+def tangent_integrate(
+        numpy.ndarray[DTYPE_t, ndim=1] x_initial,
+        float t_initial,
+        float t_final,
+        float h_max = 0.0025,
+        float h_min =-0.001):
+    """Integrate tangent system from (x_initial, t_initial) to t_final.
+
+    Args:
+        x_initial: Initial vector of state and tangent
+        t_initial: Initial time
+        t_final: Final time (Note t_final < t_initial is OK)
+        h_max: Largest size of Runge-Kutta step
+        h_min: Smallest size of Runge-Kutta step (Requre h_min < 0)
+
+    Returns:
+        x_final: The vector at time t_final
+
+    """
+    
+    s, r, b = (10.0, 28.0, 8.0 / 3)
+    assert h_min < 0 < h_max
+    x_final = numpy.empty(12)
+
+    # Get "memoryviews".  These enable calling functions with c style arguments
+    cdef double[::1] initial_view = x_initial
+    cdef double[::1] final_view = x_final
+
+    # Calculate number of Runge-Kutta steps
+    delta_t = t_final - t_initial
+    if h_min < delta_t < h_max:
+        tangent_step(&initial_view[0], &final_view[0], delta_t, s, b, r)
+        return x_final
+    if delta_t > 0:
+        n_steps = int(delta_t/h_max) + 1
+    else:
+        n_steps = int(delta_t/h_min) + 1
+    assert n_steps > 1
+    
+    # Call multi-step integrate function
+    tangent_n_steps(&initial_view[0], &final_view[0], delta_t/n_steps, s, b, r, n_steps)
+    return x_final
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef vector_field(double *x, double s, double b, double r,
@@ -68,55 +159,6 @@ cdef lorenz_step(
     for i in range(3):
         k[4][i] = h*k[0][i]
         x_f[i] = x_i[i] + (k[1][i] + 2 * k[2][i] + 2 * k[3][i] + k[4][i])/6
-
-def lorenz_integrate(
-        numpy.ndarray[DTYPE_t, ndim=1] x_initial,
-        float t_initial,
-        float t_final,
-        float h_max = 0.0025,
-        float h_min =-0.001):
-    """Integrate lorenz system from (x_initial, t_initial) to t_final.
-
-    Args:
-        x_initial: Initial state
-        t_initial: Initial time
-        t_final: Final time (Note t_final < t_initial is OK)
-        h_max: Largest size of Runge-Kutta step
-        h_min: Smallest size of Runge-Kutta step (Requre h_min < 0)
-
-    Returns:
-        x_final: The state at time t_final
-
-    Experiments suggest that integrating forward for 1.0 units of time
-    with h_max > .0025 gets far enough off of the attractor that
-    integrating backwards for 1.0 units of time is pretty far off.
-    Going backwards 0 > h_min > -0.001 seems OK for 1.0 units of time.
-
-    """
-    
-    s, r, b = (10.0, 28.0, 8.0 / 3)
-    assert h_min < 0 < h_max
-    x_final = numpy.empty(3)
-
-    # Get "memoryviews".  These enable calling functions with c style arguments
-    cdef double[::1] initial_view = x_initial
-    cdef double[::1] final_view = x_final
-
-    # Calculate number of Runge-Kutta steps
-    delta_t = t_final - t_initial
-    if h_min < delta_t < h_max:
-        lorenz_step(&initial_view[0], &final_view[0], delta_t, s, b, r)
-        return x_final
-    if delta_t > 0:
-        n_steps = int(delta_t/h_max) + 1
-    else:
-        n_steps = int(delta_t/h_min) + 1
-    assert n_steps > 1
-    
-    # Call multi-step integrate function
-    lorenz_n_steps(&initial_view[0], &final_view[0], delta_t/n_steps, s, b, r, n_steps)
-    return x_final
-    
     
 @cython.boundscheck(False)
 cdef lorenz_n_steps(
