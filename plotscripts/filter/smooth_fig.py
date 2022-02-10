@@ -35,22 +35,19 @@ def main(argv=None):
     data = pickle.load(open(args.data, 'rb'))
     forward_means = data['forward_means'][:, 0]
     smooth_means = data['smooth_means'][:, 0]
-    informations = data['informations']
-    information_means = data['information_means']
+    backward_informations = data['backward_informations']
+    backward_means = data['backward_means'][:, 0]
     x_0 = data['x_coarse'][:, 0]
     t_ = numpy.array(range(len(x_0))) * data['dt_coarse']
 
     # Calculate backward means and covariances
-    n_t = len(informations)
-    backward_means = numpy.zeros(n_t)
-    backward_covariances = numpy.zeros(informations.shape)
+    n_t = len(backward_informations)
+    backward_covariances = numpy.zeros(backward_informations.shape)
     for t in range(n_t):
-        try:
-            backward_means[t] = numpy.linalg.solve(informations[t],
-                                                   information_means[t])[0]
-            backward_covariances[t] = numpy.linalg.inv(informations[t])
-        except (numpy.linalg.LinAlgError):
-            pass  # Near n_t informations[t] is singular
+        # Use pseudo-inverse because near n_t backward_informations[t]
+        # is singular
+        backward_covariances[t] = numpy.linalg.pinv(
+                backward_informations[t], rcond=1e-8)
 
     # Set up axes
     fig, ((forward, forward_error), (backward, backward_error),
