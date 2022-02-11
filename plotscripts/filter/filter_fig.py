@@ -51,7 +51,9 @@ def main(argv=None):
                                                             ncols=2,
                                                             figsize=(6, 10))
 
-    phase_portrait.plot(data['x_fine'][:, 0], data['x_fine'][:, 1], label='$x$')
+    phase_portrait.plot(data['x_fine'][:, 0],
+                        data['x_fine'][:, -1],
+                        label='$x$')
     # All components vs time
     for i, x_i in enumerate(data['x_fine'].T):
         states.plot(t_fine, x_i, label=f'$x_{i}$')

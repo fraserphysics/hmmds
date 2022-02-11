@@ -46,8 +46,8 @@ def main(argv=None):
     for t in range(n_t):
         # Use pseudo-inverse because near n_t backward_informations[t]
         # is singular
-        backward_covariances[t] = numpy.linalg.pinv(
-                backward_informations[t], rcond=1e-8)
+        backward_covariances[t] = numpy.linalg.pinv(backward_informations[t],
+                                                    rcond=1e-8)
 
     # Set up axes
     fig, ((forward, forward_error), (backward, backward_error),

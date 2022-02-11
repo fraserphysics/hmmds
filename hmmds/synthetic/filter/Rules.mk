@@ -14,8 +14,8 @@ $(FILTER_DATA)/%_data: $(FILTER_CODE)/%_simulation.py
 
 $(FILTER_DATA)/lorenz_data: $(FILTER_CODE)/lorenz_simulation.py
 	mkdir -p $(FILTER_DATA)
-	python $< --fudge 200 --dt 0.2 --b .1 --d 2.0 --sample_ratio 5 \
---n_fine 101 --n_coarse 51 --random_seed 12 $@
+	python $< --fudge 300 --dt 0.1 --b .1 --d 2.0 --sample_ratio 5 \
+--n_fine 201 --n_coarse 51 --random_seed 12 $@
 
 $(FILTER_DATA)/distribution_data: $(FILTER_CODE)/distribution.py
 	mkdir -p $(FILTER_DATA)

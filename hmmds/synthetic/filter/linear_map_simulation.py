@@ -162,7 +162,7 @@ def main(argv=None,
     forward_means, forward_covariances = system_coarse.forward_filter(
         initial_coarse, y_coarse)
     backward_means, backward_informations = system_coarse.backward_information_filter(
-        y_coarse)
+        y_coarse, forward_means[-1])
     smooth_means, smooth_covariances = system_coarse.smooth(
         initial_coarse, y_coarse)
 

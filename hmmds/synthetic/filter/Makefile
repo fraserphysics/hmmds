@@ -17,6 +17,12 @@ distribution_data linear_map_data linear_sde_data log_likelihood_data lorenz_dat
 .PHONY : test
 test: $(ALL)
 
+
+## comparison   : Exercise hmm.statespace.NonLinear
+.PHONY : comparison
+comparison: compare.py $(FILTER_DATA)/mimic_data $(FILTER_DATA)/linear_map_data
+	python $^
+
 ## list         : List all files built by this makefile
 .PHONY : list
 list:

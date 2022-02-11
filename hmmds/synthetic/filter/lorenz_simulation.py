@@ -10,6 +10,7 @@ import argparse
 import numpy
 
 import hmm.state_space
+import hmmds.synthetic.filter.lorenz_sde
 
 import linear_map_simulation
 
@@ -70,14 +71,14 @@ def make_system(args, dt, rng):
     y_dim = observation_function(0, numpy.ones(x_dim))[0].shape[0]
     observation_noise = numpy.eye(y_dim) * args.d
 
-    system = hmm.state_space.SDE(dx_dt,
-                                 tangent,
-                                 state_noise,
-                                 observation_function,
-                                 observation_noise,
-                                 dt,
-                                 x_dim,
-                                 fudge=args.fudge)
+    system = hmmds.synthetic.filter.lorenz_sde.SDE(dx_dt,
+                                                   tangent,
+                                                   state_noise,
+                                                   observation_function,
+                                                   observation_noise,
+                                                   dt,
+                                                   x_dim,
+                                                   fudge=args.fudge)
     initial_state = system.relax(500)[0]
     final_state, stationary_distribution = system.relax(
         500, initial_state=initial_state)
@@ -126,10 +127,10 @@ def main(argv=None):
 
     forward_means, forward_covariances = system_coarse.forward_filter(
         initial_coarse, y_coarse)
-    # information_means, informations = system_coarse.backward_information_filter(
-    #     y_coarse)
-    # smooth_means, smooth_covariances = system_coarse.smooth(
-    #     initial_coarse, y_coarse)
+    backward_means, backward_informations = system_coarse.backward_information_filter(
+        y_coarse, forward_means[-1])
+    smooth_means, smooth_covariances = system_coarse.smooth(
+        initial_coarse, y_coarse)
 
     with open(args.data, 'wb') as _file:
         pickle.dump(
@@ -142,12 +143,11 @@ def main(argv=None):
                 'y_coarse': y_coarse,
                 'forward_means': forward_means,
                 'forward_covariances': forward_covariances,
-                # 'smooth_means': smooth_means,
-                # 'smooth_covariances': smooth_covariances,
-                # 'information_means': information_means,
-                # 'informations': informations,
-            },
-            _file)
+                'smooth_means': smooth_means,
+                'smooth_covariances': smooth_covariances,
+                'backward_means': backward_means,
+                'backward_informations': backward_informations,
+            }, _file)
 
     return 0
 

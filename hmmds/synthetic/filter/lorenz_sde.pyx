@@ -217,17 +217,17 @@ cdef tangent_field(double *x, double s, double b, double r,
     y_dot[1] = r * x[0] - x[0] * x[2] - x[1]
     y_dot[2] = x[0] * x[1] - b * x[2]
     
-    y_dot[3] = df_dx[0] * x[0] + df_dx[1] * x[1] + df_dx[2] * x[2]
-    y_dot[4] = df_dx[3] * x[0] + df_dx[4] * x[1] + df_dx[5] * x[2]
-    y_dot[5] = df_dx[6] * x[0] + df_dx[7] * x[1] + df_dx[8] * x[2]
+    y_dot[3] = df_dx[0] * x[3] + df_dx[1] * x[4] + df_dx[2] * x[5]
+    y_dot[4] = df_dx[3] * x[3] + df_dx[4] * x[4] + df_dx[5] * x[5]
+    y_dot[5] = df_dx[6] * x[3] + df_dx[7] * x[4] + df_dx[8] * x[5]
     
-    y_dot[6] = df_dx[0] * x[3] + df_dx[1] * x[4] + df_dx[2] * x[5]
-    y_dot[7] = df_dx[3] * x[3] + df_dx[4] * x[4] + df_dx[5] * x[5]
-    y_dot[8] = df_dx[6] * x[3] + df_dx[7] * x[4] + df_dx[8] * x[5]
+    y_dot[6] = df_dx[0] * x[6] + df_dx[1] * x[7] + df_dx[2] * x[8]
+    y_dot[7] = df_dx[3] * x[6] + df_dx[4] * x[7] + df_dx[5] * x[8]
+    y_dot[8] = df_dx[6] * x[6] + df_dx[7] * x[7] + df_dx[8] * x[8]
     
-    y_dot[9] = df_dx[0] * x[6] + df_dx[1] * x[7] + df_dx[2] * x[8]
-    y_dot[10]= df_dx[3] * x[6] + df_dx[4] * x[7] + df_dx[5] * x[8]
-    y_dot[11]= df_dx[6] * x[6] + df_dx[7] * x[7] + df_dx[8] * x[8]
+    y_dot[9] = df_dx[0] * x[9] + df_dx[1] * x[10] + df_dx[2] * x[11]
+    y_dot[10]= df_dx[3] * x[9] + df_dx[4] * x[10] + df_dx[5] * x[11]
+    y_dot[11]= df_dx[6] * x[9] + df_dx[7] * x[10] + df_dx[8] * x[11]
     
 
 @cython.boundscheck(False)
@@ -313,12 +313,6 @@ class SDE(hmm.state_space.SDE):
 
     """
     
-    def dx_dt(t, x):
-        s, r, b = (10.0, 28.0, 8.0 / 3)
-        return numpy.array([
-            s * (x[1] - x[0]), x[0] * (r - x[2]) - x[1], x[0] * x[1] - b * x[2]
-        ])
-
     def simulate(self, x_initial: numpy.ndarray, t_initial: float,
                  t_final: float):
         """Integrate ODE, add noise, and observe with noise.
@@ -332,15 +326,10 @@ class SDE(hmm.state_space.SDE):
             (x_final, y_final)
         """
 
-        #assert x_initial.shape == (self.x_dim,)
-
         state_noise = numpy.sqrt(t_final - t_initial) * numpy.dot(
             self.unit_state_noise, self.rng.standard_normal(self.x_dim))
 
-        bunch = scipy.integrate.solve_ivp(self.dx_dt, (t_initial, t_final),
-                                          x_initial)
-        x_final = bunch.y[:, -1] + state_noise
-        #assert x_final.shape == (self.x_dim,)
+        x_final = lorenz_integrate(x_initial, t_initial, t_final)
 
         observation = self.observation_function(t_final, x_final)[0]
         observation_noise = numpy.dot(
@@ -374,10 +363,10 @@ class SDE(hmm.state_space.SDE):
         x_aug = numpy.empty((1 + self.x_dim) * self.x_dim)
         x_aug[:self.x_dim] = x_initial
         x_aug[self.x_dim:] = numpy.eye(self.x_dim).reshape(-1)
-        bunch = scipy.integrate.solve_ivp(self.tangent, (t_initial, t_final),
-                                          x_aug)
-        x_final = bunch.y[:self.x_dim, -1]
-        derivative = bunch.y[self.x_dim:, -1].reshape((self.x_dim, self.x_dim))
+
+        result_aug = tangent_integrate(x_aug, t_initial, t_final)
+        x_final = result_aug[:self.x_dim]
+        derivative = result_aug[self.x_dim:].reshape(self.x_dim, self.x_dim)
         return x_final, derivative, state_noise_covariance
  
 #--------------------------------
