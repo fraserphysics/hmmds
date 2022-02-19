@@ -161,19 +161,19 @@ the software that I used to produce the first edition of the book:
   code.
 \item[Python3:] The new code runs under python3
   exclusively.
-\item[Numpy, Scipy, Cython, \ldots] The new and improved tools that
+\item[Numpy, SciPy, Cython, \ldots] The new and improved tools that
   have been created since I started the first version combined with
   things I've learned about writing code has produced much clearer
   code.
 \item[Sphinx:] I use sphinx to format documentation embedded in the
   source.
-\item[Matplotlib and Xfig:] I make all of the figures with matplotlib
-  and xfig rather than the mix of tools including gnuplot that Karl
-  and I used for the book.  My code that uses matplotlib is ugly.
+\item[Matplotlib and XFig:] I make all of the figures with Matplotlib
+  and XFig rather than the mix of tools including gnuplot that Karl
+  and I used for the book.  My code that uses Matplotlib is ugly.
   While I take some responsibility for that ugliness, I don't
-  recommend matplotlib with any enthusiasm over gnuplot.
-\item[Scons:] I've switched from gnu-make to scons for building.  I
-  don't recommend scons over gnu make with any enthusiasm either.
+  recommend Matplotlib with any enthusiasm over gnuplot.
+\item[SCons:] I've switched from gnu-make to SCons for building.  I
+  don't recommend SCons over gnu make with any enthusiasm either.
 \end{description}
 
 \subsection*{Differences}
@@ -229,7 +229,7 @@ book.
 \item[Class-Decode:] Study the performance of ad hoc algorithms for
   decoding class.  Write an appendix describing the study.  Apply such
   an algorithm to the apnea problem of Chapter 6.
-\item[Clean up EKF and put it in code/hmm]  Get scons to build all
+\item[Clean up EKF and put it in code/hmm]  Get SCons to build all
   files in derived\_data/laser and remove them from the repository
 \item[Write new Hview code] Data for Figs.~\ref{fig:ToyTS1}
   and~\ref{fig:ToyStretch}
@@ -320,7 +320,7 @@ period five orbit that matches the data.
 \label{sec:intro_hmm}
 \index{discrete hidden Markov model}%
 
-Karl Hegbloom and I drew Fig.~\ref{fig:mm} using the xfig utility.
+Karl Hegbloom and I drew Fig.~\ref{fig:mm} using the XFig utility.
 Karl set up a method that let us use the same drawing for
 Fig.~\ref{fig:dhmm} too.  In his words:
 \begin{quote}
@@ -351,7 +351,7 @@ Fig.~\ref{fig:dhmm} too.  In his words:
 I used \emph{scipy.odeint} or the fourth order Runge Kutta formula
 implemented in Cython, to integrate the Lorenz system and make the
 data for Figs.~\ref{fig:TSintro}-\ref{fig:Statesintro}.  I have not
-found matplotlib to be much easier to use than gnuplot.
+found Matplotlib to be much easier to use than gnuplot.
 \begin{figure}[htbp]
   \centering{\resizebox{\textwidth}{!}{\includegraphics{TSintro.pdf}}
   }
@@ -437,7 +437,7 @@ time by an order of magnitude.
 \subsection{Remarks}
 \label{sec:DHMMRemarks}
 
-Figures~\ref{fig:dhmm_net} and~\ref{fig:nonmm} are xfig drawings.
+Figures~\ref{fig:dhmm_net} and~\ref{fig:nonmm} are XFig drawings.
 \begin{figure}[htbp]
   \centering{\input{Markov_dhmm_net.pdf_t}
   }
@@ -476,7 +476,7 @@ Figures~\ref{fig:dhmm_net} and~\ref{fig:nonmm} are xfig drawings.
 \label{sec:forward}
 \index{forward algorithm|textbf}
 
-Figure~\ref{fig:forward} is an xfig drawing that invokes many \LaTeX
+Figure~\ref{fig:forward} is an XFig drawing that invokes many \LaTeX
 commands defined in the file \emph{software.tex}.
 \begin{sidewaysfigure}[htbp]
   %% 0.75\textheight is approx 5.7 in.  The .eps is exactly that size.
@@ -596,7 +596,7 @@ file \emph{software.tex}.
     \label{fig:viterbi}
   \end{center}
 \end{figure}
-Figure~\ref{fig:viterbiB} is an xfig drawing that invokes commands
+Figure~\ref{fig:viterbiB} is an XFig drawing that invokes commands
 defined in \emph{software.tex}.
 %%%
 %%% fig:viterbiB
@@ -661,7 +661,7 @@ defined in \emph{software.tex}.
 \subsection{MAP Sequence of States or Sequence of MAP States?}
 \label{sec:sequenceMAP}
 
-Figure~\ref{fig:sequenceMAP} is an xfig drawing.
+Figure~\ref{fig:sequenceMAP} is an XFig drawing.
 \begin{figure}[htbp]
   \centering{\plotsize%
     \input{sequenceMAP.pdf_t}
@@ -1005,7 +1005,7 @@ from Tang's file \emph{data/LP5.DAT}.
 \subsection{Singularities of the likelihood function and regularization}
 \label{sec:regularization}
 
-Figure~\ref{fig:MLEfail} is an xfig drawing.
+Figure~\ref{fig:MLEfail} is an XFig drawing.
 \begin{figure}[htbp]
   \centering{\plotsize%
     \setlength{\unitlength}{1in}%
@@ -1069,10 +1069,107 @@ Fig.~\ref{fig:VARGstates} from \emph{data/lorenz.xyz}.
   \label{fig:VARGstates}
 \end{figure}
 
-% \chapter[Continuous States and Observations]{Continuous States and
-%   Observations and Kalman Filtering}
-% \label{chap:continuous}
-\addtocounter{chapter}{1} % Skip chapter without figures
+\chapter[Continuous States and Observations]{Continuous States and
+  Observations and Kalman Filtering}
+ \label{chap:continuous}
+ % \addtocounter{chapter}{1} % Skip chapter without figures
+ 
+\section{Backwards Information Filter}
+\label{sec:BackwardsInformation}
+
+I had trouble doing smoothing on simulated Lorenz data.  The dynamics
+are nonlinear both forward and backwards, and they are extremely
+unstable going backwards.  I was able to do it by keeping track of
+inverse state covariances and state means.  I didn't find that exact
+procedure anywhere else.  I use the following notation for inverse
+covariances (called \emph{information matrices}):
+\begin{align}
+  \Phi_b &\equiv \Sigma_b^{-1} && \text{Information at time $t$
+                                  updated with $y[t]$}\\
+  \Phi_\beta &\equiv \Sigma_\beta^{-1} && \text{Information at time
+                                          $t$ backcast from $t+1$
+                                          before update}                             
+\end{align}
+The $\beta$ parameters characterize the \emph{backcast} distribution,
+$x[t]|y[t+1:] \sim \Normal\left(\mu_\beta[t], \Phi_\beta^{-1}[t]\right)$. 
+And the $b$ parameters characterize the \emph{updated} distribution,
+$x[t]|y[t:] \sim \Normal\left(\mu_b[t], \Phi_b^{-1}[t]\right)$. 
+The iteration starts at the final time $T$ with the initial information
+set to zero.  And I set the initial mean to the estimate
+from the forward pass through the data:
+\begin{align}
+  \label{betaT_cheat}
+  \mu_\beta[T] &= \mu_\alpha[T] \\
+  \Phi_\beta[T] &= 0
+\end{align}
+While Eqn.\eqref{betaT_cheat} seems to illegitimately use information
+from the forward pass in the backward pass, the value of
+$\Phi_\beta[T]$ makes the initial prior completely uninformative.
+Because the Lorenz system is extremely unstable backwards in time, if
+the backwards pass starts or ever gets very far off of the attractor
+the integration diverges.
+
+I will first derive the recursion formulas for the stationary linear
+case where the notation is easier.
+\begin{align}
+  \Phi_b &= \Phi_\beta + G^T \Sigma_\epsilon G && \text{Equation
+                                                  4.32a} \\
+  \mu_b &= \mu_\beta + \Sigma_b G^T \Sigma_\epsilon^{-1} \left[y -
+          G\mu_\beta \right] && \text{Equation 4.32b}\\
+  \label{eq:linear_mu_b}
+  &= \mu_\beta + \Phi_b^{-1} G^T \Sigma_\epsilon^{-1} \left[ y - G
+    \mu_\beta \right] \\
+  &\equiv \mu_\beta + z && \text{Where $z$ is the least square
+                           solution of} \\
+  \Phi_bz &= G^T \Sigma_\epsilon^{-1} \left[ y - G \mu_\beta \right]
+\end{align}
+
+Letting $F$ denote the system map backwards in time, ie, $x[t] = F
+x[t+1]$, I derive the backcast formulas I use as follows:
+\begin{align}
+  \label{eq:linear_mu_beta}
+  \mu_\beta &= F \mu_b && \text{Equation 4.33a}\\
+  \label{sumInside}
+  \Phi_\beta^{-1} &= F \left( \Sigma_\eta + \phi_b^{-1} \right) F^T &&
+                                                                  \text{Equation
+                                                                  4.33b}
+  \\
+  \Phi_\beta &= {F^T}^{-1}  \left( \Sigma_\eta + \phi_b^{-1}
+               \right)^{-1} F^{-1} \\
+  \label{singularPhib}
+  \left(\Sigma_\eta + \phi_b^{-1} \right)^{-1} &= \left( \id + \Phi_b
+                                                 \Sigma_\eta
+                                                 \right)^{-1} \Phi_b
+                       && \text{Verify by multiplying} \\
+  \Phi_\beta &= {F^T}^{-1} \left( \id + \Phi_b \Sigma_\eta
+               \right)^{-1} \Phi_b F^{-1}
+\end{align}
+Notes: (1) The advantage of the right hand side of \eqref{singularPhib}
+over the left is that $\Phi_b$ may be singular while $\left( \id +
+  \Phi_b \Sigma_\eta \right)$ will be invertible. (2) In the
+forecast, the state noise covariance, $\Sigma_\eta$, is added outside of
+the multiplication by $F$, while it is inside in the backcast, \eqref{sumInside},
+because in the model assumes state noise is added \emph{after} the transition
+from $t$ to $t+1$.
+
+\subsection{Nonlinearities}
+\label{sec:backNonlinear}
+
+Suppose that the state map and observation maps are not linear and
+have affine approximations:
+\begin{align}
+  f(x+\delta) &= f(x) + F\cdot \delta \\
+  g(x+\delta) &= g(x) + G \cdot \delta
+\end{align}
+Then the formulas for the informations $\Phi_b$ and $\Phi_\beta$ are
+not changed, but the equations for $\mu$ become:
+\begin{align}
+  \mu_\beta &= f(\mu_b) \\
+  \mu_b &= \mu_\beta + \Phi_b^{-1} G^T \Sigma_\epsilon^{-1} \left[ y -
+          g(\mu_\beta) \right]
+\end{align}
+
+
 \chapter[Performance Bounds]{Performance Bounds and a Toy Problem}
 \label{chap:toys}
 \index{toy problems}
@@ -1192,7 +1289,7 @@ files and figures, but I like the way the old ones look.  The script
 \label{sec:Benettin}
 
 Figure~\ref{fig:QR} is a boring collection of straight \LaTeX ~ and
-three xfig drawings.
+three XFig drawings.
 \begin{figure}[htbp]
   \centering{\plotsize%
     \def\Mone{$ \begin{bmatrix} \begin{bmatrix} e_1
@@ -1538,7 +1635,7 @@ this algorithm and perhaps on other approaches.
 \subsection{Model Topology and Training Data}
 \label{sec:topology}
 
-Figure~\ref{fig:structure} is a simple xfig drawing.
+Figure~\ref{fig:structure} is a simple XFig drawing.
 \begin{figure}
   \centering{\plotsize%
     \def\Azero{$A_H$}%

@@ -11,7 +11,7 @@ import numpy
 
 cimport cython  # For the boundscheck decorator
 cimport numpy
-DTYPE = numpy.float64
+DTYPE = numpy.float64  # FixMe: delete this
 ctypedef numpy.float64_t DTYPE_t
 
 def lorenz_integrate(
@@ -19,7 +19,11 @@ def lorenz_integrate(
         float t_initial,
         float t_final,
         float h_max = 0.0025,
-        float h_min =-0.001):
+        float h_min = -0.001,
+        float s = 10.0,
+        float r = 28.0,
+        float b = 8.0/3
+):
     """Integrate lorenz system from (x_initial, t_initial) to t_final.
 
     Args:
@@ -39,7 +43,6 @@ def lorenz_integrate(
 
     """
     
-    s, r, b = (10.0, 28.0, 8.0 / 3)
     assert h_min < 0 < h_max
     x_final = numpy.empty(3)
 

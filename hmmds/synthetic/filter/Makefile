@@ -13,32 +13,35 @@ include Rules.mk
 ALL = $(addprefix $(FILTER_DATA)/, \
 distribution_data linear_map_data linear_sde_data log_likelihood_data lorenz_data)
 
-## test         : Build all targets
+## test                 : Build all targets
 .PHONY : test
 test: $(ALL)
 
+## lorenz_sde_library   : Compile lorenz_sde.pyx
+.PHONY : lorenz_sde_library
+lorenz_sde_library : lorenz_sde.cpython-38-x86_64-linux-gnu.so
 
-## comparison   : Exercise hmm.statespace.NonLinear
+## comparison           : Exercise hmm.statespace.NonLinear
 .PHONY : comparison
 comparison: compare.py $(FILTER_DATA)/mimic_data $(FILTER_DATA)/linear_map_data
 	python $^
 
-## list         : List all files built by this makefile
+## list                 : List all files built by this makefile
 .PHONY : list
 list:
 	ls -l $(ALL)
 
-## clean         : Remove all files built by this makefile
+## clean                : Remove all files built by this makefile
 .PHONY : clean
 clean:
 	rm -f $(ALL) *pdf*
 
-## variables     : Print selected variables.
+## variables            : Print selected variables.
 .PHONY : variables
 variables:
 	@echo FILTER_DATA: $(SYNTHETIC_CODE)
 
-## help                           : Print comments on targets from makefile
+## help                 : Print comments on targets from makefile
 .PHONY : help
 help :
 	@sed -n 's/^## / /p' Makefile
