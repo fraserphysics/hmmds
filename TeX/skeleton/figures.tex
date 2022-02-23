@@ -1174,6 +1174,62 @@ not changed, but the equations for $\mu$ become:
 \label{chap:toys}
 \index{toy problems}
 
+\subsection{Lorenz System}
+\label{sec:lorenz_system}
+
+Here is the Lorenz system:
+\begin{align*}
+  \dot x &\equiv f(x) && \text{with components} \\
+  \dot x_0 &= s x_1 - s x_0 \\
+  \dot x_1 &= -x_0 x_2 + r x_0 - x_1 \\
+  \dot x_2 &= x_0 x_1 - b x_2
+\end{align*}
+Solving for fixed points
+\begin{align*}
+  x_1 &= x_0 \\
+  x_0(r-1-x_2) &=0 \\
+  x_0^2 &= b(r-1) &&\text{with solutions}\\
+  x_0, x_1, x_2 &= 0,0,0 &&\text{or}\\
+  x_0 &= x_1 = \pm \sqrt{b(r-1)}, \quad x_2 = r-1.
+\end{align*}
+The derivative of $f$ is
+\begin{equation*}
+  \frac{d}{dx} f(x) \equiv F(x) = 
+  \begin{bmatrix}
+    -s    & s   & 0 \\
+    r-x_2 & -1  & -x_0 \\
+    x_1   & x_0 & -b
+  \end{bmatrix}
+\end{equation*}
+I use the derivative to integrate the tangent equation
+\begin{equation*}
+  \frac{d}{dt} \frac{d x[t]}{d x[0]} = F(x[t]) x[t].
+\end{equation*}
+I also evaluate the derivative at the fixed point with $x_0>0$ finding
+\begin{equation*}
+  F(x_{\text{fixed}}) =
+  \begin{bmatrix}
+    -s            &   s           & 0 \\
+    1             &  -1           & -\sqrt{b(r-1)} \\
+    \sqrt{b(r-1)} & \sqrt{b(r-1)} & -b
+  \end{bmatrix}
+\end{equation*}
+A spectral decomposition of that derivative gives the tangent to the
+unstable manifold at the fixed point.
+
+Wikipedia says that the foci are unstable for
+\begin{equation*}
+  r > s \frac{s+b+3}{s-b-1}.
+\end{equation*}
+With the values $s=10$ and $b=8/3$ the threshold is
+\begin{equation*}
+  r_{\text{bifurcation}} = 10\frac{47}{19} \approx 24.7368
+\end{equation*}
+
+My numerical experiments show that for
+$17 < r < r_{\text{bifurcation}}$ there an unstable periodic orbit at
+finite amplitude.
+
 \subsubsection{Lorenz Example}
 
 I make Figs.~\ref{fig:ToyTS1} and~\ref{fig:ToyStretch} from the files
