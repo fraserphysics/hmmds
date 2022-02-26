@@ -1,6 +1,7 @@
-""" explore.py For exploring parameters of Lorenz system.
+"""explore.py For exploring parameters of Lorenz system.
 
-Derived from https://www.pythonguis.com/tutorials/plotting-pyqtgraph/
+Derived from
+https://www.pythonguis.com/tutorials/creating-your-first-pyqt-window/
 
 """
 
@@ -9,12 +10,13 @@ import os
 import argparse
 import pdb
 
+import PyQt5.QtWidgets  # QApplication, QMainWindow, QPushButton
 from PyQt5.QtCore import Qt
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLabel, QSizePolicy, QSlider, QSpacerItem, \
     QVBoxLayout, QWidget, QPushButton
-from pyqtgraph import PlotWidget, plot
-import pyqtgraph as pg
+
+import pyqtgraph
 
 import numpy
 import numpy.linalg
@@ -143,84 +145,142 @@ def make_data(r):
     return data
 
 
-class Slider(QWidget):
+class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
-    def __init__(self, minimum, maximum, parent=None):
-        super(Slider, self).__init__(parent=parent)
-        self.verticalLayout = QVBoxLayout(self)
-        self.label = QLabel(self)
-        self.verticalLayout.addWidget(self.label)
-        self.horizontalLayout = QHBoxLayout()
-        spacerItem = QSpacerItem(0, 20, QSizePolicy.Expanding,
-                                 QSizePolicy.Minimum)
-        self.horizontalLayout.addItem(spacerItem)
-        self.slider = QSlider(self)
-        self.slider.setOrientation(Qt.Vertical)
-        self.horizontalLayout.addWidget(self.slider)
-        spacerItem1 = QSpacerItem(0, 20, QSizePolicy.Expanding,
-                                  QSizePolicy.Minimum)
-        self.horizontalLayout.addItem(spacerItem1)
-        self.verticalLayout.addLayout(self.horizontalLayout)
-        self.resize(self.sizeHint())
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Exploring Lorenz Parameters")
 
-        self.minimum = minimum
-        self.maximum = maximum
-        self.slider.valueChanged.connect(self.setLabelValue)
-        self.x = None
-        self.setLabelValue(self.slider.value())
+        # Configure the main window
+        layout0 = PyQt5.QtWidgets.QHBoxLayout()
+        control_layout = PyQt5.QtWidgets.QVBoxLayout()
+        plot_layout = PyQt5.QtWidgets.QVBoxLayout()
+        layout0.addLayout(control_layout)
+        layout0.addLayout(plot_layout)
 
-    def setLabelValue(self, value):
-        self.x = self.minimum + (float(value) /
-                                 (self.slider.maximum() - self.slider.minimum())
-                                ) * (self.maximum - self.minimum)
-        self.label.setText("{0:.6g}".format(self.x))
-
-
-class Widget(QWidget):
-
-    def __init__(self, parent=None):
-        super(Widget, self).__init__(parent=parent)
+        # Define widgets of control section
         quit_button = QPushButton('Quit', self)
         quit_button.clicked.connect(self.close)
+        slider_layout = PyQt5.QtWidgets.QHBoxLayout()
+        self.slider = {}  # A dict so that I can print all values someday
+        for name, minimum, maximum in (
+            ('Coarse', 20.0, 30.0),
+            ('Medium', 0, .5),
+            ('Fine', 0, .005),
+        ):
+            self.slider[name] = Variable(name, minimum, maximum, self)
+            slider_layout.addWidget(self.slider[name])
+        # Enable access like self.r.  Perhaps better to access self.slider['r']
+        self.__dict__.update(self.slider)
 
-        self.horizontalLayout = QHBoxLayout(self)
+        # Layout control section
+        control_layout.addWidget(quit_button)
+        control_layout.addLayout(slider_layout)
 
-        self.w1 = Slider(20.0, 30.0)
-        self.horizontalLayout.addWidget(self.w1)
+        # Define widgets for plot section
+        phase_portrait = pyqtgraph.GraphicsLayoutWidget(title="Phase Portrait")
+        pp_plot = phase_portrait.addPlot()
+        self.pp_curve = pp_plot.plot(pen='r')
 
-        self.w2 = Slider(0, .5)
-        self.horizontalLayout.addWidget(self.w2)
+        time_series = pyqtgraph.GraphicsLayoutWidget(title="Time Series")
+        ts_plot = time_series.addPlot()
+        self.ts_curve = ts_plot.plot(pen='g')
 
-        self.w3 = Slider(0, .005)
-        self.horizontalLayout.addWidget(self.w3)
+        # Layout plot section
+        plot_layout.addWidget(phase_portrait)
+        plot_layout.addWidget(time_series)
 
-        self.win = pg.GraphicsWindow(title="Basic plotting examples")
-        self.horizontalLayout.addWidget(self.win)
-        self.p6 = self.win.addPlot(title="Phase Portrait")
-        self.curve = self.p6.plot(pen='r')
+        self.update_plot()  # Plot data for initial settings
 
-        self.win2 = pg.GraphicsWindow(title="Basic plotting examples")
-        self.horizontalLayout.addWidget(self.win2)
-        self.p5 = self.win2.addPlot(title="Time Series")
-        self.curve2 = self.p5.plot(pen='g')
-        self.update_plot()
-
-        self.w1.slider.valueChanged.connect(self.update_plot)
-        self.w2.slider.valueChanged.connect(self.update_plot)
-        self.w3.slider.valueChanged.connect(self.update_plot)
+        # Make self the central widget
+        widget = PyQt5.QtWidgets.QWidget()
+        widget.setLayout(layout0)
+        self.setCentralWidget(widget)
 
     def update_plot(self):
-        r = self.w1.x + self.w2.x + self.w3.x
+        r = self.Coarse.x + self.Medium.x + self.Fine.x
         print(f'r={r}')
         data = make_data(r)
-        self.curve.setData(data[:, 0], data[:, 2])
-        self.curve2.setData(data[:200, 0]**2)
+        self.pp_curve.setData(data[:, 0], data[:, 2])
+        self.ts_curve.setData(data[:200, 0]**2)
 
 
+class Variable(QWidget):
+    """Provide sliders and spin boxes to manipulate variable.
+
+    Args:
+        label:
+        minimum:
+        maximum:
+        main_window: For access to method update_plot
+        parent:  I don't understand this
+    """
+
+    def __init__(self,
+                 label: str,
+                 minimum: float,
+                 maximum: float,
+                 main_window,
+                 parent=None):
+        super(Variable, self).__init__(parent=parent)
+
+        # Instantiate widgets
+        self.label = QLabel(self)
+        self.slider = PyQt5.QtWidgets.QSlider(self)
+        self.spin = PyQt5.QtWidgets.QDoubleSpinBox(self)
+
+        # Attach arguments to self and widgets
+        self.label.setText(label)
+        self.spin.setMinimum(minimum)
+        self.spin.setMaximum(maximum)
+        self.minimum = minimum
+        self.maximum = maximum
+        self.main_window = main_window
+
+        # Modify widget properties
+        self.spin.setDecimals(3)
+        # self.slider.minimum() = 0, self.slider.maximum() = 99
+        self.dx_dslide = (maximum - minimum) / (self.slider.maximum() -
+                                                self.slider.minimum())
+        self.slider.setValue(
+            int((self.slider.maximum() + self.slider.minimum()) / 2))
+        self.x = (minimum + maximum) / 2
+        self.spin.setValue(self.x)
+
+        # Connect signals to slots after setting value so that the slots won't be called
+        self.slider.valueChanged.connect(self.slider_changed)
+        self.spin.valueChanged.connect(self.spin_changed)
+
+        # Define layout
+        self.setFixedWidth(120)
+        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout.addWidget(self.label)
+        self.verticalLayout.addWidget(self.slider)
+        self.verticalLayout.addWidget(self.spin)
+        self.resize(self.sizeHint())
+
+    def spin_changed(self, value):
+        self.x = value
+        self.slider.disconnect()  # Avoid loop with setValue
+        self.slider.setValue(self.slider.minimum() +
+                             int((value - self.minimum) / self.dx_dslide))
+        self.slider.valueChanged.connect(self.slider_changed)
+        self.main_window.update_plot()
+
+    def slider_changed(self, value):
+        self.x = self.minimum + float(value) * self.dx_dslide
+        self.spin.disconnect()  # Avoid loop with setValue
+        self.spin.setValue(self.x)
+        self.spin.valueChanged.connect(self.spin_changed)
+        self.main_window.update_plot()
+
+
+# see ~/projects/not_active/metfie/gui_eos.py
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    w = Widget()
-    w.show()
+
+    window = MainWindow()
+    window.show()
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
