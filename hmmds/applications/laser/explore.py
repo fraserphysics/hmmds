@@ -10,12 +10,7 @@ import os
 import argparse
 import pdb
 
-import PyQt5.QtWidgets  # QApplication, QMainWindow, QPushButton
-from PyQt5.QtCore import Qt
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLabel, QSizePolicy, QSlider, QSpacerItem, \
-    QVBoxLayout, QWidget, QPushButton
-
+import PyQt5.QtWidgets
 import pyqtgraph
 
 import numpy
@@ -23,6 +18,7 @@ import numpy.linalg
 import scipy.optimize
 
 import plotscripts.utilities
+import plotscripts.introduction.laser
 
 from hmmds.synthetic.filter.lorenz_sde import lorenz_integrate
 
@@ -107,7 +103,9 @@ class FixedPoint:
                                           rcond=None)[0]
         return numpy.dot(self.projection, coefficients) + self.fixed_point
 
-    def map_time(self, x_initial):
+    def map_time(
+            self,  # FixedPoint
+            x_initial):
         """Find time and position that x_initial maps to x[2] = r-1
         """
         h_max = 0.0025
@@ -134,14 +132,22 @@ class FixedPoint:
         return t_final, x_final
 
 
-def make_data(r):
-    big_t = 10000
-    t_sample = 0.03
-    data = numpy.empty((big_t, 3))
-    relaxed = lorenz_integrate(numpy.ones(3), 0.0, 500.0, r=r)
-    data[0] = relaxed
-    for t in range(1, big_t):
-        data[t] = lorenz_integrate(data[t - 1], 0, t_sample, r=r)
+def make_data(values):
+    r = values.r()
+    fixed_point = FixedPoint(r)
+    initial_state = lorenz_integrate(  #
+        fixed_point.initial_state(values.delta_x()),
+        0.0,
+        values.delta_t(),
+        r=r)
+    laser_t = 0.04
+    t_sample = laser_t * values.t_ratio()
+    n_samples = int(values.T_total() / t_sample)
+
+    data = numpy.empty((n_samples, 3))
+    data[0] = initial_state
+    for i in range(1, n_samples):
+        data[i] = lorenz_integrate(data[i - 1], 0, t_sample, r=r)
     return data
 
 
@@ -159,14 +165,18 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         layout0.addLayout(plot_layout)
 
         # Define widgets of control section
-        quit_button = QPushButton('Quit', self)
+        quit_button = PyQt5.QtWidgets.QPushButton('Quit', self)
         quit_button.clicked.connect(self.close)
         slider_layout = PyQt5.QtWidgets.QHBoxLayout()
         self.slider = {}  # A dict so that I can print all values someday
         for name, minimum, maximum in (
-            ('Coarse', 20.0, 30.0),
-            ('Medium', 0, .5),
-            ('Fine', 0, .005),
+            ('r', 22.0, 37.0),
+            ('delta_x', 0, 6),
+            ('delta_t', 0, 1.0),
+            ('t_ratio', .8, 1.2),
+            ('x_ratio', .5, 2.0),
+            ('offset', 10, 20),
+            ('T_total', 1, 20),
         ):
             self.slider[name] = Variable(name, minimum, maximum, self)
             slider_layout.addWidget(self.slider[name])
@@ -180,32 +190,40 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Define widgets for plot section
         phase_portrait = pyqtgraph.GraphicsLayoutWidget(title="Phase Portrait")
         pp_plot = phase_portrait.addPlot()
-        self.pp_curve = pp_plot.plot(pen='r')
+        self.pp_curve = pp_plot.plot(pen='g')
 
         time_series = pyqtgraph.GraphicsLayoutWidget(title="Time Series")
         ts_plot = time_series.addPlot()
         self.ts_curve = ts_plot.plot(pen='g')
+        self.laser_plot = ts_plot.plot(pen='r')
 
         # Layout plot section
         plot_layout.addWidget(phase_portrait)
         plot_layout.addWidget(time_series)
-
-        self.update_plot()  # Plot data for initial settings
 
         # Make self the central widget
         widget = PyQt5.QtWidgets.QWidget()
         widget.setLayout(layout0)
         self.setCentralWidget(widget)
 
+        # Read the laser data
+        self.laser_data = plotscripts.introduction.laser.read_data(
+            '../../../raw_data/LP5.DAT')
+        assert self.laser_data.shape == (2, 2876)
+
+        self.update_plot()  # Plot data for initial settings
+
     def update_plot(self):
-        r = self.Coarse.x + self.Medium.x + self.Fine.x
-        print(f'r={r}')
-        data = make_data(r)
+        data = make_data(self)
         self.pp_curve.setData(data[:, 0], data[:, 2])
-        self.ts_curve.setData(data[:200, 0]**2)
+        observations = self.x_ratio() * data[:, 0]**2 + self.offset()
+        n_samples = len(observations)
+        times = self.laser_data[0, :n_samples]
+        self.ts_curve.setData(times, observations)
+        self.laser_plot.setData(self.laser_data[:, :n_samples].T)
 
 
-class Variable(QWidget):
+class Variable(PyQt5.QtWidgets.QWidget):
     """Provide sliders and spin boxes to manipulate variable.
 
     Args:
@@ -225,7 +243,7 @@ class Variable(QWidget):
         super(Variable, self).__init__(parent=parent)
 
         # Instantiate widgets
-        self.label = QLabel(self)
+        self.label = PyQt5.QtWidgets.QLabel(self)
         self.slider = PyQt5.QtWidgets.QSlider(self)
         self.spin = PyQt5.QtWidgets.QDoubleSpinBox(self)
 
@@ -253,11 +271,14 @@ class Variable(QWidget):
 
         # Define layout
         self.setFixedWidth(120)
-        self.verticalLayout = QVBoxLayout(self)
+        self.verticalLayout = PyQt5.QtWidgets.QVBoxLayout(self)
         self.verticalLayout.addWidget(self.label)
         self.verticalLayout.addWidget(self.slider)
         self.verticalLayout.addWidget(self.spin)
         self.resize(self.sizeHint())
+
+    def __call__(self):
+        return self.x
 
     def spin_changed(self, value):
         self.x = value
@@ -277,7 +298,7 @@ class Variable(QWidget):
 
 # see ~/projects/not_active/metfie/gui_eos.py
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
+    app = PyQt5.QtWidgets.QApplication(sys.argv)
 
     window = MainWindow()
     window.show()
