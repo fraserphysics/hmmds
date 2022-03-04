@@ -132,7 +132,17 @@ class FixedPoint:
         return t_final, x_final
 
 
-def make_data(values):
+def make_data(
+        values,  # MainWindow,
+        laser_t: float,
+        over_sample: int) -> numpy.ndarray:
+    """Integrate the Lorenz system
+
+    Args:
+        values  Instance that provides access to Variables
+        laser_t Sampling period of laser data
+        over_sample Number of synthetic data points per laser data point
+    """
     r = values.r()
     fixed_point = FixedPoint(r)
     initial_state = lorenz_integrate(  #
@@ -140,8 +150,7 @@ def make_data(values):
         0.0,
         values.delta_t(),
         r=r)
-    laser_t = 0.04
-    t_sample = laser_t * values.t_ratio()
+    t_sample = laser_t * values.t_ratio() / over_sample
     n_samples = int(values.T_total() / t_sample)
 
     data = numpy.empty((n_samples, 3))
@@ -167,13 +176,15 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Define widgets of control section
         quit_button = PyQt5.QtWidgets.QPushButton('Quit', self)
         quit_button.clicked.connect(self.close)
+        write_button = PyQt5.QtWidgets.QPushButton('Write values to file', self)
+        write_button.clicked.connect(self.write_values)
         slider_layout = PyQt5.QtWidgets.QHBoxLayout()
         self.slider = {}  # A dict so that I can print all values someday
         for name, minimum, maximum in (
             ('r', 22.0, 37.0),
             ('delta_x', 0, 6),
             ('delta_t', 0, 1.0),
-            ('t_ratio', .8, 1.2),
+            ('t_ratio', .3, 1.2),
             ('x_ratio', .5, 2.0),
             ('offset', 10, 20),
             ('T_total', 1, 20),
@@ -185,6 +196,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Layout control section
         control_layout.addWidget(quit_button)
+        control_layout.addWidget(write_button)
         control_layout.addLayout(slider_layout)
 
         # Define widgets for plot section
@@ -213,14 +225,25 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         self.update_plot()  # Plot data for initial settings
 
+    def write_values(self):
+        with open('values.txt', 'w') as file_:
+            for name, variable in self.slider.items():
+                file_.write(f'{name} {variable()}\n')
+
     def update_plot(self):
-        data = make_data(self)
+        over_sample = 5
+        laser_t = 0.04
+        data = make_data(self, laser_t, over_sample)
         self.pp_curve.setData(data[:, 0], data[:, 2])
-        observations = self.x_ratio() * data[:, 0]**2 + self.offset()
-        n_samples = len(observations)
-        times = self.laser_data[0, :n_samples]
-        self.ts_curve.setData(times, observations)
-        self.laser_plot.setData(self.laser_data[:, :n_samples].T)
+        simulated_data = self.x_ratio() * data[:, 0]**2 + self.offset()
+        n_simulated = len(simulated_data)
+        n_data = int(n_simulated / over_sample)
+        times = numpy.linspace(0,
+                               n_simulated * laser_t / over_sample,
+                               n_simulated,
+                               endpoint=False)
+        self.ts_curve.setData(times, simulated_data)
+        self.laser_plot.setData(self.laser_data[:, :n_data].T)
 
 
 class Variable(PyQt5.QtWidgets.QWidget):
@@ -234,12 +257,13 @@ class Variable(PyQt5.QtWidgets.QWidget):
         parent:  I don't understand this
     """
 
-    def __init__(self,
-                 label: str,
-                 minimum: float,
-                 maximum: float,
-                 main_window,
-                 parent=None):
+    def __init__(
+            self,  # Variable
+            label: str,
+            minimum: float,
+            maximum: float,
+            main_window,
+            parent=None):
         super(Variable, self).__init__(parent=parent)
 
         # Instantiate widgets
@@ -257,6 +281,7 @@ class Variable(PyQt5.QtWidgets.QWidget):
 
         # Modify widget properties
         self.spin.setDecimals(3)
+        self.spin.setSingleStep(0.001)
         # self.slider.minimum() = 0, self.slider.maximum() = 99
         self.dx_dslide = (maximum - minimum) / (self.slider.maximum() -
                                                 self.slider.minimum())
@@ -288,7 +313,9 @@ class Variable(PyQt5.QtWidgets.QWidget):
         self.slider.valueChanged.connect(self.slider_changed)
         self.main_window.update_plot()
 
-    def slider_changed(self, value):
+    def slider_changed(
+            self,  # Variable
+            value):
         self.x = self.minimum + float(value) * self.dx_dslide
         self.spin.disconnect()  # Avoid loop with setValue
         self.spin.setValue(self.x)
