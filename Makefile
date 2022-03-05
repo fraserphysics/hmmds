@@ -24,6 +24,7 @@ ApneaPlotScripts = $(ROOT)/plotscripts/apnea
 skeleton: $(BUILD)/TeX/skeleton/figures.pdf
 
 # Rules for making plots
+include $(ROOT)/plotscripts/filter/Rules.mk
 include $(ROOT)/plotscripts/introduction/Rules.mk
 include $(ROOT)/plotscripts/basic_algorithms/Rules.mk
 include $(ROOT)/plotscripts/variants/Rules.mk
@@ -32,6 +33,7 @@ include $(ApneaPlotScripts)/Rules.mk
 
 # Rules for making data files
 include $(ROOT)/hmmds/synthetic/Rules.mk
+include $(ROOT)/hmmds/synthetic/filter/Rules.mk
 
 # Rules for making documents
 include $(ROOT)/TeX/skeleton/Rules.mk

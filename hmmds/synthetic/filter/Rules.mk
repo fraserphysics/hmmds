@@ -12,7 +12,7 @@ $(FILTER_DATA)/%_data: $(FILTER_CODE)/%_simulation.py
 	mkdir -p $(FILTER_DATA)
 	python $< $(FILTER_ARGS) $@
 
-$(FILTER_DATA)/lorenz_data: $(FILTER_CODE)/lorenz_simulation.py
+$(FILTER_DATA)/lorenz_data: $(FILTER_CODE)/lorenz_simulation.py  $(FILTER_CODE)/lorenz_sde.cpython-38-x86_64-linux-gnu.so
 	mkdir -p $(FILTER_DATA)
 	python $< --fudge 300 --dt 0.1 --b .1 --d 2.0 --sample_ratio 5 \
 --n_fine 201 --n_coarse 51 --random_seed 12 $@
@@ -25,9 +25,8 @@ $(FILTER_DATA)/log_likelihood_data: $(FILTER_CODE)/log_likelihood.py
 	mkdir -p $(FILTER_DATA)
 	python $<  --n_samples 1000 --n_b 10 --b_range .8 1.2 $@
 
-#$(FILTER_CODE)/lorenz_sde.cpython-38-x86_64-linux-gnu.so: $(FILTER_CODE)/lorenz_sde.pyx $(FILTER_CODE)/build.py
-lorenz_sde.cpython-38-x86_64-linux-gnu.so: lorenz_sde.pyx build.py
-	python build.py build_ext --inplace
+$(FILTER_CODE)/lorenz_sde.cpython-38-x86_64-linux-gnu.so: $(FILTER_CODE)/lorenz_sde.pyx $(FILTER_CODE)/build.py
+	cd $(FILTER_CODE) ; python build.py build_ext --inplace
 
 # Local Variables:
 # mode: makefile

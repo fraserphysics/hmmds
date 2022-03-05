@@ -33,15 +33,13 @@ def make_system(args, dt, rng):
 
     # The next three functions are passed to SDE.__init__
 
-    def dx_dt(t, x):
-        s, r, b = (10.0, 28.0, 8.0 / 3)
+    def dx_dt(t, x, s, r, b):
         return numpy.array([
             s * (x[1] - x[0]), x[0] * (r - x[2]) - x[1], x[0] * x[1] - b * x[2]
         ])
 
-    def tangent(t, x_dx):
+    def tangent(t, x_dx, s, r, b):
         result = numpy.empty(12)  # Allocate storage for result
-        s, r, b = (10.0, 28.0, 8.0 / 3)
 
         # Unpack state and derivative from argument
         x = x_dx[:3]
@@ -78,6 +76,7 @@ def make_system(args, dt, rng):
                                                    observation_noise,
                                                    dt,
                                                    x_dim,
+                                                   ivp_args=(10.0, 28.0, 8.0 / 3),
                                                    fudge=args.fudge)
     initial_state = system.relax(500)[0]
     final_state, stationary_distribution = system.relax(

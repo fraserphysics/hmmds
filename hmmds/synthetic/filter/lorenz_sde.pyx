@@ -18,11 +18,11 @@ def lorenz_integrate(
         numpy.ndarray[DTYPE_t, ndim=1] x_initial,
         float t_initial,
         float t_final,
+        float s,
+        float r,
+        float b,
         float h_max = 0.0025,
         float h_min = -0.001,
-        float s = 10.0,
-        float r = 28.0,
-        float b = 8.0/3
 ):
     """Integrate lorenz system from (x_initial, t_initial) to t_final.
 
@@ -69,6 +69,9 @@ def tangent_integrate(
         numpy.ndarray[DTYPE_t, ndim=1] x_initial,
         float t_initial,
         float t_final,
+        float s,
+        float r,
+        float b,
         float h_max = 0.0025,
         float h_min =-0.001):
     """Integrate tangent system from (x_initial, t_initial) to t_final.
@@ -85,7 +88,6 @@ def tangent_integrate(
 
     """
     
-    s, r, b = (10.0, 28.0, 8.0 / 3)
     assert h_min < 0 < h_max
     x_final = numpy.empty(12)
 
@@ -332,7 +334,7 @@ class SDE(hmm.state_space.SDE):
         state_noise = numpy.sqrt(t_final - t_initial) * numpy.dot(
             self.unit_state_noise, self.rng.standard_normal(self.x_dim))
 
-        x_final = lorenz_integrate(x_initial, t_initial, t_final)
+        x_final = lorenz_integrate(x_initial, t_initial, t_final, *self.ivp_args)
 
         observation = self.observation_function(t_final, x_final)[0]
         observation_noise = numpy.dot(
@@ -367,7 +369,7 @@ class SDE(hmm.state_space.SDE):
         x_aug[:self.x_dim] = x_initial
         x_aug[self.x_dim:] = numpy.eye(self.x_dim).reshape(-1)
 
-        result_aug = tangent_integrate(x_aug, t_initial, t_final)
+        result_aug = tangent_integrate(x_aug, t_initial, t_final, *self.ivp_args)
         x_final = result_aug[:self.x_dim]
         derivative = result_aug[self.x_dim:].reshape(self.x_dim, self.x_dim)
         return x_final, derivative, state_noise_covariance

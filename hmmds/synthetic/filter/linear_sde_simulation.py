@@ -37,10 +37,10 @@ def make_system(args, dt, rng):
     def observation_function(t, x):
         return numpy.dot(c, x), c
 
-    def dx_dt(t, x):
+    def dx_dt(t, x, a):
         return numpy.dot(a, x)
 
-    def tangent(t, x_d):
+    def tangent(t, x_d, a):
         dim_x_d = 6  # 2 for x 4 for d_x
         assert x_d.shape == (dim_x_d,)
         x = x_d[:2]
@@ -55,7 +55,8 @@ def make_system(args, dt, rng):
     x_dim = 2
     system = hmm.state_space.SDE(dx_dt, tangent, state_noise,
                                  observation_function, observation_noise, dt,
-                                 x_dim)
+                                 x_dim,
+                                 ivp_args=(a,) )
     initial_state = system.relax(500)[0]
     stationary_distribution = system.relax(500, initial_state=initial_state)[1]
     result = hmm.state_space.NonStationary(system, dt, rng)

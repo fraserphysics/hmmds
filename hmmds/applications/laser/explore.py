@@ -65,7 +65,9 @@ class FixedPoint:
     """Characterizes the focus of the Lorenz system at x_i > 0
     """
 
-    def __init__(self, r):
+    def __init__(
+            self,  # FixedPoint
+            r):
         s = 10.0
         b = 8.0 / 3
         self.r = r
@@ -95,7 +97,9 @@ class FixedPoint:
         self.period = 2 * numpy.pi / self.omega
         self.relax = values[-1].real
 
-    def initial_state(self, delta_x):
+    def initial_state(
+            self,  # FixedPoint
+            delta_x):
         """Find initial state that is distance delta_x from fixed point
         """
         coefficients = numpy.linalg.lstsq(self.image_2d,
