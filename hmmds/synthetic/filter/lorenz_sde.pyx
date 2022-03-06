@@ -314,7 +314,8 @@ import typing
 
 class SDE(hmm.state_space.SDE):
     """Reimplements methods that integrate the ODE.  Namely: forecast and
-    simulate.
+    simulate.  An SDE instance can be a system for an instance of the
+    NonStationary class.
 
     """
     

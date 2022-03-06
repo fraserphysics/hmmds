@@ -14,6 +14,7 @@ import hmm.state_space
 import hmmds.synthetic.filter.lorenz_sde
 
 import explore
+import plotscripts.introduction.laser
 
 
 def parse_args(argv):
@@ -52,8 +53,8 @@ def parse_args(argv):
                         default=0.742424,
                         help='observation multiplier')
     parser.add_argument('--offset',
-                        type=int,
-                        default=15,
+                        type=float,
+                        default=15.0,
                         help='added to observations')
     parser.add_argument('--fudge',
                         type=float,
@@ -68,12 +69,11 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def make_system(args, dt, rng):
+def make_non_stationary(args, rng):
     """Make an SDE system instance
 
     Args:
         args: Command line arguments
-        dt: Sample interval
         rng:
 
     Returns:
@@ -114,8 +114,7 @@ def make_system(args, dt, rng):
             t, state) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
         """Calculate observation and its derivative
         """
-        y_value = int(args.x_ratio * state[0]**2 + args.offset)
-        y = numpy.array([y_value])
+        y = numpy.array([args.x_ratio * state[0]**2 + args.offset])
         dy_dx = numpy.array([[args.x_ratio * 2 * state[0], 0, 0]])
         return y, dy_dx
 
@@ -132,7 +131,7 @@ def make_system(args, dt, rng):
                                                    state_noise,
                                                    observation_function,
                                                    observation_noise,
-                                                   dt,
+                                                   args.dt,
                                                    x_dim,
                                                    ivp_args=(args.s,args.r,args.b),
                                                    fudge=args.fudge)
@@ -140,7 +139,7 @@ def make_system(args, dt, rng):
     initial_covariance = numpy.outer(state_noise, state_noise)
     initial_distribution = hmm.state_space.MultivariateNormal(
         initial_mean, initial_covariance)
-    result = hmm.state_space.NonStationary(system, dt, rng)
+    result = hmm.state_space.NonStationary(system, args.dt, rng)
     return result, initial_distribution, initial_mean
 
 
@@ -155,22 +154,20 @@ def main(argv=None):
 
     rng = numpy.random.default_rng(args.random_seed)
 
-    dt = args.dt
-
-    system, initial_distribution, initial_state = make_system(
-        args, args.dt, rng)
-    states, observations = system.simulate_n_steps(initial_distribution,
-                                                   args.n_samples,
-                                                   states_0=initial_state)
-
-    forward_means, forward_covariances = system.forward_filter(
+    non_stationary, initial_distribution, initial_state = make_non_stationary(
+        args, rng)
+    laser_data = plotscripts.introduction.laser.read_data('LP5.DAT')
+    assert laser_data.shape == (2, 2876)
+    observations = laser_data[1,:].astype(int).reshape((2876,1))
+    forward_means, forward_covariances = non_stationary.forward_filter(
         initial_distribution, observations)
-
+    log_likelihood = non_stationary.log_likelihood(initial_distribution, observations)
+    print(f'log_likelihood={log_likelihood}')
+    
     with open(args.data, 'wb') as _file:
         pickle.dump(
             {
-                'dt': dt,
-                'states': states,
+                'dt': args.dt,
                 'observations': observations,
                 'forward_means': forward_means,
                 'forward_covariances': forward_covariances,
