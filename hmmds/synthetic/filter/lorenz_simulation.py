@@ -76,7 +76,8 @@ def make_system(args, dt, rng):
                                                    observation_noise,
                                                    dt,
                                                    x_dim,
-                                                   ivp_args=(10.0, 28.0, 8.0 / 3),
+                                                   ivp_args=(10.0, 28.0,
+                                                             8.0 / 3),
                                                    fudge=args.fudge)
     initial_state = system.relax(500)[0]
     final_state, stationary_distribution = system.relax(

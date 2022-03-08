@@ -16,8 +16,14 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_false',
                         help="display figure using Qt5")
-    parser.add_argument('--data', type=str, default='test_ekf', help='path to data file')
-    parser.add_argument('--fig_path', type=str, default='fig_ekf.pdf', help='path to figure')
+    parser.add_argument('--data',
+                        type=str,
+                        default='test_ekf',
+                        help='path to data file')
+    parser.add_argument('--fig_path',
+                        type=str,
+                        default='fig_ekf.pdf',
+                        help='path to figure')
     return parser.parse_args(argv)
 
 
@@ -29,9 +35,10 @@ def main(argv=None):
     data = pickle.load(open(args.data, 'rb'))
 
     fig, ((filtered, filtered_0, observations),
-          (filtered_short, filtered_0_short, observations_short)) = pyplot.subplots(nrows=2,
-                                                                ncols=3,
-                                                                figsize=(6, 10))
+          (filtered_short, filtered_0_short,
+           observations_short)) = pyplot.subplots(nrows=2,
+                                                  ncols=3,
+                                                  figsize=(6, 10))
 
     filtered.plot(data['forward_means'][:, 0], data['forward_means'][:, 2])
     filtered_0.plot(data['forward_means'][:, 0])
@@ -40,8 +47,9 @@ def main(argv=None):
     # Set start and stop to illustrate a complete orbit
     start = 78
     stop = 253
-    
-    filtered_short.plot(data['forward_means'][start:stop, 0], data['forward_means'][start:stop, 2])
+
+    filtered_short.plot(data['forward_means'][start:stop, 0],
+                        data['forward_means'][start:stop, 2])
     filtered_0_short.plot(data['forward_means'][start:stop, 0])
     observations_short.plot(data['observations'][start:stop])
     if args.show:

@@ -147,20 +147,24 @@ def make_data(
         laser_t Sampling period of laser data
         over_sample Number of synthetic data points per laser data point
     """
+    s = 10.0
     r = values.r()
+    b = 8.0/3
     fixed_point = FixedPoint(r)
     initial_state = lorenz_integrate(  #
         fixed_point.initial_state(values.delta_x()),
         0.0,
         values.delta_t(),
-        r=r)
+        s,
+        r,
+        b)
     t_sample = laser_t * values.t_ratio() / over_sample
     n_samples = int(values.T_total() / t_sample)
 
     data = numpy.empty((n_samples, 3))
     data[0] = initial_state
     for i in range(1, n_samples):
-        data[i] = lorenz_integrate(data[i - 1], 0, t_sample, r=r)
+        data[i] = lorenz_integrate(data[i - 1], 0, t_sample, s, r, b)
     return data
 
 

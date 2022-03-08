@@ -53,10 +53,14 @@ def make_system(args, dt, rng):
     state_noise = numpy.ones(2) * args.b
     dt = 2 * numpy.pi / 10  # 10 samples per cycle
     x_dim = 2
-    system = hmm.state_space.SDE(dx_dt, tangent, state_noise,
-                                 observation_function, observation_noise, dt,
+    system = hmm.state_space.SDE(dx_dt,
+                                 tangent,
+                                 state_noise,
+                                 observation_function,
+                                 observation_noise,
+                                 dt,
                                  x_dim,
-                                 ivp_args=(a,) )
+                                 ivp_args=(a,))
     initial_state = system.relax(500)[0]
     stationary_distribution = system.relax(500, initial_state=initial_state)[1]
     result = hmm.state_space.NonStationary(system, dt, rng)
