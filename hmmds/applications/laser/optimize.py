@@ -1,6 +1,7 @@
 """optimize.py Find parameters of extended Kalman filter for laser data.
 
-Here is the result for fitting the first 500 laser points with Nelder-Mead:
+Here is the result for fitting the first 500 laser points with
+Nelder-Mead using delta_x and delta_t:
 
 parameters_min:
 delta_t 0.034536936493082204
@@ -15,23 +16,30 @@ success=True
 message=Optimization terminated successfully.
 iterations=720
 
-Powell on 2876:
-parameters_min:
-delta_t 0.034864197628657737
-t_ratio 0.9971526009958418
-x_ratio 0.707111155695998
-offset 14.917017176643578
-state_noise 0.7021345705781504
-observation_noise 0.5625303823620377
+Powell on 2876 laser observations using full x_initial instead of delta_x and
+delta_t and also optimizing over s, r, and b:
 
-f(x_min)=-6447.25882156127
+parameters_max:
+x_initial_0       13.180709194440812
+x_initial_1       14.425771346985991
+x_initial_2       31.0112305524206
+t_ratio           0.9977047799399252
+x_ratio           0.7123143708209106
+offset            14.881786251069185
+state_noise       0.6893486254578909
+observation_noise 0.5436229616391056
+s                 10.263538130679352
+r                 29.56401523326541
+b                 2.6786572147101873
+
+f_max=-6416.285162714927
 success=True
 message=Optimization terminated successfully.
-iterations=2
+iterations=6
 
-real	4m2.290s
-user	4m3.718s
-sys	0m0.165s
+real	25m37.065s
+user	25m45.490s
+sys	0m0.327s
 
 """
 import sys
@@ -64,20 +72,26 @@ class Parameters:
 
     def __init__(
         self,
-            delta_t = 0.034864197628657737,
-            t_ratio = 0.9971526009958418,
-            x_ratio = 0.707111155695998,
-            offset = 14.917017176643578,
-            state_noise = 0.7021345705781504,
-            observation_noise = 0.5625303823620377,
-        delta_x=2.993,
+        x_initial_0=13.180709194440812,
+        x_initial_1=14.425771346985991,
+        x_initial_2=31.0112305524206,
+        t_ratio=0.9977047799399252,
+        x_ratio=0.7123143708209106,
+        offset=14.881786251069185,
+        state_noise=0.6893486254578909,
+        observation_noise=0.5436229616391056,
+        s=10.263538130679352,
+        r=29.56401523326541,
+        b=2.6786572147101873,
         fudge=1.0,
         laser_dt=0.04,
-        s=10.0,
-        r=30.0,
-        b=8.0 / 3,
     ):
-        self.delta_t = delta_t
+        self.variables = """
+x_initial_0 x_initial_1 x_initial_2 t_ratio x_ratio offset state_noise
+observation_noise s r b""".split()
+        self.x_initial_0 = x_initial_0
+        self.x_initial_1 = x_initial_1
+        self.x_initial_2 = x_initial_2
         self.t_ratio = t_ratio
         self.x_ratio = x_ratio
         self.offset = offset
@@ -85,13 +99,10 @@ class Parameters:
         self.fudge = fudge  # Roll into state_noise
         self.observation_noise = observation_noise
 
-        self.delta_x = delta_x
         self.laser_dt = laser_dt
         self.s = s
         self.r = r
         self.b = b
-        self.variables = """
-delta_t t_ratio x_ratio offset state_noise observation_noise delta_x""".split()
 
     def values(self):
         return tuple(getattr(self, key) for key in self.variables)
@@ -107,17 +118,15 @@ delta_t t_ratio x_ratio offset state_noise observation_noise delta_x""".split()
 LASER_DATA = None
 
 
-def objective_function(parameters_in, delta_x=None):
+def objective_function(parameters_in):
     """For optimization"""
     parameter = Parameters(*parameters_in)
-    if delta_x is not None:
-        parameter.delta_x=delta_x
     non_stationary, initial_distribution, initial_state = make_non_stationary(
         parameter, None)
     result = non_stationary.log_likelihood(initial_distribution, LASER_DATA)
-#    print(f"""at
-#{parameter}
-#objective_function = {result}""")
+    #    print(f"""at
+    #{parameter}
+    #objective_function = {result}""")
     return -result
 
 
@@ -188,30 +197,34 @@ def make_non_stationary(args, rng):
                                                    ivp_args=(args.s, args.r,
                                                              args.b),
                                                    fudge=args.fudge)
-    x_0 = fixed_point.initial_state(args.delta_x)
-    initial_mean = system.simulate(x_0, 0.0, args.delta_t)[0]
+    initial_mean = numpy.array(
+        [args.x_initial_0, args.x_initial_1, args.x_initial_2])
     initial_covariance = numpy.outer(state_noise, state_noise)
     initial_distribution = hmm.state_space.MultivariateNormal(
         initial_mean, initial_covariance)
     result = hmm.state_space.NonStationary(system, dt, rng)
     return result, initial_distribution, initial_mean
 
+
 def study_delta_x():
     global LASER_DATA
-    
+
     laser_data = plotscripts.introduction.laser.read_data('LP5.DAT')
     assert laser_data.shape == (2, 2876)
     length = 175
     LASER_DATA = laser_data[1, :length].astype(int).reshape((length, 1))
 
-    defaults = Parameters().values()
-    delta_x_array = numpy.linspace(1.895, 4.0, 50)
-    result = numpy.empty(delta_x_array.shape)
-    
-    for i, delta_x in enumerate(delta_x_array):
-        result[i] = -objective_function(defaults, delta_x)
+    parameters = Parameters()
+    x_initial_0 = parameters.x_initial_0
+    x_array = numpy.linspace(x_initial_0 - 1, x_initial_0 + 1, 50)
+    result = numpy.empty(x_array.shape)
+
+    for i, x in enumerate(x_array):
+        parameters.x_initial_0 = x
+        result[i] = -objective_function(parameters.values())
     print(result)
-    return delta_x_array, result
+    return x_array, result
+
 
 def optimize():
     global LASER_DATA
@@ -222,11 +235,13 @@ def optimize():
     LASER_DATA = laser_data[1, :length].astype(int).reshape((length, 1))
 
     parameters = Parameters()
+
     defaults = parameters.values()
-    result = scipy.optimize.minimize(objective_function,
-                                     defaults,
-                                     #method='BFGS')
-                                     method='Powell')
+    result = scipy.optimize.minimize(
+        objective_function,
+        defaults,
+        #method='BFGS')
+        method='Powell')
     parameters_max = Parameters(*result.x)
     print(f"""parameters_max:
 {parameters_max}
@@ -235,7 +250,7 @@ success={result.success}
 message={result.message}
 iterations={result.nit}""")
 
-    
+
 def main(argv=None):
     """
     """

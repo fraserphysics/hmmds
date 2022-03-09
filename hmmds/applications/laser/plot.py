@@ -45,13 +45,14 @@ def main(argv=None):
     observations.plot(data['observations'])
 
     # Set start and stop to illustrate a complete orbit
-    start = 78
-    stop = 253
+    start = 252
+    stop = 427
+    x = list(range(start, stop))
 
     filtered_short.plot(data['forward_means'][start:stop, 0],
                         data['forward_means'][start:stop, 2])
-    filtered_0_short.plot(data['forward_means'][start:stop, 0])
-    observations_short.plot(data['observations'][start:stop])
+    filtered_0_short.plot(x, data['forward_means'][start:stop, 0])
+    observations_short.plot(x, data['observations'][start:stop])
     if args.show:
         pyplot.show()
     fig.savefig(args.fig_path)

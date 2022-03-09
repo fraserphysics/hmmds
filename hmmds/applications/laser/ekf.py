@@ -13,58 +13,34 @@ import numpy
 import hmm.state_space
 import hmmds.synthetic.filter.lorenz_sde
 
-import explore
+import optimize
 import plotscripts.introduction.laser
 
 
 def parse_args(argv):
+    parameters = optimize.Parameters()
     parser = argparse.ArgumentParser(
         description='Simulate and filter laser data')
-    parser.add_argument('--state_noise',
-                        type=float,
-                        default=0.01,
-                        help='State noise amplitude')
-    parser.add_argument('--observation_noise',
-                        type=float,
-                        default=2.0,
-                        help='Observation noise amplitude')
-    parser.add_argument('--s',
-                        type=float,
-                        default=10.0,
-                        help='Lorenz parameter')
-    parser.add_argument('--r',
-                        type=float,
-                        default=30.0,
-                        help='Lorenz parameter')
-    parser.add_argument('--b',
-                        type=float,
-                        default=8.0 / 3,
-                        help='Lorenz parameter')
-    parser.add_argument('--dt',
-                        type=float,
-                        default=0.04,
-                        help='sampling interval')
+    for key in parameters.variables + 'laser_dt '.split():
+        parser.add_argument(f'--{key}',
+                            type=float,
+                            default=getattr(parameters, key))
     parser.add_argument('--delta_x',
                         type=float,
                         default=2.993,
                         help='Start wrt fixed point')
-    parser.add_argument('--x_ratio',
-                        type=float,
-                        default=0.742424,
-                        help='observation multiplier')
-    parser.add_argument('--offset',
-                        type=float,
-                        default=15.0,
-                        help='added to observations')
     parser.add_argument('--fudge',
                         type=float,
-                        default=300,
+                        default=1.0,
                         help='Multiply state noise scale for filtering')
     parser.add_argument('--n_samples',
                         type=int,
                         default=1000,
                         help='Number of samples')
-    parser.add_argument('--data', type=str, default='test_ekf', help='Path to store data')
+    parser.add_argument('--data',
+                        type=str,
+                        default='test_ekf',
+                        help='Path to store data')
     parser.add_argument('--random_seed', type=int, default=9)
     return parser.parse_args(argv)
 
@@ -118,7 +94,6 @@ def make_non_stationary(args, rng):
         dy_dx = numpy.array([[args.x_ratio * 2 * state[0], 0, 0]])
         return y, dy_dx
 
-    fixed_point = explore.FixedPoint(args.r)
     x_dim = 3
     state_noise = numpy.ones(x_dim) * args.state_noise
     y_dim = 1
@@ -131,15 +106,17 @@ def make_non_stationary(args, rng):
                                                    state_noise,
                                                    observation_function,
                                                    observation_noise,
-                                                   args.dt,
+                                                   args.laser_dt,
                                                    x_dim,
-                                                   ivp_args=(args.s,args.r,args.b),
+                                                   ivp_args=(args.s, args.r,
+                                                             args.b),
                                                    fudge=args.fudge)
-    initial_mean = fixed_point.initial_state(args.delta_x)
+    initial_mean = numpy.array(
+        [args.x_initial_0, args.x_initial_1, args.x_initial_2])
     initial_covariance = numpy.outer(state_noise, state_noise)
     initial_distribution = hmm.state_space.MultivariateNormal(
         initial_mean, initial_covariance)
-    result = hmm.state_space.NonStationary(system, args.dt, rng)
+    result = hmm.state_space.NonStationary(system, args.laser_dt, rng)
     return result, initial_distribution, initial_mean
 
 
@@ -158,16 +135,17 @@ def main(argv=None):
         args, rng)
     laser_data = plotscripts.introduction.laser.read_data('LP5.DAT')
     assert laser_data.shape == (2, 2876)
-    observations = laser_data[1,:].astype(int).reshape((2876,1))
+    observations = laser_data[1, :].astype(int).reshape((2876, 1))
     forward_means, forward_covariances = non_stationary.forward_filter(
         initial_distribution, observations)
-    log_likelihood = non_stationary.log_likelihood(initial_distribution, observations)
+    log_likelihood = non_stationary.log_likelihood(initial_distribution,
+                                                   observations)
     print(f'log_likelihood={log_likelihood}')
-    
+
     with open(args.data, 'wb') as _file:
         pickle.dump(
             {
-                'dt': args.dt,
+                'dt': args.laser_dt,
                 'observations': observations,
                 'forward_means': forward_means,
                 'forward_covariances': forward_covariances,

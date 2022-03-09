@@ -149,15 +149,11 @@ def make_data(
     """
     s = 10.0
     r = values.r()
-    b = 8.0/3
+    b = 8.0 / 3
     fixed_point = FixedPoint(r)
     initial_state = lorenz_integrate(  #
-        fixed_point.initial_state(values.delta_x()),
-        0.0,
-        values.delta_t(),
-        s,
-        r,
-        b)
+        fixed_point.initial_state(values.delta_x()), 0.0, values.delta_t(), s,
+        r, b)
     t_sample = laser_t * values.t_ratio() / over_sample
     n_samples = int(values.T_total() / t_sample)
 
