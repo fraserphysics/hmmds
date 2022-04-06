@@ -137,8 +137,7 @@ def make_linear_stationary(args, dt, rng):
 def main(argv=None,
          make_system=make_linear_stationary,
          additional_args=(system_args,)):
-    """Writes time series to files specified by options --xyzfile,
-    --quantfile, and or --TSintro.
+    """Writes data for plotting to file specified by args.data
 
     """
 

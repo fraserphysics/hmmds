@@ -11,7 +11,12 @@ include Rules.mk
 
 # ALL is all the targets that Rules.mk is responsible for
 ALL = $(addprefix $(FILTER_DATA)/, \
-distribution_data linear_map_data linear_sde_data log_likelihood_data lorenz_data)
+distribution_data \
+linear_map_data \
+linear_sde_data \
+log_likelihood_data \
+linear_particle_data \
+lorenz_data)
 
 ## test                 : Build all targets
 .PHONY : test

@@ -7,7 +7,13 @@ FilterPlotScripts = ./
 
 ## ALL           : All of the targets that Rules.mk is responsible for
 ALL = $(addsuffix .pdf, $(addprefix $(FIGS_FILTER)/, distribution linear_sde_filter \
-linear_map_filter linear_sde_smooth linear_map_smooth log_likelihood lorenz_filter lorenz_smooth ))
+linear_map_filter \
+linear_sde_smooth \
+linear_map_smooth \
+log_likelihood \
+lorenz_filter \
+lorenz_smooth \
+linear_particle_filter ))
 
 ## test          : Build all targets; the default target.
 .PHONY : test
