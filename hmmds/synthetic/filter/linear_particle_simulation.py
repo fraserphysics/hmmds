@@ -35,7 +35,7 @@ def main(argv=None,
         argv = sys.argv[1:]
 
     args = linear_map_simulation.parse_args(argv, additional_args)
-    
+
     rng = numpy.random.default_rng(args.random_seed)
 
     dt_fine = 2 * numpy.pi / (args.omega * args.sample_rate)
@@ -49,21 +49,16 @@ def main(argv=None,
                                                         args.n_coarse)
 
     system = hmm.particle.LinearSystem(
-        system_coarse.state_map,
-        system_coarse.state_noise_covariance,
+        system_coarse.state_map, system_coarse.state_noise_covariance,
         system_coarse.observation_map,
-        system_coarse.observation_noise_covariance,
-        initial_coarse.mean,
-        initial_coarse.covariance,
-        rng
-    )
+        system_coarse.observation_noise_covariance, initial_coarse.mean,
+        initial_coarse.covariance, rng)
     n_times = len(y_coarse)
     n_particles = numpy.ones(n_times, dtype=int) * 100
-    n_particles[0] *= 10
-    n_particles[1] *= 3
+    n_particles[0:3] *= 10
     particles, forward_means, forward_covariances, log_likelihood = system.forward_filter(
-        y_coarse, n_particles)
-    
+        y_coarse, n_particles, threshold=0.5)
+    print(f"log_likelihood: {log_likelihood}")
 
     with open(args.data, 'wb') as _file:
         pickle.dump(

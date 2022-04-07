@@ -158,6 +158,9 @@ def main(argv=None,
     x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_coarse,
                                                         args.n_coarse)
 
+    log_likelihood = system_coarse.log_likelihood(initial_coarse, y_coarse)
+    print(f"log_likelihood: {log_likelihood}")
+
     forward_means, forward_covariances = system_coarse.forward_filter(
         initial_coarse, y_coarse)
     backward_means, backward_informations = system_coarse.backward_information_filter(
