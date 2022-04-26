@@ -12,11 +12,15 @@ $(FILTER_DATA)/%_data: $(FILTER_CODE)/%_simulation.py
 	mkdir -p $(FILTER_DATA)
 	python $< $(FILTER_ARGS) $@
 
+LORENZ_ARGS = --fudge 300 --dt 0.1 --b .1 --d 2.0 --sample_ratio 5 \
+--n_fine 201 --n_coarse 51 --random_seed 12
+
+$(FILTER_DATA)/lorenz_particle_data: $(FILTER_CODE)/lorenz_particle_simulation.py  $(FILTER_CODE)/lorenz_sde.cpython-38-x86_64-linux-gnu.so
+	mkdir -p $(FILTER_DATA)
+	python $< $(LORENZ_ARGS) $@
 $(FILTER_DATA)/lorenz_data: $(FILTER_CODE)/lorenz_simulation.py  $(FILTER_CODE)/lorenz_sde.cpython-38-x86_64-linux-gnu.so
 	mkdir -p $(FILTER_DATA)
-	python $< --fudge 300 --dt 0.1 --b .1 --d 2.0 --sample_ratio 5 \
---n_fine 201 --n_coarse 51 --random_seed 12 $@
-
+	python $< $(LORENZ_ARGS) $@
 $(FILTER_DATA)/distribution_data: $(FILTER_CODE)/distribution.py
 	mkdir -p $(FILTER_DATA)
 	python $< --n_samples 10000 --a 0.05 --b 0.2 $@

@@ -13,7 +13,7 @@ linear_map_smooth \
 log_likelihood \
 lorenz_filter \
 lorenz_smooth \
-linear_particle_filter ))
+linear_particle_filter lorenz_particle_filter))
 
 ## test          : Build all targets; the default target.
 .PHONY : test

@@ -65,7 +65,7 @@ def make_system(args, dt, rng):
         return numpy.dot(g, state), g
 
     x_dim = 3
-    state_noise = numpy.ones(x_dim) * args.b
+    state_noise = numpy.eye(x_dim) * args.b
     y_dim = observation_function(0, numpy.ones(x_dim))[0].shape[0]
     observation_noise = numpy.eye(y_dim) * args.d
 

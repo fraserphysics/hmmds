@@ -16,7 +16,9 @@ linear_map_data \
 linear_sde_data \
 log_likelihood_data \
 linear_particle_data \
-lorenz_data)
+lorenz_data \
+lorenz_particle_data \
+)
 
 ## test                 : Build all targets
 .PHONY : test
