@@ -16,9 +16,9 @@ import numpy.random
 
 import hmm.state_space
 import hmm.particle
-import hmmds.synthetic.filter.lorenz_sde # Cython code
-
-import linear_map_simulation
+import hmmds.synthetic.filter.lorenz_sde  # Cython code
+import hmmds.synthetic.filter.linear_map_simulation
+import hmmds.synthetic.filter.lorenz_simulation
 
 
 class LorenzSystem(hmm.particle.System):
@@ -115,109 +115,32 @@ class LorenzSystem(hmm.particle.System):
     def prior(self: LorenzSystem, x_0):
         return self.initial_distribution(x_0)
 
-# make_system is copied from lorenz_simulation.py  FixMe: call it from there
-def make_system(args, dt, rng):
-    """Make an SDE system instance
-    
-    Args:
-        args: Command line arguments
-        dt: Sample interval
-        rng:
-
-    Returns:
-        (An SDE instance, an initial state, an inital distribution)
-
-    The goal is to get linear_map_simulation.main to exercise all of the
-    SDE methods on the Lorenz system.
-
-    """
-
-    # The next three functions are passed to SDE.__init__
-
-    def dx_dt(t, x, s, r, b):
-        return numpy.array([
-            s * (x[1] - x[0]), x[0] * (r - x[2]) - x[1], x[0] * x[1] - b * x[2]
-        ])
-
-    def tangent(t, x_dx, s, r, b):
-        result = numpy.empty(12)  # Allocate storage for result
-
-        # Unpack state and derivative from argument
-        x = x_dx[:3]
-        dx_dx0 = x_dx[3:].reshape((3, 3))
-
-        # First three components are the value of the vector field F(x)
-        result[:3] = dx_dt(t, x)
-
-        dF = numpy.array([  # The derivative of F wrt x
-            [-s, s, 0], [r - x[2], -1, -x[0]], [x[1], x[0], -b]
-        ])
-
-        # Assign the tangent part of the return value.
-        result[3:] = numpy.dot(dF, dx_dx0).reshape(-1)
-
-        return result
-
-    def observation_function(
-            t, state) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
-        """Calculate observation and its derivative
-        """
-        g = numpy.array([[0, 0, .5], [-2.0, 2.0, 0]])
-        return numpy.dot(g, state), g
-
-    x_dim = 3
-    state_noise = numpy.eye(x_dim) * args.b
-    y_dim = observation_function(0, numpy.ones(x_dim))[0].shape[0]
-    observation_noise = numpy.eye(y_dim) * args.d
-
-    system = hmmds.synthetic.filter.lorenz_sde.SDE(dx_dt,
-                                                   tangent,
-                                                   state_noise,
-                                                   observation_function,
-                                                   observation_noise,
-                                                   dt,
-                                                   x_dim,
-                                                   ivp_args=(10.0, 28.0,
-                                                             8.0 / 3),
-                                                   fudge=args.fudge)
-    initial_state = system.relax(500)[0]
-    final_state, stationary_distribution = system.relax(
-        500, initial_state=initial_state)
-    result = hmm.state_space.NonStationary(system, dt, rng)
-    return result, stationary_distribution, final_state
-
-
-def more_args(parser: argparse.ArgumentParser):
-    """Arguments to add to those from linear_map_simulation.py
-    """
-    parser.add_argument('--dt',
-                        type=float,
-                        default=0.15,
-                        help='sampling interval')
-    parser.add_argument('--fudge',
-                        type=float,
-                        default=100,
-                        help='sampling interval')
-
 
 def main(argv=None):
-    """
+    """Imitates and invokes code from lorenz_simulation.py to make Lorenz
+    data for a plot.  Differs from lorenz_simulation in applying a
+    particle filter to data rather than an extended Kalman filter.
+
     """
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    args = linear_map_simulation.parse_args(
-        argv, (linear_map_simulation.system_args, more_args))
+    # Parse same arguments as lorenz_simulation.py
+    args = hmmds.synthetic.filter.linear_map_simulation.parse_args(
+        argv, (hmmds.synthetic.filter.linear_map_simulation.system_args,
+               hmmds.synthetic.filter.lorenz_simulation.more_args))
 
+    # Make Lorenz data
     rng = numpy.random.default_rng(args.random_seed)
 
     dt_fine = args.dt / args.sample_ratio
     dt_coarse = args.dt
 
-    system_coarse, initial_coarse, coarse_state = make_system(
+    system_coarse, initial_coarse, coarse_state = hmmds.synthetic.filter.lorenz_simulation.make_system(
         args, dt_coarse, rng)
-    system_fine, initial_fine, fine_state = make_system(args, dt_fine, rng)
+    system_fine, initial_fine, fine_state = hmmds.synthetic.filter.lorenz_simulation.make_system(
+        args, dt_fine, rng)
 
     x_fine, y_fine = system_fine.simulate_n_steps(initial_fine,
                                                   args.n_fine,
@@ -225,21 +148,21 @@ def main(argv=None):
     x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_coarse,
                                                         args.n_coarse,
                                                         states_0=coarse_state)
+    # Get parameters for particle filter
+    s, r, b = (10.0, 28.0, 8.0 / 3)
     under = system_coarse.system
-    state_noise_covariance = (args.dt * numpy.dot(
-            under.unit_state_noise, under.unit_state_noise.T))
-    observation_noise_covariance = numpy.dot(under.observation_noise_multiplier,
-                                           under.observation_noise_multiplier.T)
+    state_noise_covariance = (
+        args.dt * numpy.dot(under.unit_state_noise, under.unit_state_noise.T))
+    fudge = 10  # FixMe: Why?
+    observation_noise_covariance = numpy.dot(
+        under.observation_noise_multiplier,
+        under.observation_noise_multiplier.T) * fudge
     observation_map = numpy.array([[0, 0, .5], [-2.0, 2.0, 0]])
-    s, r, b = (10.0, 28.0, 8.0/3)
-    system = LorenzSystem(
-        args.dt, s, r, b,
-        state_noise_covariance,
-        observation_map,
-        observation_noise_covariance, initial_coarse.mean,
-        initial_coarse.covariance, rng)
+    system = LorenzSystem(args.dt, s, r, b, state_noise_covariance,
+                          observation_map, observation_noise_covariance,
+                          initial_coarse.mean, initial_coarse.covariance, rng)
     n_times = len(y_coarse)
-    n_particles = numpy.ones(n_times, dtype=int) * 100
+    n_particles = numpy.ones(n_times, dtype=int) * 300
     n_particles[0:3] *= 10
     particles, forward_means, forward_covariances, log_likelihood = system.forward_filter(
         y_coarse, n_particles, threshold=0.5)
