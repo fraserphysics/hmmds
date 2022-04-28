@@ -1,4 +1,4 @@
-"""ekf.py Extended Kalman Filter for laser data.
+"""ekf.py Apply extended Kalman Filter to laser data.
 
 Derived from hmmds.synthetic.filter.lorenz_simulation
 
@@ -18,6 +18,12 @@ import plotscripts.introduction.laser
 
 
 def parse_args(argv):
+    """Define parser and parse command line.  This code fetches many
+    arguments and defalut values from optimize.py
+
+    """
+
+    # Get several arguments and default values from optimize.py
     parameters = optimize.Parameters()
     parser = argparse.ArgumentParser(
         description='Simulate and filter laser data')
@@ -25,19 +31,15 @@ def parse_args(argv):
         parser.add_argument(f'--{key}',
                             type=float,
                             default=getattr(parameters, key))
-    parser.add_argument('--delta_x',
-                        type=float,
-                        default=2.993,
-                        help='Start wrt fixed point')
     parser.add_argument('--fudge',
                         type=float,
                         default=1.0,
                         help='Multiply state noise scale for filtering')
-    parser.add_argument('--n_samples',
-                        type=int,
-                        default=1000,
-                        help='Number of samples')
-    parser.add_argument('--data',
+    parser.add_argument('--LaserData',
+                        type=str,
+                        default='LP5.DAT',
+                        help='Path to laser data')
+    parser.add_argument('--result',
                         type=str,
                         default='test_ekf',
                         help='Path to store data')
@@ -100,7 +102,6 @@ def make_non_stationary(args, rng):
     observation_noise = numpy.eye(y_dim) * args.observation_noise
 
     # lorenz_sde.SDE only uses Cython for methods forecast and simulate
-    # FixMe: Lorenz parameters are built into lorenz_sde.SDE
     system = hmmds.synthetic.filter.lorenz_sde.SDE(dx_dt,
                                                    tangent,
                                                    state_noise,
@@ -133,7 +134,7 @@ def main(argv=None):
 
     non_stationary, initial_distribution, initial_state = make_non_stationary(
         args, rng)
-    laser_data = plotscripts.introduction.laser.read_data('LP5.DAT')
+    laser_data = plotscripts.introduction.laser.read_data(args.LaserData)
     assert laser_data.shape == (2, 2876)
     observations = laser_data[1, :].astype(int).reshape((2876, 1))
     forward_means, forward_covariances = non_stationary.forward_filter(
@@ -142,7 +143,7 @@ def main(argv=None):
                                                    observations)
     print(f'log_likelihood={log_likelihood}')
 
-    with open(args.data, 'wb') as _file:
+    with open(args.result, 'wb') as _file:
         pickle.dump(
             {
                 'dt': args.laser_dt,
