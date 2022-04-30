@@ -3,3 +3,6 @@ ekf.pdf: plot.py test_ekf
 
 test_ekf: ekf.py optimize.py LP5.DAT
 	python $< --LaserData LP5.DAT --result $@
+
+test_particle: particle.py
+	python $< --LaserData LP5.DAT --result $@
