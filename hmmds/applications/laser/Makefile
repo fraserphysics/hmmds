@@ -1,3 +1,6 @@
+particle.pdf: plot.py test_particle
+	python $< --data test_particle --fig_path $@
+
 ekf.pdf: plot.py test_ekf
 	python $< --data test_ekf --fig_path $@
 

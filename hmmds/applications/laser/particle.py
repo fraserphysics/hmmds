@@ -56,22 +56,9 @@ class LorenzSystem(hmm.particle.System):
             numpy.zeros(self.y_dimension), observation_covariance, rng)
 
         # Calculate parameters for the importance function
-        inverse_observation_covariance = numpy.linalg.inv(
+        self.inverse_observation_covariance = numpy.linalg.inv(
             observation_covariance)
-        #FixMe: How is observation_map used?
-        observation_map = numpy.array([[50.0, 0.0, 0.0]])
-        info_y = numpy.linalg.multi_dot([
-            observation_map.T, inverse_observation_covariance, observation_map
-        ])
-        importance_covariance = numpy.linalg.inv(
-            numpy.linalg.inv(state_covariance) + info_y)
-        self.importance_distribution = hmm.state_space.MultivariateNormal(
-            numpy.zeros(self.x_dimension), importance_covariance, rng)
-
-        self.importance_gain = numpy.linalg.multi_dot([
-            importance_covariance, observation_map.T,
-            inverse_observation_covariance
-        ])
+        self.inverse_state_covariance = numpy.linalg.inv(state_covariance)
 
     def transition(self: LorenzSystem, x_next, x_now):
         """Calculate the probability density p(x_next|x_now)
@@ -81,15 +68,25 @@ class LorenzSystem(hmm.particle.System):
         return self.transition_distribution(x_next - mean_next)
 
     def observation_map(self: LorenzSystem, state):
-        """Calculate observation mean
+        """Calculate mean and derivative of observation function
+        Args:
+            state:
+
+        O(x) = r*(x_0)^2 + o
+        O'(x) = 2*r*x_0
+
         """
-        return numpy.array([self.x_ratio * state[0]**2 + self.offset])
+        ratio = self.x_ratio
+        x_0 = state[0]
+        value = numpy.array([ratio * x_0 * x_0 + self.offset])
+        derivative = numpy.array([[2 * ratio * x_0, 0.0, 0.0]])
+        return value, derivative
 
     def observation(self: LorenzSystem, y_now, x_now):
         """Calculate the probability density p(y_now|x_now)
         """
-        return self.observation_distribution(y_now -
-                                             self.observation_map(x_now))
+        mean = self.observation_map(x_now)[0]
+        return self.observation_distribution(y_now - mean)
 
     def importance_0(self: LorenzSystem, y_0):
         x_0 = self.initial_distribution.draw()
@@ -107,16 +104,27 @@ class LorenzSystem(hmm.particle.System):
 
         q(x_next|y_next, x_now) = p(x_next|y_next, x_now)
 
-        """
-        forecast_mean = hmmds.synthetic.filter.lorenz_sde.lorenz_integrate(
-            x_now, 0.0, self.dt, self.s, self.r, self.b)
-        forecast_error = y_next - self.observation_map(forecast_mean)
-        update_mean = forecast_mean + numpy.dot(self.importance_gain,
-                                                forecast_error)
+        q is Gaussian with \Sigma^{-1} = \Sigma_state^{-1} + O'^T
+        \Sigma_O^{-1} O' and \mu = G (y-O(\Phi(x_now)))
 
-        noise = self.importance_distribution.draw()
-        x_next = update_mean + noise
-        q_value = self.importance_distribution(noise)
+        """
+        # phi is the mean of the forecast state distribution
+        phi = hmmds.synthetic.filter.lorenz_sde.lorenz_integrate(
+            x_now, 0.0, self.dt, self.s, self.r, self.b)
+        # psi is the mean of the forecast observation distribution
+        psi, d_psi = self.observation_map(phi)
+        # covariance of the importance distribution
+        covariance = numpy.linalg.inv(
+            self.inverse_state_covariance + numpy.linalg.multi_dot(
+                [d_psi.T, self.inverse_observation_covariance, d_psi]))
+        gain = numpy.linalg.multi_dot(
+            [covariance, d_psi.T, self.inverse_observation_covariance])
+        # mean of the importance distribution
+        mean = phi + numpy.dot(gain, y_next - psi)
+        importance_distribution = hmm.state_space.MultivariateNormal(
+            mean, covariance, self.rng)
+        x_next = importance_distribution.draw()
+        q_value = importance_distribution(x_next)
         return x_next, q_value
 
     def prior(self: LorenzSystem, x_0):
@@ -182,7 +190,7 @@ def make_lorenz_system(args, rng):
 
 
 def main(argv=None):
-    """
+    """ Takes almost 18 minutes
     """
 
     if argv is None:  # Usual case
