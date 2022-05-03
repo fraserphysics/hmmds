@@ -182,25 +182,28 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         quit_button.clicked.connect(self.close)
         write_button = PyQt5.QtWidgets.QPushButton('Write values to file', self)
         write_button.clicked.connect(self.write_values)
+        read_button = PyQt5.QtWidgets.QPushButton('Read values from file', self)
+        read_button.clicked.connect(self.read_values)
         slider_layout = PyQt5.QtWidgets.QHBoxLayout()
-        self.slider = {}  # A dict so that I can print all values someday
+        self.variable = {}  # A dict so that I can print all values someday
         for name, minimum, maximum in (
             ('r', 22.0, 37.0),
             ('delta_x', 0, 6),
-            ('delta_t', 0, 1.0),
+            ('delta_t', 0, 5.0),
             ('t_ratio', .3, 1.2),
             ('x_ratio', .5, 2.0),
             ('offset', 10, 20),
             ('T_total', 1, 20),
         ):
-            self.slider[name] = Variable(name, minimum, maximum, self)
-            slider_layout.addWidget(self.slider[name])
-        # Enable access like self.r.  Perhaps better to access self.slider['r']
-        self.__dict__.update(self.slider)
+            self.variable[name] = Variable(name, minimum, maximum, self)
+            slider_layout.addWidget(self.variable[name])
+        # Enable access like self.r.  Perhaps better to access self.variable['r']
+        self.__dict__.update(self.variable)
 
         # Layout control section
         control_layout.addWidget(quit_button)
         control_layout.addWidget(write_button)
+        control_layout.addWidget(read_button)
         control_layout.addLayout(slider_layout)
 
         # Define widgets for plot section
@@ -231,8 +234,16 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
     def write_values(self):
         with open('values.txt', 'w') as file_:
-            for name, variable in self.slider.items():
+            for name, variable in self.variable.items():
                 file_.write(f'{name} {variable()}\n')
+
+
+    def read_values(self):
+        with open('values.txt', 'r') as file_:
+            for line in file_.readlines():
+                name, value_str = line.split()
+                value = float(value_str)
+                self.variable[name].setValue(value)
 
     def update_plot(self):
         over_sample = 5
@@ -308,6 +319,9 @@ class Variable(PyQt5.QtWidgets.QWidget):
 
     def __call__(self):
         return self.x
+
+    def setValue(self, value):
+        self.spin.setValue(value)
 
     def spin_changed(self, value):
         self.x = value
