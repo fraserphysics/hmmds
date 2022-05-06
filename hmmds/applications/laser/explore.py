@@ -23,17 +23,6 @@ import plotscripts.introduction.laser
 from hmmds.synthetic.filter.lorenz_sde import lorenz_integrate
 
 
-def parse_args(argv):
-    """ Convert command line arguments into a namespace
-    """
-
-    parser = argparse.ArgumentParser(description='Explore 1-d map')
-    parser.add_argument('--show',
-                        action='store_false',
-                        help="display figure using Qt5")
-    return parser.parse_args(argv)
-
-
 def plot_for_r(r):
     argv = sys.argv[1:]
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
@@ -233,13 +222,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.update_plot()  # Plot data for initial settings
 
     def write_values(self):
-        with open('values.txt', 'w') as file_:
+        with open('explore.txt', 'w') as file_:
             for name, variable in self.variable.items():
                 file_.write(f'{name} {variable()}\n')
 
-
     def read_values(self):
-        with open('values.txt', 'r') as file_:
+        with open('explore.txt', 'r') as file_:
             for line in file_.readlines():
                 name, value_str = line.split()
                 value = float(value_str)
