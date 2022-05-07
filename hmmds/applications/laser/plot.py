@@ -1,4 +1,4 @@
-"""plot.py A temporary script for debugging
+"""plot.py: Illustrate performance of filter.
 """
 
 import sys
@@ -16,13 +16,11 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
-    parser.add_argument('--data',
+    parser.add_argument('data',
                         type=str,
-                        default='test_ekf',
                         help='path to data file')
-    parser.add_argument('--fig_path',
+    parser.add_argument('fig_path',
                         type=str,
-                        default='fig_ekf.pdf',
                         help='path to figure')
     return parser.parse_args(argv)
 

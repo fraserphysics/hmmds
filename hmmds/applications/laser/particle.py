@@ -15,7 +15,7 @@ import hmm.state_space
 import hmm.particle
 import hmmds.synthetic.filter.lorenz_sde
 
-import optimize
+import optimize_ekf
 import plotscripts.introduction.laser
 
 
@@ -137,35 +137,25 @@ def parse_args(argv):
 
     """
 
-    # Get several arguments and default values from optimize.py
-    parameters = optimize.Parameters()
     parser = argparse.ArgumentParser(
-        description='Simulate and filter laser data')
-    for key in parameters.variables + 'laser_dt '.split():
-        parser.add_argument(f'--{key}',
-                            type=float,
-                            default=getattr(parameters, key))
-    parser.add_argument('--fudge',
-                        type=float,
-                        default=1.0,
-                        help='Multiply state noise scale for filtering')
-    parser.add_argument('--LaserData',
+        description='Filter laser data')
+    parser.add_argument('--laser_data',
                         type=str,
                         default='LP5.DAT',
                         help='Path to laser data')
-    parser.add_argument('--result',
-                        type=str,
-                        default='test_particle',
-                        help='Path to store data')
     parser.add_argument('--random_seed', type=int, default=9)
+    parser.add_argument('parameters_in', type=str, help='path to file')
+    parser.add_argument('result',
+                        type=str,
+                        help='Path to store data')
     return parser.parse_args(argv)
 
 
-def make_lorenz_system(args, rng):
+def make_lorenz_system(parameters, rng):
     """Make a LorenzSystem instance
 
     Args:
-        args: Command line arguments
+        parameters: Values read from file
         rng:
 
     Returns:
@@ -175,15 +165,16 @@ def make_lorenz_system(args, rng):
 
     x_dim = 3
     y_dim = 1
-    state_covariance = numpy.eye(x_dim) * args.state_noise**2
-    observation_covariance = numpy.eye(y_dim) * args.observation_noise**2
+    dt = parameters.laser_dt*parameters.t_ratio
+    state_covariance = numpy.eye(x_dim) * parameters.state_noise**2
+    observation_covariance = numpy.eye(y_dim) * parameters.observation_noise**2
     initial_mean = numpy.array(
-        [args.x_initial_0, args.x_initial_1, args.x_initial_2])
+        [parameters.x_initial_0, parameters.x_initial_1, parameters.x_initial_2])
     initial_covariance = state_covariance
     initial_distribution = hmm.state_space.MultivariateNormal(
         initial_mean, initial_covariance)
-    result = LorenzSystem(args.laser_dt, args.s, args.r, args.b,
-                          state_covariance, args.x_ratio, args.offset,
+    result = LorenzSystem(dt, parameters.s, parameters.r, parameters.b,
+                          state_covariance, parameters.x_ratio, parameters.offset,
                           observation_covariance, initial_mean,
                           initial_covariance, rng)
     return result
@@ -200,8 +191,9 @@ def main(argv=None):
 
     rng = numpy.random.default_rng(args.random_seed)
 
-    system = make_lorenz_system(args, rng)
-    laser_data = plotscripts.introduction.laser.read_data(args.LaserData)
+    parameters = optimize_ekf.read_parameters(args.parameters_in)
+    system = make_lorenz_system(parameters, rng)
+    laser_data = plotscripts.introduction.laser.read_data(args.laser_data)
     n_times = 2876
     assert laser_data.shape == (2, n_times)
     observations = laser_data[1, :].astype(int).reshape((n_times, 1))
@@ -215,7 +207,7 @@ def main(argv=None):
     with open(args.result, 'wb') as _file:
         pickle.dump(
             {
-                'dt': args.laser_dt,
+                'dt': parameters.laser_dt,
                 'observations': observations,
                 'forward_means': forward_means,
                 'forward_covariances': forward_covariances,

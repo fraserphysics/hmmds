@@ -1,5 +1,5 @@
-"""find_initial_state.py Starting with data from explore.py, find
-parameters of extended Kalman filter for first 500 laser data points.
+"""optimize_ekf.py: Find parameters of extended Kalman filter for
+laser data points.
 
 """
 from __future__ import annotations
