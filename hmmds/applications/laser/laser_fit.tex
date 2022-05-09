@@ -194,4 +194,21 @@ optimize.py.
 \item Optimize parameters for particle filter
 \item Make plot for Introduction
 \end{enumerate}
+Notes on pymp:
+\begin{verbatim}
+ 5257  git clone https://github.com/classner/pymp.git
+ 5258  cd pymp/
+ 5264  python setup.py install --prefix=./
+ 5281  export PYTHONPATH=/mnt/precious/home/andy_nix/projects/dshmm:/mnt/precious/home/andy_nix/projects/proj_hmm/src:/mnt/precious/home/andy_nix/projects/dshmm:/mnt/precious/home/andy_nix/projects/dshmm/pymp:
+
+Without pymp.  Commit.
+[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ make
+time python particle.py --n_times 50 powell250.parameters test_particle
+log_likelihood=-74.8157538232742
+
+real	0m31.962s
+user	1m19.362s
+sys	0m0.233s
+
+\end{verbatim}
 \end{document}

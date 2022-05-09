@@ -1,3 +1,6 @@
+SHELL=bash
+test_particle: particle.py
+	time python particle.py --n_times 50 powell250.parameters $@
 particle_result_plot.pdf: plot.py particle_result
 	python $^ $@
 #time real	17m43.470s

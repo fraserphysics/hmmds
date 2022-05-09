@@ -11,6 +11,8 @@ import argparse
 
 import numpy
 
+import pymp
+
 import hmm.state_space
 import hmm.particle
 import hmmds.synthetic.filter.lorenz_sde
@@ -130,6 +132,101 @@ class LorenzSystem(hmm.particle.System):
     def prior(self: LorenzSystem, x_0):
         return self.initial_distribution(x_0)
 
+    
+    def forward_filter(self: LorenzSystem,
+                       y_array: numpy.ndarray,
+                       n_particles: int | numpy.ndarray,
+                       prior: typing.Callable | None = None,
+                       threshold: float = 1.0):
+        """Run filter on observations y_array
+
+        Args:
+            y_array:
+            n_particles: Single int or array
+            prior:
+            threshold: Resample if effective_sample_size < threshold * n_particles
+
+        Returns:
+            (particles, means, covariances, log_likelihood)
+
+        log_likelihood = log(prob(y[0:n_times]|model))
+        Note: particles.shape=(N_particles, N_observations)
+        """
+        if prior is None:
+            prior = self.prior
+        n_times, check_dim = y_array.shape
+        assert check_dim == self.y_dimension
+
+        if isinstance(n_particles, int):
+            n_particles = numpy.ones(n_times, dtype=int) * n_particles
+        assert n_particles.dtype == numpy.dtype('int64')
+        assert n_particles.shape == (n_times,)
+
+        weights = numpy.empty(n_particles[0])
+
+        means = numpy.empty((n_times, self.x_dimension))
+        covariances = numpy.empty((n_times, self.x_dimension, self.x_dimension))
+
+        # Initialize at t=0
+        particles = numpy.empty((n_particles[0], n_times, self.x_dimension))
+
+        # Draw particles and calculate weights for EV_{prior}
+        for i in range(n_particles[0]):
+            # x_i_0 is a draw from q, and q_i_0 is q(x_i_0)
+            x_i_0, q_i_0 = self.importance_0(y_array[0])
+            weights[i] = prior(x_i_0) / q_i_0
+            particles[i, 0, :] = x_i_0
+        weights /= weights.sum()
+        # Now EV_{prior} f(x_0) \approx \sum_i weights[i] f(particles[i,0,:])
+
+        likelihood_0 = 0
+        # likelihood_0 = EV_{prior} p(y_0|x_0)
+
+        # Calculate likelihood_0 and weights for EV_{x_0|y_0}
+        for i, particle in enumerate(particles):
+            x_i_0 = particle[0, :]
+            likelihood_i = self.observation(y_array[0], x_i_0)
+            likelihood_0 += weights[i] * likelihood_i
+            weights[i] *= likelihood_i
+        weights = weights / weights.sum()
+
+        # Finish work for t=0
+        log_like = numpy.log(likelihood_0)
+        means[0, :], covariances[0, :, :] = hmm.particle.moments(particles[:, 0, :], weights)
+        particles, weights = hmm.particle.resample(particles, weights, self.rng,
+                                      n_particles[0])
+
+        # Iterate t_previous=0, ..., t_previous=T-2
+        for t_previous, y_t in enumerate(y_array[1:]):
+            t_now = t_previous + 1
+            likelihood_now = 0
+
+            # Draw particles and calculate weights for EV_{x[t_now]|y[:t_now]}
+            for i, particle in enumerate(particles):
+                predecessor = particle[t_previous]
+                x_i_t, q_i_t = self.importance(y_t, predecessor)
+                particles[i, t_now, :] = x_i_t
+                weights[i] *= self.transition(x_i_t, predecessor) / q_i_t
+            weights /= weights.sum()
+            # Now EV_{x_{t_now}|y[0:t_now]} f(x_{t_now}) \approx
+            # \sum_i weights[i] f(particles[i,0,:])
+
+            # Calculate likelihood_now and weights for EV_{x[t_now]|y[:t_now+1]}
+            for i, particle in enumerate(particles):
+                x_i_t = particle[t_now, :]
+                likelihood_i = self.observation(y_array[t_now], x_i_t)
+                likelihood_now += weights[i] * likelihood_i
+                weights[i] *= likelihood_i
+
+            # Finish up work for t=t_now
+            log_like += numpy.log(likelihood_now)
+            weights = weights / weights.sum()
+            means[t_now, :], covariances[t_now, :, :] = hmm.particle.moments(
+                particles[:, t_now, :], weights)
+            particles, weights = hmm.particle.resample(particles, weights, self.rng,
+                                          n_particles[t_now], threshold)
+        return particles, means, covariances, log_like
+
 
 def parse_args(argv):
     """Define parser and parse command line.  This code fetches many
@@ -144,6 +241,7 @@ def parse_args(argv):
                         default='LP5.DAT',
                         help='Path to laser data')
     parser.add_argument('--random_seed', type=int, default=9)
+    parser.add_argument('--n_times', type=int, default=2876)
     parser.add_argument('parameters_in', type=str, help='path to file')
     parser.add_argument('result',
                         type=str,
@@ -194,11 +292,10 @@ def main(argv=None):
     parameters = optimize_ekf.read_parameters(args.parameters_in)
     system = make_lorenz_system(parameters, rng)
     laser_data = plotscripts.introduction.laser.read_data(args.laser_data)
-    n_times = 2876
-    assert laser_data.shape == (2, n_times)
-    observations = laser_data[1, :].astype(int).reshape((n_times, 1))
+    assert laser_data.shape == (2, 2876)
+    observations = laser_data[1, :args.n_times].astype(int).reshape((args.n_times, 1))
 
-    n_particles = numpy.ones(n_times, dtype=int) * 300
+    n_particles = numpy.ones(args.n_times, dtype=int) * 300
     n_particles[0:3] *= 10
     particles, forward_means, forward_covariances, log_likelihood = system.forward_filter(
         observations, n_particles, threshold=0.5)
