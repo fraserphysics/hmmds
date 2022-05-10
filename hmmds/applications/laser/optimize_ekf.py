@@ -37,7 +37,7 @@ def parse_args(argv):
     parser.add_argument('--method',
                         type=str,
                         default='Powell',
-                        help='Argument to scipy.optimize.minimize')
+                        help='Argument to scipy.optimize.minimize or "skip"')
     parser.add_argument('parameters_in', type=str, help='path to file')
     parser.add_argument('parameters_out', type=str, help='path to file')
     parser.add_argument('--plot_data', type=str, help='Path to store data')
@@ -264,11 +264,12 @@ def main(argv=None):
 
     if args.method != 'skip':
         #options = {'maxiter': 2}
-        parameters_max, result = optimize(parameters,
-                                  laser_data[:args.length],
-                                  method=args.method,
-                                  #options=options
-                                  )
+        parameters_max, result = optimize(
+            parameters,
+            laser_data[:args.length],
+            method=args.method,
+            #options=options
+        )
     else:
         parameters_max = parameters
     parameters_max.write(args.parameters_out)

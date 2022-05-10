@@ -11,8 +11,6 @@ import argparse
 
 import numpy
 
-import pymp
-
 import hmm.state_space
 import hmm.particle
 import hmmds.synthetic.filter.lorenz_sde
@@ -132,7 +130,6 @@ class LorenzSystem(hmm.particle.System):
     def prior(self: LorenzSystem, x_0):
         return self.initial_distribution(x_0)
 
-    
     def forward_filter(self: LorenzSystem,
                        y_array: numpy.ndarray,
                        n_particles: int | numpy.ndarray,
@@ -192,39 +189,40 @@ class LorenzSystem(hmm.particle.System):
 
         # Finish work for t=0
         log_like = numpy.log(likelihood_0)
-        means[0, :], covariances[0, :, :] = hmm.particle.moments(particles[:, 0, :], weights)
+        means[0, :], covariances[0, :, :] = hmm.particle.moments(
+            particles[:, 0, :], weights)
         particles, weights = hmm.particle.resample(particles, weights, self.rng,
-                                      n_particles[0])
+                                                   n_particles[0])
 
         # Iterate t_previous=0, ..., t_previous=T-2
         for t_previous, y_t in enumerate(y_array[1:]):
             t_now = t_previous + 1
             likelihood_now = 0
 
+            normalization_likelihood = 0
             # Draw particles and calculate weights for EV_{x[t_now]|y[:t_now]}
             for i, particle in enumerate(particles):
                 predecessor = particle[t_previous]
                 x_i_t, q_i_t = self.importance(y_t, predecessor)
                 particles[i, t_now, :] = x_i_t
                 weights[i] *= self.transition(x_i_t, predecessor) / q_i_t
-            weights /= weights.sum()
-            # Now EV_{x_{t_now}|y[0:t_now]} f(x_{t_now}) \approx
-            # \sum_i weights[i] f(particles[i,0,:])
 
-            # Calculate likelihood_now and weights for EV_{x[t_now]|y[:t_now+1]}
-            for i, particle in enumerate(particles):
+                # Calculate likelihood_now and weights for EV_{x[t_now]|y[:t_now+1]}
                 x_i_t = particle[t_now, :]
                 likelihood_i = self.observation(y_array[t_now], x_i_t)
+                normalization_likelihood += weights[i]
                 likelihood_now += weights[i] * likelihood_i
                 weights[i] *= likelihood_i
 
             # Finish up work for t=t_now
-            log_like += numpy.log(likelihood_now)
+            log_like += numpy.log(likelihood_now / normalization_likelihood)
             weights = weights / weights.sum()
             means[t_now, :], covariances[t_now, :, :] = hmm.particle.moments(
                 particles[:, t_now, :], weights)
-            particles, weights = hmm.particle.resample(particles, weights, self.rng,
-                                          n_particles[t_now], threshold)
+            particles, weights = hmm.particle.resample(particles, weights,
+                                                       self.rng,
+                                                       n_particles[t_now],
+                                                       threshold)
         return particles, means, covariances, log_like
 
 
@@ -234,8 +232,7 @@ def parse_args(argv):
 
     """
 
-    parser = argparse.ArgumentParser(
-        description='Filter laser data')
+    parser = argparse.ArgumentParser(description='Filter laser data')
     parser.add_argument('--laser_data',
                         type=str,
                         default='LP5.DAT',
@@ -243,9 +240,7 @@ def parse_args(argv):
     parser.add_argument('--random_seed', type=int, default=9)
     parser.add_argument('--n_times', type=int, default=2876)
     parser.add_argument('parameters_in', type=str, help='path to file')
-    parser.add_argument('result',
-                        type=str,
-                        help='Path to store data')
+    parser.add_argument('result', type=str, help='Path to store data')
     return parser.parse_args(argv)
 
 
@@ -263,18 +258,19 @@ def make_lorenz_system(parameters, rng):
 
     x_dim = 3
     y_dim = 1
-    dt = parameters.laser_dt*parameters.t_ratio
+    dt = parameters.laser_dt * parameters.t_ratio
     state_covariance = numpy.eye(x_dim) * parameters.state_noise**2
     observation_covariance = numpy.eye(y_dim) * parameters.observation_noise**2
-    initial_mean = numpy.array(
-        [parameters.x_initial_0, parameters.x_initial_1, parameters.x_initial_2])
+    initial_mean = numpy.array([
+        parameters.x_initial_0, parameters.x_initial_1, parameters.x_initial_2
+    ])
     initial_covariance = state_covariance
     initial_distribution = hmm.state_space.MultivariateNormal(
         initial_mean, initial_covariance)
     result = LorenzSystem(dt, parameters.s, parameters.r, parameters.b,
-                          state_covariance, parameters.x_ratio, parameters.offset,
-                          observation_covariance, initial_mean,
-                          initial_covariance, rng)
+                          state_covariance, parameters.x_ratio,
+                          parameters.offset, observation_covariance,
+                          initial_mean, initial_covariance, rng)
     return result
 
 
@@ -293,7 +289,8 @@ def main(argv=None):
     system = make_lorenz_system(parameters, rng)
     laser_data = plotscripts.introduction.laser.read_data(args.laser_data)
     assert laser_data.shape == (2, 2876)
-    observations = laser_data[1, :args.n_times].astype(int).reshape((args.n_times, 1))
+    observations = laser_data[1, :args.n_times].astype(int).reshape(
+        (args.n_times, 1))
 
     n_particles = numpy.ones(args.n_times, dtype=int) * 300
     n_particles[0:3] *= 10

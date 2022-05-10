@@ -1,6 +1,8 @@
 SHELL=bash
+particle.parameters: optimize_particle.py powell250.parameters
+	python $< --length 175 --n_particles 100 --method Powell powell250.parameters $@
 test_particle: particle.py
-	time python particle.py --n_times 50 powell250.parameters $@
+	time python particle.py --n_times 2876 powell2876.parameters $@
 particle_result_plot.pdf: plot.py particle_result
 	python $^ $@
 #time real	17m43.470s

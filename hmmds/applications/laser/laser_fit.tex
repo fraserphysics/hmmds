@@ -194,7 +194,10 @@ optimize.py.
 \item Optimize parameters for particle filter
 \item Make plot for Introduction
 \end{enumerate}
-Notes on pymp:
+Worked on pymp.  Got it installed and running.  I changed a simple
+intialization loop in particle.py to run with pymp and the value of
+the log_likelihood changed from -17.42 to -14.96.  Then I quit the
+effort.
 \begin{verbatim}
  5257  git clone https://github.com/classner/pymp.git
  5258  cd pymp/
@@ -209,6 +212,37 @@ log_likelihood=-74.8157538232742
 real	0m31.962s
 user	1m19.362s
 sys	0m0.233s
+[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ rm test_particle ; make
+time python particle.py --n_times 175 powell2876.parameters test_particle
+log_likelihood=-261.40873672698683
+
+real	1m17.545s
+user	3m44.015s
+sys	0m0.324s
+
+[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ rm test_particle ; make
+time python particle.py --n_times 175 powell250.parameters test_particle
+log_likelihood=-257.72636060585575
+
+real	1m20.901s
+user	3m42.181s
+sys	0m0.295s
+
+[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ rm test_particle ; make
+time python particle.py --n_times 2876 powell250.parameters test_particle
+log_likelihood=-3934.546695234746
+
+real	17m48.662s
+user	53m4.767s
+sys	0m2.667s
+
+[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ rm test_particle ; make
+time python particle.py --n_times 2876 powell2876.parameters test_particle
+log_likelihood=-4197.4616110514735
+
+real	17m47.318s
+user	53m2.265s
+sys	0m2.109s
 
 \end{verbatim}
 \end{document}
