@@ -118,10 +118,10 @@ def main(argv=None):
     assert laser_data_y_t.shape == (2, 2876)
     # Put y values in global
     laser_data = laser_data_y_t[1, :].astype(int).reshape((2876, 1))
+    rng = numpy.random.default_rng(args.random_seed)
 
     if args.method != 'skip':
         #options = {'maxiter': 2}
-        rng = numpy.random.default_rng(args.random_seed)
         parameters_max, result = optimize(
             parameters,
             laser_data[:args.length],
@@ -143,10 +143,10 @@ n_data {args.length}""")
 
     if args.plot_data is None:
         return 0
-    sde, initial_distribution, initial_state = make_non_stationary(
+    lorenz_system = hmmds.applications.laser.particle.make_lorenz_system(
         parameters_max, rng)
     particles, forward_means, forward_covariances, log_likelihood = lorenz_system.forward_filter(
-        initial_distribution, laser_data)
+        laser_data, args.n_particles, threshold=0.5)
 
     with open(args.plot_data, 'wb') as _file:
         pickle.dump(
