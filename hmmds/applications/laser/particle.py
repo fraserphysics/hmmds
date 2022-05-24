@@ -84,9 +84,12 @@ class LorenzSystem(hmm.particle.System):
 
     def observation(self: LorenzSystem, y_now, x_now):
         """Calculate the probability density p(y_now|x_now)
+        Args:
+           y_now: The current observation
+           x_now: A particle current state
         """
-        mean = self.observation_map(x_now)[0]
-        return self.observation_distribution(y_now - mean)
+        delta_y = y_now - self.observation_map(x_now)[0]
+        return self.observation_distribution(delta_y), delta_y
 
     def importance_0(self: LorenzSystem, y_0):
         x_0 = self.initial_distribution.draw()
@@ -159,6 +162,8 @@ class LorenzSystem(hmm.particle.System):
         assert n_particles.dtype == numpy.dtype('int64')
         assert n_particles.shape == (n_times,)
 
+        delta_ys = numpy.zeros((n_times, self.y_dimension))
+
         weights = numpy.empty(n_particles[0])
 
         means = numpy.empty((n_times, self.x_dimension))
@@ -182,7 +187,7 @@ class LorenzSystem(hmm.particle.System):
         # Calculate likelihood_0 and weights for EV_{x_0|y_0}
         for i, particle in enumerate(particles):
             x_i_0 = particle[0, :]
-            likelihood_i = self.observation(y_array[0], x_i_0)
+            likelihood_i, _ = self.observation(y_array[0], x_i_0)
             likelihood_0 += weights[i] * likelihood_i
             weights[i] *= likelihood_i
         weights = weights / weights.sum()
@@ -209,12 +214,15 @@ class LorenzSystem(hmm.particle.System):
 
                 # Calculate likelihood_now and weights for EV_{x[t_now]|y[:t_now+1]}
                 x_i_t = particle[t_now, :]
-                likelihood_i = self.observation(y_array[t_now], x_i_t)
+                likelihood_i, delta_y_i = self.observation(
+                    y_array[t_now], x_i_t)
+                delta_ys[t_now] += delta_y_i * weights[i]
                 normalization_likelihood += weights[i]
                 likelihood_now += weights[i] * likelihood_i
                 weights[i] *= likelihood_i
 
             # Finish up work for t=t_now
+            delta_ys[t_now] /= normalization_likelihood
             log_like += numpy.log(likelihood_now / normalization_likelihood)
             weights = weights / weights.sum()
             means[t_now, :], covariances[t_now, :, :] = hmm.particle.moments(
@@ -223,7 +231,7 @@ class LorenzSystem(hmm.particle.System):
                                                        self.rng,
                                                        n_particles[t_now],
                                                        threshold)
-        return particles, means, covariances, log_like
+        return particles, means, covariances, log_like, delta_ys
 
 
 def parse_args(argv):
@@ -294,7 +302,7 @@ def main(argv=None):
 
     n_particles = numpy.ones(args.n_times, dtype=int) * 300
     n_particles[0:3] *= 10
-    particles, forward_means, forward_covariances, log_likelihood = system.forward_filter(
+    particles, forward_means, forward_covariances, log_likelihood, delta_ys = system.forward_filter(
         observations, n_particles, threshold=0.5)
     print(f'log_likelihood={log_likelihood}')
 
@@ -305,6 +313,7 @@ def main(argv=None):
                 'observations': observations,
                 'forward_means': forward_means,
                 'forward_covariances': forward_covariances,
+                'delta_ys': delta_ys,
             }, _file)
 
     return 0

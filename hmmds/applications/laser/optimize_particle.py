@@ -51,10 +51,45 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def objective_function(values_in, laser_data, n_particles, rng,
-                       parameter_class):
-    """For optimization"""
-    parameter = parameter_class(*values_in)
+class Parameters(hmmds.applications.laser.optimize_ekf.Parameters):
+    """Subclass for optimizing only the noise amplitudes
+
+    """
+    variables = """ state_noise observation_noise """.split()
+
+    def __init__(self: Parameters, state_noise: float, observation_noise: float,
+                 constants: hmmds.applications.laser.optimize_ekf.parameters):
+        """
+        Args:
+            state_noise: scalar float.   Covariance = eye(x_dim)* state_noise^2
+            observation_noise: scalar float.   Covariance = eye(y_dim)* state_noise^2
+            constants: Parameters that optimization will hold constant
+            fudge: State noise multiplier for EKF
+            laser_dt: Sample interval
+"""
+        # Set values from constants
+        for name in constants.variables + 'fudge laser_dt'.split():
+            setattr(self, name, getattr(constants, name))
+        # Overwrite values from argument list
+        var_dict = vars()
+        for name in self.variables:
+            setattr(self, name, var_dict[name])
+
+
+def objective_function(
+        values_in, laser_data, n_particles, rng,
+        constants: hmmds.applications.laser.optimize_ekf.parameters,
+        parameter_class):
+    """For optimization
+
+    Args:
+        values_in: Passed by scipy.optimize.minimize
+        laser_data: First element of args from minimize
+        n_particles: Second element of args
+        rng: Random number generator. Third element of args
+        constants: Parameters not optimized over.  Last element of args
+"""
+    parameter = parameter_class(*values_in, constants)
     lorenz_system = hmmds.applications.laser.particle.make_lorenz_system(
         parameter, rng)
     numpy.seterr(divide='raise')
@@ -70,23 +105,35 @@ def objective_function(values_in, laser_data, n_particles, rng,
 
 
 # Powell, BFGS, Nelder-Mead
-def optimize(initial_parameters,
-             laser_data,
-             n_particles,
-             rng,
+def optimize(constants: hmmds.applications.laser.optimize_ekf.Parameters,
+             laser_data: numpy.ndarray,
+             n_particles: numpy.ndarray,
+             rng: numpy.random.Generator,
              method='Powell',
              options={}):
+    """
+    Args:
+        constants: Instance that holds all values
+        laser_data: The 1-d array of measurements
+        n_particles:
+        rng: Random number generator
+        method: Powell, Nelder-Mead, or BFGS, etc.
+        options: Could have value for maxiter, etc.
 
-    defaults = initial_parameters.values()
+"""
+
+    parameters = Parameters(constants.state_noise, constants.observation_noise,
+                            constants)
+    defaults = parameters.values()
+    args = (laser_data, n_particles, rng, constants, Parameters)
     result = scipy.optimize.minimize(
         objective_function,
         defaults,
         method=method,
         options=options,
-        args=(laser_data, n_particles, rng,
-              hmmds.applications.laser.optimize_ekf.Parameters),
+        args=args,
     )
-    parameters_max = hmmds.applications.laser.optimize_ekf.Parameters(*result.x)
+    parameters_max = Parameters(*result.x, constants)
     print(f"""
 parameters_max:
 {parameters_max}
