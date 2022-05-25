@@ -1,0 +1,7 @@
+r 30.03
+delta_x 2.991
+delta_t 0.051
+t_ratio 0.991
+x_ratio 0.727
+offset 15.0
+T_total 6.758

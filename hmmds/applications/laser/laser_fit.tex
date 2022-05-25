@@ -19,10 +19,77 @@
 \begin{document}
 \maketitle
 
+\section{Introduction}
+\label{sec:introduction}
+
+I have tried several techniques for modeling the laser data from Tang
+et al.  From that effort I have developed a sequence of steps that
+prodeuces models and figures that I will put in the book.  Here I
+describe some of the techniques and that sequence.
+
+\section{Steps}
+\label{sec:steps}
+
+The \emph{Makefile} documents the procedure.
+
+\subsection{GUI}
+\label{sec:gui}
+
+To get a model that approximates the period five data, I wrote the
+module \emph{explore.py}.  I ran \emph{python explore.py} and adjusted
+the sliders to roughly match the first nine oscillations of the data.
+To calculate the initial condition for the displayed trajectory, the
+code solves for one of the fixed points of the Lorenz system and does
+a spectral decompositon of the linear approximation of the system at
+that point.  Then it integrates for an interval $\Delta_t$ (given by a
+slider) from a point on the subspace corresponding to the pair of
+complex eigenvalues that is $\Delta_x$ (specified by a slider) away
+from the fixed point.
+
+Here are the names of the sliders and their effects:
+\begin{description}
+\item[r] A parameter of the Lorenz system.  The other values are fixed
+  at $s=10.0$ and $b=8.0/3$.
+\item[delta\_x] Part of the specification of the initial condidtion
+  described above.
+\item[delta\_t] Part of the specification of the initial condidtion
+  described above.
+\item[t\_ratio] Ratio of time intervals of the Lorenz system and time
+  intervals of the data.
+\item[x\_ratio and offset] The data model is $y[t] = x_{\text{ratio}} \cdot
+  x[t,0] \cdot x[t,0] + \text{offset}$.
+\item[T\_total] A floating point number that specifies the interval to
+  simulate.
+\end{description}
+Once I got a rough match I pressed the button \emph{Write values to
+  file} which writes the slider values to the file \emph{explore.txt}.
+I've committed \emph{explore.txt} to the git repository.
+
+\subsection{Extended Kalman Filter}
+\label{sec:ekf}
+
+The module \emph{optimize\_ekf.py} calls the function
+scipy.optimize.minimize with an objective function that implements an
+extended Kalman filter.  It searches for the maximum likelihood in an
+11 dimesional parameter space.  The parameters include all three
+parameters of the Lorenz system, the 3-d initial condition,
+observation function parameters and the amplitudes of the state and
+observation noise.  The code writes a text file describing the result.
+As a starting point, it can read either a parameter file written by
+the GUI or a file that it wrote itself.
+
 \section{Particle Filter for Linear Observation of Lorenz}
 \label{sec:linear_observation}
 
-Code is in hmmds/synthetic/filter/lorenz\_particle\_simulation.py
+The module \emph{optimize\_particle.py} is a variant of
+\emph{optimize\_ekf.py} that uses a particle filter rather than an
+extended Kalman filter in the objective function.  Also it can
+optimize over a smaller paramater space.  Applying it to
+powell250.paramters and searching for noise amplitudes yields
+\begin{align*}
+  \text{state noise: }       0.6331 &\rightarrow 0.2632 \\
+  \text{observation noise: } 0.5275 &\rightarrow 0.0964
+\end{align*}
 
 \subsection{Init}
 \label{sec:init}
@@ -185,6 +252,10 @@ optimize.py.
 \section{Optimization}
 \label{sec:Optimization}
 
+Found that optimizing many parameters for particle filters yielded
+unsatisfactory results.
+
+
 \section{To Do}
 \label{sec:ToDo}
 
@@ -196,7 +267,7 @@ optimize.py.
 \end{enumerate}
 Worked on pymp.  Got it installed and running.  I changed a simple
 intialization loop in particle.py to run with pymp and the value of
-the log_likelihood changed from -17.42 to -14.96.  Then I quit the
+the log likelihood changed from -17.42 to -14.96.  Then I quit the
 effort.
 \begin{verbatim}
  5257  git clone https://github.com/classner/pymp.git
@@ -243,6 +314,83 @@ log_likelihood=-4197.4616110514735
 real	17m47.318s
 user	53m2.265s
 sys	0m2.109s
+
+[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ make BFGS500.parameters 
+python optimize_particle.py --length 175 --n_particles 500 --method BFGS powell250.parameters BFGS500.parameters
+objective_function = -237.76511221023844
+
+...
+
+parameters_max:
+s 8.591062805853925
+r 30.911709605175442
+b 2.530757772943027
+x_initial_0 12.642124632490887
+x_initial_1 14.229049995117013
+x_initial_2 33.47735576003487
+t_ratio 1.0411872486150031
+x_ratio 0.7374402784182058
+offset 15.071726610324543
+state_noise 0.6331351560473886
+observation_noise 0.5274712556732416
+
+f_max=-237.31615262807324
+success=False
+message=Desired error not necessarily achieved due to precision loss.
+iterations=1
+
+--------------------------------------------------------------------
+[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ time make powell500.parameters 
+python optimize_particle.py --length 175 --n_particles 500 --method Powell powell250.parameters powell500.parameters
+objective_function = -237.76511221023844
+
+...
+
+parameters_max:
+s 8.625160204276375
+r 34.91170961478804
+b 2.727698133086979
+x_initial_0 14.601842957802134
+x_initial_1 14.626852632948264
+x_initial_2 31.09370692292357
+t_ratio 1.0706121819875836
+x_ratio 0.6139283863855538
+offset 14.928038113748512
+state_noise 2.9725619573624966
+observation_noise -0.165500717090822
+
+f_max=-209.31257621043827
+success=True
+message=Optimization terminated successfully.
+iterations=2
+
+real	690m15.505s
+user	2063m41.648s
+sys	1m19.411s
+
+Optimize only state_noise and observation_noise
+time make powell500.parameters 
+python optimize_particle.py --length 175 --n_particles 500 --method Powell powell250.parameters powell500.parameters
+objective_function = -237.76511221023844
+
+...
+objective_function = -44.96798951043301
+...
+
+
+
+parameters_max:
+state_noise -0.26316913009998016
+observation_noise -0.09638650796359936
+
+f_max=-56.21171164890743
+success=True
+message=Optimization terminated successfully.
+iterations=3
+
+real	209m28.244s
+user	626m10.201s
+sys	0m24.570s
 
 \end{verbatim}
 \end{document}

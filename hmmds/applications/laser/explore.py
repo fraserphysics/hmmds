@@ -7,8 +7,6 @@ https://www.pythonguis.com/tutorials/creating-your-first-pyqt-window/
 
 import sys  # We need sys so that we can pass argv to QApplication
 import os
-import argparse
-import pdb
 
 import PyQt5.QtWidgets
 import pyqtgraph
