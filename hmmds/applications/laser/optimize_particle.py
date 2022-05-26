@@ -107,7 +107,7 @@ def objective_function(
         parameter, rng)
     numpy.seterr(divide='raise')
     try:
-        particles, forward_means, forward_covariances, log_likelihood = lorenz_system.forward_filter(
+        particles, forward_means, forward_covariances, log_likelihood, delta_ys = lorenz_system.forward_filter(
             laser_data, n_particles, threshold=0.5)
     except FloatingPointError:
         log_likelihood = -1e6
