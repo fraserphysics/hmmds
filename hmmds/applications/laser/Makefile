@@ -55,7 +55,7 @@ particle.parameters: optimize_particle.py ekf_powell250.parameters
 	python $< --length 175 --n_particles 100 --method Powell ekf_powell250.parameters $@
 
 # Takes about 22 minutes
-powell2876.parameters: optimize_ekf.py ekf_powell250.parameters
+ekf_powell2876.parameters: optimize_ekf.py ekf_powell250.parameters
 	python $< --parameter_type parameter --laser_data LP5.DAT --length 2876 --method Powell ekf_powell250.parameters $@
 
 ekf_powell250.parameters: optimize_ekf.py explore.txt
