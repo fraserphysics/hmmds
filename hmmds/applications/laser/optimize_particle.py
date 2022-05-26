@@ -45,9 +45,11 @@ def parse_args(argv):
                         type=str,
                         default='Powell',
                         help='Argument to scipy.optimize.minimize or "skip"')
-    parser.add_argument('parameters_in', type=str, help='path to file')
-    parser.add_argument('parameters_out', type=str, help='path to file')
+    parser.add_argument('--override_parameters',
+                        type=str,
+                        help='path to file with some parameters')
     parser.add_argument('--plot_data', type=str, help='Path to store data')
+    parser.add_argument('parameters_in_out', type=str, help='paths to files', nargs='+')
     return parser.parse_args(argv)
 
 
@@ -74,6 +76,17 @@ class Parameters(hmmds.applications.laser.optimize_ekf.Parameters):
         var_dict = vars()
         for name in self.variables:
             setattr(self, name, var_dict[name])
+
+
+def read_override(path, constants):
+    in_dict = {}
+    with open(path, 'r') as file_:
+        for line in file_.readlines():
+            parts = line.split()
+            if parts[0] in Parameters.variables:  # Skip result strings
+                in_dict[parts[0]] = float(parts[1])
+    value_list = [in_dict[name] for name in Parameters.variables]
+    return Parameters(*value_list, constants)
 
 
 def objective_function(
@@ -151,15 +164,22 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
+    if not args.plot_data and len(args.parameters_in_out) != 2:
+        raise RuntimeError('No file specified for results')
+    if len(args.parameters_in_out) > 2:
+        raise RuntimeError('More than 2 positional arguments')
+
     if args.parameter_type == 'GUI_out':
         parameters = hmmds.applications.laser.optimize_ekf.explore_to_parameters(
-            args.parameters_in)
+            args.parameters_in_out[0])
     elif args.parameter_type == 'parameter':
         parameters = hmmds.applications.laser.optimize_ekf.read_parameters(
-            args.parameters_in)
+            args.parameters_in_out[0])
     else:
         raise RuntimeError(
             f'parameter_type {args.parameter_type} not recognized')
+    if args.override_parameters:
+        parameters = read_override(args.override_parameters, parameters)
 
     laser_data_y_t = plotscripts.introduction.laser.read_data(args.laser_data)
     assert laser_data_y_t.shape == (2, 2876)
@@ -179,9 +199,10 @@ def main(argv=None):
         )
     else:
         parameters_max = parameters
-    parameters_max.write(args.parameters_out)
-    if args.method != 'skip':
-        with open(args.parameters_out, 'a') as _file:
+    if len(args.parameters_in_out) == 2:
+        parameters_max.write(args.parameters_in_out[1])
+    if args.method != 'skip' and len(args.parameters_in_out) == 2:
+        with open(args.parameters_in_out[1], 'a') as _file:
             _file.write(f"""f_max {-result.fun}
 success {result.success}
 iterations {result.nit}
@@ -192,9 +213,10 @@ n_data {args.length}""")
         return 0
     lorenz_system = hmmds.applications.laser.particle.make_lorenz_system(
         parameters_max, rng)
-    particles, forward_means, forward_covariances, log_likelihood = lorenz_system.forward_filter(
+    particles, forward_means, forward_covariances, log_likelihood, delta_ys = lorenz_system.forward_filter(
         laser_data, args.n_particles, threshold=0.5)
-
+    cross_entropy = log_likelihood/len(laser_data)
+                                       
     with open(args.plot_data, 'wb') as _file:
         pickle.dump(
             {
@@ -202,6 +224,8 @@ n_data {args.length}""")
                 'observations': laser_data,
                 'forward_means': forward_means,
                 'forward_covariances': forward_covariances,
+                'cross_entropy': cross_entropy,
+                'delta_ys': delta_ys,
             }, _file)
 
     return 0

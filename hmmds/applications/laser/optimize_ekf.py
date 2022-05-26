@@ -38,9 +38,8 @@ def parse_args(argv):
                         type=str,
                         default='Powell',
                         help='Argument to scipy.optimize.minimize or "skip"')
-    parser.add_argument('parameters_in', type=str, help='path to file')
-    parser.add_argument('parameters_out', type=str, help='path to file')
     parser.add_argument('--plot_data', type=str, help='Path to store data')
+    parser.add_argument('parameters_in_out', type=str, help='paths to files', nargs='+')
     return parser.parse_args(argv)
 
 
@@ -249,10 +248,15 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
+    if not args.plot_data and len(args.parameters_in_out) != 2:
+        raise RuntimeError('No file specified for results')
+    if len(args.parameters_in_out) > 2:
+        raise RuntimeError('More than 2 positional arguments')
+
     if args.parameter_type == 'GUI_out':
-        parameters = explore_to_parameters(args.parameters_in)
+        parameters = explore_to_parameters(args.parameters_in_out[0])
     elif args.parameter_type == 'parameter':
-        parameters = read_parameters(args.parameters_in)
+        parameters = read_parameters(args.parameters_in_out[0])
     else:
         raise RuntimeError(
             f'parameter_type {args.parameter_type} not recognized')
@@ -272,9 +276,10 @@ def main(argv=None):
         )
     else:
         parameters_max = parameters
-    parameters_max.write(args.parameters_out)
-    if args.method != 'skip':
-        with open(args.parameters_out, 'a') as _file:
+    if len(args.parameters_in_out) == 2:
+        parameters_max.write(args.parameters_in_out[1])
+    if args.method != 'skip' and len(args.parameters_in_out) == 2:
+        with open(args.parameters_in_out[1], 'a') as _file:
             _file.write(f"""f_max {-result.fun}
 success {result.success}
 iterations {result.nit}
@@ -287,6 +292,8 @@ n_data {args.length}""")
         parameters_max, None)
     forward_means, forward_covariances = sde.forward_filter(
         initial_distribution, laser_data)
+    cross_entropy = sde.log_likelihood(initial_distribution, laser_data)/len(laser_data)
+    print(f'cross_entropy {cross_entropy}')
 
     with open(args.plot_data, 'wb') as _file:
         pickle.dump(
@@ -295,6 +302,7 @@ n_data {args.length}""")
                 'observations': laser_data,
                 'forward_means': forward_means,
                 'forward_covariances': forward_covariances,
+                'cross_entropy': cross_entropy
             }, _file)
 
     return 0

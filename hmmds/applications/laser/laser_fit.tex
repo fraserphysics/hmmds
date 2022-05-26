@@ -2,6 +2,7 @@
 
 % Copyright 2022 Andrew M. Fraser.
 \documentclass[12pt]{article}
+\usepackage{graphicx,color}
 \usepackage{amsmath, amsfonts}
 
 
@@ -12,6 +13,15 @@
 \newcommand{\id}{\mathbb{I}}
 \newcommand{\variance}[1]{\field{V}\left[ #1 \right]}
 \newcommand{\normal}[2]{{\cal N}\left(#1,#2 \right)}
+
+\newcommand{\filterplot}[2]{
+\begin{figure}
+  \centering
+  \resizebox{1.0\textwidth}{!}{\includegraphics{#1_plot.pdf}}
+  \caption{#2}
+  \label{fig:#1}
+\end{figure}
+}
 
 \title{Models of the Laser Data}
 \author{Andrew M.\ Fraser}
@@ -24,7 +34,7 @@
 
 I have tried several techniques for modeling the laser data from Tang
 et al.  From that effort I have developed a sequence of steps that
-prodeuces models and figures that I will put in the book.  Here I
+produces models and figures that I will put in the book.  Here I
 describe some of the techniques and that sequence.
 
 \section{Steps}
@@ -40,7 +50,7 @@ module \emph{explore.py}.  I ran \emph{python explore.py} and adjusted
 the sliders to roughly match the first nine oscillations of the data.
 To calculate the initial condition for the displayed trajectory, the
 code solves for one of the fixed points of the Lorenz system and does
-a spectral decompositon of the linear approximation of the system at
+a spectral decomposition of the linear approximation of the system at
 that point.  Then it integrates for an interval $\Delta_t$ (given by a
 slider) from a point on the subspace corresponding to the pair of
 complex eigenvalues that is $\Delta_x$ (specified by a slider) away
@@ -50,9 +60,9 @@ Here are the names of the sliders and their effects:
 \begin{description}
 \item[r] A parameter of the Lorenz system.  The other values are fixed
   at $s=10.0$ and $b=8.0/3$.
-\item[delta\_x] Part of the specification of the initial condidtion
+\item[delta\_x] Part of the specification of the initial condition
   described above.
-\item[delta\_t] Part of the specification of the initial condidtion
+\item[delta\_t] Part of the specification of the initial condition
   described above.
 \item[t\_ratio] Ratio of time intervals of the Lorenz system and time
   intervals of the data.
@@ -65,31 +75,71 @@ Once I got a rough match I pressed the button \emph{Write values to
   file} which writes the slider values to the file \emph{explore.txt}.
 I've committed \emph{explore.txt} to the git repository.
 
+\filterplot{gui}{Result of applying an extended Kalman filter based on the
+    parameters fit via the GUI to Tangs laser data.  The data for
+    lower three plots are a subsets of the data for the upper plots.}
+
 \subsection{Extended Kalman Filter}
 \label{sec:ekf}
 
 The module \emph{optimize\_ekf.py} calls the function
 scipy.optimize.minimize with an objective function that implements an
 extended Kalman filter.  It searches for the maximum likelihood in an
-11 dimesional parameter space.  The parameters include all three
+11 dimensional parameter space.  The parameters include all three
 parameters of the Lorenz system, the 3-d initial condition,
 observation function parameters and the amplitudes of the state and
 observation noise.  The code writes a text file describing the result.
 As a starting point, it can read either a parameter file written by
 the GUI or a file that it wrote itself.
 
-\section{Particle Filter for Linear Observation of Lorenz}
-\label{sec:linear_observation}
+See figures \ref{fig:ekf_powell250} and \ref{fig:ekf_powell2876}.
+
+\filterplot{ekf_powell250}{Results for an extended Kalman filter with
+  a model fit to the first 250 laser data points using Powell's
+  method.}
+
+\filterplot{ekf_powell2876}{Results for an extended Kalman filter with
+  a model fit to the entire laser data set of 2876 points using
+  Powell's method.}
+
+\subsection{Particle Filter}
+\label{sec:ParticleFilter}
 
 The module \emph{optimize\_particle.py} is a variant of
 \emph{optimize\_ekf.py} that uses a particle filter rather than an
 extended Kalman filter in the objective function.  Also it can
-optimize over a smaller paramater space.  Applying it to
-powell250.paramters and searching for noise amplitudes yields
+optimize over a smaller parameter space.  Applying it to
+powell250.parameters and searching for noise amplitudes yields
 \begin{align*}
   \text{state noise: }       0.6331 &\rightarrow 0.2632 \\
   \text{observation noise: } 0.5275 &\rightarrow 0.0964
 \end{align*}
+
+\filterplot{pf_ekf250}{Results for a particle filter applied to
+  Tang's laser data with the same model used for Fig.~\ref{fig:ekf_powell250}.}
+
+\filterplot{pf_opt_noise}{Results for a particle filter applied to
+  Tang's laser data with the same model used for
+  Fig.~\ref{fig:ekf_powell250} except state and observation noise
+  scales are 0.263 and 0.096. respectively.  Optimizing over only
+  noise scales yielded those values}
+
+\filterplot{pf_hand_noise}{Results for a particle filter applied to
+  Tang's laser data with the same model used for
+  Fig.~\ref{fig:ekf_powell250} except state and observation noise
+  scales are set by hand to 0.2 and 1.0 respectively.}
+
+\begin{figure}
+  \centering
+    \resizebox{1.0\textwidth}{!}{\includegraphics{forecast_errors.pdf}}
+  \caption{Cumulative distribution of errors for forward pass forecasts of the
+    observations.  Given that the observations are integers, I am
+    surprised that the errors are reasonably fit by a Gaussian with
+    variance = 1.}
+  \label{fig:cumulative}
+\end{figure}
+\section{Particle Filter for Linear Observation of Lorenz}
+\label{sec:linear_observation}
 
 \subsection{Init}
 \label{sec:init}
@@ -266,7 +316,7 @@ unsatisfactory results.
 \item Make plot for Introduction
 \end{enumerate}
 Worked on pymp.  Got it installed and running.  I changed a simple
-intialization loop in particle.py to run with pymp and the value of
+initialization loop in particle.py to run with pymp and the value of
 the log likelihood changed from -17.42 to -14.96.  Then I quit the
 effort.
 \begin{verbatim}

@@ -37,6 +37,7 @@ def main(argv=None):
            observations_short)) = pyplot.subplots(nrows=2,
                                                   ncols=3,
                                                   figsize=(10, 10))
+    fig.text(0.05,0.02, f'cross entropy: {data["cross_entropy"]}')
 
     filtered.plot(data['forward_means'][:, 0], data['forward_means'][:, 2])
     filtered.set_title(r"Filtered $x_2$ vs $x_0$")
