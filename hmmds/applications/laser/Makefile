@@ -47,18 +47,18 @@ forecast_errors.pdf: cumulative.py pf_opt_noise.plot_data
 %.particle_data: optimize_particle.py %.parameters
 	python $< --method skip --n_particles 300 --plot_data $@ $*.parameters
 
-pf_powell500.parameters: optimize_particle.py powell250.parameters
-	python $< --length 175 --n_particles 500 --method Powell powell250.parameters $@
+pf_powell500.parameters: optimize_particle.py ekf_powell250.parameters
+	python $< --length 175 --n_particles 500 --method Powell ekf_powell250.parameters $@
 
 # 5 hours -17.050910252989638 intermediate result, but final is -139.2018738220304?
-particle.parameters: optimize_particle.py powell250.parameters
-	python $< --length 175 --n_particles 100 --method Powell powell250.parameters $@
+particle.parameters: optimize_particle.py ekf_powell250.parameters
+	python $< --length 175 --n_particles 100 --method Powell ekf_powell250.parameters $@
 
 # Takes about 22 minutes
-powell2876.parameters: optimize_ekf.py powell250.parameters
-	python $< --parameter_type parameter --laser_data LP5.DAT --length 2876 --method Powell powell250.parameters $@
+powell2876.parameters: optimize_ekf.py ekf_powell250.parameters
+	python $< --parameter_type parameter --laser_data LP5.DAT --length 2876 --method Powell ekf_powell250.parameters $@
 
-powell250.parameters: optimize_ekf.py explore.txt
+ekf_powell250.parameters: optimize_ekf.py explore.txt
 	python $< --parameter_type GUI_out --laser_data LP5.DAT --length 250 --method Powell explore.txt $@
 
 explore.txt: explore.py
