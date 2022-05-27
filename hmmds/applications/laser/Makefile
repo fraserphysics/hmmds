@@ -10,7 +10,7 @@ SHELL=bash
 #sys	0m16.864s
 
 FIGURES = gui_plot.pdf ekf_powell250_plot.pdf ekf_powell2876_plot.pdf \
-pf_ekf250_plot.pdf pf_opt_noise_plot.pdf pf_hand_noise_plot.pdf
+pf_ekf250_plot.pdf pf_opt_noise_plot.pdf pf_hand_noise_plot.pdf forecast_errors.pdf
 
 laser_fit.pdf: laser_fit.tex $(FIGURES)
 	pdflatex laser_fit.tex
