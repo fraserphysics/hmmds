@@ -4,6 +4,7 @@
 \documentclass[12pt]{article}
 \usepackage{graphicx,color}
 \usepackage{amsmath, amsfonts}
+\usepackage{placeins}
 
 
 \newcommand{\field}[1]{\mathbb{#1}}
@@ -37,20 +38,32 @@ et al.  From that effort I have developed a sequence of steps that
 produces models and figures that I will put in the book.  Here I
 describe some of the techniques and that sequence.
 
+Overall, I am not satisfied with the models.  The data are from either
+a \emph{stable} of period five or ten, while the periodic orbits of
+the models are all \emph{unstable}.  I think that the optimizers find
+state noise levels that are large enough to account for model
+\emph{error} rather than state \emph{noise}.  I searched the
+literature on the Lorenz model and found that there are no stable
+periodic orbits at low $R$ values.  I suspect that there is a good
+\emph{Lorenz like} state space model for the laser data, but that
+either there are no parameters of the Lorenz system that yield the
+model, or that the optimizers I've tried can't find the parameters.
+
 \section{Steps}
 \label{sec:steps}
 
-The \emph{Makefile} documents the procedure.
+The \emph{Makefile} documents the procedure for obtaining the models
+for the book.
 
 \subsection{GUI}
 \label{sec:gui}
 
-To get a model that approximates the period five data, I wrote the
-module \emph{explore.py}.  I ran \emph{python explore.py} and adjusted
-the sliders to roughly match the first nine oscillations of the data.
-To calculate the initial condition for the displayed trajectory, the
-code solves for one of the fixed points of the Lorenz system and does
-a spectral decomposition of the linear approximation of the system at
+To get a model that approximates the data, I wrote the module
+\emph{explore.py}.  I ran \emph{python explore.py} and adjusted the
+sliders to roughly match the first nine oscillations of the data.  To
+calculate the initial condition for the displayed trajectory, the code
+solves for one of the fixed points of the Lorenz system and does a
+spectral decomposition of the linear approximation of the system at
 that point.  Then it integrates for an interval $\Delta_t$ (given by a
 slider) from a point on the subspace corresponding to the pair of
 complex eigenvalues that is $\Delta_x$ (specified by a slider) away
@@ -58,8 +71,14 @@ from the fixed point.
 
 Here are the names of the sliders and their effects:
 \begin{description}
-\item[r] A parameter of the Lorenz system.  The other values are fixed
-  at $s=10.0$ and $b=8.0/3$.
+\item[r] A parameter\footnote{Perhaps I could find a better model with
+    3 sliders for the 3 parameters.  Because the first two
+    oscillations in each group of five in the data are close to the
+    same size, I believe that a good model must be near a Hopf
+    bifurcation.  One slider could be for the real part of the complex
+    eigenvalue of the fixed point and the other two for the other
+    degrees of freedom.} of the Lorenz system.  The other values are
+  fixed at $s=10.0$ and $b=8.0/3$.
 \item[delta\_x] Part of the specification of the initial condition
   described above.
 \item[delta\_t] Part of the specification of the initial condition
@@ -77,7 +96,10 @@ I've committed \emph{explore.txt} to the git repository.
 
 \filterplot{gui}{Result of applying an extended Kalman filter based on the
     parameters fit via the GUI to Tangs laser data.  The data for
-    lower three plots are a subsets of the data for the upper plots.}
+    lower three plots are a subsets of the data for the upper plots.
+    I chose the subset to illustrate a periodic orbit.  I calculated
+    the cross entropy estimate in the lower left corner by
+    $h_{\text{cross}} \approx \frac{\log{p(y[0:N]|\theta)}}{N}$.}
 
 \subsection{Extended Kalman Filter}
 \label{sec:ekf}
@@ -92,7 +114,7 @@ observation noise.  The code writes a text file describing the result.
 As a starting point, it can read either a parameter file written by
 the GUI or a file that it wrote itself.
 
-See figures \ref{fig:ekf_powell250} and \ref{fig:ekf_powell2876}.
+See Figures \ref{fig:ekf_powell250} and \ref{fig:ekf_powell2876}.
 
 \filterplot{ekf_powell250}{Results for an extended Kalman filter with
   a model fit to the first 250 laser data points using Powell's
@@ -100,7 +122,9 @@ See figures \ref{fig:ekf_powell250} and \ref{fig:ekf_powell2876}.
 
 \filterplot{ekf_powell2876}{Results for an extended Kalman filter with
   a model fit to the entire laser data set of 2876 points using
-  Powell's method.}
+  Powell's method.  With the GUI, I aimed for a period 10 orbit with
+  a right-left pattern RRRRRLLLLL.  The model here finds several
+  period 5 oscillations with the pattern RRRRL. }
 
 \subsection{Particle Filter}
 \label{sec:ParticleFilter}
@@ -108,38 +132,70 @@ See figures \ref{fig:ekf_powell250} and \ref{fig:ekf_powell2876}.
 The module \emph{optimize\_particle.py} is a variant of
 \emph{optimize\_ekf.py} that uses a particle filter rather than an
 extended Kalman filter in the objective function.  Also it can
-optimize over a smaller parameter space.  Applying it to
-powell250.parameters and searching for noise amplitudes yields
+optimize over a smaller parameter space.  Applying it to the file
+powell250.parameters (obtained by optimizing extended Kalman filters
+on the first 250 data points) and searching for noise amplitudes
+yields
 \begin{align*}
   \text{state noise: }       0.6331 &\rightarrow 0.2632 \\
   \text{observation noise: } 0.5275 &\rightarrow 0.0964
 \end{align*}
 
-\filterplot{pf_ekf250}{Results for a particle filter applied to
-  Tang's laser data with the same model used for Fig.~\ref{fig:ekf_powell250}.}
+I used weighted means of particles to get the filtered trajectories
+from particle filter results for Figures \ref{fig:pf_ekf250} --
+\ref{fig:pf_hand_noise}.  I suspect that the bad looking excursions in
+the phase portraits (upper left, titled ``Filtered $x_2$ vs $x_0$'')
+result from bimodal particle distributions that in turn are the result
+of ambiguity between RRRRRLLLLL and RRRRLRRRRL.
+  
+\filterplot{pf_ekf250}{Results for a particle filter applied to Tang's
+  laser data with the same model used for
+  Fig.~\ref{fig:ekf_powell250}.}
 
 \filterplot{pf_opt_noise}{Results for a particle filter applied to
   Tang's laser data with the same model used for
   Fig.~\ref{fig:ekf_powell250} except state and observation noise
-  scales are 0.263 and 0.096. respectively.  Optimizing over only
-  noise scales yielded those values}
+  scales are 0.263 and 0.096. respectively.  While optimizing over
+  only noise scales yielded those values, the observation noise level
+  is not plausible because the quantization step size is 1.}
 
 \filterplot{pf_hand_noise}{Results for a particle filter applied to
   Tang's laser data with the same model used for
   Fig.~\ref{fig:ekf_powell250} except state and observation noise
   scales are set by hand to 0.2 and 1.0 respectively.}
 
+I am disappointed that I failed to find a better model using
+optimization with particle filters than I found with extended Kalman
+filters.  Optimizing with particle filters is much slower and because
+particle filters are a Monte Carlo method, the response surface is not
+smooth.
+
+I considered trying an observation model that exploited the effects of
+quantization.  As a first step, I made the probability plot of
+observation residuals in Figure~\ref{fig:cumulative} for the same
+model used for Figure~\ref{fig:pf_hand_noise} (observation noise scale
+set to 1.0).  The fit looks so good that I decided to not pursue a
+better model of observations.
+
 \begin{figure}
   \centering
     \resizebox{1.0\textwidth}{!}{\includegraphics{forecast_errors.pdf}}
-  \caption{Cumulative distribution of errors for forward pass forecasts of the
-    observations.  Given that the observations are integers, I am
-    surprised that the errors are reasonably fit by a Gaussian with
-    variance = 1.}
+    \caption{Cumulative distribution of errors for forward pass
+      forecasts of the observations using the model for
+      Figure~\ref{fig:pf_hand_noise}.  Given that the observations are
+      integers, I am surprised that the errors are reasonably fit by a
+      Gaussian with variance = 1.}
   \label{fig:cumulative}
 \end{figure}
+
+\FloatBarrier
+
 \section{Particle Filter for Linear Observation of Lorenz}
 \label{sec:linear_observation}
+
+Before working on the laser data, I wrote a particle filter for linear
+observations of simulated Lorenz data.  That code is in
+hmmds.synthetic.filter.lorenz\_particle\_simulation.
 
 \subsection{Init}
 \label{sec:init}
@@ -299,6 +355,9 @@ optimize.py.
 \section{Discrete Observations}
 \label{sec:DiscreteObservations}
 
+I decided to not pursue discrete observation models.  See
+Figure~\ref{fig:cumulative}.
+
 \section{Optimization}
 \label{sec:Optimization}
 
@@ -306,19 +365,15 @@ Found that optimizing many parameters for particle filters yielded
 unsatisfactory results.
 
 
-\section{To Do}
-\label{sec:ToDo}
+\section{Dead Ends}
+\label{sec:DeadEnds}
 
-\begin{enumerate}
-\item Automate parameter optimization and document it here
-\item Write code for particle filter with discrete observations and document
-\item Optimize parameters for particle filter
-\item Make plot for Introduction
-\end{enumerate}
 Worked on pymp.  Got it installed and running.  I changed a simple
 initialization loop in particle.py to run with pymp and the value of
 the log likelihood changed from -17.42 to -14.96.  Then I quit the
-effort.
+effort because I didn't trust the result or understand the code.
+
+Here is what I did:
 \begin{verbatim}
  5257  git clone https://github.com/classner/pymp.git
  5258  cd pymp/
@@ -326,121 +381,5 @@ effort.
  5281  export PYTHONPATH=/mnt/precious/home/andy_nix/projects/dshmm:/mnt/precious/home/andy_nix/projects/proj_hmm/src:/mnt/precious/home/andy_nix/projects/dshmm:/mnt/precious/home/andy_nix/projects/dshmm/pymp:
 
 Without pymp.  Commit.
-[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ make
-time python particle.py --n_times 50 powell250.parameters test_particle
-log_likelihood=-74.8157538232742
-
-real	0m31.962s
-user	1m19.362s
-sys	0m0.233s
-[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ rm test_particle ; make
-time python particle.py --n_times 175 powell2876.parameters test_particle
-log_likelihood=-261.40873672698683
-
-real	1m17.545s
-user	3m44.015s
-sys	0m0.324s
-
-[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ rm test_particle ; make
-time python particle.py --n_times 175 powell250.parameters test_particle
-log_likelihood=-257.72636060585575
-
-real	1m20.901s
-user	3m42.181s
-sys	0m0.295s
-
-[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ rm test_particle ; make
-time python particle.py --n_times 2876 powell250.parameters test_particle
-log_likelihood=-3934.546695234746
-
-real	17m48.662s
-user	53m4.767s
-sys	0m2.667s
-
-[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ rm test_particle ; make
-time python particle.py --n_times 2876 powell2876.parameters test_particle
-log_likelihood=-4197.4616110514735
-
-real	17m47.318s
-user	53m2.265s
-sys	0m2.109s
-
-[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ make BFGS500.parameters 
-python optimize_particle.py --length 175 --n_particles 500 --method BFGS powell250.parameters BFGS500.parameters
-objective_function = -237.76511221023844
-
-...
-
-parameters_max:
-s 8.591062805853925
-r 30.911709605175442
-b 2.530757772943027
-x_initial_0 12.642124632490887
-x_initial_1 14.229049995117013
-x_initial_2 33.47735576003487
-t_ratio 1.0411872486150031
-x_ratio 0.7374402784182058
-offset 15.071726610324543
-state_noise 0.6331351560473886
-observation_noise 0.5274712556732416
-
-f_max=-237.31615262807324
-success=False
-message=Desired error not necessarily achieved due to precision loss.
-iterations=1
-
---------------------------------------------------------------------
-[nix-shell:~/projects/dshmm/hmmds/applications/laser]$ time make powell500.parameters 
-python optimize_particle.py --length 175 --n_particles 500 --method Powell powell250.parameters powell500.parameters
-objective_function = -237.76511221023844
-
-...
-
-parameters_max:
-s 8.625160204276375
-r 34.91170961478804
-b 2.727698133086979
-x_initial_0 14.601842957802134
-x_initial_1 14.626852632948264
-x_initial_2 31.09370692292357
-t_ratio 1.0706121819875836
-x_ratio 0.6139283863855538
-offset 14.928038113748512
-state_noise 2.9725619573624966
-observation_noise -0.165500717090822
-
-f_max=-209.31257621043827
-success=True
-message=Optimization terminated successfully.
-iterations=2
-
-real	690m15.505s
-user	2063m41.648s
-sys	1m19.411s
-
-Optimize only state_noise and observation_noise
-time make powell500.parameters 
-python optimize_particle.py --length 175 --n_particles 500 --method Powell powell250.parameters powell500.parameters
-objective_function = -237.76511221023844
-
-...
-objective_function = -44.96798951043301
-...
-
-
-
-parameters_max:
-state_noise -0.26316913009998016
-observation_noise -0.09638650796359936
-
-f_max=-56.21171164890743
-success=True
-message=Optimization terminated successfully.
-iterations=3
-
-real	209m28.244s
-user	626m10.201s
-sys	0m24.570s
-
 \end{verbatim}
 \end{document}

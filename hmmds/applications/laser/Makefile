@@ -29,8 +29,8 @@ pf_%.plot_data: optimize_particle.py %.parameters
 gui.plot_data: optimize_ekf.py explore.txt
 	python $< --method skip --plot_data $@ --parameter_type GUI_out explore.txt
 
-pf_ekf250.parameters: ekf_powell250.parameters
-	ln -s $< $@
+pf_ekf250.plot_data: optimize_particle.py ekf_powell250.parameters
+	python $< --method skip --plot_data $@ ekf_powell250.parameters
 
 pf_opt_noise.plot_data: optimize_particle.py ekf_powell250.parameters pf_powell500.parameters
 	python $< --method skip --plot_data $@ --override_parameters pf_powell500.parameters ekf_powell250.parameters
@@ -41,7 +41,7 @@ pf_hand_noise.parameters: pf_powell500.parameters
 pf_hand_noise.plot_data: optimize_particle.py ekf_powell250.parameters pf_hand_noise.parameters
 	python $< --method skip --plot_data $@ --override_parameters pf_hand_noise.parameters ekf_powell250.parameters
 
-forecast_errors.pdf: cumulative.py pf_opt_noise.plot_data
+forecast_errors.pdf: cumulative.py pf_hand_noise.plot_data
 	python $^ $@
 
 %.particle_data: optimize_particle.py %.parameters
