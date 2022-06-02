@@ -9,10 +9,12 @@ SHELL=bash
 #user	415m19.560s
 #sys	0m16.864s
 
+BookFigs = LaserLP5.pdf LaserLogLike.pdf LaserStates.pdf LaserForecast.pdf LaserHist.pdf
+
 FIGURES = gui_plot.pdf ekf_powell250_plot.pdf ekf_powell2876_plot.pdf \
 pf_ekf250_plot.pdf pf_opt_noise_plot.pdf pf_hand_noise_plot.pdf forecast_errors.pdf
 
-laser_fit.pdf: laser_fit.tex $(FIGURES)
+laser_fit.pdf: laser_fit.tex $(FIGURES) $(BookFigs)
 	pdflatex laser_fit.tex
 	pdflatex laser_fit.tex
 
@@ -64,3 +66,23 @@ ekf_powell250.parameters: optimize_ekf.py explore.txt
 explore.txt: explore.py
 	echo Adjust sliders for period 5 orbit, match laser data, and press "write" button
 	python explore.py
+
+LaserLP5: figure_data.py ekf_powell250.parameters
+	python $< --parameters ekf_powell250.parameters --$@ $@
+
+# 2m30s real
+LaserLogLike: figure_data.py
+	python $< --laser_data LP5.DAT --parameters ekf_powell250.parameters --$@ $@
+
+LaserStates: figure_data.py
+	python $< --laser_data LP5.DAT --parameters ekf_powell250.parameters --$@ $@
+
+LaserForecast: figure_data.py ekf_powell250.parameters
+	python $< --parameters ekf_powell250.parameters --$@ $@
+
+LaserHist: figure_data.py ekf_powell250.parameters
+	python $<  --laser_data LP5.DAT --parameters ekf_powell250.parameters --$@ $@
+
+Laser%.pdf: laser_figures.py Laser%
+	python $< --Laser$* Laser$* $@
+

@@ -382,4 +382,41 @@ Here is what I did:
 
 Without pymp.  Commit.
 \end{verbatim}
+
+\section{Book Figures}
+\label{sec:BookFigures}
+
+\newcommand{\bookfig}[2]{
+\begin{figure}
+  \centering
+  \resizebox{1.0\textwidth}{!}{\includegraphics{#1.pdf}}
+  \caption{#2}
+  \label{fig:#1}
+\end{figure}
+}
+
+\bookfig{LaserLP5}{First 250 samples of laser data.}
+
+\bookfig{LaserLogLike}{Log likelihood dependence on parameters $s$ and
+  $b$ of the Lorenz system.}
+
+\bookfig{LaserStates}{Phase portrait from extended Kalman filter.}
+
+\bookfig{LaserForecast}{First 400 samples of laser data.}
+
+\bookfig{LaserHist}{Histogram of first 600 samples of laser data.}
+
+\section{To Do}
+\label{sec:todo}
+
+The parameters for the first edition of the book are better than those
+I have here so far.  Later I should look at better methods of fitting.
+
+\begin{itemize}
+\item In explore.py, make 3 sliders for the parameters.  One should
+  be for the real part of the complex eigenvalue of the fixed point.
+  The other 2 should span the orthogonal subspace.
+\item Is it possible to solve for the delta\_x that yields a
+  particular periodic orbit?
+\end{itemize}
 \end{document}
