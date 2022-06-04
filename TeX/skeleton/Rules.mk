@@ -19,13 +19,17 @@ BASIC_ALGORITHMS_XFIGS = $(call ADD_PDF_PDF_T, $(BUILD)/figs/basic_algorithms, f
 
 VARIANTS_FIGS =  $(addprefix $(BUILD)/figs/variants/, SGO_bcd $(addsuffix .pdf, VARGstates))
 VARIANTS_XFIGS = $(call ADD_PDF_PDF_T, $(BUILD)/figs/variants, ScalarGaussian)
+BOUNDS_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/bounds, QR)
+APNEA_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/apnea, class_net)
 
 SKELETON_FIGS = $(INTRODUCTION_FIGS) \
 $(INTRODUCTION_XFIGS) \
 $(BASIC_ALGORITHMS_FIGS) \
 $(BASIC_ALGORITHMS_XFIGS) \
 $(VARIANTS_FIGS) \
-$(VARIANTS_XFIGS)
+$(VARIANTS_XFIGS) \
+$(BOUNDS_XFIGS) \
+$(APNEA_XFIGS)
 
 TEX_SKELETON = $(ROOT)/TeX/skeleton
 

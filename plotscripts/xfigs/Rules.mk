@@ -64,13 +64,17 @@ $(eval $(call double_rule, $(APNEA)))
 # used; -D specify layers
 
 $(INTRODUCTION)/Markov_mm.pdf_t: $(XFIGS)/Markov_mm.fig
+	mkdir -p $(INTRODUCTION)
 	fig2dev -L pdftex_t -D+50 -K -p $(abspath $(INTRODUCTION)/Markov_mm.pdf) $< $@
 $(INTRODUCTION)/Markov_mm.pdf: $(XFIGS)/Markov_mm.fig
+	mkdir -p $(INTRODUCTION)
 	fig2dev -L pdftex -D+50 -K $< $@
 
 $(INTRODUCTION)/Markov_dhmm.pdf_t: $(XFIGS)/Markov_mm.fig
+	mkdir -p $(INTRODUCTION)
 	fig2dev -L pdftex_t -D+40,50 -p $(abspath $(INTRODUCTION)/Markov_dhmm.pdf) $< $@
 $(INTRODUCTION)/Markov_dhmm.pdf: $(XFIGS)/Markov_mm.fig
+	mkdir -p $(INTRODUCTION)
 	fig2dev -L pdftex -D+40,50 $< $@
 
 # Local Variables:

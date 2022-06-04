@@ -50,7 +50,7 @@ def make_system(args, dt, rng):
         result[2:] = numpy.dot(a, derivative).reshape(-1)
         return result
 
-    state_noise = numpy.ones(2) * args.b
+    state_noise = numpy.eye(2) * args.b
     dt = 2 * numpy.pi / 10  # 10 samples per cycle
     x_dim = 2
     system = hmm.state_space.SDE(dx_dt,

@@ -59,7 +59,7 @@ def main(argv=None):
 
     estimated_states = model_2a.decode(y_sequence)
     model_2e.train(y_sequence, n_iterations=50, display=False)
-    model_3a.train(y_sequence, n_iterations=6, display=False)
+    model_3a.train(y_sequence, n_iterations=2, display=False)
 
     with open(os.path.join(data_dir, 'SGO_sim'), 'w') as sgo_sim:
         for t in range(n_t):
@@ -70,7 +70,7 @@ def main(argv=None):
     with open(os.path.join(data_dir, 'SGO_train'), 'w') as sgo_train:
         sgo_train.write('model_2e after 50 training iterations=\n%s\n' %
                         model_2e)
-        sgo_train.write('\nmodel_3a after 6 training iterations=\n%s\n' %
+        sgo_train.write('\nmodel_3a after 2 training iterations=\n%s\n' %
                         model_3a)
 
     return 0
