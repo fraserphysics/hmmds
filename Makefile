@@ -13,10 +13,13 @@ N_TRAIN = 50
 # Look at: https://makefiletutorial.com/
 
 ROOT = .
+TEX = $(ROOT)/src/TeX
+PLOTSCRIPTS = $(ROOT)/src/plotscripts
+HMMDS = $(ROOT)/src/hmmds
 #ROOT = $(abspath ./)
 BUILD = $(ROOT)/build
-XFIGS = $(ROOT)/plotscripts/xfigs
-ApneaPlotScripts = $(ROOT)/plotscripts/apnea
+XFIGS = $(PLOTSCRIPTS)/xfigs
+ApneaPlotScripts = $(PLOTSCRIPTS)/apnea
 
 # Default target
 ## skeleton                       : Explanation of how I make each figure for the book
@@ -24,28 +27,28 @@ ApneaPlotScripts = $(ROOT)/plotscripts/apnea
 skeleton: $(BUILD)/TeX/skeleton/figures.pdf
 
 # Rules for making plots
-include $(ROOT)/plotscripts/filter/Rules.mk
-include $(ROOT)/plotscripts/introduction/Rules.mk
-include $(ROOT)/plotscripts/basic_algorithms/Rules.mk
-include $(ROOT)/plotscripts/variants/Rules.mk
+include $(PLOTSCRIPTS)/filter/Rules.mk
+include $(PLOTSCRIPTS)/introduction/Rules.mk
+include $(PLOTSCRIPTS)/basic_algorithms/Rules.mk
+include $(PLOTSCRIPTS)/variants/Rules.mk
 include $(XFIGS)/Rules.mk
 include $(ApneaPlotScripts)/Rules.mk
 
 # Rules for making data files
-include $(ROOT)/hmmds/synthetic/Rules.mk
-include $(ROOT)/hmmds/synthetic/filter/Rules.mk
+include $(HMMDS)/synthetic/Rules.mk
+include $(HMMDS)/synthetic/filter/Rules.mk
 
 # Rules for making documents
-include $(ROOT)/TeX/skeleton/Rules.mk
+include $(TEX)/skeleton/Rules.mk
 
 ## ds21.pdf                       : Slides for 2021 SIAM Dynamical Systems meeting
 .PHONY : ds21.pdf
-ds21.pdf : TeX/ds21/slides.pdf
+ds21.pdf : $(TEX)/ds21/slides.pdf
 
-TeX/ds21/slides.pdf:
-	cd TeX/ds21 && $(MAKE) slides.pdf
+$(TEX)/ds21/slides.pdf:
+	cd $(TEX)/ds21 && $(MAKE) slides.pdf
 
-TeX/bundles.pdf: TeX/bundles.tex  $(INTRODUCTION_FIGS) $(BASIC_ALGORITHMS_FIGS) $(APNEA_FIGS)
+$(TEX)/bundles.pdf: $(TEX)/bundles.tex  $(INTRODUCTION_FIGS) $(BASIC_ALGORITHMS_FIGS) $(APNEA_FIGS)
 	cd TeX && $(MAKE) bundles.pdf
 
 #ToDo: Ensure that derived_data/apnea/pass1_report.pickle is up to

@@ -3,7 +3,7 @@
 # BUILD is where derived results go.
 
 SYNTHETIC_DATA = $(BUILD)/derived_data/synthetic
-SYNTHETIC_CODE = $(ROOT)/hmmds/synthetic
+SYNTHETIC_CODE = $(HMMDS)/synthetic
 # SYNTHETIC_CODE is this directory
 
 $(SYNTHETIC_DATA)/lorenz.flag: $(SYNTHETIC_CODE)/lorenz.py

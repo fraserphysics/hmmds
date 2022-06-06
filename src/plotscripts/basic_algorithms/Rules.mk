@@ -4,7 +4,7 @@
 SYNTHETIC_DATA = $(BUILD)/derived_data/synthetic
 TrainCharData = $(SYNTHETIC_DATA)/TrainChar
 EMData =  $(SYNTHETIC_DATA)/em.pickle
-BasicPlotScripts = $(ROOT)/plotscripts/basic_algorithms
+BasicPlotScripts = $(PLOTSCRIPTS)/basic_algorithms
 FIGS_Basic = $(BUILD)/figs/basic_algorithms
 
 $(FIGS_Basic)/TrainChar.pdf: $(BasicPlotScripts)/train_char.py $(TrainCharData)

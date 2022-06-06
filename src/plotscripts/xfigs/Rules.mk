@@ -11,7 +11,7 @@ BOUNDS = $(BUILD)/figs/bounds
 
 APNEA = $(BUILD)/figs/apnea
 
-XFIGS = $(ROOT)/plotscripts/xfigs
+XFIGS = $(PLOTSCRIPTS)/xfigs
 # XFIGS is _this_ directory
 
 # Define a function with arguments prefix=$(1) names=$(2) that

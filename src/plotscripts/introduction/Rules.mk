@@ -3,7 +3,7 @@
 
 SYNTHETIC_DATA = $(BUILD)/derived_data/synthetic
 TSINTRO = $(SYNTHETIC_DATA)/TSintro
-IntroPlotScripts = $(ROOT)/plotscripts/introduction
+IntroPlotScripts = $(PLOTSCRIPTS)/introduction
 FIGS_INTRO = $(BUILD)/figs/introduction
 
 # Note: The file lorenz.flag is touched after the files fine, coarse,

@@ -31,7 +31,7 @@ $(VARIANTS_XFIGS) \
 $(BOUNDS_XFIGS) \
 $(APNEA_XFIGS)
 
-TEX_SKELETON = $(ROOT)/TeX/skeleton
+TEX_SKELETON = $(TEX)/skeleton
 
 $(TEX_OUT)/figures.pdf: $(TEX_SKELETON)/figures.tex $(SKELETON_FIGS)
 	mkdir -p $(TEX_OUT)
