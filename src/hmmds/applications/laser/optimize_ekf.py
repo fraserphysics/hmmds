@@ -39,7 +39,10 @@ def parse_args(argv):
                         default='Powell',
                         help='Argument to scipy.optimize.minimize or "skip"')
     parser.add_argument('--plot_data', type=str, help='Path to store data')
-    parser.add_argument('parameters_in_out', type=str, help='paths to files', nargs='+')
+    parser.add_argument('parameters_in_out',
+                        type=str,
+                        help='paths to files',
+                        nargs='+')
     return parser.parse_args(argv)
 
 
@@ -292,7 +295,8 @@ n_data {args.length}""")
         parameters_max, None)
     forward_means, forward_covariances = sde.forward_filter(
         initial_distribution, laser_data)
-    cross_entropy = sde.log_likelihood(initial_distribution, laser_data)/len(laser_data)
+    cross_entropy = sde.log_likelihood(initial_distribution,
+                                       laser_data) / len(laser_data)
     print(f'cross_entropy {cross_entropy}')
 
     with open(args.plot_data, 'wb') as _file:

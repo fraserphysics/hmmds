@@ -2,8 +2,8 @@
 
 # This includes files named Rules.mk from subdirectories.  Those files
 # use the variables ROOT and BUILD defined here to define source and
-# destination paths.  That means that I must modify affected Rules.mk
-# files if I change the directory structure.
+# destination paths.  That means that you must modify affected Rules.mk
+# files if you change the directory structure.
 
 # If subdirectories contain local Makefiles, they are for testing
 # local code.  Those Makefiles are not called or used elsewhere.
@@ -16,7 +16,6 @@ ROOT = .
 TEX = $(ROOT)/src/TeX
 PLOTSCRIPTS = $(ROOT)/src/plotscripts
 HMMDS = $(ROOT)/src/hmmds
-#ROOT = $(abspath ./)
 BUILD = $(ROOT)/build
 XFIGS = $(PLOTSCRIPTS)/xfigs
 ApneaPlotScripts = $(PLOTSCRIPTS)/apnea
@@ -41,6 +40,7 @@ include $(HMMDS)/synthetic/filter/Rules.mk
 # Rules for making documents
 include $(TEX)/skeleton/Rules.mk
 
+######################Target Documents##########################################
 ## ds21.pdf                       : Slides for 2021 SIAM Dynamical Systems meeting
 .PHONY : ds21.pdf
 ds21.pdf : $(TEX)/ds21/slides.pdf
@@ -59,14 +59,14 @@ figs/pass1.pdf: plotscripts/apnea/pass1.py derived_data/apnea/pass1_report.pickl
 derived_data/apnea/pass1_report.pickle:
 	cd hmmds/applications/apnea && $(MAKE) pass1_report
 
-.PHONY : test
-test:
-	ls $(APNEA_FIGS)
+#####################Targets for Coding Standards###############################
+
+# test, coverage, docs_api, docs_manual
 
 ## yapf                           : Force google format on all python code
 .PHONY : yapf
 yapf :
-	yapf -i --recursive --style "google" hmmds/ plotscripts/
+	yapf -i --recursive --style "google" src/hmmds/ src/plotscripts/ tests
 
 ## check-types                    : Checks type hints
 .PHONY : check-types
@@ -76,10 +76,11 @@ check-types:
 #	export MYPYPATH=$$PYTHONPATH; mypy --no-strict-optional hmmds/synthetic plotscripts
 # --no-strict-optional allows None as default value
 
-## lint                           : Run pylint
+## lint                           : Run pylint and mypy
 .PHONY : lint
 lint :
-	find plotscripts hmmds/synthetic -name "*.py" | xargs pylint --rcfile=pylintrc
+	pylint --rcfile pylintrc src/hmmds/
+	mypy --no-strict-optional src/hmmds/
 
 ## variables     : Print selected variables.
 .PHONY : variables

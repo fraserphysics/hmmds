@@ -16,12 +16,8 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
-    parser.add_argument('data',
-                        type=str,
-                        help='path to data file')
-    parser.add_argument('fig_path',
-                        type=str,
-                        help='path to figure')
+    parser.add_argument('data', type=str, help='path to data file')
+    parser.add_argument('fig_path', type=str, help='path to figure')
     return parser.parse_args(argv)
 
 
@@ -37,7 +33,7 @@ def main(argv=None):
            observations_short)) = pyplot.subplots(nrows=2,
                                                   ncols=3,
                                                   figsize=(10, 10))
-    fig.text(0.05,0.02, f'cross entropy: {data["cross_entropy"]}')
+    fig.text(0.05, 0.02, f'cross entropy: {data["cross_entropy"]}')
 
     filtered.plot(data['forward_means'][:, 0], data['forward_means'][:, 2])
     filtered.set_title(r"Filtered $x_2$ vs $x_0$")

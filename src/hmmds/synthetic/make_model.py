@@ -1,5 +1,6 @@
-""" MakeModel.py <n_iterations> <data_dir> <data_file> <model_file>
- EG. python MakeModel.py 50 data lorenz.4 m12s.4y
+""" MakeModel.py: Make HMM for figure on cover
+
+ EG. python MakeModel.py 50 data_dir lorenz.4 m12s.4y
 """
 
 import sys
@@ -18,11 +19,14 @@ import hmm.simple
 def parse_args(argv):
     """Parse the command line
     """
-    parser = argparse.ArgumentParser(
-        description="Make data for figure on cover")
+    parser = argparse.ArgumentParser(description="Make HMM for figure on cover")
     parser.add_argument('--random_seed', type=int, default=0)
-    parser.add_argument('n_iterations', type=int)
-    parser.add_argument('data_dir', type=str)
+    parser.add_argument('n_iterations',
+                        type=int,
+                        help="number of training iterations")
+    parser.add_argument('data_dir',
+                        type=str,
+                        help="Directory for data and model")
     parser.add_argument('data_file', type=str)
     parser.add_argument('model_file', type=str)
     return parser.parse_args(argv)

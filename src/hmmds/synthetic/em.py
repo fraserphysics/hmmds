@@ -1,4 +1,12 @@
-""" em.py makes data for Fig. 2.7, fig:GaussMix, of the book
+r"""em.py makes data for Fig. 2.7, fig:GaussMix, ,"Two iterations of
+the EM Algorithm."
+
+It fits a Gaussian mixture model with two means and fixed variance to
+simulated data.
+
+In the book the mixture parameter is $\lambda$.  Because lambda is a
+reserved word in python, I use alpha for the mixture parameter here.
+
 """
 import sys
 import argparse
@@ -47,8 +55,9 @@ def main(argv=None):
     _print('# Here are the observations')
     for t in range(n_y):
         state = rng.choice([0, 1])
-        y = rng.normal(mu[state], 1.0)  # Draw from \Normal(mu[s], 1)
-        y_sequence.append(y)
+        y_sequence.append(rng.normal(mu[state],
+                                     1.0))  # Draw from \Normal(mu[s], 1)
+
     _print((n_y * '%5.2f ') % tuple(y_sequence))
 
     # Initial model parameters
@@ -56,8 +65,9 @@ def main(argv=None):
     mu_i = [[-1.0, 1.0]]
 
     for i in range(em_iterations):
-        _print('i=%d alpha=%6.3f mu0=%6.3f mu1=%6.3f\n' %
-               (i, alpha[i], mu_i[i][0], mu_i[i][1]))
+        _print(
+            f'i={i} alpha={alpha[i]:6.3f} mu0={mu_i[i][0]:6.3f} mu1={mu_i[i][1]:6.3f}\n'
+        )
         state_probs = []  # State probabilities
         sums = 0.0  # Sum_t prob(class_0|Y[t])
         # Estimate state probabilities for each observation
@@ -82,18 +92,20 @@ def main(argv=None):
             sum1 += y_sequence[t] * (1.0 - state_probs[t])
         alpha.append(sums / n_y)
         mu_i.append([sum0 / sums, sum1 / (n_y - sums)])
-    _print('i=%d alpha=%6.3f mu0=%6.3f mu1=%6.3f\n' %
-           (em_iterations, alpha[-1], mu_i[-1][0], mu_i[-1][1]))
+    _print(
+        f'i={i} alpha={alpha[-1]:6.3f} mu0={mu_i[-1][0]:6.3f} mu1={mu_i[-1][1]:6.3f}\n'
+    )
 
     mu_i.append(mu)  # Record initial model
     alpha.append(0.5)  # Record initial model
-    pickle.dump({
-        'Y': y_sequence,
-        'alpha': alpha,
-        'mu_i': mu_i
-    },
-                open(args.out_path, 'wb'),
-                protocol=2)
+    with open(args.out_path, 'wb') as _file:
+        pickle.dump({
+            'Y': y_sequence,
+            'alpha': alpha,
+            'mu_i': mu_i
+        },
+                    _file,
+                    protocol=2)
 
 
 if __name__ == "__main__":

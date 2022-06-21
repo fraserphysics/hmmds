@@ -1,6 +1,6 @@
 """VStatePic.py data_dir y_name state_file_preface
 
-Creates varg_stateN (N in 0..11) in the directory named by data
+Creates varg_stateN (N in 0:11) in the directory named by data_dir
 
 """
 
@@ -65,7 +65,7 @@ def main(argv=None):
 
     # Train while loosening prior.  Recall update formula: Cov[s] =
     # (Psi + rrsum)/(wsum[s]+nu+dimension+1)
-    for nu, psi in ((1e6, 4e6), (4.0, 1.0), (1.0, 0.25), (0.0, 0.0)):
+    for nu, psi in ((1e6, 4e6), (4.0, 1.0), (1.0, 0.25), (0.25, 0.05)):
         model.y_mod.nu = nu
         model.y_mod.Psi = numpy.eye(3) * psi
         model.train(y, 10)

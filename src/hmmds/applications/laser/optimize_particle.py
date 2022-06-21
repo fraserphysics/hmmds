@@ -49,7 +49,10 @@ def parse_args(argv):
                         type=str,
                         help='path to file with some parameters')
     parser.add_argument('--plot_data', type=str, help='Path to store data')
-    parser.add_argument('parameters_in_out', type=str, help='paths to files', nargs='+')
+    parser.add_argument('parameters_in_out',
+                        type=str,
+                        help='paths to files',
+                        nargs='+')
     return parser.parse_args(argv)
 
 
@@ -215,8 +218,8 @@ n_data {args.length}""")
         parameters_max, rng)
     particles, forward_means, forward_covariances, log_likelihood, delta_ys = lorenz_system.forward_filter(
         laser_data, args.n_particles, threshold=0.5)
-    cross_entropy = log_likelihood/len(laser_data)
-                                       
+    cross_entropy = log_likelihood / len(laser_data)
+
     with open(args.plot_data, 'wb') as _file:
         pickle.dump(
             {

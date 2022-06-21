@@ -19,12 +19,8 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
-    parser.add_argument('data',
-                        type=str,
-                        help='path to data file')
-    parser.add_argument('fig_path',
-                        type=str,
-                        help='path to figure')
+    parser.add_argument('data', type=str, help='path to data file')
+    parser.add_argument('fig_path', type=str, help='path to figure')
     return parser.parse_args(argv)
 
 
@@ -38,16 +34,16 @@ def main(argv=None):
     delta_ys = data['delta_ys'].reshape(-1)
     sorted = numpy.sort(delta_ys)
     n_data = len(sorted)
-    y = numpy.arange(len(sorted))/len(sorted)
-    
+    y = numpy.arange(len(sorted)) / len(sorted)
+
     fig = pyplot.figure()
     ax = fig.add_subplot()
-    a,b = scipy.stats.probplot(sorted, fit=True, plot=ax)
+    a, b = scipy.stats.probplot(sorted, fit=True, plot=ax)
     mean = numpy.mean(sorted)
     dev = numpy.std(sorted)
     print(f'mean={mean}, standard_deviation={dev} {b}')
     #ax.plot(sorted, y)
-    
+
     if args.show:
         pyplot.show()
     fig.savefig(args.fig_path)
