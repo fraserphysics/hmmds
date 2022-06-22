@@ -1,7 +1,12 @@
-r"""distibution.py
+r"""distibution.py: Compare distribution of simulated data to formula.
 
-Check to see how well random data fits the formula in
-linear_map_simulation.py for calculating the stationary distribution.
+linear_map_simulation.py simulates a 2-d linear sde.  It has code that
+calculates parameters of a multivariate normal for the stationary
+distribution.  This module prepares for a probabilty plot by writing
+simulated data and the result of variance expected from the formula in
+linear_map_simulation.py.
+
+python distribution.py --n_samples 10000 --a 0.05 --b 0.2 output_data
 
 """
 
@@ -12,7 +17,7 @@ import pickle
 import numpy
 import numpy.random
 
-import linear_map_simulation
+from hmmds.synthetic.filter import linear_map_simulation
 
 
 def parse_args(argv):

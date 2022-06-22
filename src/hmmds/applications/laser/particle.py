@@ -15,7 +15,7 @@ import hmm.state_space
 import hmm.particle
 import hmmds.synthetic.filter.lorenz_sde
 
-import optimize_ekf
+from hmmds.applications.laser import optimize_ekf
 import plotscripts.introduction.laser
 
 
@@ -235,8 +235,7 @@ class LorenzSystem(hmm.particle.System):
 
 
 def parse_args(argv):
-    """Define parser and parse command line.  This code fetches many
-    arguments and defalut values from optimize.py
+    """Define parser and parse command line.
 
     """
 

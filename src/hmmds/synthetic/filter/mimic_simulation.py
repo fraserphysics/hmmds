@@ -7,7 +7,7 @@ import sys
 import hmm.examples.ekf
 import hmm.state_space
 
-import linear_map_simulation
+from hmmds.synthetic.filter import linear_map_simulation
 
 
 def make_system(args, dt, rng):
@@ -39,10 +39,13 @@ def make_system(args, dt, rng):
     return result, stationary_distribution
 
 
-def main():
+def main(argv=None):
     """
     """
-    return linear_map_simulation.main(sys.argv[1:], make_system=make_system)
+
+    if argv is None:
+        argv = sys.argv[1:]
+    return linear_map_simulation.main(argv, make_system=make_system)
 
 
 if __name__ == "__main__":

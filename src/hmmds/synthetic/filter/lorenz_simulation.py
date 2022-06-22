@@ -12,7 +12,7 @@ import numpy
 import hmm.state_space
 import hmmds.synthetic.filter.lorenz_sde
 
-import linear_map_simulation
+from hmmds.synthetic.filter import linear_map_simulation
 
 
 def make_system(args, dt, rng):

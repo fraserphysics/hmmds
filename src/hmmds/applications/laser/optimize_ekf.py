@@ -15,7 +15,7 @@ import scipy.optimize
 import hmm.state_space
 import hmmds.synthetic.filter.lorenz_sde
 
-import explore
+from hmmds.applications.laser import explore
 import plotscripts.introduction.laser
 
 

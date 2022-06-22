@@ -1,4 +1,4 @@
-"""plot.py: Illustrate performance of filter.
+"""cumulative.py: Make probability plot from pickled data.
 """
 
 import sys

@@ -15,7 +15,7 @@ import numpy.random
 
 import hmm.state_space
 import hmm.particle
-import linear_map_simulation  # From same directory as this file
+from hmmds.synthetic.filter import linear_map_simulation
 from hmm.state_space import MultivariateNormal
 
 

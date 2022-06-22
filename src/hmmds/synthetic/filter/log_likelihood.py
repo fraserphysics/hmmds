@@ -12,7 +12,7 @@ import pickle
 import numpy
 import numpy.random
 
-import linear_map_simulation
+from hmmds.synthetic.filter import linear_map_simulation
 
 
 def parse_args(argv):
