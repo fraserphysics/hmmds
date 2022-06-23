@@ -1,5 +1,7 @@
 """laser.py plot the laser data
 
+ToDo: Delete and use code in laser directories
+
 """
 import sys
 import argparse
@@ -49,7 +51,8 @@ def main(argv=None):
 
 
 def read_data(data_file):
-    """Read in "data_file" as an array.
+    """Read in "data_file" as an array.  ToDo: replace with
+    hmmds.applications.laser.utilities.read_tang
     """
     with open(data_file, 'r') as file:
         lines = file.readlines(
