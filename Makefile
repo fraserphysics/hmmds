@@ -21,12 +21,15 @@ XFIGS = $(PLOTSCRIPTS)/xfigs
 ApneaPlotScripts = $(PLOTSCRIPTS)/apnea
 
 # Default target
+$(BUILD)/TeX/laser/laser_fit.pdf:
+
 ## skeleton                       : Explanation of how I make each figure for the book
 .PHONY : skeleton
 skeleton: $(BUILD)/TeX/skeleton/figures.pdf
 
 # Rules for making plots
 include $(PLOTSCRIPTS)/filter/Rules.mk
+include $(PLOTSCRIPTS)/laser/Rules.mk
 include $(PLOTSCRIPTS)/introduction/Rules.mk
 include $(PLOTSCRIPTS)/basic_algorithms/Rules.mk
 include $(PLOTSCRIPTS)/variants/Rules.mk
@@ -36,9 +39,11 @@ include $(ApneaPlotScripts)/Rules.mk
 # Rules for making data files
 include $(HMMDS)/synthetic/Rules.mk
 include $(HMMDS)/synthetic/filter/Rules.mk
+include $(HMMDS)/applications/laser/Rules.mk
 
 # Rules for making documents
 include $(TEX)/skeleton/Rules.mk
+include $(TEX)/laser/Rules.mk
 
 ######################Target Documents##########################################
 ## ds21.pdf                       : Slides for 2021 SIAM Dynamical Systems meeting

@@ -1,5 +1,5 @@
 # Rules.mk: This file can be included by a makefile anywhere as long
-# as ROOT and BUILD are defined.  ROOT is the root of this project and
+# as HMMDS and BUILD are defined.  HMMDS is the root of this project and
 # BUILD is where derived results go.
 
 SYNTHETIC_DATA = $(BUILD)/derived_data/synthetic

@@ -12,7 +12,7 @@ import numpy
 
 import hmmds.synthetic.filter.lorenz_sde
 import optimize_ekf
-import plotscripts.introduction.laser  # read_data should be here
+import hmmds.applications.laser.utilities
 
 
 def parse_args(argv):
@@ -135,9 +135,10 @@ def main(argv=None):
     args = parse_args(argv)
 
     if args.parameters:
-        args.parameters = optimize_ekf.read_parameters(args.parameters)
+        args.parameters = hmmds.applications.laser.utilities.read_parameters(
+            args.parameters)
     if args.laser_data:
-        laser_data_y_t = plotscripts.introduction.laser.read_data(
+        laser_data_y_t = hmmds.applications.laser.utilities.read_tang(
             args.laser_data)
         assert laser_data_y_t.shape == (2, 2876)
         args.laser_data = laser_data_y_t[1, :].astype(int).reshape((2876, 1))

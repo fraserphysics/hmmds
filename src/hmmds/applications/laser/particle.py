@@ -292,9 +292,10 @@ def main(argv=None):
 
     rng = numpy.random.default_rng(args.random_seed)
 
-    parameters = optimize_ekf.read_parameters(args.parameters_in)
+    parameters = hmmds.applications.laser.utilities.read_parameters(
+        args.parameters_in)
     system = make_lorenz_system(parameters, rng)
-    laser_data = plotscripts.introduction.laser.read_data(args.laser_data)
+    laser_data = hmmds.applications.laser.utilities.read_tang(args.laser_data)
     assert laser_data.shape == (2, 2876)
     observations = laser_data[1, :args.n_times].astype(int).reshape(
         (args.n_times, 1))
