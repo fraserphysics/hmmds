@@ -92,10 +92,9 @@ def read_override(path, constants):
     return Parameters(*value_list, constants)
 
 
-def objective_function(
-        values_in, laser_data, n_particles, rng,
-        constants: hmmds.applications.laser.utilities.Parameters,
-        parameter_class):
+def objective_function(values_in, laser_data, n_particles, rng,
+                       constants: hmmds.applications.laser.utilities.Parameters,
+                       parameter_class):
     """For optimization
 
     Args:
@@ -184,7 +183,8 @@ def main(argv=None):
     if args.override_parameters:
         parameters = read_override(args.override_parameters, parameters)
 
-    laser_data_y_t = hmmds.applications.laser.utilities.read_tang(args.laser_data)
+    laser_data_y_t = hmmds.applications.laser.utilities.read_tang(
+        args.laser_data)
     assert laser_data_y_t.shape == (2, 2876)
     # Put y values in global
     laser_data = laser_data_y_t[1, :].astype(int).reshape((2876, 1))

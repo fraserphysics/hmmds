@@ -1,0 +1,422 @@
+% Notes on Maximum A posteriori Probabilty (MAP) estimation.
+
+% Copyright 2022 Andrew M. Fraser.
+\documentclass[12pt]{article}
+\usepackage{graphicx,color}
+\usepackage{amsmath, amsfonts}
+\usepackage{placeins}
+
+
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\INTEGER}{\field{Z}}
+\newcommand{\REAL}{\field{R}}
+\newcommand{\COMPLEX}{\field{C}}
+\newcommand{\id}{\mathbb{I}}
+\newcommand{\variance}[1]{\field{V}\left[ #1 \right]}
+\newcommand{\normal}[2]{{\cal N}\left(#1,#2 \right)}
+
+\newcommand{\filterplot}[2]{
+\begin{figure}
+  \centering
+  \resizebox{1.0\textwidth}{!}{\includegraphics{#1_plot.pdf}}
+  \caption{#2}
+  \label{fig:#1}
+\end{figure}
+}
+
+\title{Models of the Laser Data}
+\author{Andrew M.\ Fraser}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+I have tried several techniques for modeling the laser data from Tang
+et al.  From that effort I have developed a sequence of steps that
+produces models and figures that I will put in the book.  Here I
+describe some of the techniques and that sequence.
+
+Overall, I am not satisfied with the models.  The data are from either
+a \emph{stable} of period five or ten, while the periodic orbits of
+the models are all \emph{unstable}.  I think that the optimizers find
+state noise levels that are large enough to account for model
+\emph{error} rather than state \emph{noise}.  I searched the
+literature on the Lorenz model and found that there are no stable
+periodic orbits at low $R$ values.  I suspect that there is a good
+\emph{Lorenz like} state space model for the laser data, but that
+either there are no parameters of the Lorenz system that yield the
+model, or that the optimizers I've tried can't find the parameters.
+
+\section{Steps}
+\label{sec:steps}
+
+The \emph{Makefile} documents the procedure for obtaining the models
+for the book.
+
+\subsection{GUI}
+\label{sec:gui}
+
+To get a model that approximates the data, I wrote the module
+\emph{explore.py}.  I ran \emph{python explore.py} and adjusted the
+sliders to roughly match the first nine oscillations of the data.  To
+calculate the initial condition for the displayed trajectory, the code
+solves for one of the fixed points of the Lorenz system and does a
+spectral decomposition of the linear approximation of the system at
+that point.  Then it integrates for an interval $\Delta_t$ (given by a
+slider) from a point on the subspace corresponding to the pair of
+complex eigenvalues that is $\Delta_x$ (specified by a slider) away
+from the fixed point.
+
+Here are the names of the sliders and their effects:
+\begin{description}
+\item[r] A parameter\footnote{Perhaps I could find a better model with
+    3 sliders for the 3 parameters.  Because the first two
+    oscillations in each group of five in the data are close to the
+    same size, I believe that a good model must be near a Hopf
+    bifurcation.  One slider could be for the real part of the complex
+    eigenvalue of the fixed point and the other two for the other
+    degrees of freedom.} of the Lorenz system.  The other values are
+  fixed at $s=10.0$ and $b=8.0/3$.
+\item[delta\_x] Part of the specification of the initial condition
+  described above.
+\item[delta\_t] Part of the specification of the initial condition
+  described above.
+\item[t\_ratio] Ratio of time intervals of the Lorenz system and time
+  intervals of the data.
+\item[x\_ratio and offset] The data model is $y[t] = x_{\text{ratio}} \cdot
+  x[t,0] \cdot x[t,0] + \text{offset}$.
+\item[T\_total] A floating point number that specifies the interval to
+  simulate.
+\end{description}
+Once I got a rough match I pressed the button \emph{Write values to
+  file} which writes the slider values to the file \emph{explore.txt}.
+I've committed \emph{explore.txt} to the git repository.
+
+\filterplot{gui}{Result of applying an extended Kalman filter based on the
+    parameters fit via the GUI to Tangs laser data.  The data for
+    lower three plots are a subsets of the data for the upper plots.
+    I chose the subset to illustrate a periodic orbit.  I calculated
+    the cross entropy estimate in the lower left corner by
+    $h_{\text{cross}} \approx \frac{\log{p(y[0:N]|\theta)}}{N}$.}
+
+\subsection{Extended Kalman Filter}
+\label{sec:ekf}
+
+The module \emph{optimize\_ekf.py} calls the function
+scipy.optimize.minimize with an objective function that implements an
+extended Kalman filter.  It searches for the maximum likelihood in an
+11 dimensional parameter space.  The parameters include all three
+parameters of the Lorenz system, the 3-d initial condition,
+observation function parameters and the amplitudes of the state and
+observation noise.  The code writes a text file describing the result.
+As a starting point, it can read either a parameter file written by
+the GUI or a file that it wrote itself.
+
+See Figures \ref{fig:ekf_powell250} and \ref{fig:ekf_powell2876}.
+
+\filterplot{ekf_powell250}{Results for an extended Kalman filter with
+  a model fit to the first 250 laser data points using Powell's
+  method.}
+
+\filterplot{ekf_powell2876}{Results for an extended Kalman filter with
+  a model fit to the entire laser data set of 2876 points using
+  Powell's method.  With the GUI, I aimed for a period 10 orbit with
+  a right-left pattern RRRRRLLLLL.  The model here finds several
+  period 5 oscillations with the pattern RRRRL. }
+
+\subsection{Particle Filter}
+\label{sec:ParticleFilter}
+
+The module \emph{optimize\_particle.py} is a variant of
+\emph{optimize\_ekf.py} that uses a particle filter rather than an
+extended Kalman filter in the objective function.  Also it can
+optimize over a smaller parameter space.  Applying it to the file
+powell250.parameters (obtained by optimizing extended Kalman filters
+on the first 250 data points) and searching for noise amplitudes
+yields
+\begin{align*}
+  \text{state noise: }       0.6331 &\rightarrow 0.2632 \\
+  \text{observation noise: } 0.5275 &\rightarrow 0.0964
+\end{align*}
+
+I used weighted means of particles to get the filtered trajectories
+from particle filter results for Figures \ref{fig:pf_ekf250} --
+\ref{fig:pf_hand_noise}.  I suspect that the bad looking excursions in
+the phase portraits (upper left, titled ``Filtered $x_2$ vs $x_0$'')
+result from bimodal particle distributions that in turn are the result
+of ambiguity between RRRRRLLLLL and RRRRLRRRRL.
+  
+\filterplot{pf_ekf250}{Results for a particle filter applied to Tang's
+  laser data with the same model used for
+  Fig.~\ref{fig:ekf_powell250}.}
+
+\filterplot{pf_opt_noise}{Results for a particle filter applied to
+  Tang's laser data with the same model used for
+  Fig.~\ref{fig:ekf_powell250} except state and observation noise
+  scales are 0.263 and 0.096. respectively.  While optimizing over
+  only noise scales yielded those values, the observation noise level
+  is not plausible because the quantization step size is 1.}
+
+\filterplot{pf_hand_noise}{Results for a particle filter applied to
+  Tang's laser data with the same model used for
+  Fig.~\ref{fig:ekf_powell250} except state and observation noise
+  scales are set by hand to 0.2 and 1.0 respectively.}
+
+I am disappointed that I failed to find a better model using
+optimization with particle filters than I found with extended Kalman
+filters.  Optimizing with particle filters is much slower and because
+particle filters are a Monte Carlo method, the response surface is not
+smooth.
+
+I considered trying an observation model that exploited the effects of
+quantization.  As a first step, I made the probability plot of
+observation residuals in Figure~\ref{fig:cumulative} for the same
+model used for Figure~\ref{fig:pf_hand_noise} (observation noise scale
+set to 1.0).  The fit looks so good that I decided to not pursue a
+better model of observations.
+
+\begin{figure}
+  \centering
+    \resizebox{1.0\textwidth}{!}{\includegraphics{forecast_errors.pdf}}
+    \caption{Cumulative distribution of errors for forward pass
+      forecasts of the observations using the model for
+      Figure~\ref{fig:pf_hand_noise}.  Given that the observations are
+      integers, I am surprised that the errors are reasonably fit by a
+      Gaussian with variance = 1.}
+  \label{fig:cumulative}
+\end{figure}
+
+\FloatBarrier
+
+\section{Particle Filter for Linear Observation of Lorenz}
+\label{sec:linear_observation}
+
+Before working on the laser data, I wrote a particle filter for linear
+observations of simulated Lorenz data.  That code is in
+hmmds.synthetic.filter.lorenz\_particle\_simulation.
+
+\subsection{Init}
+\label{sec:init}
+
+\begin{description}
+\item[$\Sigma_\epsilon$ observation\_covariance:] 
+\item[$O$ observation\_map:] 
+\item[$I_y$ info\_y:] $O^T \Sigma_\epsilon^{-1} O$
+\item[$\Sigma_\eta$ state\_covariance:] 
+\item[$\Sigma_i$ importance\_covariance:] $\Sigma_i = \left(
+    \Sigma_\eta^{-1} + I_y \right)^{-1}$
+\item[$G_i$ $importance\_gain$:] $G_i = \Sigma_i \cdot O^T \cdot
+  \Sigma_\epsilon^{-1} $
+\item[$\Phi: X \mapsto X$ Integrate Lorenz for dt:] 
+\item[$p(x_{t+1}|x_t)$ transition:] 
+\item[$p(y_t|x_t)$ observation:] 
+\item[$q(y_{t+1},x_t)$ importance:] $q(x[t+1]|y[t+1], x[t]) =
+  p(x[t+1]|y[t+1], x[t])$.  The importance method draws $x[t+1]$
+  from the $q$ distribution and returns both $x[t+1]$ and the value
+  of $q$.
+\end{description}
+
+\subsection{Importance Method}
+\label{sec:importance}
+
+The argument $observation\_map$ affects the following attributes of
+self: $observation\_map$, $importance\_distribution$,
+$importance\_gain$, and $importance\_covariance$.  In turn those
+attributes are used in the following methods: $observation$ and
+$importance$.  To do particle filtering on the laser data, I need a
+new $importance$ method that accounts for the nonlinear
+$observation\_map$.
+
+Let me start by describing the importance method for the linear
+observation.
+\begin{description}
+\item[$\mu_{\text{forecast}}$:]  $\phi(x[t])$
+\item[$\Delta_{\text{forecast}}$:] $y[t+1] - O \cdot \mu_{\text{forecast}}$
+\item[$\mu_{\text{update}}$:]  $\mu_{\text{forecast}} + G_i \cdot
+  \Delta_{\text{forecast}}$
+\item[$\eta_{t+1}$:] Draw from $importance\_distribution$
+\item[$x_{t+1}$:] $\mu_{\text{update}} + \eta[t+1]$
+\end{description}
+The method returns $x[t+1]$ and $p(\eta[t+1])$ using a distribution
+$\normal{\mu_i}{\Sigma_i}$.  Key to calculating $\mu_i$ is the
+\emph{importance gain}, $G_i$.
+
+Here are calculations of $\Sigma_i$, $\mu_i$ and $G_i$.  Note for
+\begin{equation*}
+  p(X[t+1]|y[t+1], x[t]) \propto p(X[t+1]|x[t]) \cdot p(y[t+1]|X[t+1])
+\end{equation*}
+I can ignore normalization, and focus only on the exponent.
+Letting $E$ be -2 times the exponent, I write
+\begin{align*}
+  E = & \left( X[t+1] - \Phi(x[t]) \right)^T \Sigma_\eta^{-1} \left(
+    X[t+1] - \Phi(x[t]) \right) \\ +& \left( y[t+1] - O X[t+1] \right)^T
+  \Sigma_\epsilon^{-1} \left( y[t+1] - O X[t+1] \right)
+\end{align*}
+Using the abbreviations
+\begin{align*}
+  X &= X[t+1] \\
+  \Phi &= \Phi(x[t]) \\
+  y &= y[t+1] \\
+  \mu_i &= \mu \\
+  \Sigma_i &= \Sigma,
+\end{align*}
+I write
+\begin{align}
+  \label{eq:AbbrevE}
+  E &= \left( X-\Phi \right)^T \Sigma_\eta^{-1} \left( X-\Phi \right) +
+  \left( y - OX \right)^T \Sigma_\epsilon^{-1} \left( y - OX \right)
+  \\ \nonumber
+  &= X^T \Sigma_\eta^{-1} X -2 \Phi^T \Sigma_\eta^{-1} X + \Phi^T
+    \Sigma_\eta^{-1} \Phi \\ \nonumber
+    &\quad + y^T \Sigma_\eta^{-1} y - 2 y^T \Sigma_\eta^{-1} OX +
+      X^TO^T \Sigma_\eta^{-1} OX \\  \nonumber
+  &= X^T\left(\Sigma_\eta^{-1} + O^T \Sigma_\epsilon O \right) X - 2
+    \left( \Phi^T \Sigma_\eta^{-1} + y^T \Sigma_\epsilon^{-1} O
+    \right) X + R
+\end{align}
+Thus $\Sigma = \left(\Sigma_\eta^{-1} + O^T \Sigma_\epsilon O
+\right)^{-1}$ and since
+\begin{align*}
+  E &= (X-\mu)^T \Sigma^{-1}(X-\mu) \\
+    &= X^T \Sigma^{-1} X - 2\mu^T\Sigma^{-1} X + R \\
+    &= X^T \Sigma^{-1} X - 2X^T \Sigma^{-1} \mu + R
+\end{align*}
+I can write
+\begin{align*}
+  \Sigma^{-1} \mu &= \Sigma_\eta^{-1} \Phi + O^T \Sigma_\epsilon^{-1}
+                    y \\
+               \mu &= \Sigma\Sigma_\eta^{-1} \Phi + \Sigma O^T
+                     \Sigma_\epsilon^{-1} y,
+\end{align*}
+and since (by multiplying both sides by $\Sigma^{-1}$ one can verify)
+\begin{equation*}
+  \Sigma \Sigma_\eta^{-1} = \id - \Sigma O^T \Sigma_\eta^{-1} O,
+\end{equation*}
+I can write
+\begin{align*}
+  \mu &= \left( \id - \Sigma O^T \Sigma_\eta^{-1} O \right) \Phi +
+        \Sigma O^T \Sigma_\epsilon^{-1} y \\
+      &= \Phi + \Sigma O^T \Sigma_\epsilon^{-1} (y - O\Phi)
+\end{align*}
+In summary:
+\begin{subequations}
+  \label{eq:LinearImportance}
+  \begin{align}
+    \Sigma_i &= \left( \Sigma_\eta^{-1} + O^T \Sigma_\epsilon^{-1} O
+               \right)^{-1} \\
+    G_i &= \Sigma_i O^T \Sigma_\epsilon^{-1} \\
+    \mu_i &= \Phi(x[t]) + G_i \left(y[t+1] - O \Phi(x[t]) \right)
+  \end{align}
+\end{subequations}
+
+\section{Particle Filter for Nonlinear Observation of Lorenz with
+  Gaussian Observation Noise}
+\label{sec:nonlinear}
+
+Here the observation map is a nonlinear function $\psi$.  I want to
+use its first order approximation
+\begin{align*}
+  \psi(X) &\approx \psi(\Phi) + \psi' (X-\Phi) \quad \text{where
+            $\psi'$ is evaluated at $\Phi$}\\
+  &= \psi(\Phi) - \psi'\Phi + \psi' X
+\end{align*}
+in a derivation that mimics \eqref{eq:AbbrevE}.  I replace the term
+$(y-OX)$ in \eqref{eq:AbbrevE} with $(z - \psi'X)$ where
+\begin{equation*}
+  z \equiv y - \psi(\Phi) + \psi' \Phi.
+\end{equation*}
+The nonlinear version of \eqref{eq:LinearImportance} is
+\begin{subequations}
+  \begin{align}
+    \Sigma_i &= \left( \Sigma_\eta^{-1} + \psi'^T \Sigma_\epsilon^{-1} \psi'
+               \right)^{-1} \\
+    G_i &= \Sigma_i \psi'^T \Sigma_\epsilon^{-1} \\ \nonumber
+    \mu_i &= \Phi + G_i \left(z - \psi' \Phi) \right) \\ \nonumber
+             &= \Phi + G_i \left(y - \psi(\Phi) ) \right) \\
+             &= \Phi(x[t]) + G_i \left(y[t+1] - \psi(\Phi(x[t]))
+               \right)
+  \end{align}
+\end{subequations}
+
+The code in particle.py uses the above formulas and parameters in
+optimize.py.
+
+\begin{tabular}[t]{l|l|r}
+  code&comment&log likelihood \\ \hline
+  ekf.py & & -6422.0 \\
+  particle.py & filtered data a little rough. 18 minutes &
+                                                               -6762.4 \\
+  particle.py & $\Sigma_\eta /= 100$, filtered data is smooth &
+                                                               -12912.5 \\
+\end{tabular}
+
+\section{Discrete Observations}
+\label{sec:DiscreteObservations}
+
+I decided to not pursue discrete observation models.  See
+Figure~\ref{fig:cumulative}.
+
+\section{Optimization}
+\label{sec:Optimization}
+
+Found that optimizing many parameters for particle filters yielded
+unsatisfactory results.
+
+
+\section{Dead Ends}
+\label{sec:DeadEnds}
+
+Worked on pymp.  Got it installed and running.  I changed a simple
+initialization loop in particle.py to run with pymp and the value of
+the log likelihood changed from -17.42 to -14.96.  Then I quit the
+effort because I didn't trust the result or understand the code.
+
+Here is what I did:
+\begin{verbatim}
+ 5257  git clone https://github.com/classner/pymp.git
+ 5258  cd pymp/
+ 5264  python setup.py install --prefix=./
+ 5281  export PYTHONPATH=/mnt/precious/home/andy_nix/projects/dshmm:/mnt/precious/home/andy_nix/projects/proj_hmm/src:/mnt/precious/home/andy_nix/projects/dshmm:/mnt/precious/home/andy_nix/projects/dshmm/pymp:
+
+Without pymp.  Commit.
+\end{verbatim}
+
+\section{Book Figures}
+\label{sec:BookFigures}
+
+\newcommand{\bookfig}[2]{
+\begin{figure}
+  \centering
+  \resizebox{1.0\textwidth}{!}{\includegraphics{#1.pdf}}
+  \caption{#2}
+  \label{fig:#1}
+\end{figure}
+}
+
+\bookfig{LaserLP5}{First 250 samples of laser data.}
+
+\bookfig{LaserLogLike}{Log likelihood dependence on parameters $s$ and
+  $b$ of the Lorenz system.}
+
+\bookfig{LaserStates}{Phase portrait from extended Kalman filter.}
+
+\bookfig{LaserForecast}{First 400 samples of laser data.}
+
+\bookfig{LaserHist}{Histogram of first 600 samples of laser data.}
+
+\section{To Do}
+\label{sec:todo}
+
+The parameters for the first edition of the book are better than those
+I have here so far.  Later I should look at better methods of fitting.
+
+\begin{itemize}
+\item In explore.py, make 3 sliders for the parameters.  One should
+  be for the real part of the complex eigenvalue of the fixed point.
+  The other 2 should span the orthogonal subspace.
+\item Is it possible to solve for the delta\_x that yields a
+  particular periodic orbit?
+\end{itemize}
+\end{document}

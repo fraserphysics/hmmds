@@ -18,6 +18,7 @@ import hmmds.synthetic.filter.lorenz_sde
 from hmmds.applications.laser import explore
 import hmmds.applications.laser.utilities
 
+
 def parse_args(argv):
     parser = argparse.ArgumentParser(
         description='Optimize parameters for laser data')
@@ -193,12 +194,14 @@ def main(argv=None):
     if args.parameter_type == 'GUI_out':
         parameters = explore_to_parameters(args.parameters_in_out[0])
     elif args.parameter_type == 'parameter':
-        parameters = hmmds.applications.laser.utilities.read_parameters(args.parameters_in_out[0])
+        parameters = hmmds.applications.laser.utilities.read_parameters(
+            args.parameters_in_out[0])
     else:
         raise RuntimeError(
             f'parameter_type {args.parameter_type} not recognized')
 
-    laser_data_y_t = hmmds.applications.laser.utilities.read_tang(args.laser_data)
+    laser_data_y_t = hmmds.applications.laser.utilities.read_tang(
+        args.laser_data)
     assert laser_data_y_t.shape == (2, 2876)
     # Put y values in global
     laser_data = laser_data_y_t[1, :].astype(int).reshape((2876, 1))
