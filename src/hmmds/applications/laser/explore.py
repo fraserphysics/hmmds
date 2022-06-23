@@ -16,7 +16,7 @@ import numpy.linalg
 import scipy.optimize
 
 import plotscripts.utilities
-import plotscripts.introduction.laser
+import hmmds.applications.laser.utilities
 
 from hmmds.synthetic.filter.lorenz_sde import lorenz_integrate
 
@@ -213,7 +213,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.setCentralWidget(widget)
 
         # Read the laser data
-        self.laser_data = plotscripts.introduction.laser.read_data(
+        self.laser_data = hmmds.applications.laser.utilities.read_tang(
             '../../../raw_data/LP5.DAT')
         assert self.laser_data.shape == (2, 2876)
 

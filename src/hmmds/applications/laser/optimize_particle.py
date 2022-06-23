@@ -18,7 +18,7 @@ import hmmds.synthetic.filter.lorenz_sde
 import hmmds.applications.laser.optimize_ekf
 import hmmds.applications.laser.particle
 
-import plotscripts.introduction.laser
+import hmmds.applications.laser.utilities
 
 
 def parse_args(argv):
@@ -56,14 +56,14 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-class Parameters(hmmds.applications.laser.optimize_ekf.Parameters):
+class Parameters(hmmds.applications.laser.utilities.Parameters):
     """Subclass for optimizing only the noise amplitudes
 
     """
     variables = """ state_noise observation_noise """.split()
 
     def __init__(self: Parameters, state_noise: float, observation_noise: float,
-                 constants: hmmds.applications.laser.optimize_ekf.parameters):
+                 constants: hmmds.applications.laser.utilities.Parameters):
         """
         Args:
             state_noise: scalar float.   Covariance = eye(x_dim)* state_noise^2
@@ -94,7 +94,7 @@ def read_override(path, constants):
 
 def objective_function(
         values_in, laser_data, n_particles, rng,
-        constants: hmmds.applications.laser.optimize_ekf.parameters,
+        constants: hmmds.applications.laser.utilities.Parameters,
         parameter_class):
     """For optimization
 
@@ -121,7 +121,7 @@ def objective_function(
 
 
 # Powell, BFGS, Nelder-Mead
-def optimize(constants: hmmds.applications.laser.optimize_ekf.Parameters,
+def optimize(constants: hmmds.applications.laser.utilities.Parameters,
              laser_data: numpy.ndarray,
              n_particles: numpy.ndarray,
              rng: numpy.random.Generator,
@@ -176,7 +176,7 @@ def main(argv=None):
         parameters = hmmds.applications.laser.optimize_ekf.explore_to_parameters(
             args.parameters_in_out[0])
     elif args.parameter_type == 'parameter':
-        parameters = hmmds.applications.laser.optimize_ekf.read_parameters(
+        parameters = hmmds.applications.laser.utilities.read_parameters(
             args.parameters_in_out[0])
     else:
         raise RuntimeError(
@@ -184,7 +184,7 @@ def main(argv=None):
     if args.override_parameters:
         parameters = read_override(args.override_parameters, parameters)
 
-    laser_data_y_t = plotscripts.introduction.laser.read_data(args.laser_data)
+    laser_data_y_t = hmmds.applications.laser.utilities.read_tang(args.laser_data)
     assert laser_data_y_t.shape == (2, 2876)
     # Put y values in global
     laser_data = laser_data_y_t[1, :].astype(int).reshape((2876, 1))

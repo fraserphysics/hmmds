@@ -16,8 +16,7 @@ import hmm.state_space
 import hmmds.synthetic.filter.lorenz_sde
 
 from hmmds.applications.laser import explore
-import plotscripts.introduction.laser
-
+import hmmds.applications.laser.utilities
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(
@@ -60,7 +59,7 @@ def explore_to_parameters(in_path="explore.txt"):
     initial_state = hmmds.synthetic.filter.lorenz_sde.lorenz_integrate(
         fixed_point.initial_state(in_dict['delta_x']), 0.0, in_dict['delta_t'],
         s, r, b)
-    parameters = Parameters(
+    parameters = hmmds.applications.laser.utilities.Parameters(
         s,
         r,
         b,
@@ -70,71 +69,6 @@ def explore_to_parameters(in_path="explore.txt"):
         in_dict['offset'],
     )
     return parameters
-
-
-class Parameters:
-    """Parameters for laser data.
-
-    A tuple of parameters is passed to objective_funciton which uses
-    this class to associate a name with each value and then invokes
-    make_non_stationary with a Parameters instance as an argument.
-
-    Subclasses could let you optimize over smaller sets of values.
-    """
-
-    # The order of names in variables must match the order in __init__
-    variables = """
-s r b
-x_initial_0 x_initial_1 x_initial_2
-t_ratio x_ratio offset
-state_noise observation_noise""".split()
-
-    def __init__(
-        self,
-        s,
-        r,
-        b,
-        x_initial_0,
-        x_initial_1,
-        x_initial_2,
-        t_ratio,
-        x_ratio,
-        offset,
-        state_noise=0.7,
-        observation_noise=0.5,
-        # The following are not subject to optimization
-        fudge=1.0,
-        laser_dt=0.04,
-    ):
-        var_dict = vars()
-        for name in self.variables:
-            setattr(self, name, var_dict[name])
-        self.fudge = fudge  # Roll into state_noise
-        self.laser_dt = laser_dt
-
-    def values(self: Parameters):
-        return tuple(getattr(self, key) for key in self.variables)
-
-    def __str__(self: Parameters):
-        result = ''
-        for key in self.variables:
-            result += f'{key} {getattr(self,key)}\n'
-        return result
-
-    def write(self: Parameters, path):
-        with open(path, 'w') as file_:
-            file_.write(self.__str__())
-
-
-def read_parameters(path):
-    in_dict = {}
-    with open(path, 'r') as file_:
-        for line in file_.readlines():
-            parts = line.split()
-            if parts[0] in Parameters.variables:  # Skip result strings
-                in_dict[parts[0]] = float(parts[1])
-    value_list = [in_dict[name] for name in Parameters.variables]
-    return Parameters(*value_list)
 
 
 def objective_function(values_in, laser_data, parameter_class):
@@ -231,9 +165,9 @@ def optimize(initial_parameters, laser_data, method='Powell', options={}):
         defaults,
         method=method,
         options=options,
-        args=(laser_data, Parameters),
+        args=(laser_data, hmmds.applications.laser.utilities.Parameters),
     )
-    parameters_max = Parameters(*result.x)
+    parameters_max = hmmds.applications.laser.utilities.Parameters(*result.x)
     print(f"""
 parameters_max:
 {parameters_max}
@@ -259,12 +193,12 @@ def main(argv=None):
     if args.parameter_type == 'GUI_out':
         parameters = explore_to_parameters(args.parameters_in_out[0])
     elif args.parameter_type == 'parameter':
-        parameters = read_parameters(args.parameters_in_out[0])
+        parameters = hmmds.applications.laser.utilities.read_parameters(args.parameters_in_out[0])
     else:
         raise RuntimeError(
             f'parameter_type {args.parameter_type} not recognized')
 
-    laser_data_y_t = plotscripts.introduction.laser.read_data(args.laser_data)
+    laser_data_y_t = hmmds.applications.laser.utilities.read_tang(args.laser_data)
     assert laser_data_y_t.shape == (2, 2876)
     # Put y values in global
     laser_data = laser_data_y_t[1, :].astype(int).reshape((2876, 1))

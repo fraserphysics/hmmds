@@ -16,7 +16,7 @@ import hmm.particle
 import hmmds.synthetic.filter.lorenz_sde
 
 from hmmds.applications.laser import optimize_ekf
-import plotscripts.introduction.laser
+import hmmds.applications.laser.utilities
 
 
 class LorenzSystem(hmm.particle.System):
