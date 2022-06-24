@@ -12,7 +12,7 @@ N_TRAIN = 50
 
 # Look at: https://makefiletutorial.com/
 
-ROOT = .
+ROOT:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 TEX = $(ROOT)/src/TeX
 PLOTSCRIPTS = $(ROOT)/src/plotscripts
 HMMDS = $(ROOT)/src/hmmds
@@ -93,6 +93,7 @@ variables:
 	@echo INTRODUCTION_FIGS: $(INTRODUCTION_FIGS)
 	@echo BASIC_ALGORITHMS_FIGS: $(BASIC_ALGORITHMS_FIGS)
 	@echo APNEA_FIGS: $(APNEA_FIGS)
+	@echo In root Makefile, ROOT: $(ROOT)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help
