@@ -87,6 +87,11 @@ lint :
 	pylint --rcfile pylintrc src/hmmds/
 	mypy --no-strict-optional src/hmmds/
 
+## test                           : Run pytest on tests/
+.PHONY : test
+lint :
+	pytest tests/
+
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
