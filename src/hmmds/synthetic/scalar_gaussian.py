@@ -38,7 +38,7 @@ model_2e = hmm.base.HMM(p_s0, p_s0, p_ss, hmm.observe_float.Gauss(mu, var, rng),
 p_ss = numpy.array([[0.5, 0.5], [0.5, 0.5]])
 p_s0 = numpy.array([0.5, 0.5])
 mu = numpy.array([0.0, 3.6])
-var = numpy.array([4.0**2, 0.126**2])
+var = numpy.array([4.0**2, 0.5**2])
 model_3a = hmm.base.HMM(p_s0, p_s0, p_ss, hmm.observe_float.Gauss(mu, var, rng),
                         rng)
 
@@ -59,9 +59,9 @@ def main(argv=None):
 
     estimated_states = model_2a.decode(y_sequence)
     model_2e.train(y_sequence, n_iterations=50, display=False)
-    model_3a.train(y_sequence, n_iterations=2, display=False)
+    model_3a.train(y_sequence, n_iterations=5, display=False)
 
-    with open(os.path.join(data_dir, 'SGO_sim'), 'w') as sgo_sim:
+    with open(os.path.join(data_dir, 'SGO_sim'), encoding='utf-8', mode='w') as sgo_sim:
         for t in range(n_t):
             sgo_sim.write(
                 '%2d %1d %7.3f %1d\n' %

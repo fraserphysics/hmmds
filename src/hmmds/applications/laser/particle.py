@@ -14,32 +14,34 @@ import numpy
 import hmm.state_space
 import hmm.particle
 import hmmds.synthetic.filter.lorenz_sde
+# pylint: disable = c-extension-no-member
 
-from hmmds.applications.laser import optimize_ekf
 import hmmds.applications.laser.utilities
 
 
 class LorenzSystem(hmm.particle.System):
+    """A class derived from hmm.particle.LinearSystem
+
+    Args:
+        dt:
+        s:
+        r:
+        b:
+        state_covariance:
+        x_ratio:
+        offset:
+        observation_covariance:
+        initial_mean:
+        initial_covariance:
+        rng:
+
+    """
+
     # From hmmds/synthetic/filter/lorenz_particle_simulation.py
-    def __init__(self: LorenzSystem, dt, s, r, b, state_covariance, x_ratio,
-                 offset, observation_covariance, initial_mean,
-                 initial_covariance, rng):
-        """A class derived from hmm.particle.LinearSystem
-
-        Args:
-            dt:
-            s:
-            r:
-            b:
-            state_covariance:
-            x_ratio:
-            offset:
-            observation_covariance:
-            initial_mean:
-            initial_covariance:
-            rng:
-
-        """
+    # pylint: disable = too-many-instance-attributes
+    def __init__(  # pylint: disable = super-init-not-called, too-many-arguments, invalid-name
+            self: LorenzSystem, dt, s, r, b, state_covariance, x_ratio, offset,
+            observation_covariance, initial_mean, initial_covariance, rng):
         self.dt = dt
         self.s = s
         self.r = r
@@ -97,7 +99,7 @@ class LorenzSystem(hmm.particle.System):
         return x_0, q_value
 
     def importance(self: LorenzSystem, y_next, x_now):
-        """Generate a random x_next and calculate q(x_next|y_next, x_now)
+        r"""Generate a random x_next and calculate q(x_next|y_next, x_now)
         Args:
             y_next
             x_now
@@ -141,9 +143,9 @@ class LorenzSystem(hmm.particle.System):
         """Run filter on observations y_array
 
         Args:
-            y_array:
+            y_array: Observations
             n_particles: Single int or array
-            prior:
+            prior: Probability distribution of initial state
             threshold: Resample if effective_sample_size < threshold * n_particles
 
         Returns:
@@ -162,76 +164,112 @@ class LorenzSystem(hmm.particle.System):
         assert n_particles.dtype == numpy.dtype('int64')
         assert n_particles.shape == (n_times,)
 
-        delta_ys = numpy.zeros((n_times, self.y_dimension))
+        # pylint: disable = attribute-defined-outside-init
 
-        weights = numpy.empty(n_particles[0])
-
-        means = numpy.empty((n_times, self.x_dimension))
-        covariances = numpy.empty((n_times, self.x_dimension, self.x_dimension))
+        # Attach variables to self for filter steps
+        self.n_particles = n_particles
+        self.delta_ys = numpy.zeros((n_times, self.y_dimension))
+        self.weights = numpy.empty(n_particles[0])
+        self.means = numpy.empty((n_times, self.x_dimension))
+        self.covariances = numpy.empty(
+            (n_times, self.x_dimension, self.x_dimension))
+        self.particles = numpy.empty(
+            (n_particles[0], n_times, self.x_dimension))
 
         # Initialize at t=0
-        particles = numpy.empty((n_particles[0], n_times, self.x_dimension))
-
-        # Draw particles and calculate weights for EV_{prior}
-        for i in range(n_particles[0]):
-            # x_i_0 is a draw from q, and q_i_0 is q(x_i_0)
-            x_i_0, q_i_0 = self.importance_0(y_array[0])
-            weights[i] = prior(x_i_0) / q_i_0
-            particles[i, 0, :] = x_i_0
-        weights /= weights.sum()
-        # Now EV_{prior} f(x_0) \approx \sum_i weights[i] f(particles[i,0,:])
-
-        likelihood_0 = 0
-        # likelihood_0 = EV_{prior} p(y_0|x_0)
-
-        # Calculate likelihood_0 and weights for EV_{x_0|y_0}
-        for i, particle in enumerate(particles):
-            x_i_0 = particle[0, :]
-            likelihood_i, _ = self.observation(y_array[0], x_i_0)
-            likelihood_0 += weights[i] * likelihood_i
-            weights[i] *= likelihood_i
-        weights = weights / weights.sum()
-
-        # Finish work for t=0
-        log_like = numpy.log(likelihood_0)
-        means[0, :], covariances[0, :, :] = hmm.particle.moments(
-            particles[:, 0, :], weights)
-        particles, weights = hmm.particle.resample(particles, weights, self.rng,
-                                                   n_particles[0])
+        log_like = self._filter_step_0(y_array[0], prior)
 
         # Iterate t_previous=0, ..., t_previous=T-2
         for t_previous, y_t in enumerate(y_array[1:]):
-            t_now = t_previous + 1
-            likelihood_now = 0
+            log_like += self._filter_step_now(t_previous, y_t, threshold)
 
-            normalization_likelihood = 0
-            # Draw particles and calculate weights for EV_{x[t_now]|y[:t_now]}
-            for i, particle in enumerate(particles):
-                predecessor = particle[t_previous]
-                x_i_t, q_i_t = self.importance(y_t, predecessor)
-                particles[i, t_now, :] = x_i_t
-                weights[i] *= self.transition(x_i_t, predecessor) / q_i_t
+        return self.particles, self.means, self.covariances, log_like, self.delta_ys
 
-                # Calculate likelihood_now and weights for EV_{x[t_now]|y[:t_now+1]}
-                x_i_t = particle[t_now, :]
-                likelihood_i, delta_y_i = self.observation(
-                    y_array[t_now], x_i_t)
-                delta_ys[t_now] += delta_y_i * weights[i]
-                normalization_likelihood += weights[i]
-                likelihood_now += weights[i] * likelihood_i
-                weights[i] *= likelihood_i
+    def _filter_step_0(self, y_0, prior):
+        """Draw particles, calculate weights and likelihood of y_0
 
-            # Finish up work for t=t_now
-            delta_ys[t_now] /= normalization_likelihood
-            log_like += numpy.log(likelihood_now / normalization_likelihood)
-            weights = weights / weights.sum()
-            means[t_now, :], covariances[t_now, :, :] = hmm.particle.moments(
-                particles[:, t_now, :], weights)
-            particles, weights = hmm.particle.resample(particles, weights,
-                                                       self.rng,
-                                                       n_particles[t_now],
-                                                       threshold)
-        return particles, means, covariances, log_like, delta_ys
+        Args:
+            y_0: First observation
+            prior: Distribution of inital state
+
+
+        """
+        #pylint: disable = attribute-defined-outside-init
+
+        for i in range(self.n_particles[0]):
+            # x_i_0 is a draw from q, and q_i_0 is q(x_i_0).  Note
+            # that in this code q is the prior.
+            x_i_0, q_i_0 = self.importance_0(y_0)
+            self.weights[i] = prior(x_i_0) / q_i_0
+            self.particles[i, 0, :] = x_i_0
+        self.weights /= self.weights.sum()
+        # An average of f(particles[i,0,:]) over i gives expected
+        # value over the prior, EV_{X|prior}{f(X)}
+
+        # weights are uniform
+        assert numpy.abs(self.weights - self.weights[0]).max() < 1e-15
+
+        likelihood_0 = 0
+        for i, particle in enumerate(self.particles):
+            x_i_0 = particle[0, :]
+            likelihood_i, _ = self.observation(y_0, x_i_0)
+            likelihood_0 += self.weights[i] * likelihood_i
+            self.weights[i] *= likelihood_i
+        self.weights = self.weights / self.weights.sum()
+        # A sum of f(particles[i,0,:])*weight[i] over particles gives
+        # expected value wrt p(x[0]|y[0]) and likelihood_0 =
+        # EV_{prior}{p(y_0|x_0)}
+
+        log_like = numpy.log(likelihood_0)
+        self.means[0, :], self.covariances[0, :, :] = hmm.particle.moments(
+            self.particles[:, 0, :], self.weights)
+        self.particles, self.weights = hmm.particle.resample(
+            self.particles, self.weights, self.rng, self.n_particles[0])
+        return log_like
+
+    def _filter_step_now(self, t_previous, y_now, threshold):
+        r"""Draw particles, calculate weights and likelihood of y[t_now]
+
+        Args:
+            t_previous: t_now-1
+            y_now: y[t_now]
+            threshold: Resample if effective_sample_size < threshold * n_particles
+
+        Return:  log(\hat p(y[t_now]|y[0:t_now]))
+        """
+        #pylint: disable = attribute-defined-outside-init
+        t_now = t_previous + 1
+        likelihood_now = 0
+        normalization_likelihood = 0
+
+        # Draw particles and calculate weights for EV_{x[t_now]|y[:t_now+1]}
+        for i, particle in enumerate(self.particles):
+            predecessor = particle[t_previous, :]
+            # x_i_t ~ x_now|y_now,x_previous
+            x_i_t, q_i_t = self.importance(y_now, predecessor)
+            particle[t_now, :] = x_i_t
+            assert numpy.array_equal(particle[t_now, :],
+                                     self.particles[i, t_now, :])
+            self.weights[i] *= self.transition(x_i_t, predecessor) / q_i_t
+
+            # Calculate likelihood_now and weights for EV_{x[t_now]|y[:t_now+1]}
+            likelihood_i, delta_y_i = self.observation(y_now, x_i_t)
+            self.delta_ys[t_now] += delta_y_i * self.weights[i]
+            normalization_likelihood += self.weights[i]
+            likelihood_now += self.weights[i] * likelihood_i
+            self.weights[i] *= likelihood_i
+
+        # Finish up work for t=t_now
+        self.delta_ys[t_now] /= normalization_likelihood
+        self.weights = self.weights / self.weights.sum()
+        self.means[t_now, :], self.covariances[
+            t_now, :, :] = hmm.particle.moments(self.particles[:, t_now, :],
+                                                self.weights)
+        self.particles, self.weights = hmm.particle.resample(
+            self.particles, self.weights, self.rng, self.n_particles[t_now],
+            threshold)
+        # ToDo: Justify log of EV vs EV of log
+        return numpy.log(likelihood_now / normalization_likelihood)
 
 
 def parse_args(argv):
@@ -265,15 +303,13 @@ def make_lorenz_system(parameters, rng):
 
     x_dim = 3
     y_dim = 1
-    dt = parameters.laser_dt * parameters.t_ratio
+    dt = parameters.laser_dt * parameters.t_ratio  # pylint: disable = invalid-name
     state_covariance = numpy.eye(x_dim) * parameters.state_noise**2
     observation_covariance = numpy.eye(y_dim) * parameters.observation_noise**2
     initial_mean = numpy.array([
         parameters.x_initial_0, parameters.x_initial_1, parameters.x_initial_2
     ])
     initial_covariance = state_covariance
-    initial_distribution = hmm.state_space.MultivariateNormal(
-        initial_mean, initial_covariance)
     result = LorenzSystem(dt, parameters.s, parameters.r, parameters.b,
                           state_covariance, parameters.x_ratio,
                           parameters.offset, observation_covariance,
@@ -302,7 +338,7 @@ def main(argv=None):
 
     n_particles = numpy.ones(args.n_times, dtype=int) * 300
     n_particles[0:3] *= 10
-    particles, forward_means, forward_covariances, log_likelihood, delta_ys = system.forward_filter(
+    _, forward_means, forward_covariances, log_likelihood, delta_ys = system.forward_filter(
         observations, n_particles, threshold=0.5)
     print(f'log_likelihood={log_likelihood}')
 

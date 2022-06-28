@@ -51,7 +51,7 @@ def main(argv=None):
     vectors = numpy.array([
         list(map(float, line.split()))
         for line in hmmds.synthetic.make_model.skip_header(
-            open(join(args.data_dir, args.data_in), 'r'))
+            open(join(args.data_dir, args.data_in), encoding='utf-8', mode='r'))
     ])
     y = (vectors,)
 
@@ -75,7 +75,7 @@ def main(argv=None):
 
     # Write the vectors that were decoded for each state.
     state_files = list(
-        open(join(args.data_dir, 'varg_state' + str(state)), 'w')
+        open(join(args.data_dir, 'varg_state' + str(state)), encoding='utf-8', mode='w')
         for state in range(args.n_states))
     for t in range(n_t):
         print('%7.4f %7.4f %7.4f' % tuple(vectors[t]),

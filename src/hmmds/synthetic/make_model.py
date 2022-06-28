@@ -47,7 +47,7 @@ def read_data(data_dir, data_file):
     code.
 
     """
-    with open(os.path.join(data_dir, data_file), 'r') as file_:
+    with open(os.path.join(data_dir, data_file), encoding='utf-8', mode='r') as file_:
         y = numpy.array([int(line) - 1 for line in skip_header(file_)],
                         numpy.int32)
     return y, y.max() + 1
@@ -89,7 +89,7 @@ def main(argv=None):
 
     # Strip and then save model in <model_file>
     mod.deallocate()
-    with open(os.path.join(args.data_dir, args.model_file), 'wb') as _file:
+    with open(os.path.join(args.data_dir, args.model_file), mode='wb') as _file:
         pickle.dump(mod, _file)
     return 0
 

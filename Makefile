@@ -89,7 +89,7 @@ lint :
 
 ## test                           : Run pytest on tests/
 .PHONY : test
-lint :
+test :
 	pytest tests/
 
 ## variables     : Print selected variables.

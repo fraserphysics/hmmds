@@ -50,7 +50,7 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
-    y = numpy.array([int(line) for line in open(args.in_path, 'r')],
+    y = numpy.array([int(line) for line in open(args.in_path, encoding='utf-8', mode='r')],
                     numpy.int32)
     # EG y.shape = (20000,) and values are from set {1,2,3,4}
     n_y = y.max()
@@ -61,7 +61,7 @@ def main(argv=None):
         log_likelihood[:, seed] = model.train(y,
                                               args.n_iterations,
                                               display=False)
-    with open(args.out_path, 'w') as output:
+    with open(args.out_path, encoding='utf-8', mode='w') as output:
         for i in range(args.n_iterations):
             print('%3d' % i,
                   (args.n_seeds * ' %7.4f') % tuple(log_likelihood[i]),
