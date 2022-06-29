@@ -39,8 +39,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     # Read in model
-    mod = pickle.load(
-        open(os.path.join(args.data_dir, args.model_file), mode='rb'))
+    with open(os.path.join(args.data_dir, args.model_file), mode='rb') as _file:
+        mod = pickle.load(_file)
     n_states = mod.p_state_initial.shape[-1]
 
     # Read in the sequence of observations, ie, a time series, and
@@ -64,21 +64,23 @@ def main(argv=None):
         ]
     assert len(state_sequence) == len(vector_sequence)
 
-    ss_file = open(os.path.join(args.data_dir, 'state_sequence'),
-                   encoding='utf-8',
-                   mode='w')
+    with open(os.path.join(args.data_dir, 'state_sequence'),
+              encoding='utf-8',
+              mode='w') as ss_file:
 
-    # Create a list of open files, one for each state
-    state_files = list(
-        open(os.path.join(args.data_dir, 'state{0}'.format(state)),
-             encoding='utf-8',
-             mode='w') for state in range(n_states))
+        # Create a list of open files, one for each state
+        # pylint: disable = consider-using-with
+        state_files = list(
+            open(os.path.join(args.data_dir, 'state{state}'),
+                 encoding='utf-8',
+                 mode='w') for state in range(n_states))
 
-    # Write vectors to each state file, ie, state0, state1, .. state11
-    for t, state_t in enumerate(state_sequence):
-        ss_file.write('{0:5d} {1:d}\n'.format(t, state_t))
-        state_files[state_t].write(
-            '{0:7.4f} {1:7.4f} {2:7.4f}\n'.format(*vector_sequence[t]))
+        # Write vectors to each state file, ie, state0, state1, .. state11
+        for t, state_t in enumerate(state_sequence):
+            ss_file.write(f'{t:5d} {state_t:d}\n')
+            # pylint: disable = consider-using-f-string
+            state_files[state_t].write(
+                '{0:7.4f} {1:7.4f} {2:7.4f}\n'.format(*vector_sequence[t]))
     return 0
 
 

@@ -33,6 +33,7 @@ def main(argv=None):
     """Call: python em.py em.pickle
     """
 
+    # This is repetitive boilerplate, pylint: disable = duplicate-code
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 

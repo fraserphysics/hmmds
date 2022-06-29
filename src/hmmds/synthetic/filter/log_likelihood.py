@@ -52,8 +52,8 @@ def main(argv=None):
     rng = numpy.random.default_rng(args.random_seed)
 
     # Make the nominal model and simulate the data
-    dt = 2 * numpy.pi / (args.omega * args.sample_rate
-                        )  # pylint: disable = invalid-name
+    # dt is OK pylint: disable = invalid-name
+    dt = 2 * numpy.pi / (args.omega * args.sample_rate)
     # Code in linear_map_simulation.py makes a system and uses a
     # formula to calculate the stationary distribution.
     system, initial_dist = linear_map_simulation.make_linear_stationary(

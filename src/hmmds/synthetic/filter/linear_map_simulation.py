@@ -39,8 +39,8 @@ After relaxing, the following equation gives the scale of x
 """
 
 import sys
-import argparse
 import pickle
+import argparse
 
 import numpy
 import numpy.random

@@ -41,6 +41,7 @@ def main(argv=None):
 
     """
 
+    # This is repetitive boilerplate, pylint: disable = duplicate-code
     if argv is None:  # Usual case
         argv = sys.argv[1:]
     args = parse_args(argv)

@@ -65,14 +65,14 @@ def main(argv=None):
               mode='w') as sgo_sim:
         for t in range(n_t):
             sgo_sim.write(
-                '%2d %1d %7.3f %1d\n' %
-                (t, state_sequence[t], y_sequence[0][t], estimated_states[t]))
+                f'{t:2d} {state_sequence[t]:1d} {y_sequence[0][t]:7.3f} {estimated_states[t]:1d}\n'
+            )
 
-    with open(os.path.join(data_dir, 'SGO_train'), 'w') as sgo_train:
-        sgo_train.write('model_2e after 50 training iterations=\n%s\n' %
-                        model_2e)
-        sgo_train.write('\nmodel_3a after 2 training iterations=\n%s\n' %
-                        model_3a)
+    with open(os.path.join(data_dir, 'SGO_train'), 'w',
+              encoding='utf-8') as sgo_train:
+        sgo_train.write('model_2e after 50 training iterations=\n{model_2e}\n')
+        sgo_train.write(
+            f'\nmodel_3a after 2 training iterations=\n{model_3a}\n')
 
     return 0
 

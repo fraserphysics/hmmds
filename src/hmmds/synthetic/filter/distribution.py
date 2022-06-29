@@ -51,8 +51,8 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
     rng = numpy.random.default_rng(args.random_seed)
-    dt = 2 * numpy.pi / (args.omega * args.sample_rate
-                        )  # pylint: disable = invalid-name
+    # dt is OK pylint: disable = invalid-name
+    dt = 2 * numpy.pi / (args.omega * args.sample_rate)
     system, initial_dist = linear_map_simulation.make_linear_stationary(
         args, dt, rng)
     std_deviation = numpy.sqrt(initial_dist.covariance[0, 0])
