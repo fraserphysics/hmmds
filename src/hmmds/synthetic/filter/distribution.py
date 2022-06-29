@@ -10,9 +10,9 @@ python distribution.py --n_samples 10000 --a 0.05 --b 0.2 output_data
 
 """
 
-import sys
 import argparse
 import pickle
+import sys
 
 import numpy
 import numpy.random
@@ -46,17 +46,13 @@ def main(argv=None):
 
     """
 
+    # Like log_likelihood, pylint: disable = duplicate-code
     if argv is None:
         argv = sys.argv[1:]
-
     args = parse_args(argv)
-
     rng = numpy.random.default_rng(args.random_seed)
-
-    dt = 2 * numpy.pi / (args.omega * args.sample_rate)
-
-    # Code in linear_map_simulation.py makes a system and uses a
-    # formula to calculate the stationary distribution.
+    dt = 2 * numpy.pi / (args.omega * args.sample_rate
+                        )  # pylint: disable = invalid-name
     system, initial_dist = linear_map_simulation.make_linear_stationary(
         args, dt, rng)
     std_deviation = numpy.sqrt(initial_dist.covariance[0, 0])

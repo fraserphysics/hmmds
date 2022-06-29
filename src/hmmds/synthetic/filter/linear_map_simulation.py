@@ -40,7 +40,6 @@ After relaxing, the following equation gives the scale of x
 
 import sys
 import argparse
-import os.path
 import pickle
 
 import numpy
@@ -106,7 +105,7 @@ def parse_args(argv, additional_args):
 
 def make_linear_stationary(args, dt, rng):
     """Make a system instance
-    
+
     Args:
         args: Command line arguments
         dt: Sample interval
@@ -134,6 +133,7 @@ def make_linear_stationary(args, dt, rng):
                                             rng), stationary_distribution
 
 
+# pylint: disable = too-many-locals
 def main(argv=None,
          make_system=make_linear_stationary,
          additional_args=(system_args,)):
@@ -146,6 +146,7 @@ def main(argv=None,
 
     args = parse_args(argv, additional_args)
 
+    # Like linear_particle_simulation pylint: disable = duplicate-code
     rng = numpy.random.default_rng(args.random_seed)
 
     dt_fine = 2 * numpy.pi / (args.omega * args.sample_rate)
@@ -161,6 +162,7 @@ def main(argv=None,
     log_likelihood = system_coarse.log_likelihood(initial_coarse, y_coarse)
     print(f"log_likelihood: {log_likelihood}")
 
+    # Like lorenz_simulation, pylint: disable = duplicate-code
     forward_means, forward_covariances = system_coarse.forward_filter(
         initial_coarse, y_coarse)
     backward_means, backward_informations = system_coarse.backward_information_filter(

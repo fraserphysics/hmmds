@@ -15,8 +15,6 @@ import hmm.base
 import hmm.observe_float
 import hmm.simple
 
-import hmmds.synthetic.make_model
-
 
 def parse_args(argv):
     """Parse the command line.
@@ -48,11 +46,10 @@ def main(argv=None):
     args = parse_args(argv)
 
     # Read in time series of vectors
-    vectors = numpy.array([
-        list(map(float, line.split()))
-        for line in hmmds.synthetic.make_model.skip_header(
-            open(join(args.data_dir, args.data_in), encoding='utf-8', mode='r'))
-    ])
+    with open(join(args.data_dir, args.data_in), encoding='utf-8',
+              mode='r') as file_:
+        vectors = numpy.array(
+            [list(map(float, line.split())) for line in file_.readlines()])
     y = (vectors,)
 
     n_t, vector_dim = vectors.shape
@@ -74,9 +71,11 @@ def main(argv=None):
     states = model.decode(y)
 
     # Write the vectors that were decoded for each state.
+    # pylint: disable = consider-using-f-string, consider-using-with
     state_files = list(
-        open(join(args.data_dir, 'varg_state' + str(state)), encoding='utf-8', mode='w')
-        for state in range(args.n_states))
+        open(join(args.data_dir, 'varg_state' + str(state)),
+             encoding='utf-8',
+             mode='w') for state in range(args.n_states))
     for t in range(n_t):
         print('%7.4f %7.4f %7.4f' % tuple(vectors[t]),
               file=state_files[states[t]])

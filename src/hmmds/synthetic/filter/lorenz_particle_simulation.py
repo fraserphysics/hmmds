@@ -6,10 +6,7 @@ Derived from lorenz_simulation.py
 from __future__ import annotations  # Enables, eg, (self: System
 
 import sys
-import argparse
-import os.path
 import pickle
-import typing
 
 import numpy
 import numpy.random
@@ -18,29 +15,31 @@ import hmm.state_space
 import hmm.particle
 import hmmds.synthetic.filter.lorenz_sde  # Cython code
 import hmmds.synthetic.filter.linear_map_simulation
-import hmmds.synthetic.filter.lorenz_simulation
+from hmmds.synthetic.filter import lorenz_simulation
 
 
 class LorenzSystem(hmm.particle.System):
+    """A class derived from hmm.particle.LinearSystem
+
+    Args:
+        dt:
+        s:
+        r:
+        b:
+        state_covariance:
+        observation_map:
+        observation_covariance:
+        initial_mean:
+        initial_covariance:
+        rng:
+
+    """
+
     # This class is the essential new element in this file
+    # pylint: disable = invalid-name, too-many-arguments, super-init-not-called
     def __init__(self: LorenzSystem, dt, s, r, b, state_covariance,
                  observation_map, observation_covariance, initial_mean,
                  initial_covariance, rng):
-        """A class derived from hmm.particle.LinearSystem
-
-        Args:
-            dt:
-            s:
-            r:
-            b:
-            state_covariance:
-            observation_map:
-            observation_covariance:
-            initial_mean:
-            initial_covariance:
-            rng:
-
-        """
         self.dt = dt
         self.s = s
         self.r = r
@@ -71,6 +70,7 @@ class LorenzSystem(hmm.particle.System):
             inverse_observation_covariance
         ])
 
+    # for lorenz_sde, pylint: disable = c-extension-no-member
     def transition(self: LorenzSystem, x_next, x_now):
         """Calculate the probability density p(x_next|x_now)
         """
@@ -116,6 +116,7 @@ class LorenzSystem(hmm.particle.System):
         return self.initial_distribution(x_0)
 
 
+# pylint: disable = too-many-locals
 def main(argv=None):
     """Imitates and invokes code from lorenz_simulation.py to make Lorenz
     data for a plot.  Differs from lorenz_simulation in applying a
@@ -129,7 +130,7 @@ def main(argv=None):
     # Parse same arguments as lorenz_simulation.py
     args = hmmds.synthetic.filter.linear_map_simulation.parse_args(
         argv, (hmmds.synthetic.filter.linear_map_simulation.system_args,
-               hmmds.synthetic.filter.lorenz_simulation.more_args))
+               lorenz_simulation.more_args))
 
     # Make Lorenz data
     rng = numpy.random.default_rng(args.random_seed)
@@ -137,9 +138,9 @@ def main(argv=None):
     dt_fine = args.dt / args.sample_ratio
     dt_coarse = args.dt
 
-    system_coarse, initial_coarse, coarse_state = hmmds.synthetic.filter.lorenz_simulation.make_system(
+    system_coarse, initial_coarse, coarse_state = lorenz_simulation.make_system(
         args, dt_coarse, rng)
-    system_fine, initial_fine, fine_state = hmmds.synthetic.filter.lorenz_simulation.make_system(
+    system_fine, initial_fine, _ = lorenz_simulation.make_system(
         args, dt_fine, rng)
 
     x_fine, y_fine = system_fine.simulate_n_steps(initial_fine,
@@ -148,7 +149,7 @@ def main(argv=None):
     x_coarse, y_coarse = system_coarse.simulate_n_steps(initial_coarse,
                                                         args.n_coarse,
                                                         states_0=coarse_state)
-    # Get parameters for particle filter
+    # Get parameters for particle filter pylint: disable = invalid-name
     s, r, b = (10.0, 28.0, 8.0 / 3)
     under = system_coarse.system
     state_noise_covariance = (
@@ -164,7 +165,9 @@ def main(argv=None):
     n_times = len(y_coarse)
     n_particles = numpy.ones(n_times, dtype=int) * 300
     n_particles[0:3] *= 10
-    particles, forward_means, forward_covariances, log_likelihood = system.forward_filter(
+
+    # Like linear_particle_simulation, pylint: disable = duplicate-code
+    _, forward_means, forward_covariances, log_likelihood = system.forward_filter(
         y_coarse, n_particles, threshold=0.5)
     print(f"log_likelihood: {log_likelihood}")
 

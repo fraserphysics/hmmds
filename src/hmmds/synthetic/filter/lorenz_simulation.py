@@ -17,7 +17,7 @@ from hmmds.synthetic.filter import linear_map_simulation
 
 def make_system(args, dt, rng):
     """Make an SDE system instance
-    
+
     Args:
         args: Command line arguments
         dt: Sample interval
@@ -32,8 +32,9 @@ def make_system(args, dt, rng):
     """
 
     # The next three functions are passed to SDE.__init__
+    # pylint: disable = invalid-name
 
-    def dx_dt(t, x, s, r, b):
+    def dx_dt(_, x, s, r, b):
         return numpy.array([
             s * (x[1] - x[0]), x[0] * (r - x[2]) - x[1], x[0] * x[1] - b * x[2]
         ])
@@ -46,7 +47,7 @@ def make_system(args, dt, rng):
         dx_dx0 = x_dx[3:].reshape((3, 3))
 
         # First three components are the value of the vector field F(x)
-        result[:3] = dx_dt(t, x)
+        result[:3] = dx_dt(t, x, s, r, b)
 
         dF = numpy.array([  # The derivative of F wrt x
             [-s, s, 0], [r - x[2], -1, -x[0]], [x[1], x[0], -b]
@@ -58,17 +59,19 @@ def make_system(args, dt, rng):
         return result
 
     def observation_function(
-            t, state) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+            _, state) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
         """Calculate observation and its derivative
         """
-        g = numpy.array([[0, 0, .5], [-2.0, 2.0, 0]])
-        return numpy.dot(g, state), g
+        observation_map = numpy.array([[0, 0, .5], [-2.0, 2.0, 0]])
+        return numpy.dot(observation_map, state), observation_map
 
     x_dim = 3
     state_noise = numpy.eye(x_dim) * args.b
     y_dim = observation_function(0, numpy.ones(x_dim))[0].shape[0]
     observation_noise = numpy.eye(y_dim) * args.d
 
+    # Like linear_sde_simulation
+    # pylint: disable = c-extension-no-member, duplicate-code
     system = hmmds.synthetic.filter.lorenz_sde.SDE(dx_dt,
                                                    tangent,
                                                    state_noise,
@@ -99,8 +102,11 @@ def more_args(parser: argparse.ArgumentParser):
                         help='sampling interval')
 
 
+    # pylint: disable = too-many-locals
 def main(argv=None):
-    """
+    """Simulate Lorenz system to make data.  Then exercise filter and
+smooth.
+
     """
 
     if argv is None:  # Usual case
@@ -116,8 +122,10 @@ def main(argv=None):
 
     system_coarse, initial_coarse, coarse_state = make_system(
         args, dt_coarse, rng)
-    system_fine, initial_fine, fine_state = make_system(args, dt_fine, rng)
+    system_fine, initial_fine, _ = make_system(args, dt_fine, rng)
 
+    # Like linear_map_simulation and lorenz_particle_simulation
+    # pylint: disable = duplicate-code
     x_fine, y_fine = system_fine.simulate_n_steps(initial_fine,
                                                   args.n_fine,
                                                   states_0=coarse_state)

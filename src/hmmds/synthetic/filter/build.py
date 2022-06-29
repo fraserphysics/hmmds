@@ -1,4 +1,10 @@
-# python build.py build_ext --inplace
+"""build.py: for making lorenz_sde[...].so from lorenz_sde.pyx
+
+To run:
+
+python build.py build_ext --inplace
+"""
+
 import setuptools
 import Cython.Build
 

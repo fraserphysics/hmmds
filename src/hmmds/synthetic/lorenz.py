@@ -163,30 +163,34 @@ def main(argv=None):
     assert quant(_min) == 1
 
     for vector in xyz:
+        # pylint: disable = consider-using-f-string
         print('{0:6.3f} {1:6.3f} {2:6.3f}'.format(*vector), file=args.xyzfile)
-        print('{0:d}'.format(quant(vector[0])), file=args.quantfile)
+        print(f'{quant(vector[0]):d}', file=args.quantfile)
     if args.TSintro is not None:
         xyz = scipy.integrate.odeint(lorenz_dx_dt, initial_conditions,
                                      t_array(args.n_samples, args.dt / 50),
                                      lorenz_args)
         # Write x[0] to TSintro_fine with time step .003
-        with open(os.path.join(args.TSintro, 'fine'), encoding='utf-8', mode='w') as fine:
+        with open(os.path.join(args.TSintro, 'fine'),
+                  encoding='utf-8',
+                  mode='w') as fine:
             for i in range(0, args.n_samples):
-                fine.write('{0:6.3f} {1:6.3f}\n'.format(args.dt / 50 * i,
-                                                        xyz[i, 0]))
+                fine.write(f'{i*args.dt/50:6.3f} {xyz[i,0]:6.3f}\n')
 
         # Write x[0] to TSintro_qt with time step .15
-        with open(os.path.join(args.TSintro, 'coarse'), encoding='utf', mode='w') as coarse:
+        with open(os.path.join(args.TSintro, 'coarse'),
+                  encoding='utf',
+                  mode='w') as coarse:
             for i in range(0, args.n_samples, 50):
-                coarse.write('{0:6.3f} {1:6.3f}\n'.format(
-                    args.dt / 50 * i, xyz[i, 0]))
+                coarse.write(f'{i*args.dt/50:6.3f} {xyz[i,0]:6.3f}\n')
 
         # Write quantized x[0] to TSintro_qtx with time step .15
         quantized_data = numpy.ceil(xyz[:, 0] / 10 + 2)
-        with open(os.path.join(args.TSintro, 'quantized'), encoding='utf', mode='w') as quantized:
+        with open(os.path.join(args.TSintro, 'quantized'),
+                  encoding='utf',
+                  mode='w') as quantized:
             for i in range(0, args.n_samples, 50):
-                quantized.write('{0:2d} {1:6.3f}\n'.format(
-                    int(i / 50), quantized_data[i]))
+                quantized.write(f'{int(i/50):2d} {quantized_data[i]:6.3f}\n')
     return 0
 
 

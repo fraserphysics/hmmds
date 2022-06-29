@@ -10,9 +10,9 @@ import hmm.state_space
 from hmmds.synthetic.filter import linear_map_simulation
 
 
-def make_system(args, dt, rng):
+def make_system(args, dt, rng):  # pylint: disable = invalid-name
     """Make an SDE system instance
-    
+
     Args:
         args: Command line arguments
         dt: Sample interval
@@ -26,28 +26,28 @@ def make_system(args, dt, rng):
 
     """
 
-    # State dynamics d/dt x(t) = a * x
-    a = numpy.array([[-.01, .2], [-.2, -.01]])
-    # Observation y = c * x
-    c = numpy.array([[0, 0.5]])
+    # State dynamics d/dt x(t) = state_map * x
+    state_map = numpy.array([[-.01, .2], [-.2, -.01]])
+    # Observation y = observation_map * x
+    observation_map = numpy.array([[0, 0.5]])
 
     observation_noise = numpy.eye(1) * args.d
 
     # The next three functions are passed to SDE.__init__
-    def observation_function(t, x):
-        return numpy.dot(c, x), c
+    def observation_function(_, x):
+        return numpy.dot(observation_map, x), observation_map
 
-    def dx_dt(t, x, a):
-        return numpy.dot(a, x)
+    def dx_dt(_, x, state_map):
+        return numpy.dot(state_map, x)
 
-    def tangent(t, x_d, a):
+    def tangent(_, x_d, state_map):
         dim_x_d = 6  # 2 for x 4 for d_x
         assert x_d.shape == (dim_x_d,)
         x = x_d[:2]
         derivative = x_d[2:].reshape((2, 2))
         result = numpy.empty(6)
-        result[:2] = numpy.dot(a, x)
-        result[2:] = numpy.dot(a, derivative).reshape(-1)
+        result[:2] = numpy.dot(state_map, x)
+        result[2:] = numpy.dot(state_map, derivative).reshape(-1)
         return result
 
     state_noise = numpy.eye(2) * args.b
@@ -60,7 +60,7 @@ def make_system(args, dt, rng):
                                  observation_noise,
                                  dt,
                                  x_dim,
-                                 ivp_args=(a,))
+                                 ivp_args=(state_map,))
     initial_state = system.relax(500)[0]
     stationary_distribution = system.relax(500, initial_state=initial_state)[1]
     result = hmm.state_space.NonStationary(system, dt, rng)
@@ -68,7 +68,7 @@ def make_system(args, dt, rng):
 
 
 def main(argv=None):
-    """
+    """ Stub to enable calling from testing code.
     """
 
     if argv is None:

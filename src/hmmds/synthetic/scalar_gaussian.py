@@ -61,7 +61,8 @@ def main(argv=None):
     model_2e.train(y_sequence, n_iterations=50, display=False)
     model_3a.train(y_sequence, n_iterations=5, display=False)
 
-    with open(os.path.join(data_dir, 'SGO_sim'), encoding='utf-8', mode='w') as sgo_sim:
+    with open(os.path.join(data_dir, 'SGO_sim'), encoding='utf-8',
+              mode='w') as sgo_sim:
         for t in range(n_t):
             sgo_sim.write(
                 '%2d %1d %7.3f %1d\n' %

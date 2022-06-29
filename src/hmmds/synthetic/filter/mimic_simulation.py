@@ -10,9 +10,10 @@ import hmm.state_space
 from hmmds.synthetic.filter import linear_map_simulation
 
 
-def make_system(args, dt, rng):
+def make_system(  # pylint: disable = invalid-name
+        args, dt, rng):
     """Make a system instance
-    
+
     Args:
         args: Command line arguments
         dt: Sample interval
@@ -39,8 +40,11 @@ def make_system(args, dt, rng):
     return result, stationary_distribution
 
 
+# Like linear_sde_simulation pylint: disable = duplicate-code
 def main(argv=None):
-    """
+    """Make linear_simulation.py exercise all methods of
+    NonStationary.
+
     """
 
     if argv is None:

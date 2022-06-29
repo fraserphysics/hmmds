@@ -47,7 +47,8 @@ def read_data(data_dir, data_file):
     code.
 
     """
-    with open(os.path.join(data_dir, data_file), encoding='utf-8', mode='r') as file_:
+    with open(os.path.join(data_dir, data_file), encoding='utf-8',
+              mode='r') as file_:
         y = numpy.array([int(line) - 1 for line in skip_header(file_)],
                         numpy.int32)
     return y, y.max() + 1

@@ -12,13 +12,17 @@ import numpy
 
 
 def main(argv=None):
+    """Compare two pickle files.
+    """
     if argv is None:
         argv = sys.argv[1:]
     data = argv[0]
     mimic_data = argv[1]
 
-    data = pickle.load(open(data, 'rb'))
-    mimic_data = pickle.load(open(mimic_data, 'rb'))
+    with open(data, 'rb') as _file:
+        data = pickle.load(_file)
+    with open(mimic_data, 'rb') as _file:
+        mimic_data = pickle.load(_file)
 
     for key in data.keys():
         true = data[key]
@@ -26,7 +30,7 @@ def main(argv=None):
         if numpy.array_equal(true, mimic):
             print(f'{key} matches')
         else:
-            if type(true) == numpy.ndarray:
+            if isinstance(true, numpy.ndarray):
                 true = true.flatten()
                 mimic = mimic.flatten()
             difference = numpy.abs(true - mimic)

@@ -4,11 +4,8 @@ Imitate linear_map_simulation.py, but only do forward filter.
 """
 from __future__ import annotations  # Enables, eg, (self: System
 
-import sys
-import argparse
-import os.path
 import pickle
-import typing
+import sys
 
 import numpy
 import numpy.random
@@ -16,9 +13,9 @@ import numpy.random
 import hmm.state_space
 import hmm.particle
 from hmmds.synthetic.filter import linear_map_simulation
-from hmm.state_space import MultivariateNormal
 
 
+# Not worth reducing locals from 23 to 20 pylint: disable = too-many-locals
 def main(argv=None,
          make_system=linear_map_simulation.make_linear_stationary,
          additional_args=(linear_map_simulation.system_args,)):
@@ -56,7 +53,9 @@ def main(argv=None,
     n_times = len(y_coarse)
     n_particles = numpy.ones(n_times, dtype=int) * 100
     n_particles[0:3] *= 10
-    particles, forward_means, forward_covariances, log_likelihood = system.forward_filter(
+
+    # Like lorenz_particle_simulation, pylint: disable = duplicate-code
+    _, forward_means, forward_covariances, log_likelihood = system.forward_filter(
         y_coarse, n_particles, threshold=0.5)
     print(f"log_likelihood: {log_likelihood}")
 

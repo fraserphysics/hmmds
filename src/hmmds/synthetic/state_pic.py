@@ -39,7 +39,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     # Read in model
-    mod = pickle.load(open(os.path.join(args.data_dir, args.model_file), mode='rb'))
+    mod = pickle.load(
+        open(os.path.join(args.data_dir, args.model_file), mode='rb'))
     n_states = mod.p_state_initial.shape[-1]
 
     # Read in the sequence of observations, ie, a time series, and
@@ -48,25 +49,30 @@ def main(argv=None):
         hmmds.synthetic.make_model.read_data(args.data_dir, args.data_file)[0])
 
     # Write the state sequence to file named "states".
-    with open(os.path.join(args.data_dir, 'states'), encoding='utf-8', mode='w') as states_file:
+    with open(os.path.join(args.data_dir, 'states'), encoding='utf-8',
+              mode='w') as states_file:
         for state in state_sequence:
             print(state, file=states_file)
 
     # Read in the sequence of original vectors.
     with open(os.path.join(args.data_dir, args.vector_file),
-              encoding='utf-8', mode='r') as vector_file:
+              encoding='utf-8',
+              mode='r') as vector_file:
         vector_sequence = [
             map(float, line.split())
             for line in hmmds.synthetic.make_model.skip_header(vector_file)
         ]
     assert len(state_sequence) == len(vector_sequence)
 
-    ss_file = open(os.path.join(args.data_dir, 'state_sequence'), encoding='utf-8', mode='w')
+    ss_file = open(os.path.join(args.data_dir, 'state_sequence'),
+                   encoding='utf-8',
+                   mode='w')
 
     # Create a list of open files, one for each state
     state_files = list(
-        open(os.path.join(args.data_dir, 'state{0}'.format(state)), encoding='utf-8', mode='w')
-        for state in range(n_states))
+        open(os.path.join(args.data_dir, 'state{0}'.format(state)),
+             encoding='utf-8',
+             mode='w') for state in range(n_states))
 
     # Write vectors to each state file, ie, state0, state1, .. state11
     for t, state_t in enumerate(state_sequence):

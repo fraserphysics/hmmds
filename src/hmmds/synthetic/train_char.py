@@ -50,8 +50,8 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
-    y = numpy.array([int(line) for line in open(args.in_path, encoding='utf-8', mode='r')],
-                    numpy.int32)
+    with open(args.in_path, encoding='utf-8', mode='r') as file_:
+        y = numpy.array([int(line) for line in file_], numpy.int32)
     # EG y.shape = (20000,) and values are from set {1,2,3,4}
     n_y = y.max()
     y -= 1
@@ -61,6 +61,7 @@ def main(argv=None):
         log_likelihood[:, seed] = model.train(y,
                                               args.n_iterations,
                                               display=False)
+    # pylint: disable = consider-using-f-string
     with open(args.out_path, encoding='utf-8', mode='w') as output:
         for i in range(args.n_iterations):
             print('%3d' % i,
