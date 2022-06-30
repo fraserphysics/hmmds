@@ -3,18 +3,18 @@
 """
 
 import sys
-import typing
 import argparse
 import pickle
 import copy
 
 import numpy
 
-import hmmds.synthetic.filter.lorenz_sde
 import optimize_ekf
+import hmmds.synthetic.filter.lorenz_sde
 import hmmds.applications.laser.utilities
 
 
+# Function names match figures in the book.  pylint: disable = invalid-name
 def parse_args(argv):
     """Command line:
 
@@ -53,12 +53,22 @@ def register(func):
 
 
 def simulate(parameters, n_samples):
+    """Integrate the Lorenz system for n_samples without noise.
+
+    Args:
+        parameters: System parameters
+        n_samples: Number of samples to return
+
+    Return:
+        A numpy array n_samples x 3
+"""
     t_sample = 0.04 * parameters.t_ratio
     samples = numpy.empty((n_samples, 3))
     samples[0] = numpy.array([
         parameters.x_initial_0, parameters.x_initial_1, parameters.x_initial_2
     ])
     for i in range(1, n_samples):
+        # No typing for lorenz_sde.  pylint: disable = c-extension-no-member
         samples[i] = hmmds.synthetic.filter.lorenz_sde.lorenz_integrate(
             samples[i - 1], 0, t_sample, parameters.s, parameters.r,
             parameters.b)
@@ -66,6 +76,8 @@ def simulate(parameters, n_samples):
 
 
 def observe(parameters, n_samples):
+    """Simulate noiseless observations of noiseless dynamics.
+    """
     states = simulate(parameters, n_samples)
     return (parameters.x_ratio * states[:, 0]**2 +
             parameters.offset).astype(int)
@@ -90,7 +102,7 @@ def LaserLogLike(args):
             parameters = copy.deepcopy(args.parameters)
             parameters.s = s_
             parameters.b = b_
-            sde, initial_distribution, initial_state = optimize_ekf.make_non_stationary(
+            sde, initial_distribution, _ = optimize_ekf.make_non_stationary(
                 parameters, None)
             log_likelihood[i, j] = sde.log_likelihood(initial_distribution,
                                                       args.laser_data)
@@ -101,10 +113,9 @@ def LaserLogLike(args):
 def LaserStates(args):
     """Sequence of 250 states from particle filter
     """
-    sde, initial_distribution, initial_state = optimize_ekf.make_non_stationary(
+    sde, initial_distribution, _ = optimize_ekf.make_non_stationary(
         args.parameters, None)
-    forward_means, forward_covariances = sde.forward_filter(
-        initial_distribution, args.laser_data)
+    forward_means, _ = sde.forward_filter(initial_distribution, args.laser_data)
     return {'forward_means': forward_means}
 
 
@@ -128,7 +139,7 @@ def LaserHist(args):
 
 
 def main(argv=None):
-    """
+    """ Write data for figures in the book
     """
     if argv is None:  # Usual case
         argv = sys.argv[1:]

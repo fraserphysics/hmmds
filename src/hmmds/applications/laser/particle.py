@@ -342,6 +342,7 @@ def main(argv=None):
         observations, n_particles, threshold=0.5)
     print(f'log_likelihood={log_likelihood}')
 
+    # Like optimize_particle pylint: disable = duplicate-code
     with open(args.result, 'wb') as _file:
         pickle.dump(
             {

@@ -9,7 +9,7 @@ import numpy
 def read_tang(data_file):
     """Read one of Tang's laser data files as an array.
     """
-    with open(data_file, 'r') as file:
+    with open(data_file, 'r', encoding='utf-8') as file:
         lines = file.readlines(
         )  # There are only 28278 lines and memory is big and cheap
 
@@ -36,6 +36,10 @@ x_initial_0 x_initial_1 x_initial_2
 t_ratio x_ratio offset
 state_noise observation_noise""".split()
 
+    # Use natural names.  Values are assigned in loop over
+    # self.variables.
+
+    # pylint: disable = invalid-name, unused-argument, too-many-arguments
     def __init__(
         self,
         s,
@@ -60,16 +64,22 @@ state_noise observation_noise""".split()
         self.laser_dt = laser_dt
 
     def values(self: Parameters):
+        """Make a tuple out of self for use in optimization code.
+        """
         return tuple(getattr(self, key) for key in self.variables)
 
     def __str__(self: Parameters):
+        """Make a string of key value pairs.
+        """
         result = ''
         for key in self.variables:
             result += f'{key} {getattr(self,key)}\n'
         return result
 
     def write(self: Parameters, path):
-        with open(path, 'w') as file_:
+        """Write self to a file given by path.
+        """
+        with open(path, 'w', encoding='utf-8') as file_:
             file_.write(self.__str__())
 
 
@@ -77,7 +87,7 @@ def read_parameters(path):
     """Remove the copy in optimize_ekf.py
     """
     in_dict = {}
-    with open(path, 'r') as file_:
+    with open(path, 'r', encoding='utf-8') as file_:
         for line in file_.readlines():
             parts = line.split()
             if parts[0] in Parameters.variables:  # Skip result strings

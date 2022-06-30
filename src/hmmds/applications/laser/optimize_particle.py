@@ -5,15 +5,12 @@ applied to laser data.
 from __future__ import annotations
 
 import sys
-import typing
 import argparse
 import pickle
 
 import numpy
 import scipy.optimize
 
-import hmm.state_space
-import hmm.particle
 import hmmds.synthetic.filter.lorenz_sde
 import hmmds.applications.laser.optimize_ekf
 import hmmds.applications.laser.particle
@@ -22,6 +19,8 @@ import hmmds.applications.laser.utilities
 
 
 def parse_args(argv):
+    """Parse the command line.
+    """
     parser = argparse.ArgumentParser(
         description='Optimize parameters of particle filter for laser data')
     parser.add_argument('--parameter_type',
@@ -62,8 +61,9 @@ class Parameters(hmmds.applications.laser.utilities.Parameters):
     """
     variables = """ state_noise observation_noise """.split()
 
-    def __init__(self: Parameters, state_noise: float, observation_noise: float,
-                 constants: hmmds.applications.laser.utilities.Parameters):
+    def __init__(  # pylint: disable = unused-variable, super-init-not-called
+            self: Parameters, state_noise: float, observation_noise: float,
+            constants: hmmds.applications.laser.utilities.Parameters):
         """
         Args:
             state_noise: scalar float.   Covariance = eye(x_dim)* state_noise^2
@@ -82,8 +82,19 @@ class Parameters(hmmds.applications.laser.utilities.Parameters):
 
 
 def read_override(path, constants):
+    """For keys in Parameters.variables read values from path.
+
+    Args:
+        path: File that has values for variables
+        constants: Values held constant during optimization
+
+    Return:
+        A Parameter instance
+
+    """
+    # Like utilities.py.  pylint: disable = duplicate-code
     in_dict = {}
-    with open(path, 'r') as file_:
+    with open(path, 'r', encoding='utf-8') as file_:
         for line in file_.readlines():
             parts = line.split()
             if parts[0] in Parameters.variables:  # Skip result strings
@@ -109,8 +120,9 @@ def objective_function(values_in, laser_data, n_particles, rng,
         parameter, rng)
     numpy.seterr(divide='raise')
     try:
-        particles, forward_means, forward_covariances, log_likelihood, delta_ys = lorenz_system.forward_filter(
-            laser_data, n_particles, threshold=0.5)
+        _, _, _, log_likelihood, _ = lorenz_system.forward_filter(laser_data,
+                                                                  n_particles,
+                                                                  threshold=0.5)
     except FloatingPointError:
         log_likelihood = -1e6
         print('caught ZeroDivisionError')
@@ -125,7 +137,7 @@ def optimize(constants: hmmds.applications.laser.utilities.Parameters,
              n_particles: numpy.ndarray,
              rng: numpy.random.Generator,
              method='Powell',
-             options={}):
+             options=None):
     """
     Args:
         constants: Instance that holds all values
@@ -159,9 +171,10 @@ iterations={result.nit}""")
     return parameters_max, result
 
 
+# Like optimize_ekf.  pylint: disable = duplicate-code
 def main(argv=None):
-    """
-    """
+    """Optimize model parameters for particle filter applied to laser
+data.  """
     if argv is None:  # Usual case
         argv = sys.argv[1:]
     args = parse_args(argv)
@@ -205,7 +218,7 @@ def main(argv=None):
     if len(args.parameters_in_out) == 2:
         parameters_max.write(args.parameters_in_out[1])
     if args.method != 'skip' and len(args.parameters_in_out) == 2:
-        with open(args.parameters_in_out[1], 'a') as _file:
+        with open(args.parameters_in_out[1], 'a', encoding='utf-8') as _file:
             _file.write(f"""f_max {-result.fun}
 success {result.success}
 iterations {result.nit}
@@ -216,7 +229,7 @@ n_data {args.length}""")
         return 0
     lorenz_system = hmmds.applications.laser.particle.make_lorenz_system(
         parameters_max, rng)
-    particles, forward_means, forward_covariances, log_likelihood, delta_ys = lorenz_system.forward_filter(
+    _, forward_means, forward_covariances, log_likelihood, delta_ys = lorenz_system.forward_filter(
         laser_data, args.n_particles, threshold=0.5)
     cross_entropy = log_likelihood / len(laser_data)
 

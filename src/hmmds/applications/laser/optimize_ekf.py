@@ -20,6 +20,9 @@ import hmmds.applications.laser.utilities
 
 
 def parse_args(argv):
+    """Parse the command line
+    """
+    # Like optimze_particle.  pylint: disable = duplicate-code
     parser = argparse.ArgumentParser(
         description='Optimize parameters for laser data')
     parser.add_argument('--parameter_type',
@@ -49,14 +52,16 @@ def parse_args(argv):
 def explore_to_parameters(in_path="explore.txt"):
     """Use data that GUI explore.py wrote to create a Parameters instance."""
     in_dict = {}
-    with open(in_path, 'r') as file_:
+    with open(in_path, 'r', encoding='utf-8') as file_:
         for line in file_.readlines():
             name, value_str = line.split()
             in_dict[name] = float(value_str)
+    # pylint: disable = invalid-name
     s = 10.0
     r = in_dict['r']
     b = 8.0 / 3
     fixed_point = explore.FixedPoint(r)
+    # No type info for lorenz_sde pylint: disable = c-extension-no-member
     initial_state = hmmds.synthetic.filter.lorenz_sde.lorenz_integrate(
         fixed_point.initial_state(in_dict['delta_x']), 0.0, in_dict['delta_t'],
         s, r, b)
@@ -75,7 +80,7 @@ def explore_to_parameters(in_path="explore.txt"):
 def objective_function(values_in, laser_data, parameter_class):
     """For optimization"""
     parameter = parameter_class(*values_in)
-    non_stationary, initial_distribution, initial_state = make_non_stationary(
+    non_stationary, initial_distribution, _ = make_non_stationary(
         parameter, None)
     result = non_stationary.log_likelihood(initial_distribution, laser_data)
     print(f"""objective_function = {result}""")
@@ -96,8 +101,8 @@ def make_non_stationary(parameters, rng):
     """
 
     # The next three functions are passed to SDE.__init__
-
-    def dx_dt(t, x, s, r, b):
+    # Will use t, s, r, b pylint: disable = invalid-name
+    def dx_dt(_, x, s, r, b):
         return numpy.array([
             s * (x[1] - x[0]), x[0] * (r - x[2]) - x[1], x[0] * x[1] - b * x[2]
         ])
@@ -110,7 +115,7 @@ def make_non_stationary(parameters, rng):
         dx_dx0 = x_dx[3:].reshape((3, 3))
 
         # First three components are the value of the vector field F(x)
-        result[:3] = dx_dt(t, x)
+        result[:3] = dx_dt(t, x, s, r, b)
 
         dF = numpy.array([  # The derivative of F wrt x
             [-s, s, 0], [r - x[2], -1, -x[0]], [x[1], x[0], -b]
@@ -122,7 +127,7 @@ def make_non_stationary(parameters, rng):
         return result
 
     def observation_function(
-            t, state) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+            _, state) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
         """Calculate observation and its derivative
         """
         y = numpy.array([parameters.x_ratio * state[0]**2 + parameters.offset])
@@ -135,7 +140,8 @@ def make_non_stationary(parameters, rng):
     observation_noise = numpy.eye(y_dim) * parameters.observation_noise
 
     # lorenz_sde.SDE only uses Cython for methods forecast and simulate
-    dt = parameters.laser_dt * parameters.t_ratio
+    dt = parameters.laser_dt * parameters.t_ratio  # pylint: disable = invalid-name
+    # No type info for lorenz_sde pylint: disable = c-extension-no-member
     system = hmmds.synthetic.filter.lorenz_sde.SDE(dx_dt,
                                                    tangent,
                                                    state_noise,
@@ -158,8 +164,11 @@ def make_non_stationary(parameters, rng):
 
 
 # Powell, BFGS, Nelder-Mead
-def optimize(initial_parameters, laser_data, method='Powell', options={}):
+def optimize(initial_parameters, laser_data, method='Powell', options=None):
+    """Call scipy.optimize.minimize.
+    """
 
+    # Like optimize_particle. pylint: disable = duplicate-code
     defaults = initial_parameters.values()
     result = scipy.optimize.minimize(
         objective_function,
@@ -180,7 +189,7 @@ iterations={result.nit}""")
 
 
 def main(argv=None):
-    """
+    """Fit parameters for EKF to laser data.
     """
     if argv is None:  # Usual case
         argv = sys.argv[1:]
@@ -191,6 +200,7 @@ def main(argv=None):
     if len(args.parameters_in_out) > 2:
         raise RuntimeError('More than 2 positional arguments')
 
+    # pylint: disable = duplicate-code
     if args.parameter_type == 'GUI_out':
         parameters = explore_to_parameters(args.parameters_in_out[0])
     elif args.parameter_type == 'parameter':
@@ -219,7 +229,7 @@ def main(argv=None):
     if len(args.parameters_in_out) == 2:
         parameters_max.write(args.parameters_in_out[1])
     if args.method != 'skip' and len(args.parameters_in_out) == 2:
-        with open(args.parameters_in_out[1], 'a') as _file:
+        with open(args.parameters_in_out[1], 'a', encoding='utf-8') as _file:
             _file.write(f"""f_max {-result.fun}
 success {result.success}
 iterations {result.nit}
@@ -228,8 +238,7 @@ n_data {args.length}""")
 
     if args.plot_data is None:
         return 0
-    sde, initial_distribution, initial_state = make_non_stationary(
-        parameters_max, None)
+    sde, initial_distribution, _ = make_non_stationary(parameters_max, None)
     forward_means, forward_covariances = sde.forward_filter(
         initial_distribution, laser_data)
     cross_entropy = sde.log_likelihood(initial_distribution,

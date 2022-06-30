@@ -5,6 +5,7 @@ https://www.pythonguis.com/tutorials/creating-your-first-pyqt-window/
 
 """
 
+# PyQt5 is hopeless: pylint: skip-file
 import sys  # We need sys so that we can pass argv to QApplication
 import os
 
