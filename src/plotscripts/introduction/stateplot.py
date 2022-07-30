@@ -57,10 +57,10 @@ def main(argv=None):
     def subplot(axis, state, markersize):
         """Plot points decoded as state.
         """
-        name = '{0}/{1}{2}'.format(args.data_dir, args.base_name, state)
+        name = f'{args.data_dir}/{args.base_name}{state}'
         x_list = []
         z_list = []
-        with open(name, 'r') as data_file:
+        with open(name, 'r', encoding='utf-8') as data_file:
             for line in data_file.readlines():
                 x, _, z = [float(w) for w in line.split()]
                 x_list.append(x)

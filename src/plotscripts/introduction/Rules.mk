@@ -12,6 +12,10 @@ $(FIGS_INTRO)/TSintro.pdf: $(IntroPlotScripts)/ts_intro.py $(SYNTHETIC_DATA)/lor
 	mkdir -p $(FIGS_INTRO)
 	python $< $(TSINTRO)/fine $(TSINTRO)/coarse $(TSINTRO)/quantized $@
 
+$(FIGS_INTRO)/STSintro.pdf: $(IntroPlotScripts)/state_sequence.py $(SYNTHETIC_DATA)/lorenz.flag
+	mkdir -p $(FIGS_INTRO)
+	python $< $(SYNTHETIC_DATA)/state_sequence $@
+
 $(FIGS_INTRO)/Statesintro.pdf: $(IntroPlotScripts)/stateplot.py $(SYNTHETIC_DATA)/states
 	mkdir -p $(FIGS_INTRO)
 	python $<  --data_dir $(SYNTHETIC_DATA) --base_name state --fig_path $@

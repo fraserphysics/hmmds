@@ -21,7 +21,9 @@ XFIGS = $(PLOTSCRIPTS)/xfigs
 ApneaPlotScripts = $(PLOTSCRIPTS)/apnea
 
 # Default target
-$(BUILD)/TeX/laser/laser_fit.pdf:
+$(BUILD)/TeX/skeleton/figures.pdf:
+
+#$(BUILD)/TeX/laser/laser_fit.pdf:
 
 ## skeleton                       : Explanation of how I make each figure for the book
 .PHONY : skeleton

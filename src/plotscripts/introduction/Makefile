@@ -1,13 +1,14 @@
 # Makefile: For testing scripts in this directory from this directory.
 
-ROOT = ../..
+ROOT = ../../..
 BUILD = $(ROOT)/build
 FIGS_INTRO = $(BUILD)/figs/introduction
-IntroPlotScripts = ./
+PLOTSCRIPTS = $(ROOT)/src/plotscripts
 
 ## ALL           : All of the targets that Rules.mk is responsible for
-ALL = $(FIGS_INTRO)/TSintro.pdf $(FIGS_INTRO)/Statesintro.pdf
+ALL = $(FIGS_INTRO)/TSintro.pdf $(FIGS_INTRO)/Statesintro.pdf $(FIGS_INTRO)/STSintro.pdf
 
+$(FIGS_INTRO)/STSintro.pdf:
 ## test          : Build all targets; the default target.
 .PHONY : test
 test: $(ALL)

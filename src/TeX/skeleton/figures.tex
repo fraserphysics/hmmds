@@ -252,8 +252,8 @@ the file \emph{data/LaserLP5}.  The optimization takes about 6
 minutes.  The script \emph{Laser\_plots.py} makes
 \emph{figs/LaserLP5.pdf} from \emph{data/LaserLP5}.
 \begin{figure}[htbp]
-%  \centering{\resizebox{\textwidth}{!}{\includegraphics{LaserLP5.pdf}}
-%  }
+  \centering{\resizebox{\textwidth}{!}{\includegraphics{LaserLP5.pdf}}
+  }
   \caption[Laser intensity measurements.]%
   {Laser intensity measurements.  The trace labeled \emph{Laser} is a
     plot of laser intensity measurements provided by Tang \etal.  The
@@ -270,8 +270,8 @@ minutes.  The script \emph{Laser\_plots.py} makes
 \end{figure}
 
 \begin{figure}[htbp]
-%  \centering{\resizebox{\textwidth}{!}{\includegraphics{LaserLogLike.pdf}}
-%  }
+  \centering{\resizebox{\textwidth}{!}{\includegraphics{LaserLogLike.pdf}}
+  }
   \caption{Log likelihood as function of $s$ and $b$.  Other parameters were
     taken from the vector $\hat \theta$ that maximizes the likelihood
     $P(\ts{y}{1}{250}|\theta)$ (see Eqn.~1.3).}
@@ -282,8 +282,8 @@ After finishing the optimization for Fig.~\ref{fig:LaserLogLike}, the
 data for Figs.~\ref{fig:LaserStates},~\ref{fig:LaserForecast},
 and~\ref{fig:LaserHist} are made in less than a minute.
 \begin{figure}[htbp]
-%  \centering{\resizebox{\textwidth}{!}{\includegraphics{LaserStates.pdf}}
-%  }
+  \centering{\resizebox{\textwidth}{!}{\includegraphics{LaserStates.pdf}}
+  }
   \caption[State trajectory $\ts{\hat
     x}{1}{250}$.]%
   {State trajectory $\ts{\hat x}{1}{250}$ estimated from observation
@@ -300,8 +300,8 @@ Figure~\ref{fig:LaserForecast} is not as nice as the figure in the book.
 I hope to rework the optimization code yet again to find a stable
 period five orbit that matches the data.
 \begin{figure}[htbp]
-%  \centering{\resizebox{\textwidth}{!}{\includegraphics{LaserForecast.pdf}}
-%  }
+  \centering{\resizebox{\textwidth}{!}{\includegraphics{LaserForecast.pdf}}
+  }
   \caption[Forecast observation sequence.]%
   {Forecast observation sequence.  I set the noise terms $\eta$ and
     $\epsilon$ to zero and iterated Eqn.~1.2 400 times to
@@ -368,8 +368,8 @@ found Matplotlib to be much easier to use than gnuplot.
 \end{figure}
 
  \begin{figure}[htbp]
-%   \centering{\resizebox{\textwidth}{!}{\includegraphics{STSintro.pdf}}
-%   }
+   \centering{\resizebox{\textwidth}{!}{\includegraphics{STSintro.pdf}}
+   }
    \caption{A plot of the state sequence found by Viterbi decoding a quantized
      time series from the Lorenz system.  Here the number of the
      decoded state $\ti{s}{t}$ is plotted against time $t$.  Although
@@ -900,8 +900,8 @@ Fig.~\ref{fig:train} is also obscure straight \LaTeX.
 \emph{Laser\_plots.py} uses pylab to make Fig.~\ref{fig:LaserHist} directly
 from Tang's file \emph{data/LP5.DAT}.
 \begin{figure}[htbp]
-%  \centering{\resizebox{\textwidth}{!}{\includegraphics{LaserHist.pdf}}
-%  }
+  \centering{\resizebox{\textwidth}{!}{\includegraphics{LaserHist.pdf}}
+  }
   \caption[Histogram of Tang's laser measurements.]%
   {Histogram of Tang's laser measurements.  Even though neither $y=5$
     nor $y=93$ occurs in $\ts{y}{1}{600}$, it is more plausible that
@@ -1874,6 +1874,25 @@ not reflect the performance of the new code.
 
 Unused: figs/ScalarGaussian.pdf_t figs/sgauss1.pdf_t
 figs/sgauss2.pdf_t figs/ToyCross.pdf_t figs/ToyPractical.pdf_t
+
+ToDo:
+
+find hmmds3 -name SConscript -exec grep -H ToyTS1 '{}' \;
+    
+ToyTS1
+ToyStretch
+ToyH
+benettin
+LikeLor
+a03erA
+a03erN
+a03erHR
+ApneaNLD
+sgram
+LDA1
+LDA2
+pass1
+pf_H
 
 
 

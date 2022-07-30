@@ -1,9 +1,9 @@
 # Makefile: For testing scripts in this directory from this directory.
 
-ROOT = ../..
+ROOT = ../../..
 BUILD = $(ROOT)/build
 FIGS_BASIC = $(BUILD)/figs/basic_algorithms
-BasicPlotScripts = ./
+PLOTSCRIPTS = $(ROOT)/src/plotscripts
 
 ## ALL           : All of the targets that Rules.mk is responsible for
 ALL = $(addsuffix .pdf, $(addprefix $(FIGS_BASIC)/, TrainChar GaussMix EM ))

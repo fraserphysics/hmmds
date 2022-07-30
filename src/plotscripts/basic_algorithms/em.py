@@ -33,11 +33,11 @@ def main(argv=None):
         parse_args, argv)
 
     fig = pyplot.figure(figsize=(9, 5))
-    axis_0 = fig.add_subplot(1, 2, 1, projection='3d', azim=-109, elev=30)
+    axis_0 = fig.add_subplot(1, 2, 1, projection='3d', azim=-72, elev=30)
     axis_0.set_xlabel(r'$\theta$')
     axis_0.set_ylabel(r"$\theta'$")
     axis_0.set_zlabel(r"$Q(\theta',\theta)$")
-    x_s = numpy.arange(0.1, 0.9, 0.05)
+    x_s = numpy.arange(0.0, 0.9, 0.05)
     y_s = numpy.arange(0.2, 0.8, 0.05)
     n_x = len(x_s)
     n_y = len(y_s)
@@ -51,6 +51,7 @@ def main(argv=None):
                                                    (1 - x)) * numpy.log(1 - y)
     axis_0.set_xticks(numpy.arange(0.2, 0.8, .2))
     axis_0.set_yticks(numpy.arange(0.3, 0.8, .2))
+    axis_0.set_zlim(-5.0,-2.5)
     x_grid, y_grid = numpy.meshgrid(x_s, y_s)
     axis_0.plot_surface(
         x_grid,
@@ -60,8 +61,12 @@ def main(argv=None):
         cstride=1,
         cmap=matplotlib.cm.hsv,  # pylint: disable=no-member
         linewidth=1)
+    levels = numpy.linspace(-3.0 -2.5, 6, endpoint=True)
+    levels = [-2.85, -2.75, -2.65, -2.55, -2.45, -2.35]
+    axis_0.contour(x_grid, y_grid, z_s, levels, zdir='z', offset=-5.0, colors="black", linestyles='solid')
+
     axis_1 = fig.add_subplot(1, 2, 2)
-    x = numpy.arange(0, 1.1, 1)
+    x = numpy.arange(0.0, 1.1, 1)
     y = 0.25 + x / 2.0
     axis_1.plot(x, x, label='slope 1 referece')
     axis_1.plot(x, y, label=r'$\cal{T}(\theta)$')
@@ -71,6 +76,8 @@ def main(argv=None):
     ticks = numpy.arange(0, 1.1, 0.25)
     axis_1.set_xticks(ticks)
     axis_1.set_yticks(ticks)
+    #fig.tight_layout()
+    fig.subplots_adjust(wspace=.35)
     if args.show:
         pyplot.show()
     else:
