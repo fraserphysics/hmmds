@@ -194,6 +194,17 @@ class IntVariable(PyQt5.QtWidgets.QWidget):
         parent:  I don't understand this
     """
 
+    def modify_properties(self, maximum, minimum):
+        """Isolate differences between float and int Varibles
+        """
+        
+        self.spin = PyQt5.QtWidgets.QSpinBox(self)
+        self.slider.setMinimum(minimum)
+        self.slider.setMaximum(maximum)
+        self.dx_dslide = 1
+        self.x = int((minimum + maximum) / 2)
+        self.slider.setValue(self.x)
+
     def __init__(
             self,  # Variable
             title: str,
@@ -206,7 +217,8 @@ class IntVariable(PyQt5.QtWidgets.QWidget):
         # Instantiate widgets
         self.label = PyQt5.QtWidgets.QLabel(self)
         self.slider = PyQt5.QtWidgets.QSlider(self)
-        self.spin = PyQt5.QtWidgets.QSpinBox(self)
+        self.modify_properties(maximum, minimum)
+        self.spin.setValue(self.x)
 
         # Attach arguments to self and widgets
         self.label.setText(title)
@@ -215,14 +227,6 @@ class IntVariable(PyQt5.QtWidgets.QWidget):
         self.minimum = minimum
         self.maximum = maximum
         self.main_window = main_window
-
-        # Modify widget properties
-        self.slider.setMinimum(minimum)
-        self.slider.setMaximum(maximum)
-        self.dx_dslide = 1
-        self.x = int((minimum + maximum) / 2)
-        self.slider.setValue(self.x)
-        self.spin.setValue(self.x)
 
         # Connect signals to slots after setting value so that the slots won't be called
         self.slider.valueChanged.connect(self.slider_changed)
@@ -242,56 +246,50 @@ class IntVariable(PyQt5.QtWidgets.QWidget):
     def setValue(self, value):
         self.spin.setValue(value)
 
+    def new_spin_value(self, value):
+        """Seperate method to isolate difference between int and float classes
+        """
+        return value
     def spin_changed(self, value):
         self.x = value
         self.slider.disconnect()  # Avoid loop with setValue
-        self.slider.setValue(value)
+        self.slider.setValue(self.new_spin_value)
         self.slider.valueChanged.connect(self.slider_changed)
         self.main_window.update_plot()
 
+
+    def new_slider_value(self,   # IntVariable
+                         value):
+        """Seperate method to isolate difference between int and float classes
+        """
+        return value
+    
     def slider_changed(
-            self,  # IntVariable
+            self,
             value):
-        self.x = value
+        self.x = self.new_slider_value(value)
         self.spin.disconnect()  # Avoid loop with setValue
-        self.spin.setValue(value)
+        self.spin.setValue(self.x)
         self.spin.valueChanged.connect(self.spin_changed)
         self.main_window.update_plot()
 
-class FloatVariable(PyQt5.QtWidgets.QWidget):
+class FloatVariable(IntVariable):
     """Provide sliders and spin boxes to manipulate float variable.
 
     Args:
-        title:
+        title: For display
         minimum:
         maximum:
         main_window: For access to method update_plot
         parent:  I don't understand this
     """
 
-    def __init__(
-            self,  # Variable
-            title: str,
-            minimum: float,
-            maximum: float,
-            main_window,
-            parent=None):
-        super(FloatVariable, self).__init__(parent=parent)
-
-        # Instantiate widgets
-        self.label = PyQt5.QtWidgets.QLabel(self)
-        self.slider = PyQt5.QtWidgets.QSlider(self)
+    def modify_properties(self, maximum, minimum):
+        """Isolate differences between float and int Varibles
+        """
+        
         self.spin = PyQt5.QtWidgets.QDoubleSpinBox(self)
 
-        # Attach arguments to self and widgets
-        self.label.setText(title)
-        self.spin.setMinimum(minimum)
-        self.spin.setMaximum(maximum)
-        self.minimum = minimum
-        self.maximum = maximum
-        self.main_window = main_window
-
-        # Modify widget properties
         self.spin.setDecimals(3)
         self.spin.setSingleStep(0.001)
         # self.slider.minimum() = 0, self.slider.maximum() = 99
@@ -300,43 +298,18 @@ class FloatVariable(PyQt5.QtWidgets.QWidget):
         self.slider.setValue(
             int((self.slider.maximum() + self.slider.minimum()) / 2))
         self.x = (minimum + maximum) / 2
-        self.spin.setValue(self.x)
 
-        # Connect signals to slots after setting value so that the slots won't be called
-        self.slider.valueChanged.connect(self.slider_changed)
-        self.spin.valueChanged.connect(self.spin_changed)
-
-        # Define layout
-        self.setFixedWidth(120)
-        self.verticalLayout = PyQt5.QtWidgets.QVBoxLayout(self)
-        self.verticalLayout.addWidget(self.label)
-        self.verticalLayout.addWidget(self.slider)
-        self.verticalLayout.addWidget(self.spin)
-        self.resize(self.sizeHint())
-
-    def __call__(self):
-        return self.x
-
-    def setValue(self, value):
-        self.spin.setValue(value)
-
-    def spin_changed(self, value):
-        self.x = value
-        self.slider.disconnect()  # Avoid loop with setValue
-        self.slider.setValue(self.slider.minimum() +
-                             int((value - self.minimum) / self.dx_dslide))
-        self.slider.valueChanged.connect(self.slider_changed)
-        self.main_window.update_plot()
-
-    def slider_changed(
-            self,  # Variable
-            value):
-        self.x = self.minimum + float(value) * self.dx_dslide
-        self.spin.disconnect()  # Avoid loop with setValue
-        self.spin.setValue(self.x)
-        self.spin.valueChanged.connect(self.spin_changed)
-        self.main_window.update_plot()
-
+    def new_spin_value(self, value):
+        """Seperate method to isolate difference between int and float classes
+        """
+        return self.slider.minimum() + int((value - self.minimum) / self.dx_dslide)
+    
+    def new_slider_value(self, # FloatVariable
+                         value):
+        """Seperate method to isolate difference between int and float classes
+        """
+        return self.minimum + float(value) * self.dx_dslide
+    
 if __name__ == '__main__':
     app = PyQt5.QtWidgets.QApplication(sys.argv)
 

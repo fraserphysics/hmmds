@@ -22,33 +22,6 @@ import hmmds.applications.laser.utilities
 from hmmds.synthetic.filter.lorenz_sde import lorenz_integrate
 
 
-def plot_for_r(r):
-    argv = sys.argv[1:]
-    args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
-    figure, (time, x_map) = pyplot.subplots(nrows=2, ncols=1, sharex=True)
-
-    n_x = 100
-    x_array = numpy.linspace(1 / n_x, 6, n_x)
-    x_initial = numpy.empty((n_x, 3))
-    x_final = numpy.empty((n_x, 3))
-    t_array = numpy.empty(n_x)
-
-    fixed_point = FixedPoint(r)
-
-    for i, delta_x in enumerate(x_array):
-        x_initial[i] = fixed_point.initial_state(delta_x)
-        t_array[i], x_final[i] = fixed_point.map_time(x_initial[i])
-    x_values = x_initial[:, 0]
-    time.plot(x_values, t_array, label='t')
-    x_map.plot(x_values, x_final[:, 0], label='final x')
-    x_map.plot(x_values, x_values, label='initial x')
-    for axis in time, x_map:
-        axis.legend()
-
-    pyplot.show()
-    return 0
-
-
 class FixedPoint:
     """Characterizes the focus of the Lorenz system at x_i > 0
     """
@@ -161,38 +134,52 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Configure the main window
         layout0 = PyQt5.QtWidgets.QHBoxLayout()
         control_layout = PyQt5.QtWidgets.QVBoxLayout()
+        buttons_layout = PyQt5.QtWidgets.QHBoxLayout()
+        sliders1_layout = PyQt5.QtWidgets.QHBoxLayout()
+        control2_layout = PyQt5.QtWidgets.QHBoxLayout()
+        control_layout.addLayout(buttons_layout)
+        control_layout.addLayout(sliders1_layout)
+        control_layout.addLayout(control2_layout)
         plot_layout = PyQt5.QtWidgets.QVBoxLayout()
         layout0.addLayout(control_layout)
         layout0.addLayout(plot_layout)
 
-        # Define widgets of control section
+        # Define widgets of button section
         quit_button = PyQt5.QtWidgets.QPushButton('Quit', self)
         quit_button.clicked.connect(self.close)
         write_button = PyQt5.QtWidgets.QPushButton('Write values to file', self)
         write_button.clicked.connect(self.write_values)
         read_button = PyQt5.QtWidgets.QPushButton('Read values from file', self)
         read_button.clicked.connect(self.read_values)
-        slider_layout = PyQt5.QtWidgets.QHBoxLayout()
+
+        # Layout button section
+        buttons_layout.addWidget(quit_button)
+        buttons_layout.addWidget(write_button)
+        buttons_layout.addWidget(read_button)
+
         self.variable = {}  # A dict so that I can print all values someday
+
+        # Layout first row of sliders
         for name, minimum, maximum in (
             ('r', 22.0, 37.0),
             ('delta_x', 0, 6),
             ('delta_t', 0, 5.0),
+        ):
+            self.variable[name] = Variable(name, minimum, maximum, self)
+            sliders1_layout.addWidget(self.variable[name])
+
+        # Layout second row of sliders
+        for name, minimum, maximum in (
             ('t_ratio', .3, 1.2),
             ('x_ratio', .5, 2.0),
             ('offset', 10, 20),
             ('T_total', 1, 20),
         ):
             self.variable[name] = Variable(name, minimum, maximum, self)
-            slider_layout.addWidget(self.variable[name])
+            control2_layout.addWidget(self.variable[name])
+
         # Enable access like self.r.  Perhaps better to access self.variable['r']
         self.__dict__.update(self.variable)
-
-        # Layout control section
-        control_layout.addWidget(quit_button)
-        control_layout.addWidget(write_button)
-        control_layout.addWidget(read_button)
-        control_layout.addLayout(slider_layout)
 
         # Define widgets for plot section
         phase_portrait = pyqtgraph.GraphicsLayoutWidget(title="Phase Portrait")
@@ -215,7 +202,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Read the laser data
         self.laser_data = hmmds.applications.laser.utilities.read_tang(
-            '../../../raw_data/LP5.DAT')
+            '../../../../raw_data/LP5.DAT')
         assert self.laser_data.shape == (2, 2876)
 
         self.update_plot()  # Plot data for initial settings
@@ -328,13 +315,9 @@ class Variable(PyQt5.QtWidgets.QWidget):
         self.main_window.update_plot()
 
 
-# see ~/projects/not_active/metfie/gui_eos.py
 if __name__ == '__main__':
     app = PyQt5.QtWidgets.QApplication(sys.argv)
 
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
-
-if __name__ == '__main__':
-    main()
