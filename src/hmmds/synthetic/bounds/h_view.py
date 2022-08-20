@@ -1,5 +1,9 @@
 """h_view.py For exploring cross entropy of extended Kalman filter
 
+ToDo: Discrete y to get probability masses instead of densities
+ToDo: Calculate and plot log p(y[t]|y[:t])
+ToDo: Calculate update_means and update_covariances
+
 """
 
 # PyQt5 is hopeless: pylint: skip-file
@@ -14,10 +18,8 @@ import numpy
 import numpy.linalg
 import scipy.linalg
 
-import hmm.state_space
 import hmmds.synthetic.filter.lorenz_sde
-
-from hmmds.synthetic.filter.lorenz_sde import lorenz_integrate
+import hmmds.synthetic.bounds.lorenz
 
 
 def ellipse(mean, covariance):
@@ -46,85 +48,40 @@ vals_sqrt=   {vals_sqrt}  {vals_sqrt.max()/vals_sqrt.min():.3g}
     return result
 
 
-def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
-                observation_noise_scale: float, dt: float,
-                rng: numpy.random.Generator):
-    """Make an SDE system instance
-
-    Args:
-        s, r, b: Parameters of Lorenz ODE
-        unit_state_noise_scale: sqrt(dt)*this*std_normal(x_dim)
-        observation_noise_scale: this*std_normal(y_dim)
-        dt: Sample interval
-        rng: Random number generator
-
-    Returns:
-        (An SDE instance, an inital distribution, an initial state)
-
-    Derived from hmmds.synthetic.filter.lorenz_simulation
-
+class MainWindow(PyQt5.QtWidgets.QMainWindow):
     """
 
-    # The next three functions are passed to SDE.__init__
-    # pylint: disable = invalid-name
+-----------------------------------------------------------------
+ Buttons              |                      |
+                      |                      |
+                      |                      |
+                      |                      |
+ Sliders              |  x_0[t] vs t         |  x_0[t] vs x_2[t]
+                      |                      |
+                      |                      |
+                      |                      |
+                      |                      |
+-----------------------------------------------------------------
+                      |                      |
+                      |                      |
+                      | Sqrt Sigma[0,0] vs t |
+ Sliders              | Error y vs t         |  Ellipse for forecast
+                      |                      |
+                      |                      |
+                      |                      |
+                      |                      |
+-----------------------------------------------------------------
+                      |                      |
+                      |                      |
+                      |                      |
+ Sliders              | log p(y[t]|y[:t])    |  Ellipse for update
+                      |                      |
+                      |                      |
+                      |                      |
+                      |                      |
+-----------------------------------------------------------------
 
-    def dx_dt(_, x, s, r, b):
-        """Calculate the Lorenz vector field at x
-        """
-        return numpy.array([
-            s * (x[1] - x[0]), x[0] * (r - x[2]) - x[1], x[0] * x[1] - b * x[2]
-        ])
-
-    def tangent(t, x_dx, s, r, b):
-        """Calculate the Lorenz vector field and its tangent at x
-        """
-        result = numpy.empty(12)  # Allocate storage for result
-
-        # Unpack state and derivative from argument
-        x = x_dx[:3]
-        dx_dx0 = x_dx[3:].reshape((3, 3))
-
-        # First three components are the value of the vector field F(x)
-        result[:3] = dx_dt(t, x, s, r, b)
-
-        dF = numpy.array([  # The derivative of F wrt x
-            [-s, s, 0], [r - x[2], -1, -x[0]], [x[1], x[0], -b]
-        ])
-
-        # Assign the tangent part of the return value.
-        result[3:] = numpy.dot(dF, dx_dx0).reshape(-1)
-
-        return result
-
-    def observation_function(
-            _, state) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
-        """Calculate observation and its derivative
-        """
-        observation_map = numpy.array([[1, 0, 0]])
-        return numpy.dot(observation_map, state), observation_map
-
-    x_dim = 3
-    state_noise_map = numpy.eye(x_dim) * unit_state_noise_scale
-    y_dim = observation_function(0, numpy.ones(x_dim))[0].shape[0]
-    observation_noise_map = numpy.eye(y_dim) * observation_noise_scale
-
-    # pylint: disable = c-extension-no-member, duplicate-code
-    system = hmmds.synthetic.filter.lorenz_sde.SDE(dx_dt,
-                                                   tangent,
-                                                   state_noise_map,
-                                                   observation_function,
-                                                   observation_noise_map,
-                                                   dt,
-                                                   x_dim,
-                                                   ivp_args=(s, r, b))
-    initial_state = system.relax(500)[0]  # Relax to attractor
-    final_state, stationary_distribution = system.relax(
-        500, initial_state=initial_state)  # Collect data for distribution
-    result = hmm.state_space.NonStationary(system, dt, rng)
-    return result, stationary_distribution, final_state
-
-
-class MainWindow(PyQt5.QtWidgets.QMainWindow):
+    """
 
     def __init__(self):
         super().__init__()
@@ -184,7 +141,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         self.variable = {}  # A dict so that I can print all values
 
-        # Layout first row of sliders
+        # Layout first row of sliders.  "updates" is a list of methods
+        # to call when a varible changes
         for name, title, minimum, maximum, updates in (
             ('n_times', 'Nt', 5, 500, 'update_data update_filter update_plot'),
             ('n_view', 'N_view', 1, 100, 'update_plot'),
@@ -225,21 +183,25 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Define widgets for plot section
 
+        # Time series x[0]
         temp = time_series.addPlot()
         self.ts_curve = temp.plot(pen='g')
         self.ts_point = temp.plot(symbolPen='w', symbol='+', symbolSize=30)
 
+        # y[t] - mean of p(y[t]|y[:t])
         temp = error.addPlot()
         self.error_curve = temp.plot(pen='g')
         self.error_point = temp.plot(symbolPen='w', symbol='+', symbolSize=30)
         self.sigma_curve = temp.plot(pen='r')
 
+        # log p(y[t]|y[:t])
         temp = probability.addPlot()
         self.probability_curve = temp.plot(pen='g')
         self.probability_point = temp.plot(symbolPen='w',
                                            symbol='+',
                                            symbolSize=30)
 
+        # x[0] vs x[2]
         temp = phase_portrait.addPlot()
         self.pp_curve = temp.plot(pen='g')
 
@@ -251,12 +213,13 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         widget.setLayout(layout0)
         self.setCentralWidget(widget)
 
+        # Do all calculations to initialize
         self.update_system()
-        self.update_data()
-        self.update_filter()
-        self.update_plot()  # Plot data for initial settings
+        self.n_times.spin.setValue(500)
 
     def update_system(self):
+        """Make a new self.system
+        """
         s = 10.0
         r = 28.0
         b = 8.0 / 3
@@ -264,19 +227,29 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         rng = numpy.random.default_rng(3)
         d_t = self.time_step()
         state_noise_scale = self.dev_state() * numpy.sqrt(d_t) / 1.0e4
-        self.system, self.stationary_distribution, self.initial_state = make_system(
+        self.system, self.stationary_distribution, self.initial_state = hmmds.synthetic.bounds.lorenz.make_system(
             s, r, b, state_noise_scale, self.dev_observation(), d_t, rng)
 
     def update_data(self):
+        """Make new self.x and self.y
+        """
         # Reinitialize rng for reproducibility
         self.system.rng = numpy.random.default_rng(3)
         self.x, self.y = self.system.simulate_n_steps(
             self.stationary_distribution, self.n_times())
 
     def update_filter(self):
+        """Run extended Kalman filter to get forecast and updated distributions
+
+        ToDo: Fix me
+
+        hmm.state_space.LinearStationary.forward_filter Does not even see forecast
+        hmm.state_space.NonStationary.forward_step Does not save forecast
+        hmm.lorenz_sde.SDE.forecast
+        hmm.state_space.SDE.update
+        """
         self.forward_means, self.forward_covariances = self.system.forward_filter(
             self.stationary_distribution, self.y)
-        pass
 
     def update_plot(self):
         # Calculate range of samples to display
@@ -289,26 +262,26 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         assert 1 <= n_min <= self.n_times() - 1
 
         assert n_min < n_max
-
-        self.pp_curve.setData(self.x[n_min:n_max, 0], self.x[n_min:n_max, 2])
-
-        temp = ellipse(self.forward_means[self.t_view()],
-                       self.forward_covariances[self.t_view()])
-        self.ekf_update_t_curve.setData(temp[:, 0], temp[:, 1])
-
         times = numpy.arange(n_min, n_max)
 
-        # FixMe forward means and covariances are for x not y
-        error = self.y[:, 0] - self.forward_means[:, 0]
-        sigma_sq = self.forward_covariances[:, 0, 0]
-        probability = (-error * error / (2 * sigma_sq))
-
+        # Plot time series
         self.ts_curve.setData(times, self.y[n_min:n_max, 0])
         self.ts_point.setData([
             self.t_view(),
         ], [self.y[self.t_view(), 0]])
 
+        # Plot phase portrait
+        self.pp_curve.setData(self.x[n_min:n_max, 0], self.x[n_min:n_max, 2])
+
+        # Plot errors
+        # FixMe forward means and covariances are for x not y
+        error = self.y[:, 0] - self.forward_means[:, 0]
+        sigma_sq = self.forward_covariances[:, 0, 0]
+        # FixMe Make this the log of a probability mass
+        probability = (-error * error / (2 * sigma_sq))
+
         # FixMe: 100
+        # Square root of Sigma[0,0] vs t
         self.sigma_curve.setData(times, 100 * numpy.sqrt(sigma_sq[n_min:n_max]))
         self.error_curve.setData(times, error[n_min:n_max])
         self.error_point.setData([
@@ -317,12 +290,19 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             error[self.t_view()],
         ])
 
+        # Plot ellipse for update
+        temp = ellipse(self.forward_means[self.t_view()],
+                       self.forward_covariances[self.t_view()])
+        self.ekf_update_t_curve.setData(temp[:, 0], temp[:, 1])
+
         self.probability_curve.setData(times, probability[n_min:n_max])
         self.probability_point.setData([
             self.t_view(),
         ], [
             probability[self.t_view()],
         ])
+
+        # Plot ellipse for forecast  ToDo: place this ahead of update
 
     def run(self):
         pass
@@ -331,20 +311,22 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         pass
 
     def save(self):
+        """Save slider settings and plotted data
+
+        ToDo: Actually save the stuff using pickle.  Maybe pop up a
+        chooser for path to file """
         with open('foo.txt', 'w') as file_:
             for name, variable in self.variable.items():
                 file_.write(f'{name} {variable()}\n')
 
     def read_values(self):
-        with open('explore.txt', 'r') as file_:
-            for line in file_.readlines():
-                name, value_str = line.split()
-                value = float(value_str)
-                self.variable[name].setValue(value)
+        """Maybe write this to read slider values
+        """
+        pass
 
 
 class IntVariable(PyQt5.QtWidgets.QWidget):
-    """Provide sliders and spin boxes to manipulate integer variable.
+    """Provide sliders and spin boxes for an integer variable.
 
     Args:
         title: For display
@@ -352,6 +334,7 @@ class IntVariable(PyQt5.QtWidgets.QWidget):
         maximum:
         main_window: For access to method update_plot
         parent:  I don't understand this
+
     """
 
     def modify_properties(self, maximum, minimum):
