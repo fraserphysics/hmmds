@@ -20,14 +20,18 @@ class LocalNonStationary(hmm.state_space.NonStationary):
         """attach both forcast and update distributions to self
         replaces hmm.state_space.LinearStationary.forward_filter
         """
-        means = numpy.empty((len(y_array), self.x_dim))
-        covariances = numpy.empty((len(y_array), self.x_dim, self.x_dim))
-        x_dist = initial_dist
+        forecast_means = numpy.empty((len(y_array), self.x_dim))
+        forecast_covariances = numpy.empty((len(y_array), self.x_dim, self.x_dim))
+        update_means = numpy.empty((len(y_array), self.x_dim))
+        update_covariances = numpy.empty((len(y_array), self.x_dim, self.x_dim))
+        update_distribution = initial_dist
         for t, y in enumerate(y_array):
-            x_dist = self.forward_step(x_dist, y)
-            means[t] = x_dist.mean
-            covariances[t] = x_dist.covariance
-        return means, covariances
+            forecast_distribution, update_distribution = self.forward_step(update_distribution, y)
+            forecast_means[t] = forecast_distribution.mean
+            forecast_covariances[t] = forecast_distribution.covariance
+            update_means[t] = update_distribution.mean
+            update_covariances[t] = update_distribution.covariance
+        return forecast_means, forecast_covariances, update_means, update_covariances
 
     def forward_step(self, prior, y):
         """save or return forecast
@@ -47,7 +51,7 @@ class LocalNonStationary(hmm.state_space.NonStationary):
                              d_g,
                              observation_noise_covariance,
                              observation_mean=g_t)
-        return update
+        return forecast, update
 
 
 def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,

@@ -22,21 +22,23 @@ import hmmds.synthetic.filter.lorenz_sde
 import hmmds.synthetic.bounds.lorenz
 
 
-def ellipse(mean, covariance):
+def ellipse(mean, covariance, i_a=1, i_b=2):
     """ Calculate points on x^T \Sigma^{-1} x = 1
 
     Args:
         mean: 3-vector
         covariance: 3x3 array
+        i_a: index of first component
+        i_b: index of second component
     """
-    mean_2 = numpy.array([mean[0], mean[2]])
-    covariance_2 = numpy.array([[covariance[0, 0], covariance[0, 2]],
-                                [covariance[2, 0], covariance[2, 2]]])
+    mean_2 = numpy.array([mean[i_a], mean[i_b]])
+    covariance_2 = numpy.array([[covariance[i_a, i_a], covariance[i_a, i_b]],
+                                [covariance[i_b, i_a], covariance[i_b, i_b]]])
     sqrt_cov_2 = scipy.linalg.sqrtm(covariance_2)
     n_points = 100
     theta = numpy.linspace(0, 2 * numpy.pi, n_points, endpoint=True)
-    x = numpy.array([numpy.sin(theta), numpy.cos(theta)]).T
-    result = numpy.dot(x, sqrt_cov_2) + mean_2
+    z = numpy.array([numpy.sin(theta), numpy.cos(theta)]).T
+    result = numpy.dot(z, sqrt_cov_2) + mean_2
 
     vals3, vecs3 = numpy.linalg.eigh(covariance)
     vals2, vecs2 = numpy.linalg.eigh(covariance_2)
@@ -65,7 +67,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                       |                      |
                       |                      |
                       | Sqrt Sigma[0,0] vs t |
- Sliders              | Error y vs t         |  Ellipse for forecast
+ Sliders              | Error y vs t         |  Ellipses for t
                       |                      |
                       |                      |
                       |                      |
@@ -74,7 +76,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                       |                      |
                       |                      |
                       |                      |
- Sliders              | log p(y[t]|y[:t])    |  Ellipse for update
+ Sliders              | log p(y[t]|y[:t])    |  Ellipses for t+1
                       |                      |
                       |                      |
                       |                      |
@@ -113,14 +115,14 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         error = pyqtgraph.GraphicsLayoutWidget(title="Error")
         probability = pyqtgraph.GraphicsLayoutWidget(title="Probability")
         phase_portrait = pyqtgraph.GraphicsLayoutWidget(title="Phase Portrait")
-        ekf_update_t = pyqtgraph.GraphicsLayoutWidget(title="update t")
-        ekf_update_t_plus = pyqtgraph.GraphicsLayoutWidget(title="update t+1")
+        ekf_t = pyqtgraph.GraphicsLayoutWidget(title="ekf t")
+        ekf_t_plus = pyqtgraph.GraphicsLayoutWidget(title="ekf t+1")
         plot_left.addWidget(time_series)
         plot_left.addWidget(error)
         plot_left.addWidget(probability)
         plot_right.addWidget(phase_portrait)
-        plot_right.addWidget(ekf_update_t)
-        plot_right.addWidget(ekf_update_t_plus)
+        plot_right.addWidget(ekf_t)
+        plot_right.addWidget(ekf_t_plus)
 
         # Define and layout widgets of button section
         quit_button = PyQt5.QtWidgets.QPushButton('Quit', self)
@@ -205,8 +207,15 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         temp = phase_portrait.addPlot()
         self.pp_curve = temp.plot(pen='g')
 
-        temp = ekf_update_t.addPlot()
+        # ekf at t
+        temp = ekf_t.addPlot()
+        self.ekf_forecast_t_curve = temp.plot(pen='r')
         self.ekf_update_t_curve = temp.plot(pen='g')
+
+        # ekf at t+1
+        temp = ekf_t_plus.addPlot()
+        self.ekf_forecast_t_plus_curve = temp.plot(pen='r')
+        self.ekf_update_t_plus_curve = temp.plot(pen='g')
 
         # Make self the central widget
         widget = PyQt5.QtWidgets.QWidget()
@@ -248,7 +257,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         hmm.lorenz_sde.SDE.forecast
         hmm.state_space.SDE.update
         """
-        self.forward_means, self.forward_covariances = self.system.forward_filter(
+        self.forecast_means, self.forecast_covariances,self.update_means, self.update_covariances = self.system.forward_filter(
             self.stationary_distribution, self.y)
 
     def update_plot(self):
@@ -264,19 +273,20 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         assert n_min < n_max
         times = numpy.arange(n_min, n_max)
 
+        t_now = self.t_view()
         # Plot time series
         self.ts_curve.setData(times, self.y[n_min:n_max, 0])
         self.ts_point.setData([
-            self.t_view(),
-        ], [self.y[self.t_view(), 0]])
+            t_now,
+        ], [self.y[t_now, 0]])
 
         # Plot phase portrait
         self.pp_curve.setData(self.x[n_min:n_max, 0], self.x[n_min:n_max, 2])
 
         # Plot errors
         # FixMe forward means and covariances are for x not y
-        error = self.y[:, 0] - self.forward_means[:, 0]
-        sigma_sq = self.forward_covariances[:, 0, 0]
+        error = self.y[:, 0] - self.update_means[:, 0]
+        sigma_sq = self.update_covariances[:, 0, 0]
         # FixMe Make this the log of a probability mass
         probability = (-error * error / (2 * sigma_sq))
 
@@ -285,24 +295,37 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.sigma_curve.setData(times, 100 * numpy.sqrt(sigma_sq[n_min:n_max]))
         self.error_curve.setData(times, error[n_min:n_max])
         self.error_point.setData([
-            self.t_view(),
+            t_now,
         ], [
-            error[self.t_view()],
+            error[t_now],
         ])
 
-        # Plot ellipse for update
-        temp = ellipse(self.forward_means[self.t_view()],
-                       self.forward_covariances[self.t_view()])
+        # Plot ellipses for t
+        temp = ellipse(self.forecast_means[t_now],
+                       self.forecast_covariances[t_now])
+        self.ekf_forecast_t_curve.setData(temp[:, 0], temp[:, 1])
+        temp = ellipse(self.update_means[t_now],
+                       self.update_covariances[t_now])
         self.ekf_update_t_curve.setData(temp[:, 0], temp[:, 1])
 
+        # Plot probability vs t
         self.probability_curve.setData(times, probability[n_min:n_max])
         self.probability_point.setData([
-            self.t_view(),
+            t_now,
         ], [
-            probability[self.t_view()],
+            probability[t_now],
         ])
+        
+        # Plot ellipses for t+1
+        t_next = self.t_view() + 1
+        temp = ellipse(self.forecast_means[t_next],
+                       self.forecast_covariances[t_next])
+        self.ekf_forecast_t_plus_curve.setData(temp[:, 0], temp[:, 1])
+        temp = ellipse(self.update_means[t_next],
+                       self.update_covariances[t_next])
+        self.ekf_update_t_plus_curve.setData(temp[:, 0], temp[:, 1])
 
-        # Plot ellipse for forecast  ToDo: place this ahead of update
+
 
     def run(self):
         pass
