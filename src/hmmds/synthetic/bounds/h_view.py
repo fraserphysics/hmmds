@@ -158,7 +158,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         for name, title, minimum, maximum, updates in (
             ('time_step', 'ts', 0.05, 0.5,
              'update_system update_data update_filter update_plot'),
-            ('y_step', 'y_step', 0.05, 0.5, 'update_filter update_plot'),
+            ('y_step', 'y_step*100', 1.0e-3, 2.0e-2,
+             'update_filter update_plot'),
             ('dev_observation', 'Dev_y', 0.001, 0.1,
              'update_system update_data update_filter update_plot'
             ),  # sigma epsilon observation noise
@@ -245,7 +246,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Reinitialize rng for reproducibility
         self.system.rng = numpy.random.default_rng(3)
         self.x, self.y = self.system.simulate_n_steps(
-            self.stationary_distribution, self.n_times())
+            self.stationary_distribution, self.n_times(),
+            self.y_step() / 100)
 
     def update_filter(self):
         """Run extended Kalman filter to get forecast and updated distributions
@@ -257,8 +259,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         hmm.lorenz_sde.SDE.forecast
         hmm.state_space.SDE.update
         """
-        self.forecast_means, self.forecast_covariances,self.update_means, self.update_covariances = self.system.forward_filter(
-            self.stationary_distribution, self.y)
+        self.forecast_means, self.forecast_covariances, self.update_means, self.update_covariances, self.y_means, self.y_variances, self.y_probabilities = self.system.forward_filter(
+            self.stationary_distribution, self.y, self.y_step())
 
     def update_plot(self):
         # Calculate range of samples to display
@@ -284,15 +286,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.pp_curve.setData(self.x[n_min:n_max, 0], self.x[n_min:n_max, 2])
 
         # Plot errors
-        # FixMe forward means and covariances are for x not y
-        error = self.y[:, 0] - self.update_means[:, 0]
-        sigma_sq = self.update_covariances[:, 0, 0]
-        # FixMe Make this the log of a probability mass
-        probability = (-error * error / (2 * sigma_sq))
+        error = self.y[:, 0] - self.y_means
 
         # FixMe: 100
-        # Square root of Sigma[0,0] vs t
-        self.sigma_curve.setData(times, 100 * numpy.sqrt(sigma_sq[n_min:n_max]))
+        self.sigma_curve.setData(times,
+                                 100 * numpy.sqrt(self.y_variances[n_min:n_max]))
         self.error_curve.setData(times, error[n_min:n_max])
         self.error_point.setData([
             t_now,
@@ -304,18 +302,17 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         temp = ellipse(self.forecast_means[t_now],
                        self.forecast_covariances[t_now])
         self.ekf_forecast_t_curve.setData(temp[:, 0], temp[:, 1])
-        temp = ellipse(self.update_means[t_now],
-                       self.update_covariances[t_now])
+        temp = ellipse(self.update_means[t_now], self.update_covariances[t_now])
         self.ekf_update_t_curve.setData(temp[:, 0], temp[:, 1])
 
         # Plot probability vs t
-        self.probability_curve.setData(times, probability[n_min:n_max])
+        self.probability_curve.setData(times, self.y_probabilities[n_min:n_max])
         self.probability_point.setData([
             t_now,
         ], [
-            probability[t_now],
+            self.y_probabilities[t_now],
         ])
-        
+
         # Plot ellipses for t+1
         t_next = self.t_view() + 1
         temp = ellipse(self.forecast_means[t_next],
@@ -324,8 +321,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         temp = ellipse(self.update_means[t_next],
                        self.update_covariances[t_next])
         self.ekf_update_t_plus_curve.setData(temp[:, 0], temp[:, 1])
-
-
 
     def run(self):
         pass

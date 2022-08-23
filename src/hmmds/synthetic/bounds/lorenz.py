@@ -1,10 +1,13 @@
 """lorenz.py
 
 """
+from __future__ import annotations  # Enables, eg, (self: LocalNonStationary
+
 import typing
 
 import numpy
 import numpy.random
+import scipy.special
 
 import hmm.state_space
 import hmmds.synthetic.filter.lorenz_sde
@@ -12,34 +15,100 @@ import hmmds.synthetic.filter.lorenz_sde
 
 class LocalNonStationary(hmm.state_space.NonStationary):
     """Overwrite forward_filter method so that it returns both forecast
-    and update distributions
+    and update distributions  Also return probabilities.
+
+    Overwrite NonStationary.simulate_n_steps to quantize y
 
     """
 
-    def forward_filter(self, initial_dist, y_array):
-        """attach both forcast and update distributions to self
-        replaces hmm.state_space.LinearStationary.forward_filter
+    def simulate_n_steps(
+            self: LocalNonStationary,
+            initial_dist: hmm.state_space.MultivariateNormal,
+            n_samples: int,
+            y_step: float,
+            states_0=None) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+        """Return simulated sequences of states and observations.
+
+
+        Args:
+            initial_dist: Distribution of initial state
+            n_samples: Number of states and observations to return
+            y_setp: Distance between allowed y_values
+
+        Differs from parent by Quantizing the observations
+        """
+        xs, ys = self.system.simulate_n_steps(initial_dist, n_samples, states_0)
+        return xs, numpy.floor(ys / y_step) * y_step + y_step / 2
+
+    def forward_filter(self: LocalNonStationary, initial_dist, y_array, y_step):
+        """Run Kalman filter on observations y_array.
+
+        Args:
+            initial_dist: Prior for state
+            y_array: Sequence of observations
+
+        Differs from parent hmm.state_space.LinearStationary by
+        returning both forcast and update distributions.
+
+        ToDo: Assume y.shape = (1,).  Accept addtional argument
+        y_step.  Calculate and return log prob y[t]|y[:t]
+
         """
         forecast_means = numpy.empty((len(y_array), self.x_dim))
-        forecast_covariances = numpy.empty((len(y_array), self.x_dim, self.x_dim))
+        forecast_covariances = numpy.empty(
+            (len(y_array), self.x_dim, self.x_dim))
         update_means = numpy.empty((len(y_array), self.x_dim))
         update_covariances = numpy.empty((len(y_array), self.x_dim, self.x_dim))
+        y_means = numpy.empty(len(y_array))
+        y_variances = numpy.empty(len(y_array))
+        y_probabilities = numpy.empty(len(y_array))
+
         update_distribution = initial_dist
         for t, y in enumerate(y_array):
-            forecast_distribution, update_distribution = self.forward_step(update_distribution, y)
+            forecast_distribution, update_distribution, y_forecast = self.forward_step(
+                update_distribution, y)
             forecast_means[t] = forecast_distribution.mean
             forecast_covariances[t] = forecast_distribution.covariance
             update_means[t] = update_distribution.mean
             update_covariances[t] = update_distribution.covariance
-        return forecast_means, forecast_covariances, update_means, update_covariances
 
-    def forward_step(self, prior, y):
-        """save or return forecast
-        replaces hmm.state_space.NonStationary.forward_step
+            y_means[t] = y_forecast.mean[0]
+            y_variances[t] = y_forecast.covariance[0, 0]
+
+            def cumulative_prob(y, mean, variance):
+                """return 1/2 [1+erf(z/sqrt(2))]
+                """
+                return (1 + scipy.special.erf(
+                    (y - mean) / numpy.sqrt(2 * variance))) / 2
+
+            y_probabilities[t] = cumulative_prob(
+                y + y_step / 2, y_means[t], y_variances[t]) - cumulative_prob(
+                    y - y_step / 2, y_means[t], y_variances[t])
+
+        return forecast_means, forecast_covariances, update_means, update_covariances, y_means, y_variances, y_probabilities
+
+    def forward_step(self: LocalNonStationary, prior, y):
+        """Calculate new x_dist based on observation y.
+
+        Args:
+            prior: Prior for state
+            y: Observation
+
+        Returns:
+            Forecast and a posteriori distribution for state
+
+        Differs from parent hmm.state_space.NonStationary by returning
+        forecast distribution.
+
         """
         f_t, d_f, state_noise_covariance = self.system.forecast(
             prior.mean, 0.0, self.dt)
         g_t, d_g, observation_noise_covariance = self.system.update(f_t, 0.0)
+
+        # y_forecast is the distribution of y[t]|y[:t]
+        cov = observation_noise_covariance + numpy.dot(
+            numpy.dot(d_g, state_noise_covariance), d_g.T)
+        y_forecast = hmm.state_space.MultivariateNormal(g_t, cov, self.rng)
 
         forecast = self.forecast(prior,
                                  d_f,
@@ -51,7 +120,7 @@ class LocalNonStationary(hmm.state_space.NonStationary):
                              d_g,
                              observation_noise_covariance,
                              observation_mean=g_t)
-        return forecast, update
+        return forecast, update, y_forecast
 
 
 def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
