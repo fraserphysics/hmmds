@@ -4,6 +4,7 @@ ToDo: Discrete y to get probability masses instead of densities
 ToDo: Calculate and plot log p(y[t]|y[:t])
 
 """
+from __future__ import annotations  # Enables, eg, (self: LocalNonStationary
 
 # PyQt5 is hopeless: pylint: skip-file
 import sys  # We need sys so that we can pass argv to QApplication
@@ -141,39 +142,42 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Layout first row of sliders.  "updates" is a list of methods
         # to call when a varible changes
-        for name, title, minimum, maximum, updates in (
-            ('n_times', 'Nt', 5, 500, 'update_data update_filter update_plot'),
-            ('n_view', 'N_view', 1, 100, 'update_plot'),
-            ('t_view', 't_view', 0, 500, 'update_plot'),
+        for name, title, minimum, maximum, initial, updates in (
+            ('n_times', 'Nt', 5, 500, 500,
+             'update_data update_filter update_plot'),
+            ('n_view', 'N_view', 1, 100, 30, 'update_plot'),
+            ('t_view', 't_view', 0, 500, 15, 'update_plot'),
         ):
-            self.variable[name] = IntVariable(title, minimum, maximum, self,
-                                              updates)
+            self.variable[name] = IntVariable(title, minimum, maximum, initial,
+                                              self, updates)
             sliders1_layout.addWidget(self.variable[name])
 
         # Layout second row of sliders
-        for name, title, minimum, maximum, updates in (
-            ('time_step', 'ts', 0.05, 0.5,
+        for name, title, minimum, maximum, initial, updates in (
+            ('time_step', 'ts', 0.05, 0.5, 0.25,
              'update_system update_data update_filter update_plot'),
-            ('y_step', 'Dy*100', 1.0e-4, 2.0e-2, 'update_filter update_plot'),
-            ('dev_observation', '\u03c3y', 0.001, 0.1,
+            ('y_step', 'Dy*100', 1.0e-4, 2.0e-2, 0.01,
+             'update_filter update_plot'),
+            ('dev_observation', '\u03c3y', 0.001, 0.1, 0.01,
              'update_system update_data update_filter update_plot'
             ),  # sigma epsilon observation noise
         ):
-            self.variable[name] = FloatVariable(title, minimum, maximum, self,
-                                                updates)
+            self.variable[name] = FloatVariable(title, minimum, maximum,
+                                                initial, self, updates)
             sliders2_layout.addWidget(self.variable[name])
 
         # Layout third row of sliders
-        for name, title, minimum, maximum, updates in (
-            ('view_theta', '\u03b8', -3.0, 3.0, 'update_plot'),  # View theta
-            ('view_phi', '\u03c6', -3.0, 3.0, 'update_plot'),  # View phi
+        for name, title, minimum, maximum, initial, updates in (
+            ('view_theta', '\u03b8', -3.0, 3.0, 0.0,
+             'update_plot'),  # View theta
+            ('view_phi', '\u03c6', -3.0, 3.0, 0.0, 'update_plot'),  # View phi
                 # Times 1e4, fixme scale by root dt
-            ('dev_state', '\u03C3x*1e4', 1.0e-3, 2.0e-2,
+            ('dev_state', '\u03C3x*1e4', 1.0e-3, 2.0e-2, 0.01,
              'update_system update_data update_filter update_plot'
             ),  # sigma eta state noise
         ):
-            self.variable[name] = FloatVariable(title, minimum, maximum, self,
-                                                updates)
+            self.variable[name] = FloatVariable(title, minimum, maximum,
+                                                initial, self, updates)
             sliders3_layout.addWidget(self.variable[name])
 
         # Enable access like self.n_times() instead of self.variable['n_times']()
@@ -230,12 +234,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Do all calculations to initialize
         self.update_system()
-        self.n_times.spin.setValue(5)
-        self.time_step.spin.setValue(.25)
-        self.y_step.spin.setValue(.01)
-        self.dev_observation.spin.setValue(.01)
-        self.dev_state.spin.setValue(.01)
-        self.n_times.spin.setValue(500)
+        self.update_data()
+        self.update_filter()
+        self.update_plot()
 
     def update_system(self):
         """Make a new self.system
@@ -250,7 +251,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.system, self.stationary_distribution, initial_state = hmmds.synthetic.bounds.lorenz.make_system(
             s, r, b, state_noise_scale, self.dev_observation(), d_t, rng)
         self.initial_distribution = hmm.state_space.MultivariateNormal(
-            initial_state, self.stationary_distribution.covariance / 1e12,
+            initial_state,
+            numpy.eye(3) * state_noise_scale**2,
             self.stationary_distribution.rng)
 
     def update_data(self):
@@ -272,9 +274,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         hmm.lorenz_sde.SDE.forecast
         hmm.state_space.SDE.update
         """
-        self.forecast_means, self.forecast_covariances, self.update_means, self.update_covariances, self.y_means, self.y_variances, self.y_probabilities = self.system.forward_filter(
+        self.forecast_means, self.forecast_covariances, self.update_means, self.update_covariances, self.y_means, self.y_variances, temp_prob = self.system.forward_filter(
             self.initial_distribution, self.y,
             self.y_step() / 100)
+        self.log_probabilities = numpy.log(numpy.maximum(temp_prob, 1.0e-20))
 
     def update_plot(self):
         # Calculate range of samples to display
@@ -308,9 +311,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Plot errors
         error = self.y[:, 0] - self.y_means
 
-        # FixMe: 100
-        self.sigma_curve.setData(
-            times, 100 * numpy.sqrt(self.y_variances[n_min:n_max]))
+        self.sigma_curve.setData(times,
+                                 numpy.sqrt(self.y_variances[n_min:n_max]))
         self.error_curve.setData(times, error[n_min:n_max])
         self.error_point.setData([
             t_now,
@@ -326,13 +328,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.ekf_update_t_curve.setData(temp[:, 0], temp[:, 1])
 
         # Plot probability vs t
-        self.probability_curve.setData(
-            times, numpy.log(self.y_probabilities[n_min:n_max]))
-        self.probability_point.setData([
-            t_now,
-        ], [
-            numpy.log(self.y_probabilities[t_now]),
-        ])
+        self.probability_curve.setData(times,
+                                       self.log_probabilities[n_min:n_max])
+        self.probability_point.setData([t_now], [self.log_probabilities[t_now]])
 
         # Plot ellipses for t+1
         t_next = self.t_view() + 1
@@ -376,39 +374,39 @@ class IntVariable(PyQt5.QtWidgets.QWidget):
 
     """
 
-    def modify_properties(self, maximum, minimum):
+    def modify_properties(self: IntVariable, maximum: int, minimum: int,
+                          initial: int):
         """Isolate differences between float and int Varibles
         """
-
+        self.minimum = minimum
+        self.maximum = maximum
         self.spin = PyQt5.QtWidgets.QSpinBox(self)
         self.slider.setMinimum(minimum)
         self.slider.setMaximum(maximum)
         self.dx_dslide = 1
-        self.x = int((minimum + maximum) / 2)
+        self.x = initial
         self.slider.setValue(self.x)
 
-    def __init__(
-            self,  # IntVariable
-            title: str,
-            minimum: int,
-            maximum: int,
-            main_window,
-            update_names,
-            parent=None):
+    def __init__(self: IntVariable,
+                 title: str,
+                 minimum: int,
+                 maximum: int,
+                 initial: int,
+                 main_window,
+                 update_names,
+                 parent=None):
         super(IntVariable, self).__init__(parent=parent)
 
         self.update_names = update_names.split()
         # Instantiate widgets
         self.label = PyQt5.QtWidgets.QLabel(self)
         self.slider = PyQt5.QtWidgets.QSlider(self)
-        self.modify_properties(maximum, minimum)
+        self.modify_properties(maximum, minimum, initial)
 
         # Attach arguments to self and widgets
         self.label.setText(title)
         self.spin.setRange(minimum, maximum)
         self.spin.setValue(self.x)
-        self.minimum = minimum
-        self.maximum = maximum
         self.main_window = main_window
 
         # Connect signals to slots after setting value so that the slots won't be called
@@ -423,38 +421,36 @@ class IntVariable(PyQt5.QtWidgets.QWidget):
         self.verticalLayout.addWidget(self.spin)
         self.resize(self.sizeHint())
 
-    def __call__(self):
+    def __call__(self: IntVariable):
         return self.x
 
-    def setValue(self, value):
+    def setValue(self: IntVariable, value):
         self.spin.setValue(value)
 
-    def new_spin_value(self, value):
+    def new_spin_value(self: IntVariable, value):
         """Seperate method to isolate difference between int and float classes
         """
         return value
 
-    def new_slider_value(
-            self,  # IntVariable
-            value):
+    def new_slider_value(self: IntVariable, value):
         """Seperate method to isolate difference between int and float classes
         """
         return value
 
-    def update(self):
+    def update(self: IntVariable):
         """Call each of the update methods for this variable.
         """
         for name in self.update_names:
             getattr(self.main_window, name)()
 
-    def spin_changed(self, value):
+    def spin_changed(self: IntVariable, value):
         self.x = value
         self.slider.disconnect()  # Avoid loop with setValue
         self.slider.setValue(self.new_spin_value(value))
         self.slider.valueChanged.connect(self.slider_changed)
         self.update()
 
-    def slider_changed(self, value):
+    def slider_changed(self: IntVariable, value):
         self.x = self.new_slider_value(value)
         self.spin.disconnect()  # Avoid loop with setValue
         self.spin.setValue(self.x)
@@ -473,34 +469,42 @@ class FloatVariable(IntVariable):
         parent:  I don't understand this
     """
 
-    def modify_properties(
-            self,  # FloatVariable
-            maximum,
-            minimum):
+    def modify_properties(self: FloatVariable, maximum: float, minimum: float,
+                          initial: float):
         """Isolate differences between float and int Varibles
+
+        Args:
+            maximum: Actual float value
+            minimum: Actual float value
+            initial: Actual float value
         """
 
         self.spin = PyQt5.QtWidgets.QDoubleSpinBox(self)
 
+        self.maximum = maximum
+        self.minimum = minimum
         if maximum > 0.01:
             self.spin.setDecimals(3)
             self.spin.setSingleStep(0.001)
         # self.slider.minimum() = 0, self.slider.maximum() = 99
         self.dx_dslide = (maximum - minimum) / (self.slider.maximum() -
                                                 self.slider.minimum())
-        self.slider.setValue(
-            int((self.slider.maximum() + self.slider.minimum()) / 2))
-        self.x = (minimum + maximum) / 2
+        self.slider.setValue(self.new_spin_value(initial))
+        self.x = initial
 
-    def new_spin_value(self, value):
+    def new_spin_value(self: FloatVariable, value: float):
         """Seperate method to isolate difference between int and float classes
+
+        Args:
+            value: Float from spin
+
+        Return: Integer for slider
+        
         """
         return self.slider.minimum() + int(
             (value - self.minimum) / self.dx_dslide)
 
-    def new_slider_value(
-            self,  # FloatVariable
-            value):
+    def new_slider_value(self: FloatVariable, value: int):
         """Seperate method to isolate difference between int and float classes
         """
         return self.minimum + float(value) * self.dx_dslide
