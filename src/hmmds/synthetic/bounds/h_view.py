@@ -43,10 +43,6 @@ def ellipse(mean, covariance, i_a=1, i_b=2):
     vals3, vecs3 = numpy.linalg.eigh(covariance)
     vals2, vecs2 = numpy.linalg.eigh(covariance_2)
     vals_sqrt, vecs_sqrt = numpy.linalg.eigh(sqrt_cov_2)
-    #     print(f'''eigenvalues3={vals3} {vals3.max()/vals3.min():.3g}
-    # eigenvalues2={vals2}  {vals2.max()/vals2.min():.3g}
-    # vals_sqrt=   {vals_sqrt}  {vals_sqrt.max()/vals_sqrt.min():.3g}
-    # ''')
     return result
 
 
@@ -141,7 +137,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         save_button.clicked.connect(self.save)
         buttons_layout.addWidget(save_button)
 
-        self.variable = {}  # A dict so that I can print all values
+        self.variable = {}  # A dict for the variables
 
         # Layout first row of sliders.  "updates" is a list of methods
         # to call when a varible changes
@@ -202,7 +198,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Lower left. log p(y[t]|y[:t])
         temp = probability.addPlot()
         temp.addLegend()
-        self.probability_curve = temp.plot(pen='g', name='p(y[t]|y[:t])')
+        self.probability_curve = temp.plot(pen='g', name='log p(y[t]|y[:t])')
         self.probability_point = temp.plot(symbolPen='w',
                                            symbol='+',
                                            symbolSize=30)
@@ -288,17 +284,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         n_min = min(self.n_times() - 1,
                     max(0, int(self.t_view() - self.n_view() / 2)))
-        assert 0 <= n_min <= self.n_times() - 1
+        assert 0 <= n_min < self.n_times()
 
         assert n_min < n_max
         times = numpy.arange(n_min, n_max)
-        print(f'''times[0] = {times[0]}
-x[n_min]        = {self.x[n_min]}
-forecast[n_min] = {self.forecast_means[n_min]}
-update[n_min]   = {self.update_means[n_min]}
-        ''')
-
         t_now = self.t_view()
+
         # Plot time series
         self.ts_curve.setData(times, self.y[n_min:n_max, 0])
         self.y_forecast.setData(times, self.y_means[n_min:n_max])
@@ -335,11 +326,12 @@ update[n_min]   = {self.update_means[n_min]}
         self.ekf_update_t_curve.setData(temp[:, 0], temp[:, 1])
 
         # Plot probability vs t
-        self.probability_curve.setData(times, self.y_probabilities[n_min:n_max])
+        self.probability_curve.setData(
+            times, numpy.log(self.y_probabilities[n_min:n_max]))
         self.probability_point.setData([
             t_now,
         ], [
-            self.y_probabilities[t_now],
+            numpy.log(self.y_probabilities[t_now]),
         ])
 
         # Plot ellipses for t+1

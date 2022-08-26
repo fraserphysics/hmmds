@@ -3,14 +3,23 @@
 """
 from __future__ import annotations  # Enables, eg, (self: LocalNonStationary
 
+import sys
 import typing
 
 import numpy
 import numpy.random
+import numpy.linalg
 import scipy.special
 
 import hmm.state_space
 import hmmds.synthetic.filter.lorenz_sde
+
+
+def positive_definite(x):
+    symmetric = (x + x.T) / 2
+    assert numpy.allclose(x, symmetric)
+    vals, vecs = numpy.linalg.eigh(symmetric)
+    assert vals.min() >= 0.0, f'vals={vals}'
 
 
 class LocalNonStationary(hmm.state_space.NonStationary):
@@ -63,12 +72,16 @@ class LocalNonStationary(hmm.state_space.NonStationary):
         y_variances = numpy.empty(len(y_array))
         y_probabilities = numpy.empty(len(y_array))
 
-        update_distribution = initial_dist
+        forecast_distribution = initial_dist
         for t, y in enumerate(y_array):
-            forecast_distribution, update_distribution, y_forecast = self.forward_step(
-                update_distribution, y)
             forecast_means[t] = forecast_distribution.mean
             forecast_covariances[t] = forecast_distribution.covariance
+
+            forecast_distribution, update_distribution, y_forecast = self.update_step(
+                forecast_distribution, y)
+            # update_distribution and y_forecast are for t.
+            # forecast_distribution is for t+1
+
             update_means[t] = update_distribution.mean
             update_covariances[t] = update_distribution.covariance
 
@@ -87,39 +100,48 @@ class LocalNonStationary(hmm.state_space.NonStationary):
 
         return forecast_means, forecast_covariances, update_means, update_covariances, y_means, y_variances, y_probabilities
 
-    def forward_step(self: LocalNonStationary, prior, y):
-        """Calculate new x_dist based on observation y.
+    def update_step(self: LocalNonStationary, prior, y):
+        """Calculate new x_dist based on observation y then forecast
 
         Args:
-            prior: Prior for state
-            y: Observation
+            prior: Prior for state based on past ys
+            y: Current observation
 
         Returns:
-            Forecast and a posteriori distribution for state
+            (Forecast for y_now, a posteriori distribution for state_now, and forecast for state_next)
 
-        Differs from parent hmm.state_space.NonStationary by returning
-        forecast distribution.
+        Differs from parent forward_step in goals and return
+        values. FixMe: Figure if parent is wrong.
 
         """
-        f_t, d_f, state_noise_covariance = self.system.forecast(
-            prior.mean, 0.0, self.dt)
-        g_t, d_g, observation_noise_covariance = self.system.update(f_t, 0.0)
+        t = 0.0  # The lorenz system is stationary
+
+        g_t, d_g, observation_noise_covariance = self.system.update(
+            prior.mean, t)
 
         # y_forecast is the distribution of y[t]|y[:t]
         cov = observation_noise_covariance + numpy.dot(
-            numpy.dot(d_g, state_noise_covariance), d_g.T)
+            numpy.dot(d_g, prior.covariance), d_g.T)
         y_forecast = hmm.state_space.MultivariateNormal(g_t, cov, self.rng)
 
-        forecast = self.forecast(prior,
-                                 d_f,
-                                 state_noise_covariance,
-                                 new_mean=f_t)
-
-        update = self.update(forecast,
+        # Calculate distribution of x[t]|y[:t+1], ie, include y in history
+        update = self.update(prior,
                              y,
                              d_g,
                              observation_noise_covariance,
                              observation_mean=g_t)
+
+        # Integrate updated mean forward
+        f_next, d_f, state_noise_covariance = self.system.forecast(
+            update.mean, t, self.dt)
+
+        # forecast ~ Normal(f_next, state_noise_covaraince + d_f Sigma_update d_f.T)
+        forecast = self.forecast(update,
+                                 d_f,
+                                 state_noise_covariance,
+                                 new_mean=f_next)
+        positive_definite(forecast.covariance)
+
         return forecast, update, y_forecast
 
 
@@ -199,3 +221,34 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
         500, initial_state=initial_state)  # Collect data for distribution
     return LocalNonStationary(sde, dt,
                               rng), stationary_distribution, final_state
+
+
+def main(argv=None):
+    s = 10.0
+    r = 28.0
+    b = 8.0 / 3
+
+    rng = numpy.random.default_rng(3)
+
+    dev_state_noise = 1.0e-6
+    dev_observation_noise = .01
+    d_t = 0.25
+    n_times = 500
+    y_step = 1.0e-4
+
+    system, stationary_distribution, initial_state = make_system(
+        s, r, b, dev_state_noise, dev_observation_noise, d_t, rng)
+    initial_distribution = hmm.state_space.MultivariateNormal(
+        initial_state, stationary_distribution.covariance / 1.0e4, rng)
+    x, y = system.simulate_n_steps(initial_distribution, n_times, y_step)
+
+    system, stationary_distribution, initial_state = make_system(
+        s, r, b, dev_state_noise, dev_observation_noise, d_t, rng)
+
+    forecast_means, forecast_covariances, update_means, update_covariances, y_means, y_variances, y_probabilities = system.forward_filter(
+        initial_distribution, y, y_step)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
