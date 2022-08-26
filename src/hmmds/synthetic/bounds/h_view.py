@@ -2,7 +2,6 @@
 
 ToDo: Discrete y to get probability masses instead of densities
 ToDo: Calculate and plot log p(y[t]|y[:t])
-ToDo: Calculate update_means and update_covariances
 
 """
 
@@ -18,6 +17,7 @@ import numpy
 import numpy.linalg
 import scipy.linalg
 
+import hmm.state_space
 import hmmds.synthetic.filter.lorenz_sde
 import hmmds.synthetic.bounds.lorenz
 
@@ -43,10 +43,10 @@ def ellipse(mean, covariance, i_a=1, i_b=2):
     vals3, vecs3 = numpy.linalg.eigh(covariance)
     vals2, vecs2 = numpy.linalg.eigh(covariance_2)
     vals_sqrt, vecs_sqrt = numpy.linalg.eigh(sqrt_cov_2)
-    print(f'''eigenvalues3={vals3} {vals3.max()/vals3.min():.3g}
-eigenvalues2={vals2}  {vals2.max()/vals2.min():.3g}
-vals_sqrt=   {vals_sqrt}  {vals_sqrt.max()/vals_sqrt.min():.3g}
-''')
+#     print(f'''eigenvalues3={vals3} {vals3.max()/vals3.min():.3g}
+# eigenvalues2={vals2}  {vals2.max()/vals2.min():.3g}
+# vals_sqrt=   {vals_sqrt}  {vals_sqrt.max()/vals_sqrt.min():.3g}
+# ''')
     return result
 
 
@@ -158,9 +158,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         for name, title, minimum, maximum, updates in (
             ('time_step', 'ts', 0.05, 0.5,
              'update_system update_data update_filter update_plot'),
-            ('y_step', 'y_step*100', 1.0e-3, 2.0e-2,
+            ('y_step', 'Dy*100', 1.0e-4, 2.0e-2,
              'update_filter update_plot'),
-            ('dev_observation', 'Dev_y', 0.001, 0.1,
+            ('dev_observation', '\u03c3y', 0.001, 0.1,
              'update_system update_data update_filter update_plot'
             ),  # sigma epsilon observation noise
         ):
@@ -173,7 +173,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             ('view_theta', '\u03b8', -3.0, 3.0, 'update_plot'),  # View theta
             ('view_phi', '\u03c6', -3.0, 3.0, 'update_plot'),  # View phi
                 # Times 1e4, fixme scale by root dt
-            ('dev_state', 'Dev_x*1e4', 1.0e-3, 1.0e-1,
+            ('dev_state', '\u03C3x*1e4', 1.0e-3, 2.0e-2,
              'update_system update_data update_filter update_plot'
             ),  # sigma eta state noise
         ):
@@ -186,37 +186,45 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Define widgets for plot section
 
-        # Time series x[0]
+        # Upper left. Time series x[0]
         temp = time_series.addPlot()
-        self.ts_curve = temp.plot(pen='g')
+        temp.addLegend()
+        self.ts_curve = temp.plot(pen='g',name="y")
         self.ts_point = temp.plot(symbolPen='w', symbol='+', symbolSize=30)
+        self.y_forecast = temp.plot(pen='r',name="forecast")
 
-        # y[t] - mean of p(y[t]|y[:t])
+        # Center left.  y[t] - mean of p(y[t]|y[:t])
         temp = error.addPlot()
         self.error_curve = temp.plot(pen='g')
         self.error_point = temp.plot(symbolPen='w', symbol='+', symbolSize=30)
         self.sigma_curve = temp.plot(pen='r')
 
-        # log p(y[t]|y[:t])
+        # Lower left. log p(y[t]|y[:t])
         temp = probability.addPlot()
         self.probability_curve = temp.plot(pen='g')
         self.probability_point = temp.plot(symbolPen='w',
                                            symbol='+',
                                            symbolSize=30)
 
-        # x[0] vs x[2]
+        # Upper right. x[0] vs x[2]
         temp = phase_portrait.addPlot()
-        self.pp_curve = temp.plot(pen='g')
+        temp.addLegend()
+        self.pp_curve = temp.plot(pen='g', name='x')
+        self.pp_forecast = temp.plot(pen='r', name='forecast')
+        self.pp_update = temp.plot(pen='y', name='update')
+        self.pp_point = temp.plot(symbolPen='w', symbol='+', symbolSize=30)
 
-        # ekf at t
+        # Center right.  ekf at t
         temp = ekf_t.addPlot()
-        self.ekf_forecast_t_curve = temp.plot(pen='r')
-        self.ekf_update_t_curve = temp.plot(pen='g')
+        temp.addLegend()
+        self.ekf_forecast_t_curve = temp.plot(pen='r', name='forecast')
+        self.ekf_update_t_curve = temp.plot(pen='g', name='update')
 
-        # ekf at t+1
+        # Lower right.  ekf at t+1
         temp = ekf_t_plus.addPlot()
-        self.ekf_forecast_t_plus_curve = temp.plot(pen='r')
-        self.ekf_update_t_plus_curve = temp.plot(pen='g')
+        temp.addLegend()
+        self.ekf_forecast_t_plus_curve = temp.plot(pen='r', name='forecast')
+        self.ekf_update_t_plus_curve = temp.plot(pen='g', name='update')
 
         # Make self the central widget
         widget = PyQt5.QtWidgets.QWidget()
@@ -225,6 +233,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Do all calculations to initialize
         self.update_system()
+        self.n_times.spin.setValue(5)
+        self.time_step.spin.setValue(.25)
+        self.y_step.spin.setValue(.01)
+        self.dev_observation.spin.setValue(.01)
+        self.dev_state.spin.setValue(.01)
         self.n_times.spin.setValue(500)
 
     def update_system(self):
@@ -237,8 +250,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         rng = numpy.random.default_rng(3)
         d_t = self.time_step()
         state_noise_scale = self.dev_state() * numpy.sqrt(d_t) / 1.0e4
-        self.system, self.stationary_distribution, self.initial_state = hmmds.synthetic.bounds.lorenz.make_system(
+        self.system, self.stationary_distribution, initial_state = hmmds.synthetic.bounds.lorenz.make_system(
             s, r, b, state_noise_scale, self.dev_observation(), d_t, rng)
+        self.initial_distribution = hmm.state_space.MultivariateNormal(initial_state, self.stationary_distribution.covariance/1e12, self.stationary_distribution.rng)
 
     def update_data(self):
         """Make new self.x and self.y
@@ -246,7 +260,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Reinitialize rng for reproducibility
         self.system.rng = numpy.random.default_rng(3)
         self.x, self.y = self.system.simulate_n_steps(
-            self.stationary_distribution, self.n_times(),
+            self.initial_distribution, self.n_times(),
             self.y_step() / 100)
 
     def update_filter(self):
@@ -260,7 +274,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         hmm.state_space.SDE.update
         """
         self.forecast_means, self.forecast_covariances, self.update_means, self.update_covariances, self.y_means, self.y_variances, self.y_probabilities = self.system.forward_filter(
-            self.stationary_distribution, self.y, self.y_step())
+            self.initial_distribution, self.y, self.y_step()/100)
 
     def update_plot(self):
         # Calculate range of samples to display
@@ -270,20 +284,29 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         n_min = min(self.n_times() - 1,
                     max(0, int(self.t_view() - self.n_view() / 2)))
-        assert 1 <= n_min <= self.n_times() - 1
+        assert 0 <= n_min <= self.n_times() - 1
 
         assert n_min < n_max
         times = numpy.arange(n_min, n_max)
+        print(f'''times[0] = {times[0]}
+x[n_min]        = {self.x[n_min]}
+forecast[n_min] = {self.forecast_means[n_min]}
+update[n_min]   = {self.update_means[n_min]}
+        ''')
 
         t_now = self.t_view()
         # Plot time series
         self.ts_curve.setData(times, self.y[n_min:n_max, 0])
+        self.y_forecast.setData(times, self.y_means[n_min:n_max])
         self.ts_point.setData([
             t_now,
         ], [self.y[t_now, 0]])
 
         # Plot phase portrait
         self.pp_curve.setData(self.x[n_min:n_max, 0], self.x[n_min:n_max, 2])
+        self.pp_point.setData([self.x[t_now,0]],[self.x[t_now,2]])
+        self.pp_update.setData(self.update_means[n_min:n_max, 0], self.update_means[n_min:n_max, 2])
+        self.pp_forecast.setData(self.forecast_means[n_min:n_max, 0], self.forecast_means[n_min:n_max, 2])
 
         # Plot errors
         error = self.y[:, 0] - self.y_means
