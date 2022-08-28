@@ -3,7 +3,7 @@
 
 FILTER_DATA = $(BUILD)/derived_data/synthetic/filter
 FIGS_FILTER = $(BUILD)/figs/filter
-FilterPlotscripts = $(ROOT)/plotscripts/filter
+FilterPlotscripts = $(ROOT)/src/plotscripts/filter
 
 $(FIGS_FILTER)/%_filter.pdf: $(FILTER_DATA)/%_data $(FilterPlotscripts)/filter_fig.py
 	mkdir -p $(FIGS_FILTER)

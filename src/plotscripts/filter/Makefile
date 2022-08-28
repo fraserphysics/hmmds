@@ -1,6 +1,6 @@
 # Makefile: For testing scripts in this directory from this directory.
 
-ROOT = ../..
+ROOT = ../../..
 BUILD = $(ROOT)/build
 FIGS_FILTER = $(BUILD)/figs/filter
 FilterPlotScripts = ./
