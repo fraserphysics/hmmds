@@ -104,9 +104,11 @@ illustrate the behavior of the system with the values
 Figure~\ref{fig:linear_map_filter} has the following subplots:
 \begin{description}
 \item[Upper left:] A phase portrait, $x_1$ vs $x_0$
-\item[Center left:] Time series,  $x_0$ and $x_1$ vs $t$.  The dots
-  represent five samples per cycle.  The data for filtering and
-  smoothing are sampled at that rate.
+\item[Center left:] Time series, $x_0$ and $x_1$ vs $t$.  The curves
+  are sampled 100 times per cycle and dots represent 20 samples per
+  cycle.
+  % Rules.mk: FILTER_ARGS = --sample_rate 100 --sample_ratio 5
+  The data for filtering and smoothing are sampled at that rate.
 \item[Lower left:] Simulated data $y_0$ vs $t$ with dots representing
   the samples.
 \item[Upper right:] The sampled observations $y_0$ vs $t$
@@ -117,7 +119,12 @@ Figure~\ref{fig:linear_map_filter} has the following subplots:
   square root of the estimated variance, $2\sqrt{\Sigma_{0,0}}$,
   vs $t$.
 \end{description}
-\filterplot{linear_map_filter}{linear\_map\_filter}\pagebreak
+%
+\filterplot{linear_map_filter}{Kalman filter applied to data from a
+  stationary linear map.  Note that the data for the right hand column
+  is drawn independently from the data in the left hand column.}
+%
+\pagebreak %
 And Fig.~\ref{fig:linear_map_smooth} has the following subplots:
 \begin{description}
 \item[Upper left:] The estimate of the first component from a forward
@@ -136,7 +143,9 @@ And Fig.~\ref{fig:linear_map_smooth} has the following subplots:
   $x_0$ from combining a forward and a backward pass through the data.
 \end{description}
 
-\filterplot{linear_map_smooth}{linear\_map\_smooth}\pagebreak
+\filterplot{linear_map_smooth}{A smoothing filter applied to the data
+  illustrated in the right hand column of Fig.~\ref{fig:linear_map_filter} }%
+\pagebreak
 
 The plots in Figs. \ref{fig:linear_sde_filter} and
 \ref{fig:linear_sde_smooth} are like the plots in

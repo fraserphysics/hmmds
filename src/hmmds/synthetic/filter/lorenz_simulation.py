@@ -24,7 +24,7 @@ def make_system(args, dt, rng):
         rng:
 
     Returns:
-        (An SDE instance, an initial state, an inital distribution)
+        (An SDE instance, an initial distribution, an initial state)
 
     The goal is to get linear_map_simulation.main to exercise all of the
     SDE methods on the Lorenz system.
