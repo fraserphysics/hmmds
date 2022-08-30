@@ -126,13 +126,13 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         quit_button.clicked.connect(self.close)
         buttons_layout.addWidget(quit_button)
 
-        run_button = PyQt5.QtWidgets.QPushButton('Run', self)
-        run_button.clicked.connect(self.run)
-        buttons_layout.addWidget(run_button)
+        debug_button = PyQt5.QtWidgets.QPushButton('Debug', self)
+        debug_button.clicked.connect(self.debug)
+        buttons_layout.addWidget(debug_button)
 
-        filter_button = PyQt5.QtWidgets.QPushButton('Filter', self)
-        filter_button.clicked.connect(self.filter)
-        buttons_layout.addWidget(filter_button)
+        hold_button = PyQt5.QtWidgets.QPushButton('Hold', self)
+        hold_button.clicked.connect(self.hold)
+        buttons_layout.addWidget(hold_button)
 
         save_button = PyQt5.QtWidgets.QPushButton('Save', self)
         save_button.clicked.connect(self.save)
@@ -171,7 +171,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             ('view_theta', '\u03b8', -3.0, 3.0, 0.0,
              'update_plot'),  # View theta
             ('view_phi', '\u03c6', -3.0, 3.0, 0.0, 'update_plot'),  # View phi
-                # Times 1e4, fixme scale by root dt
             ('dev_state', '\u03C3x*1e4', 1.0e-3, 2.0e-2, 0.01,
              'update_system update_data update_filter update_plot'
             ),  # sigma eta state noise
@@ -247,12 +246,15 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         rng = numpy.random.default_rng(3)
         d_t = self.time_step()
-        state_noise_scale = self.dev_state() * numpy.sqrt(d_t) / 1.0e4
+        # In state_space.SDE.forecast, the covariance ends up being dt
+        # * state_noise_scale**2.  So dividing by sqrt(dt) here makes
+        # self.dev_state the actual noise scale.
+        state_noise_scale = self.dev_state() / (numpy.sqrt(d_t) * 1.0e4)
         self.system, self.stationary_distribution, initial_state = hmmds.synthetic.bounds.lorenz.make_system(
             s, r, b, state_noise_scale, self.dev_observation(), d_t, rng)
         self.initial_distribution = hmm.state_space.MultivariateNormal(
             initial_state,
-            numpy.eye(3) * state_noise_scale**2,
+            numpy.eye(3) * state_noise_scale**2 * 1e2,
             self.stationary_distribution.rng)
 
     def update_data(self):
@@ -341,10 +343,43 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                        self.update_covariances[t_next])
         self.ekf_update_t_plus_curve.setData(temp[:, 0], temp[:, 1])
 
-    def run(self):
-        pass
+    def debug(self):
+        """Print debugging information
+        """
 
-    def filter(self):
+        def analyze_print(name, distribution=None, mean=None, covariance=None):
+            if distribution:
+                assert mean is None
+                assert covariance is None
+                mean = distribution.mean
+                covariance = distribution.covariance
+            vals, vecs = numpy.linalg.eigh(covariance)
+            # Check that the column vecs[:,0] is a left eigenvector
+            assert numpy.allclose(numpy.dot(covariance, vecs[:, 0]),
+                                  vecs[:, 0] * vals[0])
+            print(f"""   {name}
+mean = {mean}
+covariance =
+{covariance}
+eigenvectors are columns of:
+{vecs}
+Eigenvalues={vals}
+""")
+            return
+
+        now = self.t_view()
+
+        print(f"""------------------------------------------------------------
+   y[{now}]={self.y[now]}""")
+        analyze_print(f'forecast[{now}]',
+                      mean=self.forecast_means[now],
+                      covariance=self.forecast_covariances[now])
+        analyze_print(f'update[{now}]',
+                      mean=self.update_means[now],
+                      covariance=self.update_covariances[now])
+
+    def hold(self):
+        """Place holder for future"""
         pass
 
     def save(self):

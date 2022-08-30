@@ -203,14 +203,14 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
         return numpy.dot(observation_map, state), observation_map
 
     x_dim = 3
-    state_noise_map = numpy.eye(x_dim) * unit_state_noise_scale
+    unit_state_noise_map = numpy.eye(x_dim) * unit_state_noise_scale
     y_dim = observation_function(0, numpy.ones(x_dim))[0].shape[0]
     observation_noise_map = numpy.eye(y_dim) * observation_noise_scale
 
     # pylint: disable = c-extension-no-member, duplicate-code
     sde = hmmds.synthetic.filter.lorenz_sde.SDE(dx_dt,
                                                 tangent,
-                                                state_noise_map,
+                                                unit_state_noise_map,
                                                 observation_function,
                                                 observation_noise_map,
                                                 dt,
