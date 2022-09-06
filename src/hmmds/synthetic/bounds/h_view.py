@@ -159,13 +159,15 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
              'update_system update_data update_filter update_plot'),
             ('y_step', 'Dy*100', 1.0e-4, 2.0e-2, 0.01,
              'update_filter update_plot'),
-            ('dev_observation', '\u03c3y', 0.001, 0.1, 0.01,
+            ('dev_observation', '\u03c3y*1000', 0.001, 0.1, 0.01,
              'update_system update_data update_filter update_plot'
             ),  # sigma epsilon observation noise
         ):
             self.variable[name] = FloatVariable(title, minimum, maximum,
                                                 initial, self, updates)
             sliders2_layout.addWidget(self.variable[name])
+        self.variable['y_step'].modify_scale(1.0/100.0)
+        self.variable['dev_observation'].modify_scale(1.0e-3)
 
         # Layout third row of sliders
         for name, title, minimum, maximum, initial, updates in (
@@ -179,6 +181,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             self.variable[name] = FloatVariable(title, minimum, maximum,
                                                 initial, self, updates)
             sliders3_layout.addWidget(self.variable[name])
+        self.variable['dev_state'].modify_scale(1.0e-4)
 
         # Enable access like self.n_times() instead of self.variable['n_times']()
         self.__dict__.update(self.variable)
@@ -250,12 +253,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # In state_space.SDE.forecast, the covariance ends up being dt
         # * state_noise_scale**2.  So dividing by sqrt(dt) here makes
         # self.dev_state the actual noise scale.
-        state_noise_scale = self.dev_state() / (numpy.sqrt(d_t) * 1.0e4)
+        state_noise_scale = self.dev_state() / numpy.sqrt(d_t)
         self.system, self.stationary_distribution, initial_state = hmmds.synthetic.bounds.lorenz.make_system(
             s, r, b, state_noise_scale, self.dev_observation(), d_t, rng)
         self.initial_distribution = hmm.state_space.MultivariateNormal(
             initial_state,
-            numpy.eye(3) * state_noise_scale**2 * 1e2,
+            numpy.eye(3) * state_noise_scale**2,
             self.stationary_distribution.rng)
 
     def update_data(self):
@@ -265,7 +268,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.system.rng = numpy.random.default_rng(3)
         self.x, self.y = self.system.simulate_n_steps(self.initial_distribution,
                                                       self.n_times(),
-                                                      self.y_step() / 100)
+                                                      self.y_step())
 
     def update_filter(self):
         """Run extended Kalman filter to get forecast and updated distributions
@@ -279,7 +282,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         """
         self.forecast_means, self.forecast_covariances, self.update_means, self.update_covariances, self.y_means, self.y_variances, temp_prob = self.system.forward_filter(
             self.initial_distribution, self.y,
-            self.y_step() / 100)
+            self.y_step())
         self.log_probabilities = numpy.log(numpy.maximum(temp_prob, 1.0e-20))
 
     def update_plot(self):
@@ -427,6 +430,11 @@ class IntVariable(PyQt5.QtWidgets.QWidget):
         self.x = initial
         self.slider.setValue(self.x)
 
+    def modify_scale(self, scale):
+        """Set scale for __call__
+        """
+        self.scale = scale
+
     def __init__(self: IntVariable,
                  title: str,
                  minimum: int,
@@ -434,6 +442,7 @@ class IntVariable(PyQt5.QtWidgets.QWidget):
                  initial: int,
                  main_window,
                  update_names,
+                 scale=1,
                  parent=None):
         super(IntVariable, self).__init__(parent=parent)
 
@@ -444,6 +453,7 @@ class IntVariable(PyQt5.QtWidgets.QWidget):
         self.modify_properties(maximum, minimum, initial)
 
         # Attach arguments to self and widgets
+        self.scale=scale
         self.label.setText(title)
         self.spin.setRange(minimum, maximum)
         self.spin.setValue(self.x)
@@ -462,7 +472,7 @@ class IntVariable(PyQt5.QtWidgets.QWidget):
         self.resize(self.sizeHint())
 
     def __call__(self: IntVariable):
-        return self.x
+        return self.x * self.scale
 
     def setValue(self: IntVariable, value):
         self.spin.setValue(value)

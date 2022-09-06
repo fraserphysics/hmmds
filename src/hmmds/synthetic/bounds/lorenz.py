@@ -216,6 +216,14 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
                                                 dt,
                                                 x_dim,
                                                 ivp_args=(s, r, b))
+    foo = hmm.state_space.SDE(dx_dt,
+                                                tangent,
+                                                unit_state_noise_map,
+                                                observation_function,
+                                                observation_noise_map,
+                                                dt,
+                                                x_dim,
+                                                ivp_args=(s, r, b))
     initial_state = sde.relax(500)[0]  # Relax to attractor
     final_state, stationary_distribution = sde.relax(
         500, initial_state=initial_state)  # Collect data for distribution
@@ -239,7 +247,7 @@ def main(argv=None):
     system, stationary_distribution, initial_state = make_system(
         s, r, b, dev_state_noise, dev_observation_noise, d_t, rng)
     initial_distribution = hmm.state_space.MultivariateNormal(
-        initial_state, stationary_distribution.covariance / 1.0e4, rng)
+        initial_state, stationary_distribution.covariance , rng)
     x, y = system.simulate_n_steps(initial_distribution, n_times, y_step)
 
     system, stationary_distribution, initial_state = make_system(
