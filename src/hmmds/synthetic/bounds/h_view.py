@@ -10,6 +10,7 @@ from __future__ import annotations  # Enables, eg, (self: LocalNonStationary
 import sys  # We need sys so that we can pass argv to QApplication
 import os
 import typing
+import pickle
 
 import PyQt5.QtWidgets
 import pyqtgraph
@@ -387,9 +388,13 @@ Eigenvalues={vals}
 
         ToDo: Actually save the stuff using pickle.  Maybe pop up a
         chooser for path to file """
-        with open('foo.txt', 'w') as file_:
-            for name, variable in self.variable.items():
-                file_.write(f'{name} {variable()}\n')
+        dump_dict = {}
+        for name in 'forecast_means forecast_covariances update_means update_covariances y_means log_probabilities'.split():
+            dump_dict[name] = getattr(self, name)
+        for name, variable in self.variable.items():
+            dump_dict[name] = variable()
+        with open('data_h_view', 'wb') as _file:
+            pickle.dump(dump_dict,_file)
 
     def read_values(self):
         """Maybe write this to read slider values
