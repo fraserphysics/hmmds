@@ -131,9 +131,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         debug_button.clicked.connect(self.debug)
         buttons_layout.addWidget(debug_button)
 
-        hold_button = PyQt5.QtWidgets.QPushButton('Hold', self)
-        hold_button.clicked.connect(self.hold)
-        buttons_layout.addWidget(hold_button)
+        self.hold_button = PyQt5.QtWidgets.QPushButton('SciPy', self)
+        self.hold_button.clicked.connect(self.hold)
+        buttons_layout.addWidget(self.hold_button)
 
         save_button = PyQt5.QtWidgets.QPushButton('Save', self)
         save_button.clicked.connect(self.save)
@@ -254,10 +254,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # * state_noise_scale**2.  So dividing by sqrt(dt) here makes
         # self.dev_state the actual noise scale.
         state_noise_scale = self.dev_state() / numpy.sqrt(d_t)
-        self.system, self.stationary_distribution, initial_state = hmmds.synthetic.bounds.lorenz.make_system(
-            s, r, b, state_noise_scale, self.dev_observation(), d_t, rng)
+        self.__dict__.update(hmmds.synthetic.bounds.lorenz.make_system(
+            s, r, b, state_noise_scale, self.dev_observation(), d_t, rng))
+        self.system = self.SciPy
         self.initial_distribution = hmm.state_space.MultivariateNormal(
-            initial_state,
+            self.initial_state,
             numpy.eye(3) * state_noise_scale**2,
             self.stationary_distribution.rng)
 
@@ -383,8 +384,19 @@ Eigenvalues={vals}
                       covariance=self.update_covariances[now])
 
     def hold(self):
-        """Place holder for future"""
-        pass
+        """Choose Cython or SciPy
+        """
+        old_text = self.hold_button.text()
+        if old_text == 'Cython':
+            self.hold_button.setText('SciPy')
+        elif old_text == 'SciPy':
+            self.hold_button.setText('Cython')
+        else:
+            raise RuntimeError
+        self.system = getattr(self, self.hold_button.text())
+        self.update_data()
+        self.update_filter()
+        self.update_plot()
 
     def save(self):
         """Save slider settings and plotted data

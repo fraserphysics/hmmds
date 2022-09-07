@@ -157,13 +157,18 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
         dt: Sample interval
         rng: Random number generator
 
-    Returns: (An hmmds.synthetic.filter.lorenz_sde.SDE instance, an
-        inital distribution, an initial state)
+    Returns: dict
+
+    'Cython': hmmds.synthetic.filter.lorenz_sde.SDE instance,
+    'SciPy': hmm.state_space.SDE instance
+    'stationary_distribution': hmm.state_space.MultivariateNormal instance
+    'initial_state': numpy.ndarray
 
     Derived from hmmds.synthetic.filter.lorenz_simulation
 
     """
 
+    result = {}  # Colletion of items to return
     # The next three functions are passed to SDE.__init__
     # pylint: disable = invalid-name
 
@@ -216,7 +221,7 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
                                                 dt,
                                                 x_dim,
                                                 ivp_args=(s, r, b))
-    foo = hmm.state_space.SDE(dx_dt,
+    cython = hmm.state_space.SDE(dx_dt,
                                                 tangent,
                                                 unit_state_noise_map,
                                                 observation_function,
@@ -227,9 +232,11 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
     initial_state = sde.relax(500)[0]  # Relax to attractor
     final_state, stationary_distribution = sde.relax(
         500, initial_state=initial_state)  # Collect data for distribution
-    return LocalNonStationary(sde, dt,
-                              rng), stationary_distribution, final_state
-
+    result['initial_state'] = final_state
+    result['stationary_distribution'] = stationary_distribution
+    result['Cython'] = LocalNonStationary(cython, dt, rng)
+    result['SciPy'] = LocalNonStationary(sde, dt, rng)
+    return result
 
 def main(argv=None):
     s = 10.0
