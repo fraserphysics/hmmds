@@ -161,12 +161,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
              'update_filter update_plot'),
             ('dev_observation', '\u03c3y*1000', 0.001, 0.1, 0.01,
              'update_system update_data update_filter update_plot'
-            ),  # sigma epsilon observation noise
+             ),  # sigma y: observation noise
         ):
             self.variable[name] = FloatVariable(title, minimum, maximum,
                                                 initial, self, updates)
             sliders2_layout.addWidget(self.variable[name])
-        self.variable['y_step'].modify_scale(1.0/100.0)
+        self.variable['y_step'].modify_scale(1.0 / 100.0)
         self.variable['dev_observation'].modify_scale(1.0e-3)
 
         # Layout third row of sliders
@@ -176,7 +176,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             ('view_phi', '\u03c6', -3.0, 3.0, 0.0, 'update_plot'),  # View phi
             ('dev_state', '\u03C3x*1e4', 1.0e-3, 2.0e-2, 0.01,
              'update_system update_data update_filter update_plot'
-            ),  # sigma eta state noise
+             ),  # sigma x: state noise
         ):
             self.variable[name] = FloatVariable(title, minimum, maximum,
                                                 initial, self, updates)
@@ -254,8 +254,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # * state_noise_scale**2.  So dividing by sqrt(dt) here makes
         # self.dev_state the actual noise scale.
         state_noise_scale = self.dev_state() / numpy.sqrt(d_t)
-        self.__dict__.update(hmmds.synthetic.bounds.lorenz.make_system(
-            s, r, b, state_noise_scale, self.dev_observation(), d_t, rng))
+        self.__dict__.update(
+            hmmds.synthetic.bounds.lorenz.make_system(s, r, b,
+                                                      state_noise_scale,
+                                                      self.dev_observation(),
+                                                      d_t, rng))
         self.system = self.SciPy
         self.initial_distribution = hmm.state_space.MultivariateNormal(
             self.initial_state,
@@ -267,9 +270,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         """
         # Reinitialize rng for reproducibility
         self.system.rng = numpy.random.default_rng(3)
-        self.x, self.y = self.system.simulate_n_steps(self.initial_distribution,
-                                                      self.n_times(),
-                                                      self.y_step())
+        self.x, self.y = self.system.simulate_n_steps(
+            self.initial_distribution, self.n_times(), self.y_step())
 
     def update_filter(self):
         """Run extended Kalman filter to get forecast and updated distributions
@@ -282,14 +284,13 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         hmm.state_space.SDE.update
         """
         self.forecast_means, self.forecast_covariances, self.update_means, self.update_covariances, self.y_means, self.y_variances, temp_prob = self.system.forward_filter(
-            self.initial_distribution, self.y,
-            self.y_step())
+            self.initial_distribution, self.y, self.y_step())
         self.log_probabilities = numpy.log(numpy.maximum(temp_prob, 1.0e-20))
 
     def update_plot(self):
         # Calculate range of samples to display
-        n_max = max(1,
-                    min(self.n_times(), int(self.t_view() + self.n_view() / 2)))
+        n_max = max(
+            1, min(self.n_times(), int(self.t_view() + self.n_view() / 2)))
         assert 1 <= n_max <= self.n_times()
 
         n_min = min(self.n_times() - 1,
@@ -331,13 +332,15 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         temp = ellipse(self.forecast_means[t_now],
                        self.forecast_covariances[t_now])
         self.ekf_forecast_t_curve.setData(temp[:, 0], temp[:, 1])
-        temp = ellipse(self.update_means[t_now], self.update_covariances[t_now])
+        temp = ellipse(self.update_means[t_now],
+                       self.update_covariances[t_now])
         self.ekf_update_t_curve.setData(temp[:, 0], temp[:, 1])
 
         # Plot probability vs t
         self.probability_curve.setData(times,
                                        self.log_probabilities[n_min:n_max])
-        self.probability_point.setData([t_now], [self.log_probabilities[t_now]])
+        self.probability_point.setData([t_now],
+                                       [self.log_probabilities[t_now]])
 
         # Plot ellipses for t+1
         t_next = self.t_view() + 1
@@ -404,12 +407,13 @@ Eigenvalues={vals}
         ToDo: Actually save the stuff using pickle.  Maybe pop up a
         chooser for path to file """
         dump_dict = {}
-        for name in 'forecast_means forecast_covariances update_means update_covariances y_means log_probabilities'.split():
+        for name in 'forecast_means forecast_covariances update_means update_covariances y_means log_probabilities'.split(
+        ):
             dump_dict[name] = getattr(self, name)
         for name, variable in self.variable.items():
             dump_dict[name] = variable()
         with open('data_h_view', 'wb') as _file:
-            pickle.dump(dump_dict,_file)
+            pickle.dump(dump_dict, _file)
 
     def read_values(self):
         """Maybe write this to read slider values
@@ -465,7 +469,7 @@ class IntVariable(PyQt5.QtWidgets.QWidget):
         self.modify_properties(maximum, minimum, initial)
 
         # Attach arguments to self and widgets
-        self.scale=scale
+        self.scale = scale
         self.label.setText(title)
         self.spin.setRange(minimum, maximum)
         self.spin.setValue(self.x)

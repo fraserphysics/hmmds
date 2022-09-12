@@ -46,10 +46,12 @@ class LocalNonStationary(hmm.state_space.NonStationary):
 
         Differs from parent by Quantizing the observations
         """
-        xs, ys = self.system.simulate_n_steps(initial_dist, n_samples, states_0)
+        xs, ys = self.system.simulate_n_steps(initial_dist, n_samples,
+                                              states_0)
         return xs, numpy.floor(ys / y_step) * y_step + y_step / 2
 
-    def forward_filter(self: LocalNonStationary, initial_dist, y_array, y_step):
+    def forward_filter(self: LocalNonStationary, initial_dist, y_array,
+                       y_step):
         """Run Kalman filter on observations y_array.
 
         Args:
@@ -67,7 +69,8 @@ class LocalNonStationary(hmm.state_space.NonStationary):
         forecast_covariances = numpy.empty(
             (len(y_array), self.x_dim, self.x_dim))
         update_means = numpy.empty((len(y_array), self.x_dim))
-        update_covariances = numpy.empty((len(y_array), self.x_dim, self.x_dim))
+        update_covariances = numpy.empty(
+            (len(y_array), self.x_dim, self.x_dim))
         y_means = numpy.empty(len(y_array))
         y_variances = numpy.empty(len(y_array))
         y_probabilities = numpy.empty(len(y_array))
@@ -168,7 +171,6 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
 
     """
 
-    result = {}  # Colletion of items to return
     # The next three functions are passed to SDE.__init__
     # pylint: disable = invalid-name
 
@@ -213,30 +215,36 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
     observation_noise_map = numpy.eye(y_dim) * observation_noise_scale
 
     # pylint: disable = c-extension-no-member, duplicate-code
-    sde = hmmds.synthetic.filter.lorenz_sde.SDE(dx_dt,
-                                                tangent,
-                                                unit_state_noise_map,
-                                                observation_function,
-                                                observation_noise_map,
-                                                dt,
-                                                x_dim,
-                                                ivp_args=(s, r, b))
-    cython = hmm.state_space.SDE(dx_dt,
-                                                tangent,
-                                                unit_state_noise_map,
-                                                observation_function,
-                                                observation_noise_map,
-                                                dt,
-                                                x_dim,
-                                                ivp_args=(s, r, b))
+    h_max = 1.0e-3  # Maximum step size for RK integrator.
+    atol = 1.0e-7  # Tolerance of scipy ode integrator
+    cython = hmmds.synthetic.filter.lorenz_sde.SDE(dx_dt,
+                                                   tangent,
+                                                   unit_state_noise_map,
+                                                   observation_function,
+                                                   observation_noise_map,
+                                                   dt,
+                                                   x_dim,
+                                                   ivp_args=(s, r, b, h_max))
+    sde = hmm.state_space.SDE(dx_dt,
+                              tangent,
+                              unit_state_noise_map,
+                              observation_function,
+                              observation_noise_map,
+                              dt,
+                              x_dim,
+                              ivp_args=(s, r, b),
+                              atol=atol)
     initial_state = sde.relax(500)[0]  # Relax to attractor
     final_state, stationary_distribution = sde.relax(
         500, initial_state=initial_state)  # Collect data for distribution
+
+    result = {}  # Colletion of items to return
     result['initial_state'] = final_state
     result['stationary_distribution'] = stationary_distribution
     result['Cython'] = LocalNonStationary(cython, dt, rng)
     result['SciPy'] = LocalNonStationary(sde, dt, rng)
     return result
+
 
 def main(argv=None):
     s = 10.0
@@ -254,7 +262,7 @@ def main(argv=None):
     system, stationary_distribution, initial_state = make_system(
         s, r, b, dev_state_noise, dev_observation_noise, d_t, rng)
     initial_distribution = hmm.state_space.MultivariateNormal(
-        initial_state, stationary_distribution.covariance , rng)
+        initial_state, stationary_distribution.covariance, rng)
     x, y = system.simulate_n_steps(initial_distribution, n_times, y_step)
 
     system, stationary_distribution, initial_state = make_system(
