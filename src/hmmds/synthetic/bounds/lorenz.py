@@ -16,6 +16,8 @@ import hmmds.synthetic.filter.lorenz_sde
 
 
 def positive_definite(x):
+    """Assert that x is positive definite
+    """
     symmetric = (x + x.T) / 2
     assert numpy.allclose(x, symmetric)
     vals, vecs = numpy.linalg.eigh(symmetric)
@@ -23,10 +25,9 @@ def positive_definite(x):
 
 
 class LocalNonStationary(hmm.state_space.NonStationary):
-    """Overwrite forward_filter method so that it returns both forecast
-    and update distributions  Also return probabilities.
-
-    Overwrite NonStationary.simulate_n_steps to quantize y
+    """Overwrite simulate_n_steps method for quantized observations,
+    and overwrite forward_filter method to return more than updated
+    means and covariances.
 
     """
 
@@ -46,12 +47,10 @@ class LocalNonStationary(hmm.state_space.NonStationary):
 
         Differs from parent by Quantizing the observations
         """
-        xs, ys = self.system.simulate_n_steps(initial_dist, n_samples,
-                                              states_0)
+        xs, ys = self.system.simulate_n_steps(initial_dist, n_samples, states_0)
         return xs, numpy.floor(ys / y_step) * y_step + y_step / 2
 
-    def forward_filter(self: LocalNonStationary, initial_dist, y_array,
-                       y_step):
+    def forward_filter(self: LocalNonStationary, initial_dist, y_array, y_step):
         """Run Kalman filter on observations y_array.
 
         Args:
@@ -69,8 +68,7 @@ class LocalNonStationary(hmm.state_space.NonStationary):
         forecast_covariances = numpy.empty(
             (len(y_array), self.x_dim, self.x_dim))
         update_means = numpy.empty((len(y_array), self.x_dim))
-        update_covariances = numpy.empty(
-            (len(y_array), self.x_dim, self.x_dim))
+        update_covariances = numpy.empty((len(y_array), self.x_dim, self.x_dim))
         y_means = numpy.empty(len(y_array))
         y_variances = numpy.empty(len(y_array))
         y_probabilities = numpy.empty(len(y_array))
