@@ -137,7 +137,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # sliders and spin boxes
 
         # Dict of variables that are too small for digits in spin boxes
-        scales = {'y_step': 100., 'dev_observation': 1000., 'dev_state': 10000.}
+        scales = {'y_step': 10000., 'dev_observation': 100., 'dev_state': 1.0e6}
 
         # Layout first row of sliders.  self.name will access the
         # variable, title will appear in the GUI,
@@ -158,10 +158,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         for name, title, minimum, maximum, initial, updates in (
             ('time_step', 'ts', 0.05, 0.5, 0.25,
              'update_system update_data update_filter update_plot'),
-            ('y_step', f'Dy*{scales["y_step"]:.0e}', 1.0e-4, 2.0e-2, 0.01,
+            ('y_step', f'Dy*{scales["y_step"]:.0e}', 1.0e-3, 9.9, 1.0,
              'update_filter update_plot'),
             ('dev_observation', f'\u03c3y*{scales["dev_observation"]:.0e}',
-             0.001, 0.1, 0.01,
+             1.0e-3, 9.9, 1.0,
              'update_system update_data update_filter update_plot'
             ),  # sigma y: observation noise
         ):
@@ -174,8 +174,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             ('view_theta', '\u03b8', -3.0, 3.0, 0.0,
              'update_plot'),  # View theta
             ('view_phi', '\u03c6', -3.0, 3.0, 0.0, 'update_plot'),  # View phi
-            ('dev_state', f'\u03C3x*{scales["dev_state"]:.0e}', 1.0e-3, 2.0e-2,
-             0.01, 'update_system update_data update_filter update_plot'
+            ('dev_state', f'\u03C3x*{scales["dev_state"]:.0e}', 1.0e-3, 9.9,
+             1.0, 'update_system update_data update_filter update_plot'
             ),  # sigma x: state noise
         ):
             self.variable[name] = FloatVariable(title, minimum, maximum,
@@ -250,6 +250,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         s = 10.0
         r = 28.0
         b = 8.0 / 3
+        h_max = 1.0e-3
+        atol = 1.0e-7
 
         rng = numpy.random.default_rng(3)
         d_t = self.time_step()
@@ -264,7 +266,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             hmmds.synthetic.bounds.lorenz.make_system(s, r, b,
                                                       state_noise_scale,
                                                       self.dev_observation(),
-                                                      d_t, rng))
+                                                      d_t, self.y_step(), h_max,
+                                                      atol, rng))
         self.system = self.SciPy
         self.initial_distribution = hmm.state_space.MultivariateNormal(
             self.initial_state,
@@ -277,8 +280,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Reinitialize rng for reproducibility
         self.system.rng = numpy.random.default_rng(3)
         self.x, self.y = self.system.simulate_n_steps(self.initial_distribution,
-                                                      self.n_times(),
-                                                      self.y_step())
+                                                      self.n_times())
 
     def update_filter(self: MainWindow):
         """Run extended Kalman filter to get forecast and updated distributions
@@ -291,7 +293,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         hmm.state_space.SDE.update
         """
         self.forecast_means, self.forecast_covariances, self.update_means, self.update_covariances, self.y_means, self.y_variances, temp_prob = self.system.forward_filter(
-            self.initial_distribution, self.y, self.y_step())
+            self.initial_distribution, self.y)
         self.log_probabilities = numpy.log(numpy.maximum(temp_prob, 1.0e-20))
 
     def update_plot(self: MainWindow):

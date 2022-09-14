@@ -31,11 +31,14 @@ class LocalNonStationary(hmm.state_space.NonStationary):
 
     """
 
+    def __init__(self, system, dt, y_step, rng):
+        super().__init__(system, dt, rng)
+        self.y_step = y_step
+
     def simulate_n_steps(
             self: LocalNonStationary,
             initial_dist: hmm.state_space.MultivariateNormal,
             n_samples: int,
-            y_step: float,
             states_0=None) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
         """Return simulated sequences of states and observations.
 
@@ -48,9 +51,9 @@ class LocalNonStationary(hmm.state_space.NonStationary):
         Differs from parent by Quantizing the observations
         """
         xs, ys = self.system.simulate_n_steps(initial_dist, n_samples, states_0)
-        return xs, numpy.floor(ys / y_step) * y_step + y_step / 2
+        return xs, numpy.floor(ys / self.y_step) * self.y_step + self.y_step / 2
 
-    def forward_filter(self: LocalNonStationary, initial_dist, y_array, y_step):
+    def forward_filter(self: LocalNonStationary, initial_dist, y_array):
         """Run Kalman filter on observations y_array.
 
         Args:
@@ -58,10 +61,8 @@ class LocalNonStationary(hmm.state_space.NonStationary):
             y_array: Sequence of observations
 
         Differs from parent hmm.state_space.LinearStationary by
-        returning both forcast and update distributions.
+        returning more than update distributions.
 
-        ToDo: Assume y.shape = (1,).  Accept addtional argument
-        y_step.  Calculate and return log prob y[t]|y[:t]
 
         """
         forecast_means = numpy.empty((len(y_array), self.x_dim))
@@ -95,9 +96,14 @@ class LocalNonStationary(hmm.state_space.NonStationary):
                 return (1 + scipy.special.erf(
                     (y - mean) / numpy.sqrt(2 * variance))) / 2
 
+            # y is on a quantization level, and y_means[t] is not.
+            # The forecast distribution is Normal(y_means[t],
+            # y_variances[t]).  The likelihood of y is the probability
+            # of the interval y +/- y_step/2
             y_probabilities[t] = cumulative_prob(
-                y + y_step / 2, y_means[t], y_variances[t]) - cumulative_prob(
-                    y - y_step / 2, y_means[t], y_variances[t])
+                y + self.y_step / 2,
+                y_means[t], y_variances[t]) - cumulative_prob(
+                    y - self.y_step / 2, y_means[t], y_variances[t])
 
         return forecast_means, forecast_covariances, update_means, update_covariances, y_means, y_variances, y_probabilities
 
@@ -147,8 +153,8 @@ class LocalNonStationary(hmm.state_space.NonStationary):
 
 
 def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
-                observation_noise_scale: float, dt: float,
-                rng: numpy.random.Generator):
+                observation_noise_scale: float, dt: float, y_step: float,
+                h_max: float, atol: float, rng: numpy.random.Generator):
     """Make a LocalNonStationary instance based on a Lorenz SDE
 
     Args:
@@ -156,6 +162,9 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
         unit_state_noise_scale: sqrt(dt)*this*std_normal(x_dim) = noise
         observation_noise_scale: this*std_normal(y_dim) = noise
         dt: Sample interval
+        y_step: Quantization step size
+        h_max: Maximum time step for cython integrator
+        atol: Error bound for scipy integrator
         rng: Random number generator
 
     Returns: dict
@@ -213,8 +222,6 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
     observation_noise_map = numpy.eye(y_dim) * observation_noise_scale
 
     # pylint: disable = c-extension-no-member, duplicate-code
-    h_max = 1.0e-3  # Maximum step size for RK integrator.
-    atol = 1.0e-7  # Tolerance of scipy ode integrator
     cython = hmmds.synthetic.filter.lorenz_sde.SDE(dx_dt,
                                                    tangent,
                                                    unit_state_noise_map,
@@ -232,15 +239,13 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
                               x_dim,
                               ivp_args=(s, r, b),
                               atol=atol)
-    initial_state = sde.relax(500)[0]  # Relax to attractor
-    final_state, stationary_distribution = sde.relax(
-        500, initial_state=initial_state)  # Collect data for distribution
+    relaxed = sde.relax(500)[0]  # Relax to attractor
+    result = {}  # Collection of items to return
+    result['initial_state'], result['stationary_distribution'] = sde.relax(
+        500, initial_state=relaxed)  # Collect data for distribution
 
-    result = {}  # Colletion of items to return
-    result['initial_state'] = final_state
-    result['stationary_distribution'] = stationary_distribution
-    result['Cython'] = LocalNonStationary(cython, dt, rng)
-    result['SciPy'] = LocalNonStationary(sde, dt, rng)
+    result['Cython'] = LocalNonStationary(cython, dt, y_step, rng)
+    result['SciPy'] = LocalNonStationary(sde, dt, y_step, rng)
     return result
 
 
@@ -256,18 +261,24 @@ def main(argv=None):
     d_t = 0.25
     n_times = 500
     y_step = 1.0e-4
+    h_max = 1.0e-3
+    atol = 1.0e-7
 
-    system, stationary_distribution, initial_state = make_system(
-        s, r, b, dev_state_noise, dev_observation_noise, d_t, rng)
+    # Generate data using cython to integrate Lorenz
+    generate = make_system(s, r, b, dev_state_noise, dev_observation_noise, d_t,
+                           y_step, h_max, atol, rng)
     initial_distribution = hmm.state_space.MultivariateNormal(
-        initial_state, stationary_distribution.covariance, rng)
-    x, y = system.simulate_n_steps(initial_distribution, n_times, y_step)
+        generate['initial_state'],
+        generate['stationary_distribution'].covariance, rng)
+    x, y = generate['Cython'].simulate_n_steps(initial_distribution, n_times,
+                                               y_step)
 
-    system, stationary_distribution, initial_state = make_system(
-        s, r, b, dev_state_noise, dev_observation_noise, d_t, rng)
+    # Filter the data using scipy to integrate Lorenz.
+    filter = make_system(s, r, b, dev_state_noise, dev_observation_noise, d_t,
+                         y_step, h_max, atol, rng)
 
-    forecast_means, forecast_covariances, update_means, update_covariances, y_means, y_variances, y_probabilities = system.forward_filter(
-        initial_distribution, y, y_step)
+    forecast_means, forecast_covariances, update_means, update_covariances, y_means, y_variances, y_probabilities = filter[
+        'SciPy'].forward_filter(initial_distribution, y)
     return 0
 
 
