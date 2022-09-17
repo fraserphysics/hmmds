@@ -124,6 +124,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         debug_button.clicked.connect(self.debug)
         buttons_layout.addWidget(debug_button)
 
+        run_button = PyQt5.QtWidgets.QPushButton('Run', self)
+        run_button.clicked.connect(self.run)
+        buttons_layout.addWidget(run_button)
+
         # option switches between cython and scipy for integrating Lorenz
         self.option_button = PyQt5.QtWidgets.QPushButton('SciPy', self)
         self.option_button.clicked.connect(self.option)
@@ -145,8 +149,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # and updates is a list of methods to call when the varible
         # changes
         for name, title, minimum, maximum, initial, updates in (
-            ('n_times', 'Nt', 5, 500, 50,
-             'update_data update_filter update_plot'),
+            ('n_times', 'Nt', 5, 500, 50, ''),
             ('n_view', 'N_view', 1, 100, 30, 'update_plot'),
             ('t_view', 't_view', 0, 500, 15, 'update_plot'),
         ):
@@ -156,14 +159,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Layout second row of sliders
         for name, title, minimum, maximum, initial, updates in (
-            ('time_step', 'ts', 0.05, 0.5, 0.25,
-             'update_system update_data update_filter update_plot'),
-            ('y_step', f'Dy*{scales["y_step"]:.0e}', 1.0e-3, 9.9, 1.0,
-             'update_filter update_plot'),
+            ('time_step', 'ts', 0.05, 0.5, 0.25, ''),
+            ('y_step', f'Dy*{scales["y_step"]:.0e}', 1.0e-3, 9.9, 1.0, ''),
             ('dev_observation', f'\u03c3y*{scales["dev_observation"]:.0e}',
-             1.0e-3, 9.9, 1.0,
-             'update_system update_data update_filter update_plot'
-            ),  # sigma y: observation noise
+             1.0e-3, 9.9, 1.0, ''),  # sigma y: observation noise
         ):
             self.variable[name] = FloatVariable(title, minimum, maximum,
                                                 initial, self, updates)
@@ -171,12 +170,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Layout third row of sliders
         for name, title, minimum, maximum, initial, updates in (
-            ('view_theta', '\u03b8', -3.0, 3.0, 0.0,
-             'update_plot'),  # View theta
-            ('view_phi', '\u03c6', -3.0, 3.0, 0.0, 'update_plot'),  # View phi
+            ('fudge', 'Multiplier', 1.0, 300.0, 1.0, ''),
+            ('view_phi', '\u03c6', -3.0, 3.0, 0.0, 'update_plot'),  # Not used
             ('dev_state', f'\u03C3x*{scales["dev_state"]:.0e}', 1.0e-3, 9.9,
-             1.0, 'update_system update_data update_filter update_plot'
-            ),  # sigma x: state noise
+             1.0, ''),  # sigma x: state noise
         ):
             self.variable[name] = FloatVariable(title, minimum, maximum,
                                                 initial, self, updates)
@@ -250,15 +247,16 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         s = 10.0
         r = 28.0
         b = 8.0 / 3
-        h_max = 1.0e-3
+        h_max = 1.0e-1
         atol = 1.0e-7
 
         rng = numpy.random.default_rng(3)
-        d_t = self.time_step()
+        print(f"""
+In update_system, random:  {rng.random()}""")
         # In state_space.SDE.forecast, the covariance ends up being dt
         # * state_noise_scale**2.  So dividing by sqrt(dt) here makes
         # self.dev_state the actual noise scale.
-        state_noise_scale = self.dev_state() / numpy.sqrt(d_t)
+        state_noise_scale = self.dev_state() / numpy.sqrt(self.time_step())
 
         # Attach Cython, SciPy, stationary_distribution, and
         # initial_state to self
@@ -266,21 +264,27 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             hmmds.synthetic.bounds.lorenz.make_system(s, r, b,
                                                       state_noise_scale,
                                                       self.dev_observation(),
-                                                      d_t, self.y_step(), h_max,
+                                                      self.time_step(), self.y_step(),
+                                                      self.fudge()**2, h_max,
                                                       atol, rng))
-        self.system = self.SciPy
+        self.system = getattr(self,
+                              self.option_button.text())  # SciPy or Cython
         self.initial_distribution = hmm.state_space.MultivariateNormal(
             self.initial_state,
             numpy.eye(3) * state_noise_scale**2,
             self.stationary_distribution.rng)
+        print(f"""   After make_sys, random: {self.system.rng.random()}
+initial_state: {self.initial_state}""")
 
     def update_data(self: MainWindow):
         """Make new self.x and self.y
         """
         # Reinitialize rng for reproducibility
         self.system.rng = numpy.random.default_rng(3)
+        print(f"""In update_data,    random: {self.system.rng.random()}""")
         self.x, self.y = self.system.simulate_n_steps(self.initial_distribution,
                                                       self.n_times())
+        print(f"""   After simulate, random: {self.system.rng.random()}""")
 
     def update_filter(self: MainWindow):
         """Run extended Kalman filter to get forecast and updated distributions
@@ -393,6 +397,14 @@ Eigenvalues={vals}
                       mean=self.update_means[now],
                       covariance=self.update_covariances[now])
 
+    def run(self: MainWindow):
+        """Use current values to generate new data
+        """
+        self.update_system()
+        self.update_data()
+        self.update_filter()
+        self.update_plot()
+
     def option(self: MainWindow):
         """Choose Cython or SciPy
         """
@@ -403,7 +415,7 @@ Eigenvalues={vals}
             self.option_button.setText('Cython')
         else:
             raise RuntimeError
-        self.system = getattr(self, self.option_button.text())
+        self.update_system()
         self.update_data()
         self.update_filter()
         self.update_plot()
