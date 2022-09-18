@@ -251,8 +251,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         atol = 1.0e-7
 
         rng = numpy.random.default_rng(3)
-        print(f"""
-In update_system, random:  {rng.random()}""")
         # In state_space.SDE.forecast, the covariance ends up being dt
         # * state_noise_scale**2.  So dividing by sqrt(dt) here makes
         # self.dev_state the actual noise scale.
@@ -264,7 +262,8 @@ In update_system, random:  {rng.random()}""")
             hmmds.synthetic.bounds.lorenz.make_system(s, r, b,
                                                       state_noise_scale,
                                                       self.dev_observation(),
-                                                      self.time_step(), self.y_step(),
+                                                      self.time_step(),
+                                                      self.y_step(),
                                                       self.fudge()**2, h_max,
                                                       atol, rng))
         self.system = getattr(self,
@@ -273,18 +272,14 @@ In update_system, random:  {rng.random()}""")
             self.initial_state,
             numpy.eye(3) * state_noise_scale**2,
             self.stationary_distribution.rng)
-        print(f"""   After make_sys, random: {self.system.rng.random()}
-initial_state: {self.initial_state}""")
 
     def update_data(self: MainWindow):
         """Make new self.x and self.y
         """
         # Reinitialize rng for reproducibility
         self.system.rng = numpy.random.default_rng(3)
-        print(f"""In update_data,    random: {self.system.rng.random()}""")
         self.x, self.y = self.system.simulate_n_steps(self.initial_distribution,
                                                       self.n_times())
-        print(f"""   After simulate, random: {self.system.rng.random()}""")
 
     def update_filter(self: MainWindow):
         """Run extended Kalman filter to get forecast and updated distributions

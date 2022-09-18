@@ -159,7 +159,7 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
                 observation_noise_scale: float, dt: float, y_step: float,
                 fudge: float, h_max: float, atol: float,
                 rng: numpy.random.Generator):
-    """Make a LocalNonStationary instance based on a Lorenz SDE
+    """Make two LocalNonStationary instances based on a Lorenz SDE
 
     Args:
         s, r, b: Parameters of Lorenz ODE
@@ -174,8 +174,8 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
 
     Returns: dict
 
-    'Cython': hmmds.synthetic.filter.lorenz_sde.SDE instance,
-    'SciPy': hmm.state_space.SDE instance
+    'Cython': based on hmmds.synthetic.filter.lorenz_sde.SDE instance,
+    'SciPy': based on hmm.state_space.SDE instance
     'stationary_distribution': hmm.state_space.MultivariateNormal instance
     'initial_state': numpy.ndarray
 
@@ -235,6 +235,7 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
                                                    dt,
                                                    x_dim,
                                                    ivp_args=(s, r, b, h_max),
+                                                   rng=rng,
                                                    fudge=fudge)
     sde = hmm.state_space.SDE(dx_dt,
                               tangent,
@@ -244,21 +245,16 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
                               dt,
                               x_dim,
                               ivp_args=(s, r, b),
+                              rng=rng,
                               atol=atol,
                               fudge=fudge)
-    relaxed = cython.relax(500)[0]  # Relax to attractor
     result = {}  # Collection of items to return
+    relaxed = sde.relax(500)[0]  # Relax to attractor
     result['initial_state'], result['stationary_distribution'] = sde.relax(
         500, initial_state=relaxed)  # Collect data for distribution
 
     result['Cython'] = LocalNonStationary(cython, dt, y_step, rng)
     result['SciPy'] = LocalNonStationary(sde, dt, y_step, rng)
-    print(f"""    In make_system
-random:                  {rng.random()}
-relaxed:                 {relaxed}
-initial_state:           {result['initial_state']}
-stationary_distribution: {result['stationary_distribution']}
-""")
     return result
 
 
@@ -276,28 +272,33 @@ def main(argv=None):
     y_step = 1.0e-4
     h_max = 1.0e-3
     atol = 1.0e-7
+    fudge = 1.0
 
-    # Generate data using cython to integrate Lorenz
-    generate = make_system(s, r, b, dev_state_noise, dev_observation_noise, d_t,
-                           y_step, h_max, atol, rng)
+    ivp_args = (s, r, b)
+
+    # Make two LocalNonStationary instances and initialization data
+
+    made_dict = make_system(s, r, b, dev_state_noise, dev_observation_noise,
+                            d_t, y_step, fudge, h_max, atol, rng)
+    # Unpack made_dict
+    cython_ = made_dict['Cython']
+    scipy_ = made_dict['SciPy']
+    initial_state = made_dict['initial_state']
+    stationary_covariance = made_dict['stationary_distribution'].covariance
 
     # Asssert f and tangent are the same for Cython and SciPy
     x_dx = numpy.linspace(.1, 1.2, 12)
-    cython_ = generate['Cython'].system
-    scipy_ = generate['SciPy'].system
-    numpy.allclose(cython_.f(0, x_dx[:3], s, r, b),
-                   scipy_.f(0, x_dx[:3], s, r, b))
-    numpy.allclose(cython_.tangent(0, x_dx, s, r, b),
-                   scipy_.tangent(0, x_dx, s, r, b))
+    assert numpy.allclose(cython_.system.f(0, x_dx[:3], s, r, b),
+                          scipy_.system.f(0, x_dx[:3], s, r, b))
+    assert numpy.allclose(cython_.system.tangent(0, x_dx, s, r, b),
+                          scipy_.system.tangent(0, x_dx, s, r, b))
 
     initial_distribution = hmm.state_space.MultivariateNormal(
-        generate['initial_state'],
-        generate['stationary_distribution'].covariance, rng)
-    x, y = generate['Cython'].simulate_n_steps(initial_distribution, n_times,
-                                               y_step)
-
-    forecast_means, forecast_covariances, update_means, update_covariances, y_means, y_variances, y_probabilities = generate[
-        'SciPy'].forward_filter(initial_distribution, y)
+        initial_state, stationary_covariance, rng)
+    x, y = scipy_.simulate_n_steps(initial_distribution, n_times, y_step)
+    # Check that forward_filter runs
+    forecast_means, forecast_covariances, update_means, update_covariances, y_means, y_variances, y_probabilities = scipy_.forward_filter(
+        initial_distribution, y)
     return 0
 
 
