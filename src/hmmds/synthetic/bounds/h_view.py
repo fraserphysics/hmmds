@@ -141,7 +141,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # sliders and spin boxes
 
         # Dict of variables that are too small for digits in spin boxes
-        scales = {'y_step': 10000., 'dev_observation': 100., 'dev_state': 1.0e6}
+        scales = {'y_step': 10000., 'dev_observation': 1000., 'dev_state': 1.0e2}
 
         # Layout first row of sliders.  self.name will access the
         # variable, title will appear in the GUI,
@@ -162,7 +162,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             ('time_step', 'ts', 0.05, 0.5, 0.25, ''),
             ('y_step', f'Dy*{scales["y_step"]:.0e}', 1.0e-3, 9.9, 1.0, ''),
             ('dev_observation', f'\u03c3y*{scales["dev_observation"]:.0e}',
-             1.0e-3, 9.9, 1.0, ''),  # sigma y: observation noise
+             1.0e-3, 9.9, 3.0, ''),  # sigma y: observation noise
         ):
             self.variable[name] = FloatVariable(title, minimum, maximum,
                                                 initial, self, updates)
@@ -247,8 +247,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         s = 10.0
         r = 28.0
         b = 8.0 / 3
-        h_max = 1.0e-1
-        atol = 1.0e-7
+        h_max = 1.0e-3
+        atol = 1.0e-8
 
         rng = numpy.random.default_rng(3)
         # In state_space.SDE.forecast, the covariance ends up being dt
