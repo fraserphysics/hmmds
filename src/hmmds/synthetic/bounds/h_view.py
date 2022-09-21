@@ -141,7 +141,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # sliders and spin boxes
 
         # Dict of variables that are too small for digits in spin boxes
-        scales = {'y_step': 10000., 'dev_observation': 1000., 'dev_state': 1.0e2}
+        scales = {
+            'y_step': 10000.,
+            'dev_observation': 1000.,
+            'dev_state': 1.0e2
+        }
 
         # Layout first row of sliders.  self.name will access the
         # variable, title will appear in the GUI,
@@ -149,9 +153,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # and updates is a list of methods to call when the varible
         # changes
         for name, title, minimum, maximum, initial, updates in (
-            ('n_times', 'Nt', 5, 500, 50, ''),
-            ('n_view', 'N_view', 1, 100, 30, 'update_plot'),
-            ('t_view', 't_view', 0, 500, 15, 'update_plot'),
+            ('n_times', 'Nt', 5, 500, 500, ''),
+            ('n_view', 'N_view', 1, 150, 120, 'update_plot'),
+                # Selected t=105 for book figure
+            ('t_view', 't_view', 0, 500, 105, 'update_plot'),
         ):
             self.variable[name] = IntVariable(title, minimum, maximum, initial,
                                               self, updates)
@@ -420,7 +425,7 @@ Eigenvalues={vals}
 
         """
         dump_dict = {}
-        for name in 'forecast_means forecast_covariances update_means update_covariances y_means log_probabilities'.split(
+        for name in 'forecast_means forecast_covariances update_means update_covariances y y_means  y_variances log_probabilities'.split(
         ):
             dump_dict[name] = getattr(self, name)
         for name, variable in self.variable.items():
