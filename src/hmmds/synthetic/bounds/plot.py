@@ -124,8 +124,8 @@ def find_ranges(forecast_a, forecast_b, update_a, update_b):
 
     center_a, delta_a = center_delta(forecast_a, update_a)
     center_b, delta_b = center_delta(forecast_b, update_b)
-    delta_x = max(delta_a[0], delta_b[0])*1.1
-    delta_y = max(delta_a[1], delta_b[1])*1.1
+    delta_x = max(delta_a[0], delta_b[0]) * 1.1
+    delta_y = max(delta_a[1], delta_b[1]) * 1.1
     return [
         [
             [

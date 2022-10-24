@@ -141,11 +141,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # sliders and spin boxes
 
         # Dict of variables that are too small for digits in spin boxes
-        scales = {
-            'y_step': 10000.,
-            'dev_observation': 1000.,
-            'dev_state': 1.0e2
-        }
+        scales = {'y_step': 1.0e4, 'dev_observation': 1.0e3, 'dev_state': 1.0e2}
 
         # Layout first row of sliders.  self.name will access the
         # variable, title will appear in the GUI,
