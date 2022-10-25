@@ -12,6 +12,7 @@ import pickle
 import numpy
 import numpy.linalg
 import scipy.linalg
+import scipy.special
 
 import hmm.state_space
 import hmmds.synthetic.filter.lorenz_sde
@@ -29,12 +30,16 @@ def parse_args(argv):
                         help='Number of x and y samples')
     parser.add_argument('--dev_measurement',
                         type=float,
-                        default=1e-4,
+                        default=1e-10,
                         help='For generating data')
-    parser.add_argument('--dev_state',
+    parser.add_argument('--dev_state_generate',
                         type=float,
                         default=1e-6,
                         help='For generating data')
+    parser.add_argument('--dev_state_filter',
+                        type=float,
+                        default=1e-6,
+                        help='For EKF')
     parser.add_argument('--y_step',
                         type=float,
                         default=1e-4,
@@ -77,44 +82,90 @@ def make_system(dev_observation, dev_state, time_step, y_step):
     assert set(made_dict.keys()) == set(
         'Cython SciPy stationary_distribution initial_state'.split())
     system = made_dict['SciPy']
-    covariance = made_dict['stationary_distribution'].covariance / 1e4
+
+    # This initial_distribution is only used to generate data.
+    # Filtering uses numpy.eye(3)*1e-3
+    covariance = made_dict['stationary_distribution'].covariance / 1e-4
     initial_distribution = hmm.state_space.MultivariateNormal(
         made_dict['initial_state'], covariance, rng)
-    return system, initial_distribution
+    return system, initial_distribution, rng
 
 
-def ekf_entropy(time_step, log_observation_noise, args, initial_distribution,
-                y):
+def cumulative(z):
+    """Calculate the cumulative value for z in N(0,1)
+
+    """
+    return (1 + scipy.special.erf(z / numpy.sqrt(2))) / 2
+
+
+def pmf(y, mean, dev, step):
+    """Calculate the probability of the interval y +/- step/2
+    
+    """
+    z_0 = (y - mean - step / 2) / dev
+    z_1 = (y - mean + step / 2) / dev
+    return cumulative(z_1) - cumulative(z_0)
+
+
+def ekf_entropy(time_step: float, log_observation_noise: float, args,
+                initial_distribution, y: numpy.ndarray) -> float:
+    """
+    Estimate the cross entropy of an extended Kalman filter.
+
+    Args:
+        time_step: Time between samples
+        log_observation_noise: Log_10 of standard deviation of noise.
+        args: Command line arguments
+        initial_distribution:
+        y: The time series of observations
+
+    """
 
     dev_observation = 10**log_observation_noise
-    filter_system, _ = make_system(dev_observation, args.dev_state, time_step,
-                                   args.y_step)
-    forecast_means, forecast_covariances, update_means, update_covariances, y_means, y_variances, y_probabilities = filter_system.forward_filter(
+    filter_system, _, _ = make_system(dev_observation, args.dev_state_filter,
+                                      time_step, args.y_step)
+    _, _, _, _, y_means, y_variances, y_probabilities = filter_system.forward_filter(
         initial_distribution, y)
-    safety = 1e-10  #FixMe make this a Gaussian using y_means and y_covariances
-    result = numpy.log(y_probabilities + safety).sum() / len(y)
-    print(f'ts {time_step}, log_noise {log_observation_noise}, result {result}')
-    assert result > -200
+    # Check that probability mass calculation here matches calculation
+    # in lorenz.py
+    pmfs = pmf(y[:, 0], y_means, numpy.sqrt(y_variances), filter_system.y_step)
+    assert numpy.allclose(pmfs, y_probabilities)
+    # For second component of Gaussian mixture forecast probabilities
+    # use y_means and deviation = 20.  Weight the second component by
+    # 1.0-3.
+    dev = 20.0
+    weight = 1.0e-3
+    safety = pmf(y[:, 0], y_means, dev, filter_system.y_step)
+    p_y = (1 - weight) * pmfs + weight * safety
+    assert len(p_y) == len(y)
+    result = numpy.log(p_y).sum() / len(y)
+    print(
+        f'ts {time_step:7.3f}, log_noise {log_observation_noise:7.3f}, result {result:7.3f}'
+    )
+    assert result > -30
     return result
 
 
 def survey(args):
-    """Do a two dimensional survey cross entropy over sampling
-    interval t_s and dev_observation, the scale of the observation
-    noise.
+    """Do a two dimensional survey of cross entropy over the sampling
+    interval, t_s, and the scale of the observation noise,
+    dev_observation.
 
     """
-    dev_state = args.dev_state
     cross_entropy = {}
     for time_step in numpy.arange(*args.t_steps):
-        generation_system, initial_distribution = make_system(
-            args.dev_measurement, dev_state, time_step, args.y_step)
-        x, y = generation_system.simulate_n_steps(initial_distribution,
+        generation_system, initial_for_generation, rng = make_system(
+            args.dev_measurement, args.dev_state_generate, time_step,
+            args.y_step)
+        x, y = generation_system.simulate_n_steps(initial_for_generation,
                                                   args.n_t, args.y_step)
+        initial_for_filter = hmm.state_space.MultivariateNormal(
+            x[0],
+            numpy.eye(3) * 1e-3, rng)
         cross_entropy[time_step] = {}
         for log_observation_noise in numpy.arange(*args.log_steps):
             cross_entropy[time_step][log_observation_noise] = ekf_entropy(
-                time_step, log_observation_noise, args, initial_distribution, y)
+                time_step, log_observation_noise, args, initial_for_filter, y)
     return cross_entropy
 
 
@@ -128,10 +179,10 @@ def main(argv=None):
     args = parse_args(argv)
 
     cross_entropy = survey(args)
-    for time_step in cross_entropy.keys():
-        for log_observation_noise in cross_entropy[time_step].keys():
+    for time_step in sorted(cross_entropy.keys()):
+        for log_observation_noise in sorted(cross_entropy[time_step].keys()):
             print(
-                f'{time_step} {log_observation_noise} {cross_entropy[time_step][log_observation_noise]}'
+                f'{time_step:6.3f} {log_observation_noise:7.3f} {cross_entropy[time_step][log_observation_noise]:7.3f}'
             )
     return 0
 
