@@ -68,7 +68,7 @@ def make_system(dev_observation, dev_state, time_step, y_step):
     r = 28.0
     b = 8.0 / 3
     h_max = 1.0e-3
-    atol = 1.0e-8
+    atol = 1.0e-7
     fudge = 1.0
 
     rng = numpy.random.default_rng(3)
@@ -139,10 +139,7 @@ def ekf_entropy(time_step: float, log_observation_noise: float, args,
     p_y = (1 - weight) * pmfs + weight * safety
     assert len(p_y) == len(y)
     result = numpy.log(p_y).sum() / len(y)
-    print(
-        f'ts {time_step:7.3f}, log_noise {log_observation_noise:7.3f}, result {result:7.3f}'
-    )
-    assert result > -30
+    assert result > -4
     return result
 
 
@@ -158,7 +155,7 @@ def survey(args):
             args.dev_measurement, args.dev_state_generate, time_step,
             args.y_step)
         x, y = generation_system.simulate_n_steps(initial_for_generation,
-                                                  args.n_t, args.y_step)
+                                                  args.n_t)
         initial_for_filter = hmm.state_space.MultivariateNormal(
             x[0],
             numpy.eye(3) * 1e-3, rng)

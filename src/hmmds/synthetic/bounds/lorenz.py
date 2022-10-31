@@ -158,7 +158,8 @@ class LocalNonStationary(hmm.state_space.NonStationary):
 def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
                 observation_noise_scale: float, dt: float, y_step: float,
                 fudge: float, h_max: float, atol: float,
-                rng: numpy.random.Generator):
+                rng: numpy.random.Generator,
+                method='RK45'):
     """Make two LocalNonStationary instances based on a Lorenz SDE
 
     Args:
@@ -247,7 +248,8 @@ def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
                               ivp_args=(s, r, b),
                               rng=rng,
                               atol=atol,
-                              fudge=fudge)
+                              fudge=fudge,
+                              method=method)
     result = {}  # Collection of items to return
     relaxed = sde.relax(500)[0]  # Relax to attractor
     result['initial_state'], result['stationary_distribution'] = sde.relax(
