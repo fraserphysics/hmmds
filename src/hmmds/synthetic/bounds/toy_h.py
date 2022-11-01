@@ -54,8 +54,7 @@ def parse_args(argv):
                         default=[-3.5, -5.6, -.1],
                         nargs=3,
                         help='min, max, step_size for log_10 noise')
-    parser.add_argument('h_survey_path', type=str, help='path for result')
-    parser.add_argument('h_tau_path', type=str, help='path for result')
+    parser.add_argument('result', type=str, help='path for result')
     return parser.parse_args(argv)
 
 
@@ -175,7 +174,48 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
+    result = {}
+
+    # Calculate intercept and slope for Eqn 5.2 in the book
+    z = 0.5 / numpy.sqrt(2)
+    like = (scipy.special.erf(z) - scipy.special.erf(-z)) / 2
+    result['intercept'] = numpy.log(like)
+    # The intercept for the "entropy line" is the log probability of
+    # the interval +/- .5 for a normal distribution.
+    result['slope'] = -0.906
+
+    # Create data for two lines.  One at -4.0 and one on the ridge
+    dy1 = -4.0
+    dy2 = -4.85
+    lower = []
+    upper = []
+    for time_step in numpy.arange(*args.t_steps):
+        generation_system, initial_for_generation, rng = make_system(
+            args.dev_measurement, args.dev_state_generate, time_step,
+            args.y_step)
+        x, y = generation_system.simulate_n_steps(initial_for_generation,
+                                                  args.n_t)  # Create the data
+        initial_for_filter = hmm.state_space.MultivariateNormal(
+            x[0],
+            numpy.eye(3) * 1e-3, rng)
+        DevEpsilon = 10**dy1
+        SigmaEpsilon = DevEpsilon**2
+
+        lower.append(ekf_entropy(time_step, dy1, args, initial_for_filter, y))
+
+        upper.append(
+            ekf_entropy(time_step, dy2 + 0.4 * time_step, args,
+                        initial_for_filter, y))
+    result['lower'] = numpy.array(lower)
+    result['upper'] = numpy.array(upper)
+
     cross_entropy = survey(args)
+
+    result['cross_entropy'] = cross_entropy
+
+    with open(args.result, 'wb') as _file:
+        pickle.dump(result, _file)
+
     for time_step in sorted(cross_entropy.keys()):
         for log_observation_noise in sorted(cross_entropy[time_step].keys()):
             print(

@@ -155,9 +155,16 @@ class LocalNonStationary(hmm.state_space.NonStationary):
         return forecast, update, y_forecast
 
 
-def make_system(s: float, r: float, b: float, unit_state_noise_scale: float,
-                observation_noise_scale: float, dt: float, y_step: float,
-                fudge: float, h_max: float, atol: float,
+def make_system(s: float,
+                r: float,
+                b: float,
+                unit_state_noise_scale: float,
+                observation_noise_scale: float,
+                dt: float,
+                y_step: float,
+                fudge: float,
+                h_max: float,
+                atol: float,
                 rng: numpy.random.Generator,
                 method='RK45'):
     """Make two LocalNonStationary instances based on a Lorenz SDE
