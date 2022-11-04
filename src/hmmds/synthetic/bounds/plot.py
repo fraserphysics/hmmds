@@ -6,7 +6,7 @@ Kalman filters
 # log(P(y[t])).  Data in data_h_view
 
 # ToyStretch.pdf Figure 5.2 Update and forecast distributions for
-# t=105 & 106.  Data in data_h_view
+# t=t_view & t_view+1.  Data in data_h_view
 
 # ToyH.pdf Figure 5.3 Two plots: (1) -^h vs measurement noise and
 # sample time; (2) -^h vs sample time
@@ -43,7 +43,7 @@ def parse_args(argv):
                         help='end of interval to plot')
     parser.add_argument('--t_view',
                         type=int,
-                        default=105,
+                        default=50,
                         help='t for plot of forecast and update')
     parser.add_argument('--show',
                         action='store_true',

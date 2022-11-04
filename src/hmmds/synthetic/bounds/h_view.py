@@ -150,8 +150,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # changes
         for name, title, minimum, maximum, initial, updates in (
             ('n_times', 'Nt', 5, 500, 500, ''),
-            ('n_view', 'N_view', 1, 150, 120, 'update_plot'),
-                # Selected t=105 for book figure
+            ('n_view', 'N_view', 1, 50, 120, 'update_plot'),
+                # Selected t=50 for book figure
             ('t_view', 't_view', 0, 500, 50, 'update_plot'),
         ):
             self.variable[name] = IntVariable(title, minimum, maximum, initial,

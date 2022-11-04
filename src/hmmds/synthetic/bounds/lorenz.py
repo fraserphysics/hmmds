@@ -10,6 +10,7 @@ import numpy
 import numpy.random
 import numpy.linalg
 import scipy.special
+import scipy.integrate
 
 import hmm.state_space
 import hmmds.synthetic.filter.lorenz_sde
@@ -155,6 +156,70 @@ class LocalNonStationary(hmm.state_space.NonStationary):
         return forecast, update, y_forecast
 
 
+# The next three functions are passed to SDE.__init__
+# pylint: disable = invalid-name
+
+
+def dx_dt(_, x, s, r, b):
+    """Calculate the Lorenz vector field at x
+    """
+    return numpy.array(
+        [s * (x[1] - x[0]), x[0] * (r - x[2]) - x[1], x[0] * x[1] - b * x[2]])
+
+
+def tangent(t, x_dx, s, r, b):
+    """Calculate the Lorenz vector field and its tangent at x
+    """
+    result = numpy.empty(12)  # Allocate storage for result
+
+    # Unpack state and derivative from argument
+    x = x_dx[:3]
+    dx_dx0 = x_dx[3:].reshape((3, 3))
+
+    # First three components are the value of the vector field F(x)
+    result[:3] = dx_dt(t, x, s, r, b)
+
+    dF = numpy.array([  # The derivative of F wrt x
+        [-s, s, 0], [r - x[2], -1, -x[0]], [x[1], x[0], -b]
+    ])
+
+    # Assign the tangent part of the return value.
+    result[3:] = numpy.dot(dF, dx_dx0).reshape(-1)
+
+    return result
+
+
+def observation_function(_,
+                         state) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+    """Calculate observation and its derivative
+    """
+    observation_map = numpy.array([[1, 0, 0]])
+    return numpy.dot(observation_map, state), observation_map
+
+
+def integrate_tangent(t, x, jacobian):
+    """
+    Args:
+        t: time
+        x: state
+        jacobian: Derivative
+    """
+    s = 10.0
+    r = 28.0
+    b = 8.0 / 3
+    atol = 1e-7
+    method = 'RK45'
+    augmented_state = numpy.concatenate((x, jacobian.flatten()))
+    bunch = scipy.integrate.solve_ivp(tangent, (0.0, t),
+                                      augmented_state,
+                                      args=(s, r, b),
+                                      atol=atol,
+                                      method=method)
+    new_x = bunch.y[:3, -1]
+    new_tangent = bunch.y[3:, -1]
+    return new_x, new_tangent.reshape((3, 3))
+
+
 def make_system(s: float,
                 r: float,
                 b: float,
@@ -190,44 +255,6 @@ def make_system(s: float,
     Derived from hmmds.synthetic.filter.lorenz_simulation
 
     """
-
-    # The next three functions are passed to SDE.__init__
-    # pylint: disable = invalid-name
-
-    def dx_dt(_, x, s, r, b):
-        """Calculate the Lorenz vector field at x
-        """
-        return numpy.array([
-            s * (x[1] - x[0]), x[0] * (r - x[2]) - x[1], x[0] * x[1] - b * x[2]
-        ])
-
-    def tangent(t, x_dx, s, r, b):
-        """Calculate the Lorenz vector field and its tangent at x
-        """
-        result = numpy.empty(12)  # Allocate storage for result
-
-        # Unpack state and derivative from argument
-        x = x_dx[:3]
-        dx_dx0 = x_dx[3:].reshape((3, 3))
-
-        # First three components are the value of the vector field F(x)
-        result[:3] = dx_dt(t, x, s, r, b)
-
-        dF = numpy.array([  # The derivative of F wrt x
-            [-s, s, 0], [r - x[2], -1, -x[0]], [x[1], x[0], -b]
-        ])
-
-        # Assign the tangent part of the return value.
-        result[3:] = numpy.dot(dF, dx_dx0).reshape(-1)
-
-        return result
-
-    def observation_function(
-            _, state) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
-        """Calculate observation and its derivative
-        """
-        observation_map = numpy.array([[1, 0, 0]])
-        return numpy.dot(observation_map, state), observation_map
 
     x_dim = 3
     unit_state_noise_map = numpy.eye(x_dim) * unit_state_noise_scale
@@ -267,7 +294,10 @@ def make_system(s: float,
     return result
 
 
-def main(argv=None):
+def main():
+    """Exercise some of the above code for debugging
+
+    """
     s = 10.0
     r = 28.0
     b = 8.0 / 3
