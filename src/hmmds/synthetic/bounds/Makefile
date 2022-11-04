@@ -9,7 +9,7 @@ ToyStretch.pdf: plot.py data_h_view
 	python $< --ToyStretch $@ data_h_view
 
 BenettinData: benettin_data.py
-	python benettin_data.py --n_times=400 --n_runs=10 --n_relax 50 $@
+	python benettin_data.py --n_times=400 --n_runs=100 --n_relax 50 $@
 
 BenettinFigure.pdf: benettin_plot.py BenettinData
 	python $^ $@

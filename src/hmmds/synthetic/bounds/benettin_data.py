@@ -33,6 +33,10 @@ def parse_args(argv):
                         type=float,
                         default=1e-5,
                         help='Standard deviation of state noise')
+    parser.add_argument('--grid_size',
+                        type=float,
+                        default=1e-3,
+                        help='Quantization resolution')
     parser.add_argument('--perturbation',
                         type=float,
                         default=1.0,
@@ -60,17 +64,17 @@ def one_run(initial_distribution, state_noise, args):
         args: Holds parameters from the command line
 
     Return:
-        log_R_t: Time series of logs of diagonal elements of R
+        r_t: Diagonal elements of R from QR decomposition at each time
     """
-    log_r_t = numpy.empty((args.n_times, 3))
-    q_t = numpy.eye(3)
+    r_t = numpy.empty((args.n_times, 3))
+    Q = numpy.eye(3)  # pylint: disable=invalid-name
     # Get a random initial state on the attractor by drawing a
     # randomly perturbed initial state and relaxing back to the
     # attractor
     x = initial_distribution.draw()
-    for n in range(args.n_relax):
+    for _ in range(args.n_relax):
         x, _ = hmmds.synthetic.bounds.lorenz.integrate_tangent(
-            args.time_step, x, q_t)
+            args.time_step, x, Q)
 
     # Explanation of Bennetin algorithm:  Let
     # d_t = (d x[t]/d x[t-1])
@@ -84,14 +88,13 @@ def one_run(initial_distribution, state_noise, args):
     for t in range(args.n_times):
         # Start with q_t for t-1.  Note that F, the integral of the
         # tangent, is linear, and so F(Id) * q_t = F(q_t)
-        x, tmp = hmmds.synthetic.bounds.lorenz.integrate_tangent(
-            args.time_step, x, q_t)
-        q_t, r_t = numpy.linalg.qr(tmp)  # tmp = derivative * q_old
-        diagonal = numpy.abs(r_t.diagonal())
-        assert diagonal.prod() > 0.0
-        log_r_t[t] = numpy.log(diagonal)
+        x, derivative = hmmds.synthetic.bounds.lorenz.integrate_tangent(
+            args.time_step, x, Q)
+        Q, R = numpy.linalg.qr(derivative)  # pylint: disable=invalid-name
+        r_t[t] = numpy.abs(R.diagonal())
+        assert r_t[t].prod() > 0.0
         x += state_noise.draw()
-    return log_r_t
+    return r_t
 
 
 def main(argv=None):
@@ -106,7 +109,7 @@ def main(argv=None):
 
     # Relax to a point near the attractor
     x = numpy.ones(3)
-    for n in range(args.n_relax):
+    for _ in range(args.n_relax):
         x, _ = hmmds.synthetic.bounds.lorenz.integrate_tangent(
             args.time_step, x, numpy.eye(3))
 
@@ -118,12 +121,12 @@ def main(argv=None):
         numpy.zeros(3),
         numpy.eye(3) * args.dev_state**2, rng)
 
-    log_r_t = numpy.empty((args.n_runs, args.n_times, 3))
+    r_run_time = numpy.empty((args.n_runs, args.n_times, 3))
     for n_run in range(args.n_runs):
-        log_r_t[n_run] = one_run(initial_distribution, state_noise, args)
+        r_run_time[n_run] = one_run(initial_distribution, state_noise, args)
 
     with open(args.result, 'wb') as _file:
-        pickle.dump(log_r_t, _file)
+        pickle.dump({'r_run_time': r_run_time, 'args': args}, _file)
 
 
 if __name__ == "__main__":
