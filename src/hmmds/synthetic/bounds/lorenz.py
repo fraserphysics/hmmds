@@ -197,6 +197,36 @@ def observation_function(_,
     return numpy.dot(observation_map, state), observation_map
 
 
+def n_steps(ic: numpy.ndarray, n: int, d_t: float) -> numpy.ndarray:
+    """
+    Integrate Lorenz to produce n samples.
+    
+    Args:
+        ic: Initial condition
+        n: Number of samples to return
+        d_t: Time between samples
+    """
+    assert ic.shape == (3,)
+    s = 10.0
+    r = 28.0
+    b = 8.0 / 3
+    atol = 1e-7
+    method = 'RK45'
+
+    t_points = numpy.arange(0.0, n * d_t, d_t)[:n]
+    interval = (0.0, t_points[-1])
+    bunch = scipy.integrate.solve_ivp(dx_dt,
+                                      interval,
+                                      ic,
+                                      t_eval=t_points,
+                                      args=(s, r, b),
+                                      atol=atol,
+                                      method=method)
+    assert bunch.success == True
+    assert bunch.y.shape == (3, n), f'shape={bunch.y.shape}'
+    return bunch.y.T
+
+
 def integrate_tangent(t, x, jacobian):
     """
     Args:
@@ -314,6 +344,9 @@ def main():
     fudge = 1.0
 
     ivp_args = (s, r, b)
+
+    x = n_steps(numpy.ones(3), 10, 0.15)
+    assert x.shape == (10, 3)
 
     # Make two LocalNonStationary instances and initialization data
 

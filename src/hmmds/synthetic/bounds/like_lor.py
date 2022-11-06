@@ -1,0 +1,208 @@
+"""like_lor.py Make data for plot of cross entropy vs number of states
+
+"""
+
+import sys
+import argparse
+
+import numpy
+import scipy.sparse
+
+import hmmds.synthetic.bounds.lorenz
+
+
+def parse_args(argv):
+    """ Convert command line arguments into a namespace
+    """
+
+    parser = argparse.ArgumentParser(
+        description='Illustrate cross entropy vs number of states')
+    parser.add_argument('--log_resolution',
+                        type=float,
+                        nargs=3,
+                        default=[-1, 5, 0.5],
+                        help='Range of log of quantization resolution base 2')
+    parser.add_argument('--n_relax',
+                        type=int,
+                        default=500,
+                        help='Number of steps to relax to attractor')
+    parser.add_argument('--n_train',
+                        type=int,
+                        default=10000,
+                        help='Training sample size')
+    parser.add_argument('--n_test',
+                        type=int,
+                        default=1000,
+                        help='Testing sample size')
+    parser.add_argument('--n_quantized',
+                        type=int,
+                        default=4,
+                        help='Number of different values of measurements')
+    parser.add_argument('--x_initial',
+                        type=float,
+                        nargs=3,
+                        default=numpy.ones(3),
+                        help='Initial conditions')
+    parser.add_argument('--t_sample',
+                        type=float,
+                        default=0.15,
+                        help='Sample interval')
+    parser.add_argument('--min_prob',
+                        type=float,
+                        default=1e-4,
+                        help='Minimum conditional observation probability')
+    parser.add_argument('result_path', type=str, help='Where to write result')
+    return parser.parse_args(argv)
+
+
+def make_data(args):
+    """
+    Args:
+        args: Command line arguments
+
+    Return: (xyz_train, q_train, q_test)
+
+    """
+    assert args.n_quantized % 2 == 0  # Must be even for quantization
+    # scheme that has boundary at 0
+    n_total = args.n_relax + args.n_train + args.n_test
+    initial = numpy.array(args.x_initial)
+    assert initial.shape == (3,)
+    x_all = hmmds.synthetic.bounds.lorenz.n_steps(initial, n_total,
+                                                  args.t_sample)
+    assert x_all.shape == (n_total, 3)
+    xyz_train = x_all[args.n_relax:args.n_relax + args.n_train]
+    x_train = xyz_train[:, 0]
+    x_min = x_train.min()
+    x_max = x_train.max()
+    assert x_min < 0 and x_max > 0
+    size = max(x_max, -x_min) / (args.n_quantized / 2)
+    bins = numpy.linspace(-size, size, args.n_quantized + 1)[1:-1]
+    q_train = numpy.digitize(x_train, bins)
+    x_test = x_all[args.n_relax + args.n_train:, 0]
+    q_test = numpy.digitize(x_test, bins)
+
+    assert xyz_train.shape == (args.n_train, 3)
+    assert q_train.min() == 0
+    assert q_train.max() == args.n_quantized - 1
+    assert q_train.shape == (args.n_train,)
+    assert q_test.shape == (args.n_test,)
+
+    return xyz_train, q_train, q_test
+
+
+class Model:
+
+    def __init__(self, quantized, true_states, resolution, n_quantized):
+        """Contains an HMM based on a true state sequence
+    
+        Args:
+            quantized: A time series of discrete scalar measurements
+            true_states: The true sequencs of 3d states
+            args: The command line arguments
+    
+        """
+
+        n_t = len(quantized)
+        assert len(true_states) == n_t
+
+        # Make a map from quantized true_states to integer indices
+        index_true = {}
+        for float_state in true_states:
+            key = tuple((float_state / resolution).astype(numpy.int32))
+            if not key in index_true:
+                index_true[key] = len(index_true)
+
+        n_states = len(index_true)
+        print(f'In Model.__init__ n_states={n_states}')
+
+        # Count transitions state <- state and measurement <- state
+        dok_state_state = scipy.sparse.dok_array((n_states, n_states))
+        dok_measurement_state = scipy.sparse.dok_array((n_quantized, n_states))
+
+        old_index = index_true[tuple(
+            (true_states[0] / resolution).astype(numpy.int32))]
+        dok_measurement_state[quantized[0], old_index] += 1
+        for t, float_state in enumerate(true_states):
+            new_index = index_true[tuple(
+                (float_state / resolution).astype(numpy.int32))]
+            dok_state_state[new_index, old_index] += 1
+            dok_measurement_state[quantized[t], new_index] += 1
+            old_index = new_index
+
+        # Normalize to get probabilities from counts and translate to csr
+        # total = numpy.empty(n_states) out=total in sum does not work
+        # Sum m[i,j] over i, ie, new_index, to get n[1,j]
+        total = dok_state_state.sum(axis=0)
+        assert total.shape == (n_states,)
+        dok_state_state.multiply(
+            1 / total)  # divide m[i,j] by n[1,j] for all i and j
+        self.p_state_state = dok_state_state.tocsr()
+        assert self.p_state_state.shape == (n_states, n_states)
+
+        self.p_state_0 = total / total.sum()
+        assert self.p_state_0.shape == (n_states,)
+
+        total = dok_measurement_state.sum(axis=0)
+        dok_measurement_state.multiply(1 / total)
+        self.p_measurement_state = dok_measurement_state.tocsr()
+        assert self.p_measurement_state.shape == (n_quantized, n_states)
+
+    def log_likelihood(self, quantized):
+        """Calculate the log likelihood of the model self
+        
+        Args:
+            quantized: A sequence of measurements
+
+        Return: log(P(quantized|self))
+
+        This is the forward algorithm using sparse arrays and not
+        saving the alpha array.
+
+        """
+        temp = self.p_state_0
+        n_states, = temp.shape
+        result = 0.0
+        n_t = len(quantized)
+        for y_t in quantized:
+            # Now temp is the forecast or prior, ie, temp[i] = P(s[t]=i|y[:t])
+            temp = self.p_measurement_state.getrow(y_t).multiply(temp).T
+            # getrow(y) is the likelihood, ie, getrow(y)[i] =
+            # P(y[t]|s[t]=i)
+            # Now temp[i] = P(y[t], s[t]=i|y[:t])
+            p_y = temp.sum()
+            # p_y is P(y[t]|y[:t])
+            result += numpy.log(p_y)
+            # Now temp/p_y is updated estimate, (temp/p_y)[i] =
+            # P(s[t]=i|y[:t+1])
+            temp = self.p_state_state.dot(temp / p_y)
+            # Now temp is the new forecast, temp[i] =
+            # P(s[t+1]=i|y[:t+1])
+        return result
+
+
+def main(argv=None):
+    """Study cross entropy vs number of states
+
+    """
+    if argv is None:
+        argv = sys.argv[1:]
+    args = parse_args(argv)
+
+    result = {}
+    xyz_train, q_train, q_test = make_data(args)
+    for log_resolution in numpy.arange(*args.log_resolution):
+        resolution = 2.0**log_resolution
+        print(
+            f'\n In main with resolution={resolution}, log_resolution={log_resolution}'
+        )
+        hmm = Model(q_train, xyz_train, resolution, args.n_quantized)
+        print(f'In main after making hmm')
+        log_likelihood = hmm.log_likelihood(q_test)
+        print(f'In main log_likelihood={log_likelihood}')
+        result[log_resolution]: {'log_likelihood': log_likelihood, 'args': args}
+    return result
+
+
+if __name__ == "__main__":
+    sys.exit(main())
