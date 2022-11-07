@@ -20,7 +20,7 @@ def parse_args(argv):
     parser.add_argument('--log_resolution',
                         type=float,
                         nargs=3,
-                        default=[-1, 5, 0.5],
+                        default=[3, 6, 0.5],
                         help='Range of log of quantization resolution base 2')
     parser.add_argument('--n_relax',
                         type=int,
@@ -28,11 +28,11 @@ def parse_args(argv):
                         help='Number of steps to relax to attractor')
     parser.add_argument('--n_train',
                         type=int,
-                        default=10000,
+                        default=1000,
                         help='Training sample size')
     parser.add_argument('--n_test',
                         type=int,
-                        default=1000,
+                        default=100,
                         help='Testing sample size')
     parser.add_argument('--n_quantized',
                         type=int,
@@ -114,16 +114,16 @@ class Model:
                 index_true[key] = len(index_true)
 
         n_states = len(index_true)
-        print(f'In Model.__init__ n_states={n_states}')
 
-        # Count transitions state <- state and measurement <- state
         dok_state_state = scipy.sparse.dok_array((n_states, n_states))
         dok_measurement_state = scipy.sparse.dok_array((n_quantized, n_states))
 
+        # Count transitions state <- state and measurement <- state
         old_index = index_true[tuple(
             (true_states[0] / resolution).astype(numpy.int32))]
         dok_measurement_state[quantized[0], old_index] += 1
-        for t, float_state in enumerate(true_states):
+        for t in range(1, len(true_states)):
+            float_state = true_states[t]
             new_index = index_true[tuple(
                 (float_state / resolution).astype(numpy.int32))]
             dok_state_state[new_index, old_index] += 1
@@ -135,17 +135,15 @@ class Model:
         # Sum m[i,j] over i, ie, new_index, to get n[1,j]
         total = dok_state_state.sum(axis=0)
         assert total.shape == (n_states,)
-        dok_state_state.multiply(
-            1 / total)  # divide m[i,j] by n[1,j] for all i and j
-        self.p_state_state = dok_state_state.tocsr()
+        self.p_state_state = dok_state_state.multiply(1 / total).tocsr()
         assert self.p_state_state.shape == (n_states, n_states)
 
         self.p_state_0 = total / total.sum()
         assert self.p_state_0.shape == (n_states,)
 
         total = dok_measurement_state.sum(axis=0)
-        dok_measurement_state.multiply(1 / total)
-        self.p_measurement_state = dok_measurement_state.tocsr()
+        self.p_measurement_state = dok_measurement_state.multiply(
+            1 / total).tocsr()
         assert self.p_measurement_state.shape == (n_quantized, n_states)
 
     def log_likelihood(self, quantized):
@@ -189,19 +187,22 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
-    result = {}
+    result = {'args': args}
     xyz_train, q_train, q_test = make_data(args)
     for log_resolution in numpy.arange(*args.log_resolution):
         resolution = 2.0**log_resolution
-        print(
-            f'\n In main with resolution={resolution}, log_resolution={log_resolution}'
-        )
         hmm = Model(q_train, xyz_train, resolution, args.n_quantized)
-        print(f'In main after making hmm')
         log_likelihood = hmm.log_likelihood(q_test)
-        print(f'In main log_likelihood={log_likelihood}')
-        result[log_resolution]: {'log_likelihood': log_likelihood, 'args': args}
-    return result
+        n_states = len(hmm.p_state_0)
+        print(
+            f'log_resolution={log_resolution}, resolution={resolution:5.1f} ' +
+            f'n_states={n_states:3d} log_likelihood={log_likelihood:6.1f}')
+        result[log_resolution] = {
+            'log_likelihood': log_likelihood,
+            'n_states': n_states
+        }
+    # pickle dump result
+    return 0
 
 
 if __name__ == "__main__":
