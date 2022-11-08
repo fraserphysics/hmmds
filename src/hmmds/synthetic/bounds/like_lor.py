@@ -20,7 +20,7 @@ def parse_args(argv):
     parser.add_argument('--log_resolution',
                         type=float,
                         nargs=3,
-                        default=[3, 6, 0.5],
+                        default=[0, 4.6, 0.5],
                         help='Range of log of quantization resolution base 2')
     parser.add_argument('--n_relax',
                         type=int,
@@ -28,7 +28,7 @@ def parse_args(argv):
                         help='Number of steps to relax to attractor')
     parser.add_argument('--n_train',
                         type=int,
-                        default=1000,
+                        default=10000,
                         help='Training sample size')
     parser.add_argument('--n_test',
                         type=int,
@@ -158,22 +158,24 @@ class Model:
         saving the alpha array.
 
         """
-        temp = self.p_state_0
-        n_states, = temp.shape
-        result = 0.0
         n_t = len(quantized)
+        n_levels, n_states = self.p_measurement_state.shape
+        # Because csr operations yield csr arrays, I simply start with
+        # temp as a csr array
+        temp = scipy.sparse.csr_array(self.p_state_0.reshape((1, n_states)))
+        result = 0.0
         for y_t in quantized:
-            # Now temp is the forecast or prior, ie, temp[i] = P(s[t]=i|y[:t])
-            temp = self.p_measurement_state.getrow(y_t).multiply(temp).T
+            # Now temp is the forecast or prior, ie, temp[0,i] = P(s[t]=i|y[:t])
+            temp = self.p_measurement_state.getrow(y_t).multiply(temp)
             # getrow(y) is the likelihood, ie, getrow(y)[i] =
             # P(y[t]|s[t]=i)
-            # Now temp[i] = P(y[t], s[t]=i|y[:t])
+            assert temp.shape == (1, n_states)
+            # Now temp[0,i] = P(y[t], s[t]=i|y[:t])
             p_y = temp.sum()
             # p_y is P(y[t]|y[:t])
             result += numpy.log(p_y)
-            # Now temp/p_y is updated estimate, (temp/p_y)[i] =
-            # P(s[t]=i|y[:t+1])
-            temp = self.p_state_state.dot(temp / p_y)
+            temp = self.p_state_state.dot(temp.T / p_y).T
+            assert temp.shape == (1, n_states)
             # Now temp is the new forecast, temp[i] =
             # P(s[t+1]=i|y[:t+1])
         return result
