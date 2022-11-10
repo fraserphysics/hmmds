@@ -22,7 +22,7 @@ def positive_definite(x):
     symmetric = (x + x.T) / 2
     assert numpy.allclose(x, symmetric)
     vals, vecs = numpy.linalg.eigh(symmetric)
-    assert vals.min() >= 0.0, f'vals={vals}'
+    assert vals.min() >= 0.0, f'vals={vals}, vecs={vecs}'
 
 
 class LocalNonStationary(hmm.state_space.NonStationary):
@@ -52,8 +52,10 @@ class LocalNonStationary(hmm.state_space.NonStationary):
 
         Differs from parent by Quantizing the observations
         """
-        xs, ys = self.system.simulate_n_steps(initial_dist, n_samples, states_0)
-        return xs, numpy.floor(ys / self.y_step) * self.y_step + self.y_step / 2
+        x_array, y_array = self.system.simulate_n_steps(initial_dist, n_samples,
+                                                        states_0)
+        return x_array, numpy.floor(
+            y_array / self.y_step) * self.y_step + self.y_step / 2
 
     def forward_filter(self: LocalNonStationary,
                        initial_dist: hmm.state_space.MultivariateNormal,
@@ -107,7 +109,8 @@ class LocalNonStationary(hmm.state_space.NonStationary):
             y_probabilities[t] = cumulative_prob(
                 y + self.y_step / 2) - cumulative_prob(y - self.y_step / 2)
 
-        return forecast_means, forecast_covariances, update_means, update_covariances, y_means, y_variances, y_probabilities
+        return forecast_means, forecast_covariances, update_means, \
+            update_covariances, y_means, y_variances, y_probabilities
 
     def update_step(self: LocalNonStationary, prior, y):
         """Calculate new x_dist based on observation y then forecast
@@ -200,7 +203,7 @@ def observation_function(_,
 def n_steps(ic: numpy.ndarray, n: int, d_t: float) -> numpy.ndarray:
     """
     Integrate Lorenz to produce n samples.
-    
+
     Args:
         ic: Initial condition
         n: Number of samples to return
@@ -222,7 +225,7 @@ def n_steps(ic: numpy.ndarray, n: int, d_t: float) -> numpy.ndarray:
                                       args=(s, r, b),
                                       atol=atol,
                                       method=method)
-    assert bunch.success == True
+    assert bunch.success
     assert bunch.y.shape == (3, n), f'shape={bunch.y.shape}'
     return bunch.y.T
 
@@ -250,6 +253,7 @@ def integrate_tangent(t, x, jacobian):
     return new_x, new_tangent.reshape((3, 3))
 
 
+# pylint: disable = too-many-arguments
 def make_system(s: float,
                 r: float,
                 b: float,
@@ -328,6 +332,7 @@ def main():
     """Exercise some of the above code for debugging
 
     """
+    # pylint: disable = too-many-locals unused-variable
     s = 10.0
     r = 28.0
     b = 8.0 / 3
@@ -342,8 +347,6 @@ def main():
     h_max = 1.0e-3
     atol = 1.0e-7
     fudge = 1.0
-
-    ivp_args = (s, r, b)
 
     x = n_steps(numpy.ones(3), 10, 0.15)
     assert x.shape == (10, 3)
@@ -369,8 +372,8 @@ def main():
         initial_state, stationary_covariance, rng)
     x, y = scipy_.simulate_n_steps(initial_distribution, n_times, y_step)
     # Check that forward_filter runs
-    forecast_means, forecast_covariances, update_means, update_covariances, y_means, y_variances, y_probabilities = scipy_.forward_filter(
-        initial_distribution, y)
+    forecast_means, forecast_covariances, update_means, update_covariances, y_means,\
+        y_variances, y_probabilities = scipy_.forward_filter(initial_distribution, y)
     return 0
 
 

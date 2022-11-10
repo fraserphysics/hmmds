@@ -4,6 +4,7 @@
 
 import sys
 import argparse
+import pickle
 
 import numpy
 import scipy.sparse
@@ -20,7 +21,7 @@ def parse_args(argv):
     parser.add_argument('--log_resolution',
                         type=float,
                         nargs=3,
-                        default=[0, 4.6, 0.5],
+                        default=[4.0, -0.1, -0.5],
                         help='Range of log of quantization resolution base 2')
     parser.add_argument('--n_relax',
                         type=int,
@@ -28,11 +29,11 @@ def parse_args(argv):
                         help='Number of steps to relax to attractor')
     parser.add_argument('--n_train',
                         type=int,
-                        default=10000,
+                        default=100000,
                         help='Training sample size')
     parser.add_argument('--n_test',
                         type=int,
-                        default=100,
+                        default=1000,
                         help='Testing sample size')
     parser.add_argument('--n_quantized',
                         type=int,
@@ -51,11 +52,11 @@ def parse_args(argv):
                         type=float,
                         default=1e-4,
                         help='Minimum conditional observation probability')
-    parser.add_argument('result_path', type=str, help='Where to write result')
+    parser.add_argument('result', type=str, help='Where to write result')
     return parser.parse_args(argv)
 
 
-def make_data(args):
+def make_data(args: argparse.Namespace):
     """
     Args:
         args: Command line arguments
@@ -75,7 +76,7 @@ def make_data(args):
     x_train = xyz_train[:, 0]
     x_min = x_train.min()
     x_max = x_train.max()
-    assert x_min < 0 and x_max > 0
+    assert x_min < 0 < x_max
     size = max(x_max, -x_min) / (args.n_quantized / 2)
     bins = numpy.linspace(-size, size, args.n_quantized + 1)[1:-1]
     q_train = numpy.digitize(x_train, bins)
@@ -92,16 +93,17 @@ def make_data(args):
 
 
 class Model:
+    """Contains an HMM based on a true state sequence
 
+    Args:
+        quantized: A time series of discrete scalar measurements
+        true_states: The true sequencs of 3d states
+        args: The command line arguments
+
+    """
+
+    # pylint: disable = too-few-public-methods
     def __init__(self, quantized, true_states, resolution, n_quantized):
-        """Contains an HMM based on a true state sequence
-    
-        Args:
-            quantized: A time series of discrete scalar measurements
-            true_states: The true sequencs of 3d states
-            args: The command line arguments
-    
-        """
 
         n_t = len(quantized)
         assert len(true_states) == n_t
@@ -110,7 +112,7 @@ class Model:
         index_true = {}
         for float_state in true_states:
             key = tuple((float_state / resolution).astype(numpy.int32))
-            if not key in index_true:
+            if key not in index_true:
                 index_true[key] = len(index_true)
 
         n_states = len(index_true)
@@ -148,7 +150,7 @@ class Model:
 
     def log_likelihood(self, quantized):
         """Calculate the log likelihood of the model self
-        
+
         Args:
             quantized: A sequence of measurements
 
@@ -158,8 +160,7 @@ class Model:
         saving the alpha array.
 
         """
-        n_t = len(quantized)
-        n_levels, n_states = self.p_measurement_state.shape
+        _, n_states = self.p_measurement_state.shape
         # Because csr operations yield csr arrays, I simply start with
         # temp as a csr array
         temp = scipy.sparse.csr_array(self.p_state_0.reshape((1, n_states)))
@@ -197,13 +198,15 @@ def main(argv=None):
         log_likelihood = hmm.log_likelihood(q_test)
         n_states = len(hmm.p_state_0)
         print(
-            f'log_resolution={log_resolution}, resolution={resolution:5.1f} ' +
-            f'n_states={n_states:3d} log_likelihood={log_likelihood:6.1f}')
+            f'log_resolution={log_resolution:4.1f}, resolution={resolution:5.1f} '
+            + f'n_states={n_states:3d} log_likelihood={log_likelihood:6.1f}')
         result[log_resolution] = {
             'log_likelihood': log_likelihood,
             'n_states': n_states
         }
-    # pickle dump result
+
+    with open(args.result, 'wb') as _file:
+        pickle.dump(result, _file)
     return 0
 
 

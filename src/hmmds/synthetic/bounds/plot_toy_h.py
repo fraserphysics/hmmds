@@ -1,17 +1,14 @@
-"""plot_toy_h.py options <data>.  Make figure that illustrates cross
-entropy of extended Kalman filters.
+"""plot_toy_h.py Make figure that illustrates cross entropy of
+extended Kalman filters.  Two plots: (1) -^h vs measurement noise and
+# sample time; (2) -^h vs sample time
 
 """
-
-# Figure 5.3 Two plots: (1) -^h vs measurement noise and
-# sample time; (2) -^h vs sample time
 
 import sys
 import argparse
 import pickle
 
 import numpy
-import scipy.linalg
 
 import plotscripts.utilities
 

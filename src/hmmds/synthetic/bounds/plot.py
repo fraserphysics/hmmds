@@ -2,18 +2,6 @@
 Kalman filters
 
 """
-# ToyTS1.pdf Figure 5.1 Plots: (1) y[t]; (2) sigma[t], error[t]; (3)
-# log(P(y[t])).  Data in data_h_view
-
-# ToyStretch.pdf Figure 5.2 Update and forecast distributions for
-# t=t_view & t_view+1.  Data in data_h_view
-
-# ToyH.pdf Figure 5.3 Two plots: (1) -^h vs measurement noise and
-# sample time; (2) -^h vs sample time
-
-# benettin.pdf Figure 5.5 Laypunov exponent calculations
-
-# LikeLor.pdf Figure 5.6 Cross entropy vs number of states
 
 import sys
 import argparse
@@ -52,20 +40,23 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def plot_error(axis, sample_times, covariance, difference, label):
-    axis.plot(sample_times, difference, label=label)
-    sigma = numpy.sqrt(covariance[:, 0, 0])
-    axis.plot(sample_times, 2 * sigma, color='red', label='$\pm2\sigma$')
-    axis.plot(sample_times, -2 * sigma, color='red')
+def time_series(args: argparse.Namespace, pyplot, data):
+    """Make a stack of 3 plots: y[t], errors, log_probability
 
+    Args:
+        args:  Command line arguments
+        pyplot:
+        data: Dict with data to plot
 
-def time_series(args, pyplot, data):
+    Return: figure
+    """
     y = data['y'][:, 0]
     error = data['y_means'] - y
     y_deviations = numpy.sqrt(data['y_variances'])
 
-    fig, (y_plot, error_plot, log_prob_plot) = pyplot.subplots(nrows=3,
-                                                               figsize=(6, 5))
+    figure, (y_plot, error_plot, log_prob_plot) = pyplot.subplots(nrows=3,
+                                                                  figsize=(6,
+                                                                           5))
     # Force matching ticks
     log_prob_plot.get_shared_x_axes().join(y_plot, error_plot, log_prob_plot)
     # Drop tick labels on some shared axes.
@@ -85,11 +76,11 @@ def time_series(args, pyplot, data):
     for axes in (y_plot, error_plot, log_prob_plot):
         axes.legend()
 
-    return fig
+    return figure
 
 
 def ellipse(mean, covariance, i_a=0, i_b=2):
-    """ Calculate points on x^T \Sigma^{-1} x = 1
+    r""" Calculate points on x^T \Sigma^{-1} x = 1
 
     Args:
         mean: 3-vector
@@ -109,11 +100,33 @@ def ellipse(mean, covariance, i_a=0, i_b=2):
 
 
 def find_ranges(forecast_a, forecast_b, update_a, update_b):
-    """find x_range and y_range for plotting
+    """Find x_range and y_range for making two plots with the same
+    scale in both x and y directions.  The goal is to illustrate
+    stretching.
+
+    Args:
+        forecast_a: Points on ellipse
+        forecast_b: Points on ellipse
+        update_a: Points on ellipse
+        update_b: Points on ellipse
+
+    Returns: [range_a, range_b]
+
+    The form of range in the return is:
+    [ [x-Dx, x+Dx],
+      [y-Dy, y+Dy]
+    ]
+
     """
 
     def center_delta(forecast, update):
         """Find center and width/2 in both directions
+
+        Args:
+            forecast: Points on ellipse some time t
+            update: Points on ellipse for the same t
+
+        Returns: ([center_x, center_y], [delta_x, delta_y])
         """
         joined = numpy.concatenate((forecast, update))
         mins = joined.min(axis=0)
@@ -126,22 +139,25 @@ def find_ranges(forecast_a, forecast_b, update_a, update_b):
     center_b, delta_b = center_delta(forecast_b, update_b)
     delta_x = max(delta_a[0], delta_b[0]) * 1.1
     delta_y = max(delta_a[1], delta_b[1]) * 1.1
-    return [
-        [
-            [
-                center_a[0] - delta_x,
-                center_a[0] + delta_x,
-            ],  # x_range_a
-            [center_a[1] - delta_y, center_a[1] + delta_y]
-        ],  # y_range_a
-        [
-            [center_b[0] - delta_x, center_b[0] + delta_x],  # x_range_b
-            [center_b[1] - delta_y, center_b[1] + delta_y]
-        ]  # y_range_b
-    ]
+    delta = numpy.array([delta_x, delta_y])
+
+    def new_range(center, delta):
+        """
+        Args:
+            center: [x,y]
+            delta: [Dx,Dy]
+
+        Returns: [[x-Dx, y-Dy],[x+Dx, y+Dy]].T
+        """
+        return numpy.array([center - delta, center + delta]).T
+
+    return [new_range(center_a, delta), new_range(center_b, delta)]
 
 
-def stretch(args, pyplot, data):
+def stretch(args: argparse.Namespace, pyplot, data):
+    """Make a figure to illustrate stretching of phase space
+
+    """
     times = (args.t_view, args.t_view + 1)
 
     forecast_ellipses = [
@@ -153,22 +169,23 @@ def stretch(args, pyplot, data):
         for t in times
     ]
 
-    fig, both = pyplot.subplots(ncols=2, figsize=(12, 6))
+    figure, both = pyplot.subplots(ncols=2, figsize=(12, 6))
     assert len(both) == 2
     # assert isinstance(both[0], matplotlib.axes._subplots.AxesSubplot)
 
     ranges = find_ranges(*forecast_ellipses, *update_ellipses)
-    for n, axes in enumerate(both):
-        axes.plot(forecast_ellipses[n][:, 0], forecast_ellipses[n][:, 1])
-        axes.plot(update_ellipses[n][:, 0], update_ellipses[n][:, 1])
-        axes.set_xlim(ranges[n][0])
-        axes.set_ylim(ranges[n][1])
+    for n_axes, axes in enumerate(both):
+        axes.plot(forecast_ellipses[n_axes][:, 0], forecast_ellipses[n_axes][:,
+                                                                             1])
+        axes.plot(update_ellipses[n_axes][:, 0], update_ellipses[n_axes][:, 1])
+        axes.set_xlim(ranges[n_axes][0])
+        axes.set_ylim(ranges[n_axes][1])
 
     for axes in both:
         axes.set_ylabel(r'$x_2$')
         axes.set_xlabel(r'$x_0$')
 
-    return fig
+    return figure
 
 
 def main(argv=None):

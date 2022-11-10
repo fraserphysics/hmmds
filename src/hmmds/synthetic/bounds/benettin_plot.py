@@ -7,7 +7,6 @@ import pickle
 import math
 
 import numpy
-import scipy.linalg
 
 import plotscripts.utilities
 
@@ -53,33 +52,35 @@ def main(argv=None):
     five_percent = int(math.floor(0.05 * n_runs))
     ninety_five_percent = int(math.ceil(0.95 * n_runs))
 
-    def calculate_and_plot(ax, r_values):
+    def calculate_and_plot(axes, r_values):
         """
         """
         log_r = numpy.log(r_values)
         cumsum = numpy.cumsum(log_r, axis=1) / time_step
 
         _sorted = numpy.sort(cumsum, axis=0)
-        ax.plot(times,
-                _sorted[five_percent, :, 0] / times,
-                label=r'5\%',
-                color='k',
-                linewidth=2)
+        axes.plot(times,
+                  _sorted[five_percent, :, 0] / times,
+                  label=r'5\%',
+                  color='k',
+                  linewidth=2)
         for n_run in range(min(n_runs, args.n_traces)):
-            ax.plot(times, cumsum[n_run, :, 0] / times, label=f'sample {n_run}')
-        ax.plot(times,
-                _sorted[ninety_five_percent, :, 0] / times,
-                label=r'95\%',
-                color='k',
-                linewidth=2)
-        ax.set_ylabel(r'$\hat \lambda (t)$')
-        ax.set_ylim(0.5, 1.5)
+            axes.plot(times,
+                      cumsum[n_run, :, 0] / times,
+                      label=f'sample {n_run}')
+        axes.plot(times,
+                  _sorted[ninety_five_percent, :, 0] / times,
+                  label=r'95\%',
+                  color='k',
+                  linewidth=2)
+        axes.set_ylabel(r'$\hat \lambda (t)$')
+        axes.set_ylim(0.5, 1.5)
         # Move yaxis to the right hand side so that the difference
         # between the top and bottom is easy to see
-        ax.yaxis.set_label_position("right")
-        ax.tick_params(labelleft=False, labelright=True)
-        ax.tick_params(bottom=True, top=True, left=True, right=True)
-        ax.legend()
+        axes.yaxis.set_label_position("right")
+        axes.tick_params(labelleft=False, labelright=True)
+        axes.tick_params(bottom=True, top=True, left=True, right=True)
+        axes.legend()
 
     calculate_and_plot(top_axes, r_run_time)
     calculate_and_plot(bottom_axes, r_run_time + augment)

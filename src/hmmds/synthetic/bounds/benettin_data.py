@@ -9,15 +9,14 @@ Derived from hmmds3 LaypPlot.py
 
 import sys
 import argparse
-import typing
 import pickle
 
 import numpy
 import numpy.linalg
 import numpy.random
 
-import hmmds.synthetic.bounds.lorenz
 import hmm.state_space
+import hmmds.synthetic.bounds.lorenz
 
 
 def parse_args(argv):
@@ -55,7 +54,7 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def one_run(initial_distribution, state_noise, args):
+def one_run(initial_distribution, state_noise, args: argparse.Namespace):
     """ Return a record of a Lyapunov exponent calculation.
 
     Args:

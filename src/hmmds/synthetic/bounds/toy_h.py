@@ -5,8 +5,6 @@ from __future__ import annotations  # Enables, eg, (self: LocalNonStationary
 
 import sys
 import argparse
-import os
-import typing
 import pickle
 
 import numpy
@@ -58,11 +56,13 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def make_system(dev_observation, dev_state, time_step, y_step):
+def make_system(dev_observation: float, dev_state: float, time_step: float,
+                y_step: float) -> tuple:
     """ Call hmmds.synthetic.bounds.lorenz.make_system and create an
     initial distribution.
 
     """
+    # pylint: disable = invalid-name
     s = 10.0
     r = 28.0
     b = 8.0 / 3
@@ -90,24 +90,32 @@ def make_system(dev_observation, dev_state, time_step, y_step):
     return system, initial_distribution, rng
 
 
-def cumulative(z):
+def cumulative(z: float) -> float:
     """Calculate the cumulative value for z in N(0,1)
 
     """
     return (1 + scipy.special.erf(z / numpy.sqrt(2))) / 2
 
 
-def pmf(y, mean, dev, step):
+def pmf(y: numpy.ndarray, mean: numpy.ndarray, dev: numpy.ndarray,
+        step: float) -> float:
     """Calculate the probability of the interval y +/- step/2
-    
+
+    Args:
+        y: Observations
+        mean: Means of forecasts
+        dev: Square root of variances of forecasts
+        step: Size of integration interval to get probability mass
     """
     z_0 = (y - mean - step / 2) / dev
     z_1 = (y - mean + step / 2) / dev
     return cumulative(z_1) - cumulative(z_0)
 
 
-def ekf_entropy(time_step: float, log_observation_noise: float, args,
-                initial_distribution, y: numpy.ndarray) -> float:
+def ekf_entropy(time_step: float, log_observation_noise: float,
+                args: argparse.Namespace,
+                initial_distribution: hmm.state_space.MultivariateNormal,
+                y: numpy.ndarray) -> float:
     """
     Estimate the cross entropy of an extended Kalman filter.
 
@@ -142,7 +150,7 @@ def ekf_entropy(time_step: float, log_observation_noise: float, args,
     return result
 
 
-def survey(args):
+def survey(args: argparse.Namespace) -> dict:
     """Do a two dimensional survey of cross entropy over the sampling
     interval, t_s, and the scale of the observation noise,
     dev_observation.
@@ -198,8 +206,6 @@ def main(argv=None):
         initial_for_filter = hmm.state_space.MultivariateNormal(
             x[0],
             numpy.eye(3) * 1e-3, rng)
-        DevEpsilon = 10**dy1
-        SigmaEpsilon = DevEpsilon**2
 
         lower.append(ekf_entropy(time_step, dy1, args, initial_for_filter, y))
 
@@ -216,11 +222,6 @@ def main(argv=None):
     with open(args.result, 'wb') as _file:
         pickle.dump(result, _file)
 
-    for time_step in sorted(cross_entropy.keys()):
-        for log_observation_noise in sorted(cross_entropy[time_step].keys()):
-            print(
-                f'{time_step:6.3f} {log_observation_noise:7.3f} {cross_entropy[time_step][log_observation_noise]:7.3f}'
-            )
     return 0
 
 
