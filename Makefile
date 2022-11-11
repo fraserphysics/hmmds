@@ -30,10 +30,11 @@ $(BUILD)/TeX/skeleton/figures.pdf:
 skeleton: $(BUILD)/TeX/skeleton/figures.pdf
 
 # Rules for making plots
+include $(PLOTSCRIPTS)/basic_algorithms/Rules.mk
+include $(PLOTSCRIPTS)/bounds/Rules.mk
 include $(PLOTSCRIPTS)/filter/Rules.mk
 include $(PLOTSCRIPTS)/laser/Rules.mk
 include $(PLOTSCRIPTS)/introduction/Rules.mk
-include $(PLOTSCRIPTS)/basic_algorithms/Rules.mk
 include $(PLOTSCRIPTS)/variants/Rules.mk
 include $(XFIGS)/Rules.mk
 include $(ApneaPlotScripts)/Rules.mk

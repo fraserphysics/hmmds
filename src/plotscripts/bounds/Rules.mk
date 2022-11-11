@@ -6,17 +6,17 @@ FIGS_BOUNDS = $(BUILD)/figs/bounds
 BoundsPlotscripts = $(ROOT)/src/plotscripts/bounds
 
 
-$(FIGS_BOUNDS)/ToyTS1.pdf: $(BoundsPlotscripts)/plot.py $(BOUNDS_DATA)/data_h_view
+$(FIGS_BOUNDS)/ToyTS1.pdf: $(BoundsPlotscripts)/toy.py $(BOUNDS_DATA)/data_h_view
 	python $< --ToyTS1 $@ $(BOUNDS_DATA)/data_h_view
 
-$(FIGS_BOUNDS)/ToyStretch.pdf: $(BoundsPlotscripts)/plot.py $(BOUNDS_DATA)/data_h_view
+$(FIGS_BOUNDS)/ToyStretch.pdf: $(BoundsPlotscripts)/toy.py $(BOUNDS_DATA)/data_h_view
 	python $< --ToyStretch $@ $(BOUNDS_DATA)/data_h_view
 
-$(FIGS_BOUNDS)/ToyH.pdf: $(BoundsPlotscripts)/plot_toy_h.py $(BOUNDS_DATA)/toy_h.data
+$(FIGS_BOUNDS)/ToyH.pdf: $(BoundsPlotscripts)/toy_h.py $(BOUNDS_DATA)/toy_h.data
 	python $^ $@
 
-$(FIGS_BOUNDS)/benettin.pdf: $(BoundsPlotscripts)/benettin_plot.py $(BOUNDS_DATA)/BenettinData
+$(FIGS_BOUNDS)/benettin.pdf: $(BoundsPlotscripts)/benettin.py $(BOUNDS_DATA)/BenettinData
 	python $^ $@
 
-$(FIGS_BOUNDS)/LikeLor.pdf: $(BoundsPlotscripts)/plot_like_lor.py $(BOUNDS_DATA)/like_lor_data
+$(FIGS_BOUNDS)/LikeLor.pdf: $(BoundsPlotscripts)/like_lor.py $(BOUNDS_DATA)/like_lor_data
 	python $^ $@
