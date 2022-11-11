@@ -41,6 +41,7 @@ include $(ApneaPlotScripts)/Rules.mk
 # Rules for making data files
 include $(HMMDS)/synthetic/Rules.mk
 include $(HMMDS)/synthetic/filter/Rules.mk
+include $(HMMDS)/synthetic/bounds/Rules.mk
 include $(HMMDS)/applications/laser/Rules.mk
 
 # Rules for making documents

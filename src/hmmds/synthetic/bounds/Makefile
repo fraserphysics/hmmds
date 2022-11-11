@@ -1,23 +1,22 @@
 ALL_FIGS =  ToyTS1.pdf ToyStretch.pdf ToyH.pdf benettin.pdf LikeLor.pdf
 
-# ToyTS1.pdf ToyStretch.pdf ToyH.pdf benettin.pdf LikeLor.pdf
-.PHONY : ALL
-ALL : $(ALL_FIGS)
+# Makefile: For testing scripts in this directory from this directory
 
-ToyTS1.pdf: plot.py data_h_view
-	python $< --ToyTS1 $@ data_h_view
+ROOT = ../../../..
+BUILD = $(ROOT)/build
 
-ToyStretch.pdf: plot.py data_h_view
-	python $< --ToyStretch $@ data_h_view
+# The default target is test
+test:
 
-ToyH.pdf: plot_toy_h.py toy_h.data
-	python $^ $@
+# Rules.mk contains the real targets and rules to build them
+include Rules.mk
 
-benettin.pdf: benettin_plot.py BenettinData
-	python $^ $@
+# ALL is all the targets that Rules.mk is responsible for
+ALL = $(addprefix $(BOUNDS_DATA)/, data_h_view toy_h.data BenettinData like_lor_data)
 
-LikeLor.pdf: plot_like_lor.py like_lor_data
-	python $^ $@
+## test                 : Build all targets
+.PHONY : test
+test: $(ALL)
 
 data_h_view: h_view.py
 	@echo To make data_h_view, run \"python h_view.py\" and press the \"save\" button
@@ -31,3 +30,24 @@ BenettinData: benettin_data.py
 # This takes almost 8 minutes on cathcart
 like_lor_data: like_lor.py
 	python $< $@
+
+
+## list                 : List all files built by this makefile
+.PHONY : list
+list:
+	ls -l $(ALL)
+
+## clean                : Remove all files built by this makefile
+.PHONY : clean
+clean:
+	rm -f $(ALL) *pdf*
+
+## variables            : Print selected variables.
+.PHONY : variables
+variables:
+	@echo FILTER_DATA: $(SYNTHETIC_CODE)
+
+## help                 : Print comments on targets from makefile
+.PHONY : help
+help :
+	@sed -n 's/^## / /p' Makefile
