@@ -7,7 +7,9 @@ BOUNDS_CODE = $(ROOT)/src/hmmds/synthetic/bounds
 # BOUNDS_CODE is this directory
 
 $(BOUNDS_CODE)/data_h_view: $(BOUNDS_CODE)/h_view.py
-	(error To make data_h_view, run \"python h_view.py\" from $(BOUNDS_CODE) and press the \"save\" button)
+	$(error data_h_view is out of date. \
+Run "python h_view.py" from $(BOUNDS_CODE) and press the "save" button to make a new version. \
+To use the version in git, just touch it)
 
 $(BOUNDS_DATA)/data_h_view: $(BOUNDS_CODE)/data_h_view
 	cp $< $@
