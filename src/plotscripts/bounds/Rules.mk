@@ -12,11 +12,11 @@ $(FIGS_BOUNDS)/ToyTS1.pdf: $(BoundsPlotscripts)/toy.py $(BOUNDS_DATA)/data_h_vie
 $(FIGS_BOUNDS)/ToyStretch.pdf: $(BoundsPlotscripts)/toy.py $(BOUNDS_DATA)/data_h_view
 	python $< --ToyStretch $@ $(BOUNDS_DATA)/data_h_view
 
-$(FIGS_BOUNDS)/ToyH.pdf: $(BoundsPlotscripts)/toy_h.py $(BOUNDS_DATA)/toy_h.data
+$(FIGS_BOUNDS)/ToyH.pdf: $(BoundsPlotscripts)/toy_h.py $(BOUNDS_DATA)/toy_h
 	python $^ $@
 
-$(FIGS_BOUNDS)/benettin.pdf: $(BoundsPlotscripts)/benettin.py $(BOUNDS_DATA)/BenettinData
+$(FIGS_BOUNDS)/benettin.pdf: $(BoundsPlotscripts)/benettin.py $(BOUNDS_DATA)/benettin
 	python $^ $@
 
-$(FIGS_BOUNDS)/LikeLor.pdf: $(BoundsPlotscripts)/like_lor.py $(BOUNDS_DATA)/like_lor_data
+$(FIGS_BOUNDS)/LikeLor.pdf: $(BoundsPlotscripts)/like_lor.py $(BOUNDS_DATA)/like_lor
 	python $^ $@

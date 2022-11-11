@@ -1875,50 +1875,6 @@ figs/sgauss2.pdf_t figs/ToyCross.pdf_t figs/ToyPractical.pdf_t
 
 ToDo:
 
-find hmmds3 -name SConscript -exec grep -H ToyTS1 '{}' \;
-
-Chapter 5 is Performance Bounds and a Toy Problem
-
-ToyTS1      Fig. 5.1
-hmmds3/code/applications/synthetic/ToyTS1.py
-hmmds3/code/plotscripts/ToyTS1.py
-
-target = (FIG('ToyTS1.pdf'),)
-source = ('ToyTS1.py', DDS('ToyTS1'))
-env.args[KEY(target)] = (source[-1], target[0])
-env.Command(target, source, BUILD2)
-
-ToyStretch  Fig. 5.2
-hmmds3/code/plotscripts/ToyStretch.py
-
-target = (FIG('ToyStretch.pdf'),)
-source = ('ToyStretch.py', RD('Save_Hview_T_118'), RD('Save_Hview_T_119'))
-env.args[KEY(target)] = source[1:] + (target[0],)
-env.Command(target, source, BUILD2)
-
-ToyH        Fig .5.3
-hmmds3/code/plotscripts/ToyH.py
-
-target = (FIG('ToyH.pdf'),)
-source = ('ToyH.py', DDS('Hsurvey'), DDS('HtauS'))
-env.args[KEY(target)] = source[1:] + (target[0],)
-env.Command(target, source, BUILD2)
-
-benettin    Fig. 5.5
-hmmds3/code/plotscripts/benettin.py
-
-target = (FIG('benettin.pdf'),)
-source = ('benettin.py', DDS('benettin'))
-env.args[KEY(target)] = (source[-1], target[0])
-env.Command(target, source, BUILD2)
-
-
-LikeLor     Fig. 5.6
-target = (FIG('LikeLor.pdf'),)
-source = ('like_lor.py', DDS('H_study'))
-env.args[KEY(target)] = source[1:] + target
-env.Command(target, source, BUILD2)
-
 DDS is derived_data_synthetic
 RD is raw_data
 
