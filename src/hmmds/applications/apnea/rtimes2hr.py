@@ -106,10 +106,9 @@ def calculate(rtimes: numpy.ndarray, args) -> dict:
     hr_low_pass = numpy.fft.irfft(HR)[:n_times] * PINT('Hz') + hr_mean
     HR[0:100] *= 0  # Drop frequencies below (100*60)/65536 about 0.09/min
     hr_band_pass = numpy.fft.irfft(HR)[:n_times] * PINT('Hz')
-    times = (numpy.arange(0, n_times) / frequency).to('minute')
     # Write results in beats per minute
     result = {
-        'times': times,
+        'sample_frequency': frequency,
         'hr': hr.to('1/minute'),
         'hr_low_pass': hr_low_pass.to('1/minute'),
         'hr_band_pass': hr_band_pass.to('1/minute'),
