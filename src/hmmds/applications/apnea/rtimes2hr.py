@@ -102,7 +102,7 @@ def calculate(rtimes: numpy.ndarray, args) -> dict:
     # which is more than twice as long as any of the sleep records.
     # So rfft will pad with zeros.
     HR = numpy.fft.rfft(hr_mean_0.to('Hz').magnitude, 131072)
-    HR[4000:] *= 0  # and above (4000*60)/65536 about 3.66/min
+    HR[4000:] *= 0  # Drop frequencies above (4000*60)/65536 about 3.66/min
     hr_low_pass = numpy.fft.irfft(HR)[:n_times] * PINT('Hz') + hr_mean
     HR[0:100] *= 0  # Drop frequencies below (100*60)/65536 about 0.09/min
     hr_band_pass = numpy.fft.irfft(HR)[:n_times] * PINT('Hz')

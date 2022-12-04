@@ -5,11 +5,14 @@
 ROOT = ../../../..
 RAW = $(ROOT)/raw_data/apnea/apnea-ecg-database-1.0.0
 DERIVED = $(ROOT)/build/derived_data/apnea
+EXPERT =  $(ROOT)/raw_data/apnea/summary_of_training
+
 # I made the Rtimes files using my project wfdb which imports
 # PhysioNet's wfdb using its own shell.nix that is incompatible with
 # qt.
 RTIMES = $(DERIVED)/Rtimes
 LPHR = $(DERIVED)/Lphr
+RESPIRE = $(DERIVED)/Respire
 
 
 #####################Section derived from my wfdb Makefile##################
@@ -27,10 +30,13 @@ CNAMES = c01 c02 c03 c04 c05 c06 c07 c08 c09 c10
 
 NAMES = $(ANAMES) $(BNAMES) $(CNAMES) $(XNAMES)
 
-# ALL_LPHR is the default target.  For each record, eg, x01, make
-# files in $(LPHR)/, eg, $(LPHR)/foo.lphr
-.PHONY: ALL_LPHR
-ALL_LPHR : $(addsuffix .lphr, $(addprefix $(LPHR)/, $(NAMES)))
+$(RESPIRE)/flag: respire.py $(EXPERT) $(LPHR)/flag
+	mkdir -p $(RESPIRE)
+	python respire.py $(EXPERT) $(LPHR) $(RESPIRE)
+	touch $@
+
+$(LPHR)/flag : $(addsuffix .lphr, $(addprefix $(LPHR)/, $(NAMES)))
+	touch $@
 
 # Pattern rule for making $(LPHR)/foo.lphr from $(RTIMES)/foo.rtimes
 $(LPHR)/%.lphr: rtimes2hr.py $(RTIMES)/%.rtimes

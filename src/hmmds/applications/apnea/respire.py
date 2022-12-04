@@ -58,7 +58,7 @@ def spectrogram(filtered_heart_rate, args):
 
     """
 
-    ratio = int((args.sample_rate_in / args.sample_rate_out).magnitude)
+    ratio = int((args.sample_rate_in / args.sample_rate_out).to('').magnitude)
     assert ratio == 12
     # With default args ratio is 12
     frequencies, times, psds = scipy.signal.spectrogram(
@@ -68,7 +68,7 @@ def spectrogram(filtered_heart_rate, args):
         noverlap=args.fft_width - ratio,
         detrend=False,
         mode='psd')
-    assert len(filtered_heart_rate)/len(times) == ratio
+    assert args.fft_width > len(filtered_heart_rate) - len(times)*ratio >= 0
     return frequencies * PINT('Hz'), times * PINT('second'), psds
 
 
@@ -81,7 +81,7 @@ def linear_discriminant_analysis(# pylint: disable = too-many-locals
 
     Args:
         groups: EG, groups['a'] = ['a01', 'a02', ..., 'a25']
-        records:  Eg, records['a01']['bphr'] = an array of filtered heart rates
+        records:  Eg, records['a01']['hr_band_pass'] = an array of filtered heart rates
         annotation: annotation('a01',1.5) = 0 for time=1.5 minutes.  Or 1 for apnea
         args: Command line arguments
 
@@ -108,7 +108,7 @@ def linear_discriminant_analysis(# pylint: disable = too-many-locals
             self.psds = numpy.array(self.list)
             self.n_samples, self.sample_length = self.psds.shape
             self.mean = numpy.mean(self.psds, axis=0)
-            self.covariance = numpy.covariance(self.psds.T)
+            self.covariance = numpy.cov(self.psds.T)
             assert self.mean.shape == (self.sample_length,)
             assert self.covariance.shape == (self.sample_length,
                                                  self.sample_length)
@@ -122,7 +122,7 @@ def linear_discriminant_analysis(# pylint: disable = too-many-locals
         def components(self, basis):
             """Calculate the components in directions of basis
             """
-            return numpy.dot(basis, self.psds)
+            return numpy.dot(basis, self.psds.T)
 
     # Create arrays of psd vectors for three classes: Normal patients;
     # Apena patients while they are breathing normally; Apena patients
@@ -130,12 +130,13 @@ def linear_discriminant_analysis(# pylint: disable = too-many-locals
     c = Class()  # pylint: disable = invalid-name
     apnea = Class()
     normal = Class()
-    for name in groups['c'].values():
-        for psd in spectrogram(records[name]['bphr'], args)[-1]:
+    for name in groups['c']:
+        frequencies, times, psds = spectrogram(records[name]['hr_band_pass'], args)
+        for psd in psds.T:
             c.list.append(psd)
-    for name in groups['a'].values():
-        _, times, psds = spectrogram(records[name]['bphr'], args)
-        for time, psd in zip(times, psds):
+    for name in groups['a']:
+        _, times, psds = spectrogram(records[name]['hr_band_pass'], args)
+        for time, psd in zip(times, psds.T):
             if annotation(name, time):
                 apnea.list.append(psd)
             else:
@@ -157,7 +158,7 @@ def linear_discriminant_analysis(# pylint: disable = too-many-locals
     values, vectors = numpy.linalg.eigh(
         numpy.dot(within_information, between_class_scatter))
     big2 = numpy.argsort(values)[-2:]
-    basis = vectors[:, big2]
+    basis = vectors[:, big2].T
     result = {
         'basis': basis,
         'c_mean': c.mean,
@@ -180,15 +181,19 @@ def main(argv=None):
     annotations = {}
     records = {}
     groups = {'a': [], 'b': [], 'c': [], 'x': []}
-    for name in os.listdir(args.lphr_dir):
+    for _name in os.listdir(args.heart_rate_dir):
+        if _name == 'flag':
+            continue
+        assert _name[-5:] == '.lphr'
+        name = _name[:-5]
         assert name[0] in 'abcx'
         assert int(name[-2:]) > 0  # Ensure that name ends in digits
         # assign a01 data to records['a01']
-        with open(os.path.join(args.lphr_dir, name + '.lphr'), 'wb') as _file:
+        with open(os.path.join(args.heart_rate_dir, _name), 'rb') as _file:
             records[name] = pickle.load(_file)
         groups[name[0]].append(name)
-        assert records[name]['sample_frequency'] == args.sample_rate_in*PINT('Hz')
-        if name[0] != 'x':
+        assert records[name]['sample_frequency'] == args.sample_rate_in
+        if name[0] == 'a' or name[0] == 'c':  # No annotations for b05
             annotations[name] = utilities.read_expert(args.annotations, name)
 
 
@@ -197,6 +202,8 @@ def main(argv=None):
         """annotation('a01', 15.7) -> 0 or 1, 0 for normal
         """
         i_time = int(time.to('minutes').magnitude)  # int(.9) = 0
+        if i_time >= len(annotations[name]):
+            return annotations[name][-1]  # FixMe:  OK?
         return annotations[name][i_time]
     result = linear_discriminant_analysis(groups, records, annotation, args)
     with open(os.path.join(args.resp_dir, 'lda_data'), 'wb') as _file:
@@ -205,14 +212,14 @@ def main(argv=None):
     # Write lda components for each record
     basis = result['basis']
     for name, record in records.items():
-        frequencies, times, psds = spectrogram(record['bphr'], args)
-        assert psds.shape == (len(times), len(frequencies))
+        frequencies, times, psds = spectrogram(record['hr_band_pass'], args)
+        assert psds.shape == (len(frequencies), len(times))
         assert basis.shape == (2, len(frequencies))
-        components = numpy.dot(basis, psds)
+        components = numpy.dot(basis, psds).T
         assert isinstance(components, numpy.ndarray)
         assert components.shape == (len(times), 2)
-        with open(os.path.join(args.resp_dir, name+'.resp'), 'wb'):
-            pickle.dump((times,components))
+        with open(os.path.join(args.resp_dir, name+'.resp'), 'wb') as _file:
+            pickle.dump((times,components), _file)
     return 0
 
 

@@ -124,9 +124,15 @@ def read_expert(path: str, name: str) -> numpy.ndarray:
     with open(path, 'r') as data_file:
 
         # Skip to line that starts with name
-        parts = data_file.readline().split()
+        line = data_file.readline()
+        if len(line) == 0:
+            raise RuntimeError(f'{path} has no lines')
+        parts = line.split()
         while len(parts) == 0 or parts[0] != name:
-            parts = data_file.readline().split()
+            line = data_file.readline()
+            if len(line) == 0:
+                raise RuntimeError(f'{path} has no line for {name}')
+            parts = line.split()
 
         hour = 0
         marks: typing.List[str] = []
