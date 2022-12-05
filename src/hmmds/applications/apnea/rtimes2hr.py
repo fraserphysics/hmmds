@@ -54,7 +54,9 @@ def calculate(rtimes: numpy.ndarray, args) -> dict:
     # Make clean, a version of intervals with extreme values replaced
     # by median
     clean = numpy.empty((len(rtimes),)) * PINT('s')
-    clean[:-1] = numpy.where(numpy.logical_and(bottom < intervals, intervals < top), intervals, median)
+    clean[:-1] = numpy.where(
+        numpy.logical_and(bottom < intervals, intervals < top), intervals,
+        median)
     clean[-1] = clean[-2]
 
     # Create periods, an array of periods that is uniformly sampled at

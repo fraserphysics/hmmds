@@ -45,10 +45,14 @@ def parse_args(argv):
     parser.add_argument('annotations',
                         type=str,
                         help='File of expert annotations')
-    parser.add_argument('heart_rate_dir', type=str, help='Path to heart rate data for reading')
-    parser.add_argument('resp_dir', type=str, help='Path to respiration data for writing')
+    parser.add_argument('heart_rate_dir',
+                        type=str,
+                        help='Path to heart rate data for reading')
+    parser.add_argument('resp_dir',
+                        type=str,
+                        help='Path to respiration data for writing')
     args = parser.parse_args(argv)
-    args.sample_rate_in *=PINT('Hz')
+    args.sample_rate_in *= PINT('Hz')
     args.sample_rate_out /= PINT('minutes')
     return args
 
@@ -68,15 +72,12 @@ def spectrogram(filtered_heart_rate, args):
         noverlap=args.fft_width - ratio,
         detrend=False,
         mode='psd')
-    assert args.fft_width > len(filtered_heart_rate) - len(times)*ratio >= 0
+    assert args.fft_width > len(filtered_heart_rate) - len(times) * ratio >= 0
     return frequencies * PINT('Hz'), times * PINT('second'), psds
 
 
-def linear_discriminant_analysis(# pylint: disable = too-many-locals
-        groups: dict,
-        records: dict,
-        annotation: typing.Callable,
-        args) -> dict:
+def linear_discriminant_analysis(  # pylint: disable = too-many-locals
+        groups: dict, records: dict, annotation: typing.Callable, args) -> dict:
     """Calaculate LDA basis.
 
     Args:
@@ -95,6 +96,7 @@ def linear_discriminant_analysis(# pylint: disable = too-many-locals
     class Class:
         """Collects data and methods for linear discriminant analysis.
         """
+
         def __init__(self):
             """list will hold psds
             """
@@ -111,7 +113,7 @@ def linear_discriminant_analysis(# pylint: disable = too-many-locals
             self.covariance = numpy.cov(self.psds.T)
             assert self.mean.shape == (self.sample_length,)
             assert self.covariance.shape == (self.sample_length,
-                                                 self.sample_length)
+                                             self.sample_length)
 
         def between_term(self, global_mean):
             """Calculate the contribution of this class to between class scatter
@@ -131,7 +133,8 @@ def linear_discriminant_analysis(# pylint: disable = too-many-locals
     apnea = Class()
     normal = Class()
     for name in groups['c']:
-        frequencies, times, psds = spectrogram(records[name]['hr_band_pass'], args)
+        frequencies, times, psds = spectrogram(records[name]['hr_band_pass'],
+                                               args)
         for psd in psds.T:
             c.list.append(psd)
     for name in groups['a']:
@@ -153,8 +156,8 @@ def linear_discriminant_analysis(# pylint: disable = too-many-locals
     between_class_scatter = c.between_term(global_mean) + apnea.between_term(
         global_mean) + normal.between_term(global_mean)
 
-    within_information = numpy.linalg.inv(
-        within_class_scatter + numpy.eye(len(within_class_scatter)))
+    within_information = numpy.linalg.inv(within_class_scatter +
+                                          numpy.eye(len(within_class_scatter)))
     values, vectors = numpy.linalg.eigh(
         numpy.dot(within_information, between_class_scatter))
     big2 = numpy.argsort(values)[-2:]
@@ -196,15 +199,19 @@ def main(argv=None):
         if name[0] == 'a' or name[0] == 'c':  # No annotations for b05
             annotations[name] = utilities.read_expert(args.annotations, name)
 
-
     # Do linear discriminant analysis and write summary
     def annotation(name, time):
         """annotation('a01', 15.7) -> 0 or 1, 0 for normal
+
+        Args:
+            name: EG 'a01'
+            time: pint quantity with time dimension
         """
         i_time = int(time.to('minutes').magnitude)  # int(.9) = 0
         if i_time >= len(annotations[name]):
             return annotations[name][-1]  # FixMe:  OK?
         return annotations[name][i_time]
+
     result = linear_discriminant_analysis(groups, records, annotation, args)
     with open(os.path.join(args.resp_dir, 'lda_data'), 'wb') as _file:
         pickle.dump(result, _file)
@@ -218,8 +225,8 @@ def main(argv=None):
         components = numpy.dot(basis, psds).T
         assert isinstance(components, numpy.ndarray)
         assert components.shape == (len(times), 2)
-        with open(os.path.join(args.resp_dir, name+'.resp'), 'wb') as _file:
-            pickle.dump((times,components), _file)
+        with open(os.path.join(args.resp_dir, name + '.resp'), 'wb') as _file:
+            pickle.dump((times, components), _file)
     return 0
 
 
