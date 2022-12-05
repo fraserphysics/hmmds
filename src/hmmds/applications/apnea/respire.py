@@ -60,6 +60,9 @@ def parse_args(argv):
 def spectrogram(filtered_heart_rate, args):
     """Map an array of heart rates sampled at 2 Hz to a spectrogram
 
+    Args:
+        filtered_heart_rate: A pint quantity
+        args: Command line arguments
     """
 
     ratio = int((args.sample_rate_in / args.sample_rate_out).to('').magnitude)

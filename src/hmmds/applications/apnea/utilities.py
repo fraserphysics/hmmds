@@ -218,6 +218,62 @@ def heart_rate_respiration_bundle_data(
     return hmm.base.Bundle_segment(tags[:n_times], underlying)
 
 
+def rtimes2dev(data, w=1):
+    """ Create heart rate deviations with uniform sample time.
+    
+    Args:
+      data:   A list of R times (peak of ecg in a heartbeat)
+      w:      window size.  Look backwards and forwards at w R-times.
+
+    Return: heart rate deviations
+    
+    Calculate a list of heart rate deviations sampled at 2 HZ.  The
+    diviation is the jitter interpolated between the R time before the
+    sample and the R time after the sample.  The jitter is the
+    fraction of a pulse period by which an actual R time differs from
+    the expected R time (the average time of the time before and the
+    time after the beat in question).
+
+    """
+
+    # Create a list of jitters
+    jitter = []
+    for i in range(w, len(data) - w):
+        sum = 0.0
+        for d in (list(range(-w, 0)) + list(range(1, w + 1))):
+            sum += data[i + d]
+        T = sum / (2 * w)  # Expected time for data[i] if uniform
+        P = (data[i + w] - data[i - w]) / (2 * w)  # Avg pulse period
+        j = (data[i] - T) / P  # Fraction of pulse period by which
+        # data[i] is early or late
+        j = max(min(0.25, j), -0.25)  # Clip to +/- 0.25
+        jitter.append([data[i], j])
+    # Create an array of heart rate deviations that is uniformly
+    # sampled at 2 HZ
+    TF = jitter[-1][0]
+    L = int(2 * TF)
+    hrd = numpy.zeros(L)
+    t_old = 0
+    j_old = 1.0
+    t_new = jitter[0][0]
+    j_new = jitter[0][1]
+    i = 0
+    for k in range(L):
+        t = k / 2.0
+        if t > t_new:
+            i += 1
+            if i >= len(jitter):
+                break
+            t_old = t_new
+            j_old = j_new
+            t_new = jitter[i][0]
+            j_new = jitter[i][1]
+        djdt = (j_new - j_old) / (t_new - t_old)
+        hrd[k] = j_old + (t - t_old) * djdt
+
+    return hrd
+
+
 if __name__ == "__main__":
     rv = read_expert('../../../raw_data/apnea/summary_of_training', 'a05')
     samples_per_minute = 10

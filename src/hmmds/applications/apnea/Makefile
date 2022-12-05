@@ -9,7 +9,10 @@ EXPERT =  $(ROOT)/raw_data/apnea/summary_of_training
 
 # I made the Rtimes files using my project wfdb which imports
 # PhysioNet's wfdb using its own shell.nix that is incompatible with
-# qt.
+# qt.  On the basis of visually comparing spectrograms, I think the
+# Rtimes files in hmmds3 are better.  If I find/build a better beat
+# detector, perhaps I should shorten the window for calculating
+# deviations.
 RTIMES = $(DERIVED)/Rtimes
 LPHR = $(DERIVED)/Lphr
 RESPIRE = $(DERIVED)/Respire
