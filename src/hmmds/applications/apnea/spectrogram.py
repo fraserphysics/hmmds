@@ -14,7 +14,7 @@ import pint
 import numpy
 import matplotlib
 
-import respire, utilities, rtimes2hr
+import utilities
 
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as pyplot
@@ -33,9 +33,9 @@ def parse_args(argv):
                         type=str,
                         default='../../../../build/derived_data/apnea/Lphr/',
                         help='Path to heart rate data')
-    parser.add_argument('--rtimes_dir',
+    parser.add_argument('--resp_dir',
                         type=str,
-                        default='../../../../build/derived_data/apnea/Rtimes/',
+                        default='../../../../build/derived_data/apnea/Respire/',
                         help='Path to heart rate data')
     parser.add_argument(
         '--annotations',
@@ -50,27 +50,8 @@ def parse_args(argv):
                         type=float,
                         nargs=2,
                         help='Restrict plot to frequencies in this window')
-    parser.add_argument('--sample_rate_in',
-                        type=int,
-                        default=2,
-                        help='Samples per second of input')
-    parser.add_argument('--sample_rate_out',
-                        type=int,
-                        default=10,
-                        help='Samples per minute for results')
-    parser.add_argument('--fft_width',
-                        type=int,
-                        default=128,
-                        help='Number of samples for each fft')
-    parser.add_argument(
-        '--deviation_w',
-        type=int,
-        default=4,
-        help='width of context for calculating heart beat deviations')
     parser.add_argument('output', type=str, help='Path to result')
     args = parser.parse_args(argv)
-    args.sample_rate_in *= PINT('Hz')
-    args.sample_rate_out /= PINT('minutes')
     return args
 
 
@@ -87,19 +68,21 @@ def main(argv=None):
     time_series = hr_dict['hr_band_pass']
     hr_dt = 1 / hr_dict['sample_frequency'].to('1/minute')
 
-    rtimes = rtimes2hr.read_rtimes(
-        os.path.join(args.rtimes_dir, args.name + '.rtimes')).magnitude
-    hr_deviations = utilities.rtimes2dev(rtimes, args.deviation_w) * PINT('Hz')
+    # Read spectrogram data
+    with open(os.path.join(args.resp_dir, args.name + '.sgram'), 'rb') as _file:
+        sgram_dict = pickle.load(_file)
+    frequencies = sgram_dict['frequencies']
+    spec_times = sgram_dict['times']
+    psds = sgram_dict['psds']
 
     # Calculate spectrogram with unit lengths
-    frequencies, spec_times, psds = respire.spectrogram(hr_deviations, args)
     assert psds.shape == (len(frequencies), len(spec_times))
     norms = numpy.sqrt((psds * psds).sum(axis=0))
     psds /= norms
 
     annotations = utilities.read_expert(args.annotations, args.name)
 
-    fig, (ax_time_series, ax_spectrogram, ax_annotation) = pyplot.subplots(3, 1)
+    figure, (ax_time_series, ax_spectrogram, ax_annotation) = pyplot.subplots(3, 1)
 
     ax_annotation.get_shared_x_axes().join(ax_time_series, ax_spectrogram,
                                            ax_annotation)

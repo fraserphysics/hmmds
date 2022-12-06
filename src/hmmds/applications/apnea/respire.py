@@ -232,6 +232,8 @@ def main(argv=None):
         frequencies, times, psds = spectrogram(record, args)
         assert psds.shape == (len(frequencies), len(times))
         assert basis.shape == (2, len(frequencies))
+        with open(os.path.join(args.resp_dir, name + '.sgram'), 'wb') as _file:
+            pickle.dump({'frequencies':frequencies,'times':times,'psds':psds}, _file)
         components = numpy.dot(basis, psds).T
         assert isinstance(components, numpy.ndarray)
         assert components.shape == (len(times), 2)
