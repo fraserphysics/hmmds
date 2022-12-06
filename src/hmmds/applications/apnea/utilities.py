@@ -222,7 +222,7 @@ def rtimes2dev(data, w=1):
     """ Create heart rate deviations with uniform sample time.
     
     Args:
-      data:   A list of R times (peak of ecg in a heartbeat)
+      data:   A numpy array of R times (peak of ecg in a heartbeat)
       w:      window size.  Look backwards and forwards at w R-times.
 
     Return: heart rate deviations
@@ -236,42 +236,29 @@ def rtimes2dev(data, w=1):
 
     """
 
-    # Create a list of jitters
-    jitter = []
+    # jitters is an array of deviations of rtime from prediction
+    jitter = numpy.zeros(len(data))
     for i in range(w, len(data) - w):
-        sum = 0.0
-        for d in (list(range(-w, 0)) + list(range(1, w + 1))):
-            sum += data[i + d]
-        T = sum / (2 * w)  # Expected time for data[i] if uniform
-        P = (data[i + w] - data[i - w]) / (2 * w)  # Avg pulse period
-        j = (data[i] - T) / P  # Fraction of pulse period by which
-        # data[i] is early or late
-        j = max(min(0.25, j), -0.25)  # Clip to +/- 0.25
-        jitter.append([data[i], j])
+        # Find expected time for data[i] if rtime intervals are uniform
+        t_hat = (data[i - w:i].sum() + data[i + 1:i + w + 1].sum()) / (2 * w)
+        d_t_hat = (data[i + w] - data[i - w]) / (2 * w)  # Avg pulse period
+        # Fraction of pulse period by which data[i] is early or late
+        fraction = (data[i] - t_hat) / d_t_hat
+        # Clip to +/- 0.25
+        jitter[i] = max(min(0.25, fraction), -0.25)
     # Create an array of heart rate deviations that is uniformly
     # sampled at 2 HZ
-    TF = jitter[-1][0]
-    L = int(2 * TF)
-    hrd = numpy.zeros(L)
-    t_old = 0
-    j_old = 1.0
-    t_new = jitter[0][0]
-    j_new = jitter[0][1]
-    i = 0
-    for k in range(L):
-        t = k / 2.0
-        if t > t_new:
-            i += 1
-            if i >= len(jitter):
-                break
-            t_old = t_new
-            j_old = j_new
-            t_new = jitter[i][0]
-            j_new = jitter[i][1]
-        djdt = (j_new - j_old) / (t_new - t_old)
-        hrd[k] = j_old + (t - t_old) * djdt
-
-    return hrd
+    t_initial = data[0]
+    delta_t = data[-1] - t_initial
+    # How many samples at 2 Hz fit strictly inside the interval
+    length = int(2 * delta_t - 1e-6)
+    remainder = delta_t - length / 2.0
+    times = numpy.arange(length) / 2.0 + t_initial + remainder / 2.0
+    assert remainder > 0
+    # Using 10 assumes heart rate is less than 10*2/sec = 1200 bpm
+    assert data[0] < times[0] < data[10]
+    assert data[-10] < times[-1] < data[-1]
+    return jitter[numpy.searchsorted(data, times)]
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ import numpy
 import numpy.linalg
 import scipy.signal
 
-from hmmds.applications.apnea import utilities
+from hmmds.applications.apnea import utilities, rtimes2hr
 
 PINT = pint.UnitRegistry()
 
@@ -40,12 +40,17 @@ def parse_args(argv):
                         help='Samples per minute for results')
     parser.add_argument('--fft_width',
                         type=int,
-                        default=1024,
+                        default=128,
                         help='Number of samples for each fft')
+    parser.add_argument(
+        '--deviation_w',
+        type=int,
+        default=4,
+        help='width of context for calculating heart beat deviations')
     parser.add_argument('annotations',
                         type=str,
                         help='File of expert annotations')
-    parser.add_argument('heart_rate_dir',
+    parser.add_argument('rtimes_dir',
                         type=str,
                         help='Path to heart rate data for reading')
     parser.add_argument('resp_dir',
@@ -85,7 +90,7 @@ def linear_discriminant_analysis(  # pylint: disable = too-many-locals
 
     Args:
         groups: EG, groups['a'] = ['a01', 'a02', ..., 'a25']
-        records:  Eg, records['a01']['hr_band_pass'] = an array of filtered heart rates
+        records:  Eg, records['a01'] = an array of rtime deviations
         annotation: annotation('a01',1.5) = 0 for time=1.5 minutes.  Or 1 for apnea
         args: Command line arguments
 
@@ -136,12 +141,11 @@ def linear_discriminant_analysis(  # pylint: disable = too-many-locals
     apnea = Class()
     normal = Class()
     for name in groups['c']:
-        frequencies, times, psds = spectrogram(records[name]['hr_band_pass'],
-                                               args)
+        frequencies, times, psds = spectrogram(records[name], args)
         for psd in psds.T:
             c.list.append(psd)
     for name in groups['a']:
-        _, times, psds = spectrogram(records[name]['hr_band_pass'], args)
+        _, times, psds = spectrogram(records[name], args)
         for time, psd in zip(times, psds.T):
             if annotation(name, time):
                 apnea.list.append(psd)
@@ -183,22 +187,25 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
-    # Read heart rate data
+    # Read rtimes and calculate deviations
     annotations = {}
     records = {}
     groups = {'a': [], 'b': [], 'c': [], 'x': []}
-    for _name in os.listdir(args.heart_rate_dir):
+    for _name in os.listdir(args.rtimes_dir):
         if _name == 'flag':
             continue
-        assert _name[-5:] == '.lphr'
-        name = _name[:-5]
+        # There are '.ecg' files in the directory
+        if _name[-7:] != '.rtimes':
+            continue
+        name = _name[:-7]
         assert name[0] in 'abcx'
         assert int(name[-2:]) > 0  # Ensure that name ends in digits
         # assign a01 data to records['a01']
-        with open(os.path.join(args.heart_rate_dir, _name), 'rb') as _file:
-            records[name] = pickle.load(_file)
+        rtimes = rtimes2hr.read_rtimes(
+            os.path.join(args.rtimes_dir, name + '.rtimes')).magnitude
+        records[name] = utilities.rtimes2dev(rtimes,
+                                             args.deviation_w) * PINT('Hz')
         groups[name[0]].append(name)
-        assert records[name]['sample_frequency'] == args.sample_rate_in
         if name[0] == 'a' or name[0] == 'c':  # No annotations for b05
             annotations[name] = utilities.read_expert(args.annotations, name)
 
@@ -222,7 +229,7 @@ def main(argv=None):
     # Write lda components for each record
     basis = result['basis']
     for name, record in records.items():
-        frequencies, times, psds = spectrogram(record['hr_band_pass'], args)
+        frequencies, times, psds = spectrogram(record, args)
         assert psds.shape == (len(frequencies), len(times))
         assert basis.shape == (2, len(frequencies))
         components = numpy.dot(basis, psds).T

@@ -60,7 +60,7 @@ def parse_args(argv):
                         help='Samples per minute for results')
     parser.add_argument('--fft_width',
                         type=int,
-                        default=64,
+                        default=128,
                         help='Number of samples for each fft')
     parser.add_argument(
         '--deviation_w',
@@ -111,7 +111,9 @@ def main(argv=None):
         n_stop = len(time_series) - 1
     ax_time_series.plot(
         numpy.arange(n_start, n_stop) * hr_dt.to('minutes').magnitude,
-        time_series[n_start:n_stop])
+        time_series[n_start:n_stop].to('1/minutes').magnitude)
+    ax_time_series.set_xticklabels([])
+    ax_time_series.set_ylabel('band pass heart rate/cpm')
 
     if args.time_window:
         n_start, n_stop = numpy.searchsorted(
@@ -136,8 +138,8 @@ def main(argv=None):
         cmap=matplotlib.cm.hsv,
         shading='gouraud',
     )
-    ax_spectrogram.set_xlabel('t/minutes')
     ax_spectrogram.set_ylabel('f/cpm')
+    ax_spectrogram.set_xticklabels([])
 
     def annotation(time):
         """annotation(15.7) -> 0 or 1, 0 for normal
@@ -152,11 +154,10 @@ def main(argv=None):
 
     ax_annotation.plot(times_minutes,
                        list(annotation(time) for time in times_minutes))
-    # figure, axes = pyplot.subplots(1, 1, figsize=(6, 2))
-    # axes.plot(times, hr, label='hr')
-    # axes.plot(times, hr_low_pass, label='hr_low')
-    # axes.plot(times, hr_band_pass, label='hr_band')
-    # axes.legend(loc='upper right')
+    ax_annotation.set_xlabel('t/minutes')
+    ax_annotation.set_ylim(-0.2, 1.2)
+    ax_annotation.set_yticks([0, 1])
+    ax_annotation.set_yticklabels(['$N$', '$A$'])
 
     pyplot.show()
     return 0
