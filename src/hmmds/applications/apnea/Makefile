@@ -49,6 +49,10 @@ $(LPHR)/%.lphr: rtimes2hr.py $(RTIMES)/%.rtimes
 
 #######################End of Copied Section ##############################
 
+sgram.pdf: spectrogram.py
+	python spectrogram.py --time_window 40 220  --frequency_window 1 30 --name a11 --show \
+$(LPHR) $(RESPIRE) $(EXPERT) $@
+
 # HMMs go in ${MODELS}
 MODELS = ${ROOT}/derived_data/apnea/models
 EXPERT = ${ROOT}/raw_data/apnea/summary_of_training
