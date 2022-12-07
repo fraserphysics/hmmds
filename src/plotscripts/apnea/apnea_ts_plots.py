@@ -4,93 +4,134 @@ Here is an example of use:
 
 python apnea_ts_plots.py --data_dir derived_data/apnea  figs/apnea/a03erA.pdf
 
-This is the first line of the data file a03er_seg and the fields:
-
-3000.01 -0.65 -4814.0 -4002.0  -56.0     70.0
-seconds ECG                    1000*ONR  O2sat
-
-This is the first line of the data file a03.lphr and the fields:
-
-0.0   70.5882352941 2.88250231173
-minutes lphr        bandpass hr
-
 """
 import sys
 import argparse
 import os.path
+import pickle
 
+import pint
 import numpy
 import matplotlib  # type: ignore
 
+PINT = pint.UnitRegistry()
 
-def minutes_seconds(x: int) -> str:
-    """Format seconds as minutes:seconds for LaTeX
+# For PhysioNet data
+samples_per_second = 100 * PINT('Hz')
+
+
+def depint(time, frequency=100*PINT('Hz')):
+    """Return index for time sampled at frequency
+
+    """
+    return int((time*frequency).to('').magnitude)
+
+
+def interval2times(start, stop, frequency=100*PINT('Hz')):
+    """Maps a time interval and frequency to an array of times
 
     Args:
-        x: Integer number of seconds since start of record
+        start: Pint time
+        stop: Pint time
 
-    Returns:
-        string formatted for LaTeX
+    Returns: times
+
     """
-    return r'$%1d\!:\!%02d$' % (x / 60, x % 60)
+    return numpy.arange(depint(start, frequency), depint(stop, frequency))/frequency
 
 
-def read_data(data_file):
+def format_time(time: pint.Quantity) -> str:
+    """Return a LaTeX representation of a pint time
+
+    """
+    float_seconds = time.to('seconds').magnitude
+    assert float_seconds >= 0.0
+    int_seconds = int(float_seconds)
+    fraction = float_seconds - int_seconds
+    int_minutes = int_seconds // 60
+    seconds = int_seconds - 60 * int_minutes
+    hours = int_minutes // 60
+    minutes = int_minutes - 60 * hours
+    if fraction < 0.01:
+        return f'{hours:2d}:{minutes:02d}:{seconds:02d}'
+    return f'${hours:2d}:{minutes:02d}:{int_seconds+fraction:05.2f}$'
+
+
+def read_data(data_file: str) -> dict:  # FixMe: do this in line
+    """Read in "data_file" as a dict
+
+    This is only used to read a03er.
+    """
+    with open(data_file, 'rb') as _file:
+        _dict = pickle.load(_file)
+    return _dict
+
+
+def read_lphr(data_file: str) -> numpy.ndarray:  # FixMe: do this in line
     """Read in "data_file" as an array"""
-    with open(data_file, 'r') as _file:
-        data = [[float(x) for x in line.split()] for line in _file.readlines()]
-    return numpy.array(data).T
+    with open(data_file, 'rb') as _file:
+        hr_dict = pickle.load(_file)
+    print(f"""
+    hr_dict.keys={hr_dict.keys()}
+    hr_dict['sample_frequency']={hr_dict['sample_frequency']}
+    hr_dict['hr_low_pass'][0]={hr_dict['hr_low_pass'][0]}
+    """)
+    
+    return hr_dict['hr_low_pass'], hr_dict['sample_frequency']
 
 
-def plot_ECG_ONR_O2(args, start: int, stop: int, time_interval: tuple,
+def plot_ECG_ONR_O2(args, start: pint.Quantity, stop: pint.Quantity,
                     label_times: tuple, subplots):
     """Plot Electrocardiogram, oronasal airflow, and O2 Saturation
 
     Args:
         args: Command line arguments (for data directory)
-        start: Start plots at this line in the file a03er_seg
-        stop:  Stop plots at this line in the file a03er_seg
-        time_interval: Time range for the plots in seconds
-        label_times: Put time labels at these times
+        start: Time in the file a03er_seg
+        stop:  Time in the file a03er_seg
+        label_times: Put labels at these times
         subplots: matplotlib.pyplot function
 """
     fig, (ax_ecg, ax_onr, ax_O2) = subplots(nrows=3, ncols=1, sharex=True)
-    a03er_segment = read_data(os.path.join(args.data_dir, 'a03er_seg'))
+    with open(os.path.join(args.data_dir, 'a03er.pickle'), 'rb') as _file:
+        a03er_dict = pickle.load(_file)
+    times = numpy.arange(len(a03er_dict['ECG'])) / samples_per_second
 
     def subplot(ax,
                 y_data,
+                times,
                 y_label,
                 label_times,
-                ylim,
-                label_yvalues,
+                label_yvalues=None,
+                ylim=None,
                 yscale=1):
         """Put a trace on an axes
 
         Args:
             ax: Matplotlib axes
             y_data: Y values to plot
+            times: Array of integers for the x-axis
             y_label: Label for y axis
-            label_times: Labels for time axis
-            ylim: Range of y axis
+            label_times: Pint times for labels on x axis
             label_yvalues: Place tick marks on y axis
+            ylim: Range of y axis
             yscale: Multiply y_data by this factor
         """
-        seconds_per_minute = 60
-        ax.plot(a03er_segment[0, start:stop] / seconds_per_minute, y_data, 'k-')
+        n_start = times[0]
+        n_stop = times[-1] + 1
+        ax.plot(times, y_data[n_start:n_stop], 'k-')
         ax.set_ylabel(y_label)
-        ax.set_xticks(label_times)
-        ax.set_xticklabels([minutes_seconds(t) for t in label_times])
-        ax.set_yticks(numpy.array(label_yvalues) * yscale)
-        ax.set_yticklabels([r'$% 2.0f$' % x for x in label_yvalues])
+        ax.set_xticks([depint(time) for time in label_times])
+        ax.set_xticklabels([format_time(t) for t in label_times])
+        if label_yvalues is not None:
+            ax.set_yticks(numpy.array(label_yvalues) * yscale)
+            ax.set_yticklabels([r'$% 2.0f$' % x for x in label_yvalues])
         ax.set_ylim(ylim)
-        ax.set_xlim(time_interval)
+        ax.set_xlim((n_start, n_stop))
 
-    subplot(ax_ecg, a03er_segment[1, start:stop] / 1000, r'$ECG$', [],
-            (-0.015, 0.035), numpy.arange(-10, 31, 10), 1e-3)
-    subplot(ax_onr, a03er_segment[4, start:stop] / 1000, r'$ONR$', [],
-            (-15, 15), numpy.arange(-10, 11, 10))
-    subplot(ax_O2, a03er_segment[5, start:stop], r'$SpO_2$', label_times,
-            (55, 100), numpy.arange(60, 101, 15))
+    _times = interval2times(start, stop).to('centiseconds').magnitude.astype(int)
+    subplot(ax_ecg, a03er_dict['ECG'], _times, r'$ECG$', label_times, numpy.arange(-1,4))
+    subplot(ax_onr, a03er_dict['Resp N'], _times, r'$ONR$', label_times, [-.5, 0, .5])
+    subplot(ax_O2, a03er_dict['SpO2'], _times, r'$SpO_2$', label_times, numpy.arange(6,10)*10)
 
     return fig
 
@@ -111,12 +152,10 @@ def a03erA(args, subplots):
 
     Plots of ECG, ONR and SpO2
     """
-    line_start = 45000  # about 3450 seconds or 57.5 minutes
-    line_stop = 57005  # about 3570 seconds
-    time_range = (57.5, 59.5)
-    time_labels = (58, 59)
-    fig = plot_ECG_ONR_O2(args, line_start, line_stop, time_range, time_labels,
-                          subplots)
+    time_start = 57.5 * PINT('minutes')
+    time_stop = 59.5 * PINT('minutes')
+    label_times = (58 * PINT('minutes'), 59 * PINT('minutes'))
+    fig = plot_ECG_ONR_O2(args, time_start, time_stop, label_times, subplots)
     return fig
 
 
@@ -126,11 +165,10 @@ def a03erN(args, subplots):
 
     Plots of ECG, ONR and SpO2
     """
-    line_start = 120000  # About 4200 seconds
-    line_stop = 132001  # About 4320 seconds
-    time_range = (70, 72)
-    time_labels = (70, 71, 72)
-    fig = plot_ECG_ONR_O2(args, line_start, line_stop, time_range, time_labels,
+    time_start = 70 * PINT('minutes')
+    time_stop = 72 * PINT('minutes')
+    label_times = [t*PINT('minutes') for t in (70, 71, 72)]
+    fig = plot_ECG_ONR_O2(args, time_start, time_stop, label_times,
                           subplots)
     return fig
 
@@ -141,32 +179,33 @@ def a03HR(args, subplots):
 
     Subplots of heart rate and O2 saturation
     """
-    a03_lphr = read_data(os.path.join(args.data_dir, 'low_pass_heart_rate/a03'))
-    a03er_segment = read_data(os.path.join(args.data_dir, 'a03er_seg'))
+    a03_lphr, sample_frequency = read_lphr(os.path.join(args.data_dir, 'Lphr/a03.lphr'))
+    a03er_dict = read_data(os.path.join(args.data_dir, 'a03er.pickle'))
+    t_start, t_stop = (t*PINT('minutes') for t in (55, 65))
+    n_times = interval2times(t_start, t_stop).to('centiseconds').magnitude.astype(int)
+    n_start = n_times[0]
+    n_stop = n_times[-1] + 1
 
-    xlim = (55, 65)  # For both
     ylim = (40, 90)  # For lphr only
 
     fig, (ax_hr, ax_O2) = subplots(nrows=2, ncols=1, sharex=True)
 
-    ax_hr.plot(a03_lphr[0, :], a03_lphr[1, :], 'k-')
+    ax_hr.plot(n_times, a03_lphr[n_start:n_stop], 'k-')
     ax_hr.set_ylabel(r'$HR$')
     label_yvalues = numpy.arange(45, 86, 10)
     ax_hr.set_yticks(label_yvalues)
     ax_hr.set_yticklabels(['$% 2.0f$' % x for x in label_yvalues])
-    ax_hr.set_xticks([])
     ax_hr.set_ylim(ylim)
-    ax_hr.set_xlim(xlim)
+    ax_hr.set_xlim(n_start, n_stop)
 
-    ax_O2.plot(a03er_segment[0, :] / 60, a03er_segment[5, :], 'k-')
+    ax_O2.plot(n_times, a03er_dict['SpO2'][n_start:n_stop], 'k-')
     ax_O2.set_ylabel(r'$SpO_2$')
-    label_times = numpy.arange(55, 66, 5)
-    ax_O2.set_xticks(label_times)
-    ax_O2.set_xticklabels([minutes_seconds(x) for x in label_times])
+    x_label_times = numpy.arange(55, 66, 5)*PINT('minutes')
+    ax.set_xticks([depint(time) for time in x_label_times])
+    ax.set_xticklabels([format_time(t) for t in x_label_times])
     label_yvalues = numpy.arange(60, 101, 10)
     ax_O2.set_yticks(label_yvalues)
     ax_O2.set_yticklabels(['$% 2.0f$' % x for x in label_yvalues])
-    ax_O2.set_xlim(xlim)
 
     return fig
 
@@ -177,11 +216,11 @@ def ApneaNLD(args, subplots):
 
     Subplots of heart rate for segments of a01 and a12
     """
-    a01_lphr = read_data(os.path.join(args.data_dir, 'low_pass_heart_rate/a01'))
-    a12_lphr = read_data(os.path.join(args.data_dir, 'low_pass_heart_rate/a12'))
+    a01_lphr = read_lphr(os.path.join(args.data_dir, 'Lphr/a01.lphr'))
+    a12_lphr = read_lphr(os.path.join(args.data_dir, 'Lphr/a12.lphr'))
     fig, (ax_a01, ax_a12) = subplots(nrows=2, ncols=1, sharex=False)
 
-    ax_a01.plot(a01_lphr[0, :], a01_lphr[1, :], 'k-')
+    ax_a01.plot(a01_lphr, 'k-')  # FixMe: Want data for x-axis
     ax_a01.set_ylabel(r'$a01$HR')
     t_label_values = numpy.arange(115, 126, 5)
     ax_a01.set_xticks(t_label_values)
@@ -193,7 +232,7 @@ def ApneaNLD(args, subplots):
     ax_a01.set_ylim(40, 100)
     ax_a01.set_xlim(115, 125)
 
-    ax_a12.plot(a12_lphr[0, :], a12_lphr[1, :], 'k-')
+    ax_a12.plot(a12_lphr, 'k-')  # FixMe: Want data for x-axis
     ax_a12.set_ylabel(r'$a12$HR')
     t_label_values = numpy.arange(570, 577, 5)
     ax_a12.set_xticks(t_label_values)
@@ -220,8 +259,8 @@ def main(argv=None):
         description='Make one of the figures illustrating apnea data')
     parser.add_argument('--data_dir',
                         type=str,
-                        default='../../derived_data/apnea',
-                        help='Directory that contains low_pass_heart_rate')
+                        default='../../../build/derived_data/apnea',
+                        help='Directory that contains Lphr')
     parser.add_argument(
         '--show',
         action='store_true',
@@ -233,6 +272,7 @@ def main(argv=None):
         help='Path for storing the result, eg, ./../figs/apnea/a03HR.pdf')
     args = parser.parse_args(argv)
 
+    import matplotlib  # FixMe: Should not be necessary
     if args.show:
         matplotlib.use('Qt5Agg')
     else:
