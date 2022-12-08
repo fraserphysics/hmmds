@@ -12,7 +12,7 @@ import pint
 import numpy
 import matplotlib
 
-import utilities
+from hmmds.applications.apnea import utilities
 
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as pyplot
@@ -36,19 +36,14 @@ def parse_args(argv):
                         type=float,
                         nargs=2,
                         help='Restrict plot to frequencies in this window')
-    parser.add_argument(
-        '--show',
-        action='store_true',
-        help='display figure in pop-up window')
-    parser.add_argument('HR_dir',
+    parser.add_argument('--show',
+                        action='store_true',
+                        help='display figure in pop-up window')
+    parser.add_argument('HR_dir', type=str, help='Path to heart rate data')
+    parser.add_argument('resp_dir', type=str, help='Path to heart rate data')
+    parser.add_argument('annotations',
                         type=str,
-                        help='Path to heart rate data')
-    parser.add_argument('resp_dir',
-                        type=str,
-                        help='Path to heart rate data')
-    parser.add_argument(
-        'annotations',
-        type=str, help='Path to expert annotations')
+                        help='Path to expert annotations')
     parser.add_argument('output', type=str, help='Path to result')
     args = parser.parse_args(argv)
     return args
@@ -82,7 +77,8 @@ def main(argv=None):
     # Read expert annotations
     annotations = utilities.read_expert(args.annotations, args.name)
 
-    figure, (ax_time_series, ax_spectrogram, ax_annotation) = pyplot.subplots(3, 1)
+    figure, (ax_time_series, ax_spectrogram,
+             ax_annotation) = pyplot.subplots(3, 1)
     ax_annotation.get_shared_x_axes().join(ax_time_series, ax_spectrogram,
                                            ax_annotation)
 

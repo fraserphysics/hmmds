@@ -1,6 +1,6 @@
 # Makefile: For testing scripts in this directory from this directory.
 
-ROOT = ../..
+ROOT = ../../..
 ApneaPlotScripts = .
 
 # The default target is test

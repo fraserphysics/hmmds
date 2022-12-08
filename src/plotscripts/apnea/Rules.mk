@@ -3,24 +3,30 @@
 # of the hmmds project and ApneaPlotScripts is the directory where
 # this file is located.
 
-ApneaFigDir = $(ROOT)/figs/apnea
-ApneaDerivedData = $(ROOT)/derived_data/apnea
-LPHR_DIR = $(ApneaDerivedData)/low_pass_heart_rate
+ApneaFigDir = $(ROOT)/build/figs/apnea
+ApneaDerivedData = $(ROOT)/build/derived_data/apnea
+EXPERT =  $(ROOT)/raw_data/apnea/summary_of_training
+LPHR = $(ApneaDerivedData)/Lphr
+RESPIRE = $(ApneaDerivedData)/Respire
 
-APNEA_FIGS = $(addprefix $(ApneaFigDir)/, $(addsuffix .pdf, a03erA a03erN a03HR ApneaNLD))
+APNEA_FIGS = $(addprefix $(ApneaFigDir)/, $(addsuffix .pdf, a03erA a03erN a03HR ApneaNLD sgram))
 
 APNEA_TS_PLOTS = $(ApneaPlotScripts)/apnea_ts_plots.py
-$(ApneaFigDir)/a03erA.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er_seg
+$(ApneaFigDir)/a03erA.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er.pickle
 	python $< --data_dir $(ApneaDerivedData)  $@
 
-$(ApneaFigDir)/a03erN.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er_seg
+$(ApneaFigDir)/a03erN.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er.pickle
 	python $< --data_dir $(ApneaDerivedData)  $@
 
-$(ApneaFigDir)/a03HR.pdf: $(APNEA_TS_PLOTS) $(LPHR_DIR)/a03
+$(ApneaFigDir)/a03HR.pdf: $(APNEA_TS_PLOTS) $(LPHR)/a03.lphr
 	python $< --data_dir $(ApneaDerivedData)  $@
 
-$(ApneaFigDir)/ApneaNLD.pdf: $(APNEA_TS_PLOTS) $(LPHR_DIR)/a01 $(LPHR_DIR)/a12
+$(ApneaFigDir)/ApneaNLD.pdf: $(APNEA_TS_PLOTS) $(LPHR)/a01.lphr $(LPHR)/a12.lphr
 	python $< --data_dir $(ApneaDerivedData)  $@
+
+$(ApneaFigDir)/sgram.pdf:  $(ApneaPlotScripts)/spectrogram.py
+	python $< --time_window 40 220  --frequency_window 1 30 --name a11 \
+$(LPHR) $(RESPIRE) $(EXPERT) $@
 
 # Local Variables:
 # mode: makefile
