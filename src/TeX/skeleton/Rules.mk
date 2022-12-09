@@ -24,6 +24,8 @@ BOUNDS_FIGS =  $(addprefix $(BUILD)/figs/bounds/,  $(addsuffix .pdf, \
 ToyTS1 ToyStretch ToyH benettin LikeLor))
 BOUNDS_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/bounds, QR)
 
+APNEA_FIGS =  $(addprefix $(BUILD)/figs/apnea/,  $(addsuffix .pdf, \
+ApneaNLD a03erA sgram a03HR a03erN))
 APNEA_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/apnea, class_net)
 
 SKELETON_FIGS = $(INTRODUCTION_FIGS) \
@@ -34,6 +36,7 @@ $(VARIANTS_FIGS) \
 $(VARIANTS_XFIGS) \
 $(BOUNDS_FIGS) \
 $(BOUNDS_XFIGS) \
+$(APNEA_FIGS) \
 $(APNEA_XFIGS)
 
 TEX_SKELETON = $(TEX)/skeleton

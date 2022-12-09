@@ -18,13 +18,13 @@ $(ApneaFigDir)/a03erA.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er.pickle
 $(ApneaFigDir)/a03erN.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er.pickle
 	python $< --data_dir $(ApneaDerivedData)  $@
 
-$(ApneaFigDir)/a03HR.pdf: $(APNEA_TS_PLOTS) $(LPHR)/a03.lphr
+$(ApneaFigDir)/a03HR.pdf: $(APNEA_TS_PLOTS) $(LPHR)/flag
 	python $< --data_dir $(ApneaDerivedData)  $@
 
-$(ApneaFigDir)/ApneaNLD.pdf: $(APNEA_TS_PLOTS) $(LPHR)/a01.lphr $(LPHR)/a12.lphr
+$(ApneaFigDir)/ApneaNLD.pdf: $(APNEA_TS_PLOTS) $(LPHR)/a01.lphr $(LPHR)/flag
 	python $< --data_dir $(ApneaDerivedData)  $@
 
-$(ApneaFigDir)/sgram.pdf:  $(ApneaPlotScripts)/spectrogram.py
+$(ApneaFigDir)/sgram.pdf:  $(ApneaPlotScripts)/spectrogram.py $(RESPIRE)/flag
 	python $< --time_window 40 220  --frequency_window 1 30 --name a11 \
 $(LPHR) $(RESPIRE) $(EXPERT) $@
 

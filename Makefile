@@ -6,7 +6,8 @@
 # files if you change the directory structure.
 
 # If subdirectories contain local Makefiles, they are for testing
-# local code.  Those Makefiles are not called or used elsewhere.
+# local code.  Those Makefiles are not called or used elsewhere, and
+# they may be incomplete.
 
 N_TRAIN = 50
 
@@ -44,6 +45,7 @@ include $(HMMDS)/synthetic/Rules.mk
 include $(HMMDS)/synthetic/filter/Rules.mk
 include $(HMMDS)/synthetic/bounds/Rules.mk
 include $(HMMDS)/applications/laser/Rules.mk
+include $(HMMDS)/applications/apnea/Rules.mk
 
 # Rules for making documents
 include $(TEX)/skeleton/Rules.mk
