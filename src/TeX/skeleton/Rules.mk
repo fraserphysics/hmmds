@@ -25,7 +25,8 @@ ToyTS1 ToyStretch ToyH benettin LikeLor))
 BOUNDS_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/bounds, QR)
 
 APNEA_FIGS =  $(addprefix $(BUILD)/figs/apnea/,  $(addsuffix .pdf, \
-ApneaNLD a03erA sgram a03HR a03erN))
+ApneaNLD a03erA sgram a03HR a03erN)) $(BUILD)/figs/apnea/lda_flag
+# flag is for LDA1.pdf and LDA2.pdf
 APNEA_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/apnea, class_net)
 
 SKELETON_FIGS = $(INTRODUCTION_FIGS) \
