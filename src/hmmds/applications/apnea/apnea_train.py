@@ -73,8 +73,8 @@ def main(argv=None):
     common = hmmds.applications.apnea.utilities.Common(args.root)
 
     if args.model_name == 'A2':
-        y_data = hmmds.applications.apnea.utilities.pattern_heart_rate_respiration_data(
-            ['a'], common)
+        y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
+            common.a_names, common)
     elif args.model_name in 'Low Medium High'.split():
         y_data = make_data_level(common, args.model_name)
     else:

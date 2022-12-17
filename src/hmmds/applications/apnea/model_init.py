@@ -16,7 +16,7 @@ import numpy
 import hmm.base
 
 import hmmds.applications.apnea.utilities
-import observation
+import hmmds.applications.apnea.observation
 import develop
 
 
@@ -93,7 +93,7 @@ def filtered_heart_rate_model(n_states, rng, ar_order=4):
     offset = numpy.zeros(n_states)
     variance = numpy.ones(n_states)
     ar_coefficients = numpy.ones((n_states, ar_order)) / ar_order
-    return observation.FilteredHeartRate(ar_coefficients, offset, variance, rng)
+    return hmmds.applications.apnea.observation.FilteredHeartRate(ar_coefficients, offset, variance, rng)
 
 
 def respiration_model(n_states, rng, dimension=3):
@@ -103,7 +103,7 @@ def respiration_model(n_states, rng, dimension=3):
     sigma = numpy.zeros((n_states, dimension, dimension))
     for state in range(n_states):
         sigma[state, :, :] = numpy.eye(dimension)
-    return observation.Respiration(mu, sigma, rng)
+    return hmmds.applications.apnea.observation.Respiration(mu, sigma, rng)
 
 
 def filtered_heart_rate_respiration_bundle_model(n_states,
@@ -116,7 +116,7 @@ def filtered_heart_rate_respiration_bundle_model(n_states,
     hr_mod = filtered_heart_rate_model(n_states, rng, ar_order=ar_order)
     res_mod = respiration_model(n_states, rng, dimension=dimension)
 
-    underlying_model = observation.FilteredHeartRate_Respiration(
+    underlying_model = hmmds.applications.apnea.observation.FilteredHeartRate_Respiration(
         hr_mod, res_mod, rng)
 
     return hmm.base.Observation_with_bundles(underlying_model, bundle2state,
@@ -147,12 +147,12 @@ def A2(common, rng) -> develop.HMM:
     """
     n_states = 2
 
-    y_model = observation.FilteredHeartRate_Respiration(
+    y_model = hmmds.applications.apnea.observation.FilteredHeartRate_Respiration(
         filtered_heart_rate_model(n_states, rng),
         respiration_model(n_states, rng), rng)
 
-    y_data = hmmds.applications.apnea.utilities.pattern_heart_rate_respiration_data(
-        ['a'], common)
+    y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
+        common.a_names, common)
     # a list with a dict for each a-file
 
     model = develop.HMM(
@@ -174,7 +174,7 @@ def C1(common, rng):
     """
     n_states = 1
 
-    y_model = observation.FilteredHeartRate_Respiration(
+    y_model = hmmds.applications.apnea.observation.FilteredHeartRate_Respiration(
         filtered_heart_rate_model(n_states, rng),
         respiration_model(n_states, rng), rng)
 

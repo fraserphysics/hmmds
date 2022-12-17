@@ -1,4 +1,8 @@
-"""Make text file with lines like
+"""For every record calculate two statistics for classifying the record
+
+All paths are derived from root via utilitis.Common
+
+The result is a text file with lines like
 
 
 b04 # Medium stat=  2.178 llr= -0.140 R=  2.248
@@ -15,6 +19,17 @@ import numpy
 
 import hmmds.applications.apnea.utilities
 
+def parse_args(argv):
+    """ Convert command line arguments into a namespace
+    """
+
+    parser = argparse.ArgumentParser("Create and write/pickle pass1_report")
+    parser.add_argument('--root',
+                        type=str,
+                        default='../../../../',
+                        help='Root directory of project')
+    args = parser.parse_args(argv)
+    return args
 
 def r_stat(data: numpy.ndarray) -> float:
     """ Calculate the statistic R to help classify records
@@ -107,23 +122,11 @@ def main(argv=None):
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser("Create and write/pickle pass1_report")
-    parser.add_argument('--root',
-                        type=str,
-                        default='../../../',
-                        help='Root directory of project')
-    args = parser.parse_args(argv)
+    args = parse_args(argv)
+    
     common = hmmds.applications.apnea.utilities.Common(args.root)
 
-    def get_names(letter):
-        return [
-            os.path.basename(x) for x in glob.glob('{0}/{1}*'.format(
-                common.heart_rate_directory, letter))
-        ]
-
-    reports = make_reports(
-        common,
-        get_names('a') + get_names('b') + get_names('c') + get_names('x'))
+    reports = make_reports(common, common.all_names)
     reports.sort(key=lambda x: x.stat)
     with open(common.pass1 + '.pickle', 'wb') as _file:
         pickle.dump(reports, _file)

@@ -54,9 +54,9 @@ sgram.pdf: spectrogram.py
 $(LPHR) $(RESPIRE) $(EXPERT) $@
 
 # HMMs go in ${MODELS}
-MODELS = ${ROOT}/derived_data/apnea/models
+MODELS = ${ROOT}/build/derived_data/apnea/models
 EXPERT = ${ROOT}/raw_data/apnea/summary_of_training
-DATA = ${ROOT}/derived_data/apnea
+DATA = ${ROOT}/build/derived_data/apnea
 
 #$(MODELS)/model_A2:
 
@@ -79,12 +79,13 @@ x30 x33
 
 # Rule for initial models: initial_A2, initial_C1, initial_High, initial_Medium, initial_Low
 ${MODELS}/initial_%: model_init.py utilities.py observation.py
+	mkdir -p ${MODELS}
 	python model_init.py --root ${ROOT} $* $@
 
 # The trained files are expensive to build.  Don't delete them
 .PRECIOUS: $(addprefix ${MODELS}/, modelA2 model_Low model_Medium model_High initial_Low)
 
-${MODELS}/model_A2: ${MODELS}/initial_A2
+${MODELS}/model_A2: apnea_train.py ${MODELS}/initial_A2
 	python apnea_train.py --root ${ROOT} A2 ${MODELS}/initial_A2 $@
 
 # The model initial_C1 has only one state and does not require training

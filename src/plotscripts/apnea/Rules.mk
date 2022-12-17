@@ -9,7 +9,7 @@ EXPERT =  $(ROOT)/raw_data/apnea/summary_of_training
 LPHR = $(ApneaDerivedData)/Lphr
 RESPIRE = $(ApneaDerivedData)/Respire
 
-APNEA_FIGS = $(addprefix $(ApneaFigDir)/, $(addsuffix .pdf, a03erA a03erN a03HR ApneaNLD sgram)) $(ApneaFigDir)/lda_flag
+APNEA_FIGS = $(addprefix $(ApneaFigDir)/, $(addsuffix .pdf, a03erA a03erN a03HR ApneaNLD sgram pass1)) $(ApneaFigDir)/lda_flag
 #lda_flag is for LDA1.pdf and LDA2.pdf
 
 APNEA_TS_PLOTS = $(ApneaPlotScripts)/apnea_ts_plots.py
@@ -31,6 +31,10 @@ $(LPHR) $(RESPIRE) $(EXPERT) $@
 
 $(ApneaFigDir)/lda_flag: $(ApneaPlotScripts)/lda.py  $(ApneaDerivedData)/Respire/lda_data
 	python $< --apnea_data_dir $(ApneaDerivedData) $(ApneaFigDir)/LDA1 $(ApneaFigDir)/LDA2
+	touch $@
+
+$(ApneaFigDir)/pass1.pdf: $(ApneaPlotScripts)/pass1.py  $(ApneaDerivedData)/pass1_report
+	python $^  $@
 
 
 # Local Variables:

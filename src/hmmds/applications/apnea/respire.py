@@ -1,11 +1,13 @@
-""" respire.py:  Extract respiration signature from low pass heart rate files
+"""respire.py:  Extract respiration signature from low pass heart rate files
 
 Write a file for plotting that has: The means of the three classes;
-The LDA basis vectors; The coefficients of the basis for each minute in
-three classes.  Also write a file for each record that gives the
-LDA coeeficients for each sample time (tenth of a minute).
+The linear discriminant analysis (LDA) basis vectors; The coefficients
+of the basis for each minute in three classes.  Also write a file for
+each record that gives the LDA coeeficients for each sample time
+(tenth of a minute).
 
 Imitates respire.py in my hmmds3 project
+
 """
 
 import sys
@@ -68,6 +70,8 @@ def spectrogram(filtered_heart_rate, args):
     Args:
         filtered_heart_rate: A pint quantity
         args: Command line arguments
+
+    Return: (frequencies, times, normalized_psds, normalizations)
     """
 
     ratio = int((args.sample_rate_in / args.sample_rate_out).to('').magnitude)
@@ -80,8 +84,11 @@ def spectrogram(filtered_heart_rate, args):
         noverlap=args.fft_width - ratio,
         detrend=False,
         mode='psd')
+    assert psds.shape == (len(frequencies), len(times))
+    normalizations = numpy.sqrt((psds*psds).sum(axis=0))
+    assert normalizations.shape == times.shape
     assert args.fft_width > len(filtered_heart_rate) - len(times) * ratio >= 0
-    return frequencies * PINT('Hz'), times * PINT('second'), psds
+    return frequencies * PINT('Hz'), times * PINT('second'), psds/normalizations, normalizations
 
 
 def linear_discriminant_analysis(  # pylint: disable = too-many-locals
@@ -141,11 +148,11 @@ def linear_discriminant_analysis(  # pylint: disable = too-many-locals
     apnea = Class()
     normal = Class()
     for name in groups['c']:
-        frequencies, times, psds = spectrogram(records[name], args)
+        frequencies, times, psds, normalizations = spectrogram(records[name], args)
         for psd in psds.T:
             c.list.append(psd)
     for name in groups['a']:
-        _, times, psds = spectrogram(records[name], args)
+        _, times, psds, _ = spectrogram(records[name], args)
         for time, psd in zip(times, psds.T):
             if annotation(name, time):
                 apnea.list.append(psd)
@@ -229,16 +236,21 @@ def main(argv=None):
     # Write lda components for each record
     basis = result['basis']
     for name, record in records.items():
-        frequencies, times, psds = spectrogram(record, args)
+        frequencies, times, psds, normalizations = spectrogram(record, args)
         assert psds.shape == (len(frequencies), len(times))
         assert basis.shape == (2, len(frequencies))
         with open(os.path.join(args.resp_dir, name + '.sgram'), 'wb') as _file:
-            pickle.dump({'frequencies':frequencies,'times':times,'psds':psds}, _file)
-        components = numpy.dot(basis, psds).T
-        assert isinstance(components, numpy.ndarray)
-        assert components.shape == (len(times), 2)
+            pickle.dump({'frequencies':frequencies,'times':times,'psds':psds,'normalizations':normalizations}, _file)
+        components = numpy.empty((len(times), 3))
+        components[:,:2] = numpy.dot(basis, psds).T
+        components[:,2] = normalizations
         with open(os.path.join(args.resp_dir, name + '.resp'), 'wb') as _file:
-            pickle.dump((times, components), _file)
+            pickle.dump({
+                'times':times,
+                'components':components,
+                'readme':"""times are sample times in seconds with pint units
+components[t,:2] is discriminant components from linear discriminant analysis of spectrograms.
+components[t,2] is the length of the psd at time t"""}, _file)
     return 0
 
 

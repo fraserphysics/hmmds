@@ -76,7 +76,7 @@ class FilteredHeartRate(hmm.observe_float.AutoRegressive):
         return super()._concatenate(modified_y_segs)
 
 
-class FilteredHeartRate_Respiration(hmm.base.Observation_0):
+class FilteredHeartRate_Respiration(hmm.base.BaseObservation):
     """For measurements of filtered heart rate and respiration combined.
 
     Args:
@@ -110,7 +110,7 @@ class FilteredHeartRate_Respiration(hmm.base.Observation_0):
     def random_out(self: FilteredHeartRate_Respiration,
                    s: int) -> numpy.ndarray:
         raise RuntimeError(
-            'random_out not implemented for FilteredHeartRate_Respiration')
+            f'random_out not implemented for {self.__class__}')
 
     def __str__(self: FilteredHeartRate_Respiration) -> str:
         rv = 'Model %s instance\n\n' % self.__class__
@@ -150,6 +150,8 @@ class FilteredHeartRate_Respiration(hmm.base.Observation_0):
     def _concatenate(self: FilteredHeartRate_Respiration,
                      y_list: list) -> tuple:
         """
+        Concatenate list of observation sequences.
+        
         Args:
            y_list Elements are dicts with keys
                'filtered_heart_rate_data' and 'respiration_data'
@@ -180,8 +182,9 @@ class FilteredHeartRate_Respiration(hmm.base.Observation_0):
 
         Assume conditional independence of observation components given state
         """
-        self._likelihood = self.filtered_heart_rate_model.calculate(
-        ) * self.respiration_model.calculate()
+        hr_like = self.filtered_heart_rate_model.calculate()
+        resp_like = self.respiration_model.calculate()
+        self._likelihood = hr_like * resp_like
         return self._likelihood
 
     def reestimate(

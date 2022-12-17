@@ -4,6 +4,7 @@ import sys
 import os
 import glob
 import typing
+import pickle
 
 import numpy
 
@@ -18,13 +19,14 @@ class Common:
         Args:
             root: Path to root of the hmmds project
 
-        Essentially a namespace that functions like a FORTRAN common block.
-        """
+        Essentially a namespace that functions like a FORTRAN common
+        block.  It would be better to put this information in default
+        command line arguments and argparse.  """
 
-        self.data = os.path.join(root, 'derived_data/apnea')
+        self.data = os.path.join(root, 'build/derived_data/apnea')
         self.heart_rate_directory = os.path.join(self.data,
-                                                 'low_pass_heart_rate')
-        self.respiration_directory = os.path.join(self.data, 'respiration')
+                                                 'Lphr')
+        self.respiration_directory = os.path.join(self.data, 'Respire')
         self.expert = os.path.join(root, 'raw_data', 'apnea',
                                    'summary_of_training')
         self.pass1 = os.path.join(self.data, 'pass1_report')
@@ -40,7 +42,10 @@ class Common:
         self.high_line = 2.60
         self.stat_slope = 0.5
 
-        self.all_names = (os.listdir(self.respiration_directory))
+        # 'a01' is a name
+        self.all_names = [
+            os.path.splitext(os.path.basename(path))[0] for path in
+            glob.glob(os.path.join(self.respiration_directory, '*.resp'))]
         self.a_names = list(filter(lambda name: name[0] == 'a', self.all_names))
         self.b_names = list(filter(lambda name: name[0] == 'b', self.all_names))
         self.c_names = list(filter(lambda name: name[0] == 'c', self.all_names))
@@ -77,21 +82,14 @@ def read_low_pass_heart_rate(path: str) -> numpy.ndarray:
         path: File to read
 
     Returns:
-         array with shape (ntimes,3) and array[i,0] = time in minutes,
-         array[i,1] = unfiltered heart rate, array[i,2] = filtered
-         heart rate
-
-    Here is the relevant code in hmmds/code/applications/apnea/rr2hr.py
-
-    HR = rfft(hrL,131072) # 131072 is 18.2 Hrs at 2HZ
-    HR[0:100] *=0 # Drop frequencies below (100*60)/65536=0.09/min
-    HR[4000:] *=0 # and above (4000*60)/65536=3.66/min
-    hrL = irfft(HR)
+         (times, low_pass_hr) Times in pint seconds. Hr in pint 1/minute
 
     """
-    with open(path, 'r') as data_file:
-        data = [[float(x) for x in line.split()] for line in data_file]
-    return numpy.array(data)
+    with open(path, 'rb') as _file:
+        _dict = pickle.load(_file)
+    hr = _dict['hr_low_pass']
+    times = (numpy.arange(len(hr))/_dict['sample_frequency']).to('seconds')
+    return times, hr
 
 
 def read_respiration(path: str) -> numpy.ndarray:
@@ -99,15 +97,13 @@ def read_respiration(path: str) -> numpy.ndarray:
         path: File to read
 
     Returns:
-         array with shape (ntimes,4) and array[i,0] = time in minutes,
-         array[i,1:4] = Respiration vector (?Fisher linear discriminant?)
-
-    The relevant code is hmmds/code/applications/apnea/respire.py
+         (times, components)  Times are in pint seconds.  Components is a numpy array
+    
 
     """
-    with open(path, 'r') as data_file:
-        data = [[float(x) for x in line.split()] for line in data_file]
-    return numpy.array(data)
+    with open(path, 'rb') as _file:
+        _dict = pickle.load(_file)
+    return _dict['times'], _dict['components']
 
 
 def read_expert(path: str, name: str) -> numpy.ndarray:
@@ -159,36 +155,33 @@ def heart_rate_respiration_data(name: str, common: Common, t_max=None) -> dict:
 
     t_max enables truncation to the length of expert markings
     """
-    heart_rate_path = os.path.join(common.heart_rate_directory, name)
-    respiration_path = os.path.join(common.respiration_directory, name)
-    raw_h = read_respiration(heart_rate_path)
-    raw_r = read_respiration(respiration_path)
+    heart_rate_path = os.path.join(common.heart_rate_directory, name+'.lphr')
+    respiration_path = os.path.join(common.respiration_directory, name+'.resp')
+    h_times, raw_h = read_low_pass_heart_rate(heart_rate_path)
+    r_times, raw_r = read_respiration(respiration_path)
 
-    # Ensure that measurement times are the same.  ToDo: Why are
-    # there more heart_rate data points?
-    n_r = len(raw_r)
-    n_h = len(raw_h)
-    if t_max is None:
-        limit = min(n_r, n_h)
-    else:
-        limit = min(n_r, n_h, t_max)
+    # heart rate is sampled at 2 Hz and respiration is 10 per minute
+    h_to_r = numpy.searchsorted(r_times.to('seconds').magnitude, h_times.to('seconds').magnitude)
+    # raw_h[t] and raw_r[h_to_r[t]] refer to data at about the same time
 
-    time_difference = raw_r[:limit, 0] - raw_h[:limit, 0]
-    assert numpy.abs(time_difference).max() == 0.0
+    assert r_times[-1] <= h_times[-1],'Respiration sample after last heart rate sample'
+    i_max = numpy.searchsorted(h_times.to('seconds').magnitude, r_times[-1].to('seconds').magnitude)
+    resampled_r = raw_r[h_to_r[numpy.arange(i_max)]]
 
+    # Assert that arrays to return have same length
+    assert len(resampled_r) == len(raw_h[:i_max])  
     return {
-        'respiration_data':
-            raw_r[:limit, 1:],  # Don't store time data
-        'filtered_heart_rate_data':
-            raw_h[:limit, -1]  # Store only filtered heart rate
+        'respiration_data': resampled_r,
+        'filtered_heart_rate_data': raw_h[:i_max].to('1/minutes').magnitude,
+        'times':h_times
     }
 
 
-def pattern_heart_rate_respiration_data(patterns: list, common: Common) -> list:
+def list_heart_rate_respiration_data(names: list, common: Common) -> list:
     """Prepare a list of data for names specified by patterns
 
     Args:
-        patterns: Eg, ['b','c']
+        names: Eg, ['a01 a02 a03'.split()]
         common: Instance of Common that holds paths and parameters
 
     Returns:
@@ -197,11 +190,8 @@ def pattern_heart_rate_respiration_data(patterns: list, common: Common) -> list:
     """
 
     return_list = []
-    for letter in patterns:
-        paths = glob.glob('{0}/{1}*'.format(common.heart_rate_directory,
-                                            letter))
-        for name in (os.path.basename(path) for path in paths):
-            return_list.append(heart_rate_respiration_data(name, common))
+    for name in names:
+        return_list.append(heart_rate_respiration_data(name, common))
     return return_list
 
 
@@ -262,9 +252,15 @@ def rtimes2dev(data, w=1):
 
 
 if __name__ == "__main__":
-    rv = read_expert('../../../raw_data/apnea/summary_of_training', 'a05')
+    """Test/exercise the code in this module.
+    """
+    root = '../../../../'
+    common = Common(root)
+    print(f'b_names={common.get("b_names")}')
+    expert_path = os.path.join(root, *'raw_data apnea summary_of_training'.split())
+    annotations = read_expert(expert_path, 'a05')
     samples_per_minute = 10
-    print(rv[13:15])
-    print(rv[13:15].repeat(samples_per_minute))
+    print(annotations[13:15])
+    print(annotations[13:15].repeat(samples_per_minute))
     sys.exit(0)
     #sys.exit(main())

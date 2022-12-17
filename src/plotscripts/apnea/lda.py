@@ -93,15 +93,17 @@ def main(argv=None):
     
     figure2, (ax_c, ax_n, ax_a, ax_all) = pyplot.subplots(
         nrows=4, ncols=1, figsize=(6, 15))
-    box = [-0.05, 0.6, -0.2, 0.5]
+    box = [-0.6, 0.65, -0.4, 0.9]
     for (ax, _class, color, label) in (
             (ax_c, 'c', 'r', 'C'),
             (ax_a, 'apnea', 'g', 'A'),
             (ax_n, 'normal', 'b', 'N'),
             ):
         x,y = lda_dict[_class+'_components']
-        ax.plot(x,y,color, marker=',', markersize=1, linestyle='None')
-        ax_all.plot(x,y,color, marker=',', markersize=1, linestyle='None')
+        # FixMe: Plot one sample per minute because expert classified
+        # by minute
+        ax.plot(x[3::6],y[3::6],color, marker=',', markersize=1, linestyle='None')
+        ax_all.plot(x[3::6],y[3::6],color, marker=',', markersize=1, linestyle='None')
         ax.axis(box)
         ax.set_xticks([])
         ax.set_yticks([])
