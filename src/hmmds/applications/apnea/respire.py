@@ -64,11 +64,11 @@ def parse_args(argv):
     return args
 
 
-def spectrogram(filtered_heart_rate, args):
+def spectrogram(pulse_deviations, args):
     """Map an array of heart rates sampled at 2 Hz to a spectrogram
 
     Args:
-        filtered_heart_rate: A pint quantity
+        pulse_deviations: A pint quantity sampled at 2 Hz
         args: Command line arguments
 
     Return: (frequencies, times, normalized_psds, normalizations)
@@ -78,7 +78,7 @@ def spectrogram(filtered_heart_rate, args):
     assert ratio == 12
     # With default args ratio is 12
     frequencies, times, psds = scipy.signal.spectrogram(
-        filtered_heart_rate.to('Hz').magnitude,
+        pulse_deviations.to('Hz').magnitude,
         fs=args.sample_rate_in.to('Hz').magnitude,
         nperseg=args.fft_width,
         noverlap=args.fft_width - ratio,
@@ -87,8 +87,8 @@ def spectrogram(filtered_heart_rate, args):
     assert psds.shape == (len(frequencies), len(times))
     normalizations = numpy.sqrt((psds*psds).sum(axis=0))
     assert normalizations.shape == times.shape
-    assert args.fft_width > len(filtered_heart_rate) - len(times) * ratio >= 0
-    return frequencies * PINT('Hz'), times * PINT('second'), psds/normalizations, normalizations
+    assert args.fft_width > len(pulse_deviations) - len(times) * ratio >= 0
+    return frequencies * PINT('Hz'), times * PINT('second'), psds, normalizations
 
 
 def linear_discriminant_analysis(  # pylint: disable = too-many-locals
@@ -149,15 +149,18 @@ def linear_discriminant_analysis(  # pylint: disable = too-many-locals
     normal = Class()
     for name in groups['c']:
         frequencies, times, psds, normalizations = spectrogram(records[name], args)
-        for psd in psds.T:
-            c.list.append(psd)
+        for psd, normalization in zip(psds.T, normalizations):
+            if normalization > 0.0:
+                c.list.append(psd/normalization)
     for name in groups['a']:
-        _, times, psds, _ = spectrogram(records[name], args)
-        for time, psd in zip(times, psds.T):
+        _, times, psds, normalizations = spectrogram(records[name], args)
+        for time, psd, normalizaion in zip(times, psds.T, normalizations):
+            if normalization <= 0.0:
+                continue
             if annotation(name, time):
-                apnea.list.append(psd)
+                apnea.list.append(psd/normalization)
             else:
-                normal.list.append(psd)
+                normal.list.append(psd/normalization)
     for _class in (c, apnea, normal):
         _class.mean_covariance()
 
@@ -208,9 +211,10 @@ def main(argv=None):
         assert name[0] in 'abcx'
         assert int(name[-2:]) > 0  # Ensure that name ends in digits
         # assign a01 data to records['a01']
-        rtimes = rtimes2hr.read_rtimes(
-            os.path.join(args.rtimes_dir, name + '.rtimes')).magnitude
-        records[name] = utilities.rtimes2dev(rtimes,
+        rtimes, n_ecg = rtimes2hr.read_rtimes(
+            os.path.join(args.rtimes_dir, name + '.rtimes'))
+        # Calculate heart rate deviations sampled at 2 Hz
+        records[name] = utilities.rtimes2dev(rtimes.to('seconds').magnitude, n_ecg,
                                              args.deviation_w) * PINT('Hz')
         groups[name[0]].append(name)
         if name[0] == 'a' or name[0] == 'c':  # No annotations for b05
@@ -242,7 +246,8 @@ def main(argv=None):
         with open(os.path.join(args.resp_dir, name + '.sgram'), 'wb') as _file:
             pickle.dump({'frequencies':frequencies,'times':times,'psds':psds,'normalizations':normalizations}, _file)
         components = numpy.empty((len(times), 3))
-        components[:,:2] = numpy.dot(basis, psds).T
+        # Fudge 1.0e-20 to avoid divide by 0
+        components[:,:2] = numpy.dot(basis, psds/(normalizations+1.0e-20)).T
         components[:,2] = normalizations
         with open(os.path.join(args.resp_dir, name + '.resp'), 'wb') as _file:
             pickle.dump({

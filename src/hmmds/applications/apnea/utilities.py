@@ -208,7 +208,7 @@ def heart_rate_respiration_bundle_data(
     return hmm.base.Bundle_segment(tags[:n_times], underlying)
 
 
-def rtimes2dev(data, w=1):
+def rtimes2dev(data, n_ecg, w=1):
     """ Create heart rate deviations with uniform sample time.
     
     Args:
@@ -238,17 +238,15 @@ def rtimes2dev(data, w=1):
         jitter[i] = max(min(0.25, fraction), -0.25)
     # Create an array of heart rate deviations that is uniformly
     # sampled at 2 HZ
-    t_initial = data[0]
-    delta_t = data[-1] - t_initial
-    # How many samples at 2 Hz fit strictly inside the interval
-    length = int(2 * delta_t - 1e-6)
-    remainder = delta_t - length / 2.0
-    times = numpy.arange(length) / 2.0 + t_initial + remainder / 2.0
-    assert remainder > 0
-    # Using 10 assumes heart rate is less than 10*2/sec = 1200 bpm
-    assert data[0] < times[0] < data[10]
-    assert data[-10] < times[-1] < data[-1]
-    return jitter[numpy.searchsorted(data, times)]
+    t_final = n_ecg//100 # in seconds.  Ecg sampled at 100 Hz
+    length = t_final * 2 # Output sampled at 2 Hz
+    times = numpy.arange(length) / 2.0 # Times in seconds of result
+    start,stop = numpy.searchsorted(times, [data[0], data[-1]])
+    result = numpy.empty(len(times))
+    result[start:stop] = jitter[numpy.searchsorted(data, times[start:stop])]
+    result[:start] = result[start]
+    result[stop:] = result[stop-1]
+    return result
 
 
 if __name__ == "__main__":

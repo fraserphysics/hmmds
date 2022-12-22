@@ -143,7 +143,7 @@ def A2(common, rng) -> develop.HMM:
         rng: A numpy random number generator instance
         common: A Collection of information for the apnea project.
 
-    Use data from a01 to initialize parameters of the observation model
+    Use data from all a files to initialize parameters of the observation model
     """
     n_states = 2
 

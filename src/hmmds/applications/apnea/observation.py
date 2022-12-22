@@ -24,6 +24,17 @@ class Respiration(hmm.observe_float.MultivariateGaussian):
     """
     _parameter_keys = "mu sigma".split()
 
+    def __init__(self, *args, **kwargs):
+        kwargs['small'] = Small
+        kwargs['psi'] = 100000  # Default .1 Tuned for training A2.
+        # psi     dies at
+        # .1      882,193
+        # 10      882,193
+        # 100     882,193
+        # 1000    882,193
+        # 10000   882,217
+        super().__init__(*args, **kwargs)
+
     def random_out(self: Respiration, s: int) -> numpy.ndarray:
         raise RuntimeError('random_out not implemented for Respiration')
 
@@ -47,6 +58,14 @@ class FilteredHeartRate(hmm.observe_float.AutoRegressive):
 
     """
     _parameter_keys = "ar_coefficients offset variance".split()
+
+    # Use a state with wide variance to catch bad data points.  To do
+    # that, attach prior parameters to each state separately.  Also
+    # calculate AP not likelihood.
+    def __init__(self, *args, **kwargs):
+        kwargs['small'] = Small
+        kwargs['beta'] = 1000000  # Tuned for training A2.  100,000 is too small
+        super().__init__(*args, **kwargs)
 
     def random_out(self: FilteredHeartRate, s: int) -> numpy.ndarray:
         raise RuntimeError('random_out not implemented for FilteredHeartRate')
@@ -73,6 +92,7 @@ class FilteredHeartRate(hmm.observe_float.AutoRegressive):
             new_seg[:self.ar_order] = seg[0]
             new_seg[self.ar_order:] = seg
             modified_y_segs.append(new_seg)
+            # super will drop ar_order from each new_seg
         return super()._concatenate(modified_y_segs)
 
 
@@ -182,8 +202,8 @@ class FilteredHeartRate_Respiration(hmm.base.BaseObservation):
 
         Assume conditional independence of observation components given state
         """
-        hr_like = self.filtered_heart_rate_model.calculate()
         resp_like = self.respiration_model.calculate()
+        hr_like = self.filtered_heart_rate_model.calculate()
         self._likelihood = hr_like * resp_like
         return self._likelihood
 

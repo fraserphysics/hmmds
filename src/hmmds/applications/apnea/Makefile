@@ -33,8 +33,7 @@ CNAMES = c01 c02 c03 c04 c05 c06 c07 c08 c09 c10
 
 NAMES = $(ANAMES) $(BNAMES) $(CNAMES) $(XNAMES)
 
-# FixMe: Depend on $(RTIMES)/flag
-$(RESPIRE)/flag: respire.py $(EXPERT) $(RTIMES)/a01.rtimes
+$(RESPIRE)/flag: respire.py $(EXPERT) $(RTIMES)/flag
 	mkdir -p $(RESPIRE)
 	python respire.py $(EXPERT) $(RTIMES) $(RESPIRE)
 	touch $@

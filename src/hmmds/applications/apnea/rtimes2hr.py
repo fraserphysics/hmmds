@@ -36,11 +36,15 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def calculate(rtimes: numpy.ndarray, args) -> dict:
+def calculate(rtimes: numpy.ndarray, n_ecg: int, args) -> dict:
     """ Calculate heart rate and low pass heart rate
 
     Args:
         rtimes: Times in seconds
+        n_ecg: Number of centiseconds in ecg record
+        args: Command line arguments
+
+    Return: 
     """
 
     # Find median and extreams of the intervals between rtimes
@@ -63,7 +67,8 @@ def calculate(rtimes: numpy.ndarray, args) -> dict:
     # frequency
 
     frequency = 2 * PINT('Hz')
-    n_times = int(frequency * rtimes[-1])
+    last_time = (n_ecg/100) * PINT('seconds')
+    n_times = int((frequency * last_time).to('').magnitude)
     # Number of samples of inverse heart rate
     periods = numpy.empty(n_times) * PINT('s')
     t_old = rtimes[0]
@@ -121,11 +126,11 @@ def calculate(rtimes: numpy.ndarray, args) -> dict:
 def read_rtimes(path):
     with open(path, mode='r', encoding='utf-8') as _file:
         lines = _file.readlines()
-    n_times = len(lines)
-    rtimes = numpy.empty(n_times)
-    for t, line in enumerate(lines):
-        rtimes[t] = float(line)
-    return rtimes * PINT('second')
+    n_ecg = int(lines[0].split()[-1])
+    rtimes = numpy.empty(len(lines)-1)
+    for i, line in enumerate(lines[1:]):
+        rtimes[i] = float(line)
+    return rtimes * PINT('second'), n_ecg
 
 
 def main(argv=None):
@@ -134,8 +139,8 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
     for name in args.record_names:
-        rtimes = read_rtimes(os.path.join(args.Rtimes_dir, name + '.rtimes'))
-        hr_dict = calculate(rtimes, args)
+        rtimes, n_ecg = read_rtimes(os.path.join(args.Rtimes_dir, name + '.rtimes'))
+        hr_dict = calculate(rtimes, n_ecg, args)
         with open(os.path.join(args.lphr_dir, name + '.lphr'), 'wb') as _file:
             pickle.dump(hr_dict, _file)
     return 0

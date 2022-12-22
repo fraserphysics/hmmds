@@ -33,7 +33,7 @@ $(ApneaFigDir)/lda_flag: $(ApneaPlotScripts)/lda.py  $(ApneaDerivedData)/Respire
 	python $< --apnea_data_dir $(ApneaDerivedData) $(ApneaFigDir)/LDA1 $(ApneaFigDir)/LDA2
 	touch $@
 
-$(ApneaFigDir)/pass1.pdf: $(ApneaPlotScripts)/pass1.py  $(ApneaDerivedData)/pass1_report
+$(ApneaFigDir)/pass1.pdf: $(ApneaPlotScripts)/pass1.py  $(ApneaDerivedData)/pass1_report.pickle
 	python $^  $@
 
 

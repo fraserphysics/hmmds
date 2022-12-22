@@ -63,10 +63,14 @@ def main(argv=None):
     figure1, (ax_means, ax_components) = pyplot.subplots(
         nrows=2, ncols=1, figsize=(5, 5.5), sharex=True)
 
-    n_limit = int(length_raw*.3)
+    # n_limit = int(length_raw*.3)
+    n_limit = int(length_raw*.9)
+    # FixMe: Figure suggests that normalization is off.  Perhaps OK
+    # because norm(mean of normalized vectors) is <= 1.
     def limited_plot(ax, x, y, n_limit, color, label):
         ax.plot(x[:n_limit], y[:n_limit], color, label=label)
-        
+
+    # Plot mean psds for each class
     for _class, color, label in zip(
             # _class
             'c_mean apnea_mean normal_mean'.split(),
@@ -93,7 +97,7 @@ def main(argv=None):
     
     figure2, (ax_c, ax_n, ax_a, ax_all) = pyplot.subplots(
         nrows=4, ncols=1, figsize=(6, 15))
-    box = [-0.6, 0.65, -0.4, 0.9]
+    box = [-1.0, 0.35, -0.04, 1.0]
     for (ax, _class, color, label) in (
             (ax_c, 'c', 'r', 'C'),
             (ax_a, 'apnea', 'g', 'A'),

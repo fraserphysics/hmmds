@@ -1,13 +1,15 @@
 """For every record calculate two statistics for classifying the record
 
-All paths are derived from root via utilitis.Common
+All paths are derived from root via utilities.Common
 
-The result is a text file with lines like
+The result is written both as a pickle file and a text file with lines
+like
 
 
 b04 # Medium stat=  2.178 llr= -0.140 R=  2.248
 a09 # High   stat=  4.263 llr=  4.162 R=  2.182
 x33 # Medium stat=  1.847 llr= -0.322 R=  2.008
+
 """
 import sys
 import os
