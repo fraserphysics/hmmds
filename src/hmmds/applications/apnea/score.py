@@ -24,6 +24,30 @@ import hmmds.applications.apnea.utilities
 format = '{0:5s} {1:-6d}    {2:-5d} {3:-5d}     {4:-3.2f}   {5:-5d}    {6:-3.2f}   {7:-5d}    {8:-3.2f}'
 
 
+def parse_args(argv):
+    """ Convert command line arguments into a namespace
+    """
+
+    parser = argparse.ArgumentParser(
+        "Compare classification of minutes by HMM and expert")
+    hmmds.applications.apnea.utilities.common_arguments(parser)
+    parser.add_argument('result',
+                        type=str,
+                        help='Write result to this path',
+                        default='score_report')
+    parser.add_argument('result',
+                        type=str,
+                        help='Write result to this path',
+                        default='score_report')
+    parser.add_argument('names',
+                        type=str,
+                        nargs='*',
+                        help='names of records to analyze')
+    args = parser.parse_args(argv)
+    hmmds.applications.apnea.utilities.join_common(args)
+    return args
+
+
 def analyze(name: str, _expert: numpy.ndarray, _pass2: numpy.ndarray,
             report) -> list:
     """Compare expert and pass2 and write a single line to report
@@ -72,29 +96,12 @@ def main(argv=None):
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(
-        "Compare classification of minutes by HMM and expert")
-    parser.add_argument('--root',
-                        type=str,
-                        default='../../../',
-                        help='Root directory of project')
-    parser.add_argument('pass2', type=str, help='Result of HMM classification')
-    parser.add_argument('expert', type=str, help='Classification provided')
-    parser.add_argument('result',
-                        type=str,
-                        help='Write result to this path',
-                        default='score_report')
-    parser.add_argument('names',
-                        type=str,
-                        nargs='*',
-                        help='names of records to analyze')
-    args = parser.parse_args(argv)
-    common = hmmds.applications.apnea.utilities.Common(args.root)
+    args = parse_args(argv)
 
     def get_names(letter):
         return [
-            os.path.basename(x) for x in glob.glob('{0}/{1}*'.format(
-                common.heart_rate_directory, letter))
+            os.path.basename(x)
+            for x in glob.glob('{0}/{1}*'.format(args.heart_rate_dir, letter))
         ]
 
     if not args.names:

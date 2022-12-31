@@ -30,7 +30,26 @@ import hmmds.applications.apnea.utilities
 import develop
 
 
-def analyze(name, model, common, report):
+def parse_args(argv):
+    """ Convert command line arguments into a namespace
+    """
+
+    parser = argparse.ArgumentParser("Create and write/pickle pass1_report")
+    hmmds.applications.apnea.utilities.common_arguments(parser)
+    parser.add_argument('--names',
+                        type=str,
+                        nargs='*',
+                        help='names of records to analyze')
+    parser.add_argument('result',
+                        type=str,
+                        help='Write result to this path',
+                        default='pass2_report')
+    args = parser.parse_args(argv)
+    hmmds.applications.apnea.utilities.join_common(args)
+    return args
+
+
+def analyze(name, model, args, report):
     """Writes to the open file report a string that has the same form as
         the expert file
 
@@ -38,14 +57,14 @@ def analyze(name, model, common, report):
         name: Eg, 'a01'
         model: An HMM with an observation model for both heart rate and respiration
             that supports decoding a sequence of groups
-        common: Globally shared paths and parameters for the apnea project
+        args: Includes globally shared paths and parameters for the apnea project
         report: A file open for writing
 
     """
 
     print('decoding {0}'.format(name))
     data = hmmds.applications.apnea.utilities.heart_rate_respiration_data(
-        name, common)
+        name, args)
     sequence = model.bundle_decode([data], fudge=0.7, power=1.0)
     #sequence = model.old_bundle_decode([data])
 
@@ -84,30 +103,16 @@ def main(argv=None):
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser("Create and write pass2_report")
-    parser.add_argument('--root',
-                        type=str,
-                        default='../../../',
-                        help='Root directory of project')
-    parser.add_argument('--names',
-                        type=str,
-                        nargs='*',
-                        help='names of records to analyze')
-    parser.add_argument('result',
-                        type=str,
-                        help='Write result to this path',
-                        default='pass2_report')
-    args = parser.parse_args(argv)
-    common = hmmds.applications.apnea.utilities.Common(args.root)
+    args = parse_args(argv)
 
-    with open(common.pass1 + '.pickle', 'rb') as _file:
+    with open(args.pass1 + '.pickle', 'rb') as _file:
         report_list = pickle.load(_file)
     pass1_dict = dict((x.name, x) for x in report_list)
 
     def get_names(letter):
         return [
             os.path.basename(x) for x in glob.glob('{0}/{1}*'.format(
-                common.heart_rate_directory, letter))
+                args.heart_rate_directory, letter))
         ]
 
     if not args.names:
@@ -116,8 +121,8 @@ def main(argv=None):
 
     # Build a dict by readings HMMs
     models = {}
-    for name in 'Low Medium High'.split():
-        with open(common.get('model' + name), 'rb') as _file:
+    for name in 'model_Low model_Medium model_High'.split():
+        with open(os.path.join(args.models_dir, name), 'rb') as _file:
             models[name] = pickle.load(_file)
 
     with open(args.result, 'w') as report:
@@ -125,7 +130,7 @@ def main(argv=None):
             pass1item = pass1_dict[name]
             # Choose the HMM based on the pass1 level
             model = models[pass1item.level]
-            analyze(name, model, common, report)
+            analyze(name, model, args, report)
 
     return 0
 

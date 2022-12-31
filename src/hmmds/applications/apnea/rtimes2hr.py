@@ -67,7 +67,7 @@ def calculate(rtimes: numpy.ndarray, n_ecg: int, args) -> dict:
     # frequency
 
     frequency = 2 * PINT('Hz')
-    last_time = (n_ecg/100) * PINT('seconds')
+    last_time = (n_ecg / 100) * PINT('seconds')
     n_times = int((frequency * last_time).to('').magnitude)
     # Number of samples of inverse heart rate
     periods = numpy.empty(n_times) * PINT('s')
@@ -127,7 +127,7 @@ def read_rtimes(path):
     with open(path, mode='r', encoding='utf-8') as _file:
         lines = _file.readlines()
     n_ecg = int(lines[0].split()[-1])
-    rtimes = numpy.empty(len(lines)-1)
+    rtimes = numpy.empty(len(lines) - 1)
     for i, line in enumerate(lines[1:]):
         rtimes[i] = float(line)
     return rtimes * PINT('second'), n_ecg
@@ -139,7 +139,8 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
     for name in args.record_names:
-        rtimes, n_ecg = read_rtimes(os.path.join(args.Rtimes_dir, name + '.rtimes'))
+        rtimes, n_ecg = read_rtimes(
+            os.path.join(args.Rtimes_dir, name + '.rtimes'))
         hr_dict = calculate(rtimes, n_ecg, args)
         with open(os.path.join(args.lphr_dir, name + '.lphr'), 'wb') as _file:
             pickle.dump(hr_dict, _file)

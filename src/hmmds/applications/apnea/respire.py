@@ -85,10 +85,11 @@ def spectrogram(pulse_deviations, args):
         detrend=False,
         mode='psd')
     assert psds.shape == (len(frequencies), len(times))
-    normalizations = numpy.sqrt((psds*psds).sum(axis=0))
+    normalizations = numpy.sqrt((psds * psds).sum(axis=0))
     assert normalizations.shape == times.shape
     assert args.fft_width > len(pulse_deviations) - len(times) * ratio >= 0
-    return frequencies * PINT('Hz'), times * PINT('second'), psds, normalizations
+    return frequencies * PINT('Hz'), times * PINT(
+        'second'), psds, normalizations
 
 
 def linear_discriminant_analysis(  # pylint: disable = too-many-locals
@@ -148,19 +149,20 @@ def linear_discriminant_analysis(  # pylint: disable = too-many-locals
     apnea = Class()
     normal = Class()
     for name in groups['c']:
-        frequencies, times, psds, normalizations = spectrogram(records[name], args)
+        frequencies, times, psds, normalizations = spectrogram(
+            records[name], args)
         for psd, normalization in zip(psds.T, normalizations):
             if normalization > 0.0:
-                c.list.append(psd/normalization)
+                c.list.append(psd / normalization)
     for name in groups['a']:
         _, times, psds, normalizations = spectrogram(records[name], args)
         for time, psd, normalizaion in zip(times, psds.T, normalizations):
             if normalization <= 0.0:
                 continue
             if annotation(name, time):
-                apnea.list.append(psd/normalization)
+                apnea.list.append(psd / normalization)
             else:
-                normal.list.append(psd/normalization)
+                normal.list.append(psd / normalization)
     for _class in (c, apnea, normal):
         _class.mean_covariance()
 
@@ -214,8 +216,9 @@ def main(argv=None):
         rtimes, n_ecg = rtimes2hr.read_rtimes(
             os.path.join(args.rtimes_dir, name + '.rtimes'))
         # Calculate heart rate deviations sampled at 2 Hz
-        records[name] = utilities.rtimes2dev(rtimes.to('seconds').magnitude, n_ecg,
-                                             args.deviation_w) * PINT('Hz')
+        records[name] = utilities.rtimes2dev(
+            rtimes.to('seconds').magnitude, n_ecg,
+            args.deviation_w) * PINT('Hz')
         groups[name[0]].append(name)
         if name[0] == 'a' or name[0] == 'c':  # No annotations for b05
             annotations[name] = utilities.read_expert(args.annotations, name)
@@ -244,18 +247,30 @@ def main(argv=None):
         assert psds.shape == (len(frequencies), len(times))
         assert basis.shape == (2, len(frequencies))
         with open(os.path.join(args.resp_dir, name + '.sgram'), 'wb') as _file:
-            pickle.dump({'frequencies':frequencies,'times':times,'psds':psds,'normalizations':normalizations}, _file)
+            pickle.dump(
+                {
+                    'frequencies': frequencies,
+                    'times': times,
+                    'psds': psds,
+                    'normalizations': normalizations
+                }, _file)
         components = numpy.empty((len(times), 3))
         # Fudge 1.0e-20 to avoid divide by 0
-        components[:,:2] = numpy.dot(basis, psds/(normalizations+1.0e-20)).T
-        components[:,2] = normalizations
+        components[:, :2] = numpy.dot(basis,
+                                      psds / (normalizations + 1.0e-20)).T
+        components[:, 2] = normalizations
         with open(os.path.join(args.resp_dir, name + '.resp'), 'wb') as _file:
-            pickle.dump({
-                'times':times,
-                'components':components,
-                'readme':"""times are sample times in seconds with pint units
+            pickle.dump(
+                {
+                    'times':
+                        times,
+                    'components':
+                        components,
+                    'readme':
+                        """times are sample times in seconds with pint units
 components[t,:2] is discriminant components from linear discriminant analysis of spectrograms.
-components[t,2] is the length of the psd at time t"""}, _file)
+components[t,2] is the length of the psd at time t"""
+                }, _file)
     return 0
 
 

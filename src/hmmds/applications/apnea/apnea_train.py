@@ -23,6 +23,22 @@ import numpy.random
 import hmmds.applications.apnea.utilities
 
 
+def parse_args(argv):
+    """ Combine command line arguments with defaults from utilities
+    """
+
+    parser = argparse.ArgumentParser("Read initial model, train, write result")
+    hmmds.applications.apnea.utilities.common_arguments(parser)
+    parser.add_argument('model_name',
+                        type=str,
+                        help="eg, A2 or Low.  Determines training data")
+    parser.add_argument('initial_path', type=str, help="path to initial model")
+    parser.add_argument('write_path', type=str, help='path of file to write')
+    args = parser.parse_args(argv)
+    hmmds.applications.apnea.utilities.join_common(args)
+    return args
+
+
 def make_data_level(common, level):
     """ Make data for training with expert information
 
@@ -58,32 +74,21 @@ def main(argv=None):
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser("Read initial model, train, write result")
-    parser.add_argument('--root',
-                        type=str,
-                        default='../../../',
-                        help='Root directory of project')
-    parser.add_argument('model_name',
-                        type=str,
-                        help="eg, A2 or Low.  Determines training data")
-    parser.add_argument('initial_path', type=str, help="path to initial model")
-    parser.add_argument('write_path', type=str, help='path of file to write')
-    args = parser.parse_args(argv)
+    args = parse_args(argv)
     rng = numpy.random.default_rng()
-    common = hmmds.applications.apnea.utilities.Common(args.root)
 
     if args.model_name == 'A2':
         y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
-            common.a_names, common)
+            args.a_names, args)
     elif args.model_name in 'Low Medium High'.split():
-        y_data = make_data_level(common, args.model_name)
+        y_data = make_data_level(args, args.model_name)
     else:
         raise RuntimeError('Unknown model_name: {0}'.format(args.model_name))
 
     with open(args.initial_path, 'rb') as _file:
         model = pickle.load(_file)
 
-    model.multi_train(y_data, common.iterations)
+    model.multi_train(y_data, args.iterations)
 
     with open(args.write_path, 'wb') as _file:
         pickle.dump(model, _file)

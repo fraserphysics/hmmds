@@ -10,7 +10,7 @@ import hmm.observe_float
 
 #ToDo: This small value of Small is required to run pass1 and perhaps to train
 #model_High Why?
-Small = 1.0e-50
+Small = 1.0e-20
 
 
 class Respiration(hmm.observe_float.MultivariateGaussian):
@@ -25,14 +25,11 @@ class Respiration(hmm.observe_float.MultivariateGaussian):
     _parameter_keys = "mu sigma".split()
 
     def __init__(self, *args, **kwargs):
+        weight = 1.0e10
+        variance = 10.0  # 1.0 works 0.1 fails
         kwargs['small'] = Small
-        kwargs['psi'] = 100000  # Default .1 Tuned for training A2.
-        # psi     dies at
-        # .1      882,193
-        # 10      882,193
-        # 100     882,193
-        # 1000    882,193
-        # 10000   882,217
+        kwargs['nu'] = weight
+        kwargs['psi'] = weight * variance
         super().__init__(*args, **kwargs)
 
     def random_out(self: Respiration, s: int) -> numpy.ndarray:
@@ -63,8 +60,11 @@ class FilteredHeartRate(hmm.observe_float.AutoRegressive):
     # that, attach prior parameters to each state separately.  Also
     # calculate AP not likelihood.
     def __init__(self, *args, **kwargs):
+        weight = 1.0e10
+        variance = 100.0  # 10 works 1.0 fails
         kwargs['small'] = Small
-        kwargs['beta'] = 1000000  # Tuned for training A2.  100,000 is too small
+        kwargs['beta'] = weight * variance
+        kwargs['alpha'] = weight
         super().__init__(*args, **kwargs)
 
     def random_out(self: FilteredHeartRate, s: int) -> numpy.ndarray:
@@ -129,8 +129,7 @@ class FilteredHeartRate_Respiration(hmm.base.BaseObservation):
 
     def random_out(self: FilteredHeartRate_Respiration,
                    s: int) -> numpy.ndarray:
-        raise RuntimeError(
-            f'random_out not implemented for {self.__class__}')
+        raise RuntimeError(f'random_out not implemented for {self.__class__}')
 
     def __str__(self: FilteredHeartRate_Respiration) -> str:
         rv = 'Model %s instance\n\n' % self.__class__

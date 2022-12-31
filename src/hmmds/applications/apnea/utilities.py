@@ -5,54 +5,126 @@ import os
 import glob
 import typing
 import pickle
+import argparse
 
 import numpy
 
 import hmm.base
 
 
-class Common:
+def common_arguments(parser: argparse.ArgumentParser):
+    """Common arguments to add to parsers
 
-    def __init__(self, root):
-        """Parameters for the apnea application.
+    Args:
+        parser: Created elsewhere by argparse.ArgumentParser
 
-        Args:
-            root: Path to root of the hmmds project
+    Add common arguments for apnea processing.  Make these arguments
+    so that they can be modified from command lines during development
+    and testing.
 
-        Essentially a namespace that functions like a FORTRAN common
-        block.  It would be better to put this information in default
-        command line arguments and argparse.  """
+    """
+    parser.add_argument('--root',
+                        type=str,
+                        default='../../../../',
+                        help='parent directory of src and build')
+    parser.add_argument('--derived_apnea_data',
+                        type=str,
+                        default='build/derived_data/apnea',
+                        help='path from root to derived apnea data')
+    # Group that are relative to derived_apna
+    parser.add_argument('--heart_rate_dir',
+                        type=str,
+                        default='Lphr',
+                        help='path from derived_apnea to heart rate dir')
+    parser.add_argument('--respiration_dir',
+                        type=str,
+                        default='Respire',
+                        help='path from derived_apnea to respiration dir')
+    parser.add_argument('--pass1',
+                        type=str,
+                        default='pass1_report',
+                        help='path from derived_apnea to the file')
+    parser.add_argument('--models_dir',
+                        type=str,
+                        default='models',
+                        help='path from derived_apnea to models dir')
+    #
+    parser.add_argument('--expert',
+                        type=str,
+                        default='raw_data/apnea/summary_of_training',
+                        help='path from root to expert annotations')
+    for file_name, arg_name in zip(
+            'model_A2 model_C1 model_Low model_Medium model_High'.split(),
+            'Amodel   BCmodel  modelLow  modelMedium  modelHigh'.split()):
+        parser.add_argument(f'--{arg_name}', type=str, default=file_name)
+    parser.add_argument('--iterations',
+                        type=int,
+                        default=20,
+                        help='Training iterations')
+    parser.add_argument('--low_line',
+                        type=float,
+                        default=1.82,
+                        help='Boundary for pass1 classification')
+    parser.add_argument('--high_line',
+                        type=float,
+                        default=2.60,
+                        help='Boundary for pass1 classification')
+    parser.add_argument('--stat_slope',
+                        type=float,
+                        default=0.5,
+                        help='FixMe for pass1 classification')
 
-        self.data = os.path.join(root, 'build/derived_data/apnea')
-        self.heart_rate_directory = os.path.join(self.data,
-                                                 'Lphr')
-        self.respiration_directory = os.path.join(self.data, 'Respire')
-        self.expert = os.path.join(root, 'raw_data', 'apnea',
-                                   'summary_of_training')
-        self.pass1 = os.path.join(self.data, 'pass1_report')
-        self.models = os.path.join(self.data, 'models')
-        self.Amodel = os.path.join(self.models, 'model_A2')
-        self.BCmodel = os.path.join(self.models, 'model_C1')
-        self.modelLow = os.path.join(self.models, 'model_Low')
-        self.modelMedium = os.path.join(self.models, 'model_Medium')
-        self.modelHigh = os.path.join(self.models, 'model_High')
 
-        self.iterations = 20
-        self.low_line = 1.82
-        self.high_line = 2.60
-        self.stat_slope = 0.5
+def join_common(args: argparse.Namespace):
+    """ Process common arguments
 
-        # 'a01' is a name
-        self.all_names = [
-            os.path.splitext(os.path.basename(path))[0] for path in
-            glob.glob(os.path.join(self.respiration_directory, '*.resp'))]
-        self.a_names = list(filter(lambda name: name[0] == 'a', self.all_names))
-        self.b_names = list(filter(lambda name: name[0] == 'b', self.all_names))
-        self.c_names = list(filter(lambda name: name[0] == 'c', self.all_names))
-        self.x_names = list(filter(lambda name: name[0] == 'x', self.all_names))
+    Args:
+        args: Namespace that includes common arguments
 
-    def get(self, key):
-        return getattr(self, key)
+    Join partial paths specified as defaults or on a command line.
+
+    """
+
+    # Add derived_data prefix to paths in that directory
+    args.derived_apnea_data = os.path.join(args.root, args.derived_apnea_data)
+    for name in 'heart_rate_dir respiration_dir pass1 models_dir'.split():
+        setattr(args, name,
+                os.path.join(args.derived_apnea_data, getattr(args, name)))
+
+    # Add models_dir prefix to paths in that directory
+    for name in 'Amodel   BCmodel  modelLow  modelMedium  modelHigh'.split():
+        setattr(args, name, os.path.join(args.models_dir, getattr(args, name)))
+
+    args.expert = os.path.join(args.root, args.expert)
+
+    args.a_names = [f'a{i:02d}' for i in range(1, 21)]
+    args.b_names = [f'b{i:02d}' for i in range(1, 5)]
+    args.c_names = [f'c{i:02d}' for i in range(1, 11)]
+    args.x_names = [f'x{i:02d}' for i in range(1, 36)]
+    args.all_names = args.a_names + args.b_names + args.c_names + args.x_names
+
+
+def parse_args(argv):
+    """ Example for reference and testing
+    """
+
+    parser = argparse.ArgumentParser(description='Do not use this code')
+    ##### Testing ######
+    common_arguments(parser)
+    parser.add_argument('--sample_rate_in',
+                        type=int,
+                        default=2,
+                        help='Samples per second of input')
+    parser.add_argument('--sample_rate_out',
+                        type=int,
+                        default=10,
+                        help='Samples per minute for results')
+    parser.add_argument('input', type=str, help='Path for reading')
+    parser.add_argument('output', type=str, help='Path for writing')
+    args = parser.parse_args(argv)
+    ##### Testing ######
+    join_common(args)
+    return args
 
 
 class Pass1Item:
@@ -88,7 +160,7 @@ def read_low_pass_heart_rate(path: str) -> numpy.ndarray:
     with open(path, 'rb') as _file:
         _dict = pickle.load(_file)
     hr = _dict['hr_low_pass']
-    times = (numpy.arange(len(hr))/_dict['sample_frequency']).to('seconds')
+    times = (numpy.arange(len(hr)) / _dict['sample_frequency']).to('seconds')
     return times, hr
 
 
@@ -143,11 +215,11 @@ def read_expert(path: str, name: str) -> numpy.ndarray:
     return numpy.array([mark_dict[mark] for mark in marks], numpy.int32)
 
 
-def heart_rate_respiration_data(name: str, common: Common, t_max=None) -> dict:
+def heart_rate_respiration_data(name: str, args, t_max=None) -> dict:
     """
     Args:
         name: Eg, 'a01'
-        common: instance of Common that holds paths and parameters
+        args: holds paths and parameters
         t_max: Optional end of time series
 
     Returns:
@@ -155,25 +227,29 @@ def heart_rate_respiration_data(name: str, common: Common, t_max=None) -> dict:
 
     t_max enables truncation to the length of expert markings
     """
-    heart_rate_path = os.path.join(common.heart_rate_directory, name+'.lphr')
-    respiration_path = os.path.join(common.respiration_directory, name+'.resp')
+    heart_rate_path = os.path.join(args.heart_rate_dir, name + '.lphr')
+    respiration_path = os.path.join(args.respiration_dir, name + '.resp')
     h_times, raw_h = read_low_pass_heart_rate(heart_rate_path)
     r_times, raw_r = read_respiration(respiration_path)
 
     # heart rate is sampled at 2 Hz and respiration is 10 per minute
-    h_to_r = numpy.searchsorted(r_times.to('seconds').magnitude, h_times.to('seconds').magnitude)
+    h_to_r = numpy.searchsorted(
+        r_times.to('seconds').magnitude,
+        h_times.to('seconds').magnitude)
     # raw_h[t] and raw_r[h_to_r[t]] refer to data at about the same time
 
-    assert r_times[-1] <= h_times[-1],'Respiration sample after last heart rate sample'
-    i_max = numpy.searchsorted(h_times.to('seconds').magnitude, r_times[-1].to('seconds').magnitude)
+    assert r_times[-1] <= h_times[
+        -1], 'Respiration sample after last heart rate sample'
+    i_max = numpy.searchsorted(
+        h_times.to('seconds').magnitude, r_times[-1].to('seconds').magnitude)
     resampled_r = raw_r[h_to_r[numpy.arange(i_max)]]
 
     # Assert that arrays to return have same length
-    assert len(resampled_r) == len(raw_h[:i_max])  
+    assert len(resampled_r) == len(raw_h[:i_max])
     return {
         'respiration_data': resampled_r,
         'filtered_heart_rate_data': raw_h[:i_max].to('1/minutes').magnitude,
-        'times':h_times
+        'times': h_times
     }
 
 
@@ -195,11 +271,11 @@ def list_heart_rate_respiration_data(names: list, common: Common) -> list:
     return return_list
 
 
-def heart_rate_respiration_bundle_data(
-        name: str, common: Common) -> hmm.base.Bundle_segment:
+def heart_rate_respiration_bundle_data(name: str,
+                                       args) -> hmm.base.Bundle_segment:
 
     samples_per_minute = 10
-    tags = read_expert(common.expert, name).repeat(samples_per_minute)
+    tags = read_expert(args.expert, name).repeat(samples_per_minute)
     underlying = heart_rate_respiration_data(name, common)
     len_respiration = len(underlying['respiration_data'])
     len_hr = len(underlying['filtered_heart_rate_data'])
@@ -238,27 +314,21 @@ def rtimes2dev(data, n_ecg, w=1):
         jitter[i] = max(min(0.25, fraction), -0.25)
     # Create an array of heart rate deviations that is uniformly
     # sampled at 2 HZ
-    t_final = n_ecg//100 # in seconds.  Ecg sampled at 100 Hz
-    length = t_final * 2 # Output sampled at 2 Hz
-    times = numpy.arange(length) / 2.0 # Times in seconds of result
-    start,stop = numpy.searchsorted(times, [data[0], data[-1]])
+    t_final = n_ecg // 100  # in seconds.  Ecg sampled at 100 Hz
+    length = t_final * 2  # Output sampled at 2 Hz
+    times = numpy.arange(length) / 2.0  # Times in seconds of result
+    start, stop = numpy.searchsorted(times, [data[0], data[-1]])
     result = numpy.empty(len(times))
     result[start:stop] = jitter[numpy.searchsorted(data, times[start:stop])]
     result[:start] = result[start]
-    result[stop:] = result[stop-1]
+    result[stop:] = result[stop - 1]
     return result
 
 
 if __name__ == "__main__":
     """Test/exercise the code in this module.
     """
-    root = '../../../../'
-    common = Common(root)
-    print(f'b_names={common.get("b_names")}')
-    expert_path = os.path.join(root, *'raw_data apnea summary_of_training'.split())
-    annotations = read_expert(expert_path, 'a05')
-    samples_per_minute = 10
-    print(annotations[13:15])
-    print(annotations[13:15].repeat(samples_per_minute))
+    args = parse_args(sys.argv[1:])
+    for key, value in args.__dict__.items():
+        print(f'{key}: {value}')
     sys.exit(0)
-    #sys.exit(main())

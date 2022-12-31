@@ -51,7 +51,7 @@ def main(argv=None):
                                                    (1 - x)) * numpy.log(1 - y)
     axis_0.set_xticks(numpy.arange(0.2, 0.8, .2))
     axis_0.set_yticks(numpy.arange(0.3, 0.8, .2))
-    axis_0.set_zlim(-5.0,-2.5)
+    axis_0.set_zlim(-5.0, -2.5)
     x_grid, y_grid = numpy.meshgrid(x_s, y_s)
     axis_0.plot_surface(
         x_grid,
@@ -61,9 +61,16 @@ def main(argv=None):
         cstride=1,
         cmap=matplotlib.cm.hsv,  # pylint: disable=no-member
         linewidth=1)
-    levels = numpy.linspace(-3.0 -2.5, 6, endpoint=True)
+    levels = numpy.linspace(-3.0 - 2.5, 6, endpoint=True)
     levels = [-2.85, -2.75, -2.65, -2.55, -2.45, -2.35]
-    axis_0.contour(x_grid, y_grid, z_s, levels, zdir='z', offset=-5.0, colors="black", linestyles='solid')
+    axis_0.contour(x_grid,
+                   y_grid,
+                   z_s,
+                   levels,
+                   zdir='z',
+                   offset=-5.0,
+                   colors="black",
+                   linestyles='solid')
 
     axis_1 = fig.add_subplot(1, 2, 2)
     x = numpy.arange(0.0, 1.1, 1)

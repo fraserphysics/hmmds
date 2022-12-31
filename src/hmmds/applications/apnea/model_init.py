@@ -20,6 +20,19 @@ import hmmds.applications.apnea.observation
 import develop
 
 
+def parse_args(argv):
+    """ Combine command line arguments with defaults from utilities
+    """
+
+    parser = argparse.ArgumentParser("Create and write/pickle an initial model")
+    hmmds.applications.apnea.utilities.common_arguments(parser)
+    parser.add_argument('key', type=str, help='One of A2 C1 High Medium Low')
+    parser.add_argument('write_path', type=str, help='path of file to write')
+    args = parser.parse_args(argv)
+    hmmds.applications.apnea.utilities.join_common(args)
+    return args
+
+
 def random_1d_prob(rng: numpy.random.Generator, length: int) -> numpy.ndarray:
     """Draw a probability vector from a uniform distribution
     Args:
@@ -93,7 +106,8 @@ def filtered_heart_rate_model(n_states, rng, ar_order=4):
     offset = numpy.zeros(n_states)
     variance = numpy.ones(n_states)
     ar_coefficients = numpy.ones((n_states, ar_order)) / ar_order
-    return hmmds.applications.apnea.observation.FilteredHeartRate(ar_coefficients, offset, variance, rng)
+    return hmmds.applications.apnea.observation.FilteredHeartRate(
+        ar_coefficients, offset, variance, rng)
 
 
 def respiration_model(n_states, rng, dimension=3):
@@ -135,13 +149,13 @@ def register(func):
 
 
 @register
-def A2(common, rng) -> develop.HMM:
+def A2(args, rng) -> develop.HMM:
     """Two states, no bundles, AR-4 for heart rate, single Gaussian for
     respiration
 
     Args:
         rng: A numpy random number generator instance
-        common: A Collection of information for the apnea project.
+        args: A Collection of information for the apnea project.
 
     Use data from all a files to initialize parameters of the observation model
     """
@@ -152,7 +166,7 @@ def A2(common, rng) -> develop.HMM:
         respiration_model(n_states, rng), rng)
 
     y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
-        common.a_names, common)
+        args.a_names, args)
     # a list with a dict for each a-file
 
     model = develop.HMM(
@@ -167,7 +181,7 @@ def A2(common, rng) -> develop.HMM:
 
 
 @register
-def C1(common, rng):
+def C1(args, rng):
     """One state, no bundles, AR-4 for heart rate, single Gaussian for
     respiration
 
@@ -181,7 +195,7 @@ def C1(common, rng):
     name = 'c01'
     y_data = [
         hmmds.applications.apnea.utilities.heart_rate_respiration_data(
-            name, common)
+            name, args)
     ]
 
     model = develop.HMM(
@@ -196,7 +210,7 @@ def C1(common, rng):
 
 
 @register
-def Low(common, rng):
+def Low(args, rng):
     n_states = 10
 
     bundle2state = {
@@ -211,7 +225,7 @@ def Low(common, rng):
     # reports that the data is not plausible
     y_data = [
         hmmds.applications.apnea.utilities.heart_rate_respiration_bundle_data(
-            name, common) for name in 'c01 c02 c03 c04 c05 c06'.split()
+            name, args) for name in 'c01 c02 c03 c04 c05 c06'.split()
     ]
 
     model = develop.HMM(random_1d_prob(rng, n_states),
@@ -225,12 +239,12 @@ def Low(common, rng):
 
 
 @register
-def Medium(common, rng):
-    return Low(common, rng)
+def Medium(args, rng):
+    return Low(args, rng)
 
 
 @register
-def High(common, rng):
+def High(args, rng):
     n_states = 14
 
     bundle2state = {
@@ -245,7 +259,7 @@ def High(common, rng):
     # reports that the data is not plausible
     y_data = [
         hmmds.applications.apnea.utilities.heart_rate_respiration_bundle_data(
-            name, common) for name in 'a01 a02 a03 a04 a05 a06'.split()
+            name, args) for name in 'a01 a02 a03 a04 a05 a06'.split()
     ]
 
     model = develop.HMM(random_1d_prob(rng, n_states),
@@ -261,19 +275,11 @@ def main(argv=None):
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser("Create and write/pickle an initial model")
-    parser.add_argument('--root',
-                        type=str,
-                        default='../../../',
-                        help='Path to level above hmmds')
-    parser.add_argument('key', type=str, help='One of A2 C1 High Medium Low')
-    parser.add_argument('write_path', type=str, help='path of file to write')
-    args = parser.parse_args(argv)
+    args = parse_args(argv)
     rng = numpy.random.default_rng()
-    common = hmmds.applications.apnea.utilities.Common(args.root)
 
     # Run the function specified by args.key
-    model = MODELS[args.key](common, rng)
+    model = MODELS[args.key](args, rng)
     assert model.p_state_initial.min() > 0
 
     with open(args.write_path, 'wb') as _file:
