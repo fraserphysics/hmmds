@@ -54,7 +54,7 @@ def common_arguments(parser: argparse.ArgumentParser):
                         default='raw_data/apnea/summary_of_training',
                         help='path from root to expert annotations')
     for file_name, arg_name in zip(
-            'model_A2 model_C1 model_Low model_Medium model_High'.split(),
+            'model_A4 model_C2 model_Low model_Medium model_High'.split(),
             'Amodel   BCmodel  modelLow  modelMedium  modelHigh'.split()):
         parser.add_argument(f'--{arg_name}', type=str, default=file_name)
     parser.add_argument('--iterations',
@@ -159,7 +159,8 @@ def read_low_pass_heart_rate(path: str) -> numpy.ndarray:
     """
     with open(path, 'rb') as _file:
         _dict = pickle.load(_file)
-    hr = _dict['hr_low_pass']
+    #hr = _dict['hr_low_pass']
+    hr = _dict['hr']  # FixMe: Change name of function
     times = (numpy.arange(len(hr)) / _dict['sample_frequency']).to('seconds')
     return times, hr
 
@@ -215,7 +216,7 @@ def read_expert(path: str, name: str) -> numpy.ndarray:
     return numpy.array([mark_dict[mark] for mark in marks], numpy.int32)
 
 
-def heart_rate_respiration_data(name: str, args, t_max=None) -> dict:
+def heart_rate_respiration_data(name: str, args) -> dict:
     """
     Args:
         name: Eg, 'a01'
@@ -253,7 +254,7 @@ def heart_rate_respiration_data(name: str, args, t_max=None) -> dict:
     }
 
 
-def list_heart_rate_respiration_data(names: list, common: Common) -> list:
+def list_heart_rate_respiration_data(names: list, args) -> list:
     """Prepare a list of data for names specified by patterns
 
     Args:
@@ -267,7 +268,7 @@ def list_heart_rate_respiration_data(names: list, common: Common) -> list:
 
     return_list = []
     for name in names:
-        return_list.append(heart_rate_respiration_data(name, common))
+        return_list.append(heart_rate_respiration_data(name, args))
     return return_list
 
 
@@ -325,10 +326,13 @@ def rtimes2dev(data, n_ecg, w=1):
     return result
 
 
-if __name__ == "__main__":
-    """Test/exercise the code in this module.
-    """
-    args = parse_args(sys.argv[1:])
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    args = parse_args(argv)
     for key, value in args.__dict__.items():
         print(f'{key}: {value}')
-    sys.exit(0)
+    return 0
+    
+if __name__ == "__main__":
+    sys.exit(main())

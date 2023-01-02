@@ -77,11 +77,17 @@ def main(argv=None):
     args = parse_args(argv)
     rng = numpy.random.default_rng()
 
-    if args.model_name == 'A2':
+    if args.model_name in 'A2 A4'.split():
         y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
             args.a_names, args)
+
+    elif args.model_name in 'C1 C2'.split():
+        y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
+            args.c_names, args)
+
     elif args.model_name in 'Low Medium High'.split():
         y_data = make_data_level(args, args.model_name)
+
     else:
         raise RuntimeError('Unknown model_name: {0}'.format(args.model_name))
 

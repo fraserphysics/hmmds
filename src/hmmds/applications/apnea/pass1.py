@@ -16,6 +16,7 @@ import os
 import argparse
 import glob
 import pickle
+import typing
 
 import numpy
 
@@ -55,7 +56,7 @@ def r_stat(data: numpy.ndarray) -> float:
     return peaks[int(.74 * len(peaks))] / (numpy.abs(data).sum() / n_times)
 
 
-def log_likelihood_ratio(data, normal_model, apnea_model) -> float:
+def log_likelihood_ratio(data, normal_model, apnea_model) -> typing.Tuple[float, float, int]:
     """Calculate the ratio of the likelihoods for two models
 
     Args:
@@ -78,7 +79,7 @@ def log_likelihood_ratio(data, normal_model, apnea_model) -> float:
     a_ll, a_times = log_likelihood(apnea_model)
     n_ll, n_times = log_likelihood(normal_model)
     assert a_times == n_times
-    return (a_ll - n_ll) / n_times
+    return a_ll, n_ll, n_times
 
 
 def make_reports(args, names: list):
@@ -95,23 +96,17 @@ def make_reports(args, names: list):
         apnea_model = pickle.load(_file)
     with open(args.BCmodel, 'rb') as _file:
         normal_model = pickle.load(_file)
-    reports = []
+    reports = {}
     for name in names:
         y_data = hmmds.applications.apnea.utilities.heart_rate_respiration_data(
             name, args)
         # y_data is a dict
-        r = r_stat(y_data['filtered_heart_rate_data'])
-        llr = log_likelihood_ratio(y_data, normal_model, apnea_model)
-        stat = r + args.stat_slope * llr
-        if stat < args.low_line:
-            level = 'Low'
-        elif stat > args.high_line:
-            level = 'High'
-        else:
-            level = 'Medium'
-        reports.append(
-            hmmds.applications.apnea.utilities.Pass1Item(
-                name, llr, r, stat, level))
+        a_ll, n_ll, n_times = log_likelihood_ratio(y_data, normal_model, apnea_model)
+        reports[name] = {
+            'a_ll': a_ll,
+            'n_ll': n_ll,
+            'n_times':n_times,
+            }
     return reports
 
 
@@ -124,15 +119,14 @@ def main(argv=None):
     args = parse_args(argv)
 
     reports = make_reports(args, args.all_names)
-    reports.sort(key=lambda x: x.stat)
     with open(args.pass1 + '.pickle', 'wb') as _file:
         pickle.dump(reports, _file)
     with open(args.pass1, 'w') as _file:
-        for report in reports:
+        for name, report in reports.items():
+            a_per = report['a_ll']/report['n_times']
+            n_per = report['n_ll']/report['n_times']
             _file.write(
-                '{0} # {1:6s} stat= {2:6.3f} llr= {3:6.3f} R= {4:6.3f}\n'.
-                format(report.name, report.level, report.stat, report.llr,
-                       report.r))
+                f'{name} # a: {a_per:6.3f} n: {n_per:6.3f} a-n: {a_per-n_per:6.3f}')
     return 0
 
 

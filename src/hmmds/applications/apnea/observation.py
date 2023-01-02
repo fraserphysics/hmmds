@@ -25,11 +25,7 @@ class Respiration(hmm.observe_float.MultivariateGaussian):
     _parameter_keys = "mu sigma".split()
 
     def __init__(self, *args, **kwargs):
-        weight = 1.0e10
-        variance = 10.0  # 1.0 works 0.1 fails
         kwargs['small'] = Small
-        kwargs['nu'] = weight
-        kwargs['psi'] = weight * variance
         super().__init__(*args, **kwargs)
 
     def random_out(self: Respiration, s: int) -> numpy.ndarray:
@@ -60,11 +56,7 @@ class FilteredHeartRate(hmm.observe_float.AutoRegressive):
     # that, attach prior parameters to each state separately.  Also
     # calculate AP not likelihood.
     def __init__(self, *args, **kwargs):
-        weight = 1.0e10
-        variance = 100.0  # 10 works 1.0 fails
         kwargs['small'] = Small
-        kwargs['beta'] = weight * variance
-        kwargs['alpha'] = weight
         super().__init__(*args, **kwargs)
 
     def random_out(self: FilteredHeartRate, s: int) -> numpy.ndarray:
