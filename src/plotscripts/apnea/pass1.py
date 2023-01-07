@@ -49,27 +49,18 @@ def main(argv=None):
         parse_args, argv)
     fig, ax = pyplot.subplots(figsize=(8, 4))
 
+    color = {'a':'r', 'b':'g', 'c':'b', 'x':'k'}
+    ax.set_xlabel('$ll_A$')
+    ax.set_ylabel('$ll_C$')
+    
     with open(args.report, 'rb') as _file:
         reports = pickle.load(_file)
-    classes = {key: [] for key in 'a b c x'.split()}
     for name, report in reports.items():
+        # Plot log likelihood per sample
         a_per = report['a_ll']/report['n_times']
         n_per = report['n_ll']/report['n_times']
-        classes[name[0]].append((a_per, n_per))
+        ax.plot(a_per, n_per, marker=f'${name}$', markersize=20, color=color[name[0]])
 
-    ax.set_xlabel('$llr_a$')
-    ax.set_ylabel('$llr_n$')
-    sym = {'a': 'rs', 'b': 'go', 'c': 'bD', 'x': 'mx'}
-    for key, value in classes.items():
-        pair = value[0]
-        ax.plot(pair[0], pair[1], sym[key], label=key)
-    #lines(ax)
-    #ax.legend(loc='upper right')
-    ax.legend()
-    for key, value in classes.items():
-        for pair in value[1:]:
-            ax.plot(pair[0], pair[1], sym[key], label=key)
-    # ax.legend()
     fig.savefig(args.output)
     if args.show:
         pyplot.show()
