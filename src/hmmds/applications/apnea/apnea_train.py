@@ -77,11 +77,15 @@ def main(argv=None):
     args = parse_args(argv)
     rng = numpy.random.default_rng()
 
-    if args.model_name in 'A2 A4'.split():
+    if args.model_name in 'A2 A3 A4'.split():
         y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
             args.a_names, args)
 
-    elif args.model_name in 'C1 C2'.split():
+    elif args.model_name == 'outlier':
+        y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
+            args.all_names, args)
+
+    elif args.model_name in 'C2 C3 C4'.split():
         y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
             args.c_names, args)
 

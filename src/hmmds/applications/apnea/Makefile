@@ -7,7 +7,11 @@ HMMDS = $(ROOT)/src/hmmds
 BUILD = $(ROOT)/build
 
 ApneaDerivedData = $(ROOT)/build/derived_data/apnea
+MODELS = ${ROOT}/build/derived_data/apnea/models
 # Default target
+.PHONY : p1models
+p1models:  $(addprefix $(MODELS)/p1model_, A2 A3 A4 C2 C3 C4)
+
 $(ApneaDerivedData)/pass1_report.pickle:
 
 include Rules.mk
@@ -51,6 +55,26 @@ $(DATA)/score_report: score.py ${DATA}/pass2_report
 test:
 	py.test test.py
 
+########################## Block for matrix of pass1 attempts #################
+${ApneaDerivedData}/pass1_report_A2_%: $(MODELS)/p1model_A2 $(MODELS)/p1model_%
+	python pass1.py --root ${ROOT} --Amodel p1model_A2 --BCmodel p1model_$* --pass1 pass1_report_A2_$*
+${ApneaDerivedData}/pass1_report_A3_%: $(MODELS)/p1model_A3 $(MODELS)/p1model_%
+	python pass1.py --root ${ROOT} --Amodel p1model_A3 --BCmodel p1model_$* --pass1 pass1_report_A3_$*
+${ApneaDerivedData}/pass1_report_A4_%: $(MODELS)/p1model_A4 $(MODELS)/p1model_%
+	python pass1.py --root ${ROOT} --Amodel p1model_A4 --BCmodel p1model_$* --pass1 pass1_report_A4_$*
+
+MATRIX = $(addprefix ${ApneaDerivedData}/pass1_report_, A2_C2 A2_C3 A2_C4  A3_C2 A3_C3 A3_C4  A4_C2 A4_C3 A4_C4)
+# On cathcart, "time make -j9 pass1_matrix" reports "real 92m5.002s
+# user 667m41.433s"
+pass1_matrix: $(MATRIX)
+	touch $@
+########################## Block for matrix of pass1 attempts #################
+
+
+${ApneaDerivedData}/pass1_report.pickle: $(ApneaCode)/pass1.py ${MODELS}/p1model_A4 ${MODELS}/p1model_C2
+	python $(ApneaCode)/pass1.py --root ${ROOT} --Amodel p1model_A4 --BCmodel p1model_C2
+
+
 ## yapf                           : Force google format on all python code
 .PHONY : yapf
 yapf :
@@ -59,8 +83,9 @@ yapf :
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo LMH_MODLES: $(LMH_MODELS)
+	@echo LMH_MODELS: $(LMH_MODELS)
 	@echo MODELS: $(MODELS)
+	@echo MATRIX: $(MATRIX)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help

@@ -84,7 +84,7 @@ def main(argv=None):
             # _class
             'c_mean apnea_mean normal_mean'.split(),
             # color
-            'r- g- b-'.split(),
+            'b- r- g-'.split(),
             # label
         [r'$\mu_%s$' % (c,) for c in 'C A N'.split()]):
         limited_plot(ax_means, frequencies, lda_dict[_class], n_limit, color,
@@ -109,11 +109,11 @@ def main(argv=None):
     figure2, (ax_c, ax_n, ax_a, ax_all) = pyplot.subplots(nrows=4,
                                                           ncols=1,
                                                           figsize=(6, 15))
-    box = [-1.0, 0.35, -0.04, 1.0]
+    box = [-4.0, 2.0, -5.0, 1.0]
     for (ax, _class, color, label) in (
-        (ax_c, 'c', 'r', 'C'),
-        (ax_a, 'apnea', 'g', 'A'),
-        (ax_n, 'normal', 'b', 'N'),
+        (ax_c, 'c', 'b', 'C'),
+        (ax_a, 'apnea', 'r', 'A'),
+        (ax_n, 'normal', 'g', 'N'),
     ):
         x, y = lda_dict[_class + '_components']
         # FixMe: Plot one sample per minute because expert classified

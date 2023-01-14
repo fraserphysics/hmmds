@@ -26,7 +26,9 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Create and write/pickle an initial model")
     hmmds.applications.apnea.utilities.common_arguments(parser)
-    parser.add_argument('key', type=str, help='One of A2 A4 C1 C2 High Medium Low')
+    parser.add_argument('key',
+                        type=str,
+                        help='One of A2 A3 A4 C2 C3 C4 High Medium Low')
     parser.add_argument('write_path', type=str, help='path of file to write')
     args = parser.parse_args(argv)
     hmmds.applications.apnea.utilities.join_common(args)
@@ -117,7 +119,8 @@ def respiration_model(n_states, rng, dimension=3, **kwargs):
     sigma = numpy.zeros((n_states, dimension, dimension))
     for state in range(n_states):
         sigma[state, :, :] = numpy.eye(dimension)
-    return hmmds.applications.apnea.observation.Respiration(mu, sigma, rng, **kwargs)
+    return hmmds.applications.apnea.observation.Respiration(
+        mu, sigma, rng, **kwargs)
 
 
 def filtered_heart_rate_respiration_bundle_model(n_states,
@@ -209,108 +212,199 @@ def C1(args, rng):
     return model
 
 
+def _make_hmm(nu: numpy.ndarray, variances: numpy.ndarray, alpha: numpy.ndarray,
+              beta: numpy.ndarray, p_state_initial, p_state_time_average,
+              p_state2state, names, args, rng):
+    """Create a hmm using parameters defined in the caller
+
+    Args:
+        nu: Denominator for respiration variance prior.
+        variances: Numerator for respiration variance prior.
+        alpha: Denominator for heart rate variance prior.
+        beta: Numerator for heart rate variance.
+        p_state_initial:
+        p_state_time_average:
+        p_state2state: p[t=1] = numpy.dot(p[t=0], p_state2state)
+        names: List of record names, eg, 'c01 a05 x35'.split()
+        rng: Random number generator
+
+    Return: hmm initialized with data specified by names
+    
+    Unsupervised, ie, no bundles. AR-4 for heart rate. 3-d
+    multivariate Gaussian for respiration.
+
+    """
+
+    n_states = len(nu)
+    for argument in (nu, variances, alpha, beta, p_state_initial,
+                     p_state_time_average):
+        assert argument.shape == (n_states,)
+    assert p_state2state.shape == (n_states, n_states)
+
+    # Prior for respiration variance
+    psi = numpy.empty((n_states, 3, 3))
+    for state in range(n_states):
+        psi[state, :, :] = numpy.eye(3) * nu[state] * variances[state]
+
+    y_model = hmmds.applications.apnea.observation.FilteredHeartRate_Respiration(
+        filtered_heart_rate_model(n_states, rng, alpha=alpha, beta=beta),
+        respiration_model(n_states, rng, Psi=psi, nu=nu), rng)
+
+    _hmm = develop.HMM(p_state_initial, p_state_time_average, p_state2state,
+                       y_model, rng)
+
+    y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
+        names, args)
+    _hmm.initialize_y_model(y_data)
+    return _hmm
+
+
 @register
-def A4(args, rng) -> develop.HMM:
-    """Two states, no bundles, AR-4 for heart rate, single Gaussian for
-    respiration
+def outlier(args, rng) -> develop.HMM:
+    """Single state.  For finding model that makes all outliers plausible.
 
     Args:
         rng: A numpy random number generator instance
         args: A Collection of information for the apnea project.
 
-    Use data from all a files to initialize parameters of the observation model
     """
-    n_states = 4
 
-    # state_0 is for good ecg and normal respiration
-    # state_1 is for good ecg and apnea
-    # state_2 is for outlier and normal respiration
-    # state_3 is for outlier and apnea
+    # Along with a sum of weights, nu and alpha are in the denominator
+    # of the MAP reestimate for the Multivariate respiration and
+    # Autoregressive heart rate models respectively.  Since in all of
+    # the data combined there are 4,073,904 samples, setting nu and
+    # alpha to 1e7 ensures that the prior will dominate the data.
+    # Some data is not plausible if the prior for the variance of the
+    # AR heart rate model is less than 1e6, indicating that magnitude
+    # of outliers is 1e3.  I am surprised that a prior variance of
+    # 1e-7 works for the respiration model.
 
-    # Prior for respiration variance
-    nu = numpy.array([10.0, 10.0, 1.0e4, 1.0e4])  # Sort of weights
-    vars = [1.0, 1.0, 1.0e3, 1.0e3]  # Default variances.  (20 failed) 1.0 is enough for outliers
-    psi = numpy.empty((4,3,3))
-    for state in range(n_states):
-        psi[state,:,:] = numpy.eye(3) * nu[state] * vars[state]
+    # Here are results of experiments and my choices
+    #                  Fails       OK          Choice
+    # (nu, variances)  (1e7, 1e-1) (1e7, 1e0)  (1e7, 1e9)
+    # (alpha, beta)    (1e7, 1e13) (1e7, 1e14) (1e7, 1e15)
+    
+    nu = numpy.array([1.0e7])
+    variances = numpy.array([1.0e9])
+    alpha = numpy.array([1.0e7])
+    beta = numpy.array([1.0e15])
 
-    # Prior for heart rate variance
-    alpha = numpy.array([10.0, 10.0, 1.0e5, 1.0e5])  # Weight in denominator
-    beta = numpy.array([1.0, 1.0, 1.0e5, 1.0e5]) * alpha # 800 failed Default variance * weight
+    p_state_initial = numpy.array([1.0])
+    p_state_time_average = numpy.array([1.0])
+    p_state2state = numpy.array([[1.0]])
 
-    y_model = hmmds.applications.apnea.observation.FilteredHeartRate_Respiration(
-        filtered_heart_rate_model(n_states, rng, alpha=alpha, beta=beta),
-        respiration_model(n_states, rng, Psi=psi, nu=nu), rng)
-
-    y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
-        args.a_names, args)
-    # a list with a dict for each a-file
-
-    p_state_initial = numpy.array([.7, .1, .1, .1])
-    p_state_time_average = numpy.array([.49, .49, .01, .01])
-    p_state2state = numpy.array([
-        [.98, .01, .01, 0.0],
-        [.01, .98, 0.0, .01],
-        [.01, 0.0, .99, 0.0],
-        [0.0, .01, 0.0, .99]
-        ])
-    model = develop.HMM(
-        p_state_initial,
-        p_state_time_average,
-        p_state2state,
-        y_model,
-        rng)
+    return _make_hmm(nu, variances, alpha, beta, p_state_initial,
+                     p_state_time_average, p_state2state, args.all_names, args,
+                     rng)
 
 
-    model.initialize_y_model(y_data)
-    return model
+def _two(names, args, rng):
+    """Model with two states.
 
+    Args:
+        names: Record names for initialization data
+        rng: A numpy random number generator instance
+        args: A Collection of information for the apnea project.
+
+    State 0 is for outliers.  The other states will get fit to the
+    rest of the data.
+
+    """
+    nu = numpy.array([1.0e7, 10.0])
+    variances = numpy.array([1.0e9, 1.0])
+    alpha = numpy.array([1.0e7, 10.0])
+    beta = numpy.array([1.0e15, 1.0])
+
+    p_state_initial = numpy.array([.01, .99])
+    p_state_time_average = numpy.array([.01, .99])
+    p_state2state = numpy.array([ #
+        [.99, .01], #
+        [.01, .99],
+    ])
+
+    return _make_hmm(nu, variances, alpha, beta, p_state_initial,
+                     p_state_time_average, p_state2state, names, args,
+                     rng)
+
+def _three(names, args, rng) -> develop.HMM:
+    """Model with three states.
+    """
+
+    nu = numpy.array([1.0e7, 10.0, 10.0])
+    variances = numpy.array([1.0e9, 1.0, 1.0])
+    alpha = numpy.array([1.0e7, 10.0, 10.0])
+    beta = numpy.array([1.0e15, 1.0, 1.0])
+
+    p_state_initial = numpy.array([.01, .01, .98])
+    p_state_time_average = numpy.array([.01, .495, .495])
+    p_state2state = numpy.array([  #
+        [.99,  .001, .001],  #
+        [.001, .01,  .989],
+        [.001, .989, .01]
+    ])
+
+    return _make_hmm(nu, variances, alpha, beta, p_state_initial,
+                     p_state_time_average, p_state2state, names, args,
+                     rng)
+
+
+def _four(names, args, rng) -> develop.HMM:
+    """Model with four states.
+    """
+
+    nu = numpy.array([1.0e7, 10.0, 10.0, 10])
+    variances = numpy.array([1.0e9, 1.0, 1.0, 1.0])
+    alpha = numpy.array([1.0e7, 10.0, 10.0, 10.0])
+    beta = numpy.array([1.0e15, 1.0, 1.0, 1.0])
+
+    p_state_initial = numpy.array([.01, .01, .01, .97])
+    p_state_time_average = numpy.array([.01, .33, .33, .33])
+    p_state2state = numpy.array([  #
+        [.99,  .001, .001, .008],  #
+        [.001, .01,  .01,  .979],
+        [.001, .979, .01,  .01],
+        [.001, .01,  .979, .01]
+    ])
+
+    return _make_hmm(nu, variances, alpha, beta, p_state_initial,
+                     p_state_time_average, p_state2state, names, args,
+                     rng)
 
 @register
-def C2(args, rng):
-    """Two states, AR-4 for heart rate, single Gaussian for
-    respiration
-
+def A2(args, rng) -> develop.HMM:
+    """Two states initialized with apnea records
     """
-    n_states = 2
+    return _two(args.a_names, args, rng)
 
-    # state_0 is for good ecg and state_1 is for outliers
-    # Prior for respiration variance
-    nu = numpy.array([10.0, 1.0e4])  # Sort of weights
-    vars = [1.0, 1.0e3]  # Default variances.  1.0 is enough for outliers
-    psi = numpy.empty((2,3,3))
-    for state in range(n_states):
-        psi[state,:,:] = numpy.eye(3) * nu[state] * vars[state]
+@register
+def C2(args, rng) -> develop.HMM:
+    """Two states initialized with normal records
+    """
+    return _two(args.c_names, args, rng)
 
-    # Prior for heart rate variance
-    alpha = numpy.array([10.0, 1.0e5])  # Weight in denominator
-    beta = numpy.array([1.0, 1.0e5]) * alpha # Default variance * weight
+@register
+def A3(args, rng) -> develop.HMM:
+    """Three states initialized with apnea records
+    """
+    return _three(args.a_names, args, rng)
 
-    y_model = hmmds.applications.apnea.observation.FilteredHeartRate_Respiration(
-        filtered_heart_rate_model(n_states, rng, alpha=alpha, beta=beta),
-        respiration_model(n_states, rng, Psi=psi, nu=nu), rng)
+@register
+def C3(args, rng) -> develop.HMM:
+    """Three states initialized with normal records
+    """
+    return _three(args.c_names, args, rng)
 
-    name = 'c02'  # Initialize with data from record c02
-    y_data = [
-        hmmds.applications.apnea.utilities.heart_rate_respiration_data(
-            name, args)
-    ]
+@register
+def A4(args, rng) -> develop.HMM:
+    """Four states initialized with apnea records
+    """
+    return _four(args.a_names, args, rng)
 
-    p_state_initial = numpy.array([.9, .1])
-    p_state_time_average = numpy.array([.99, .01])
-    p_state2state = numpy.array([
-        [.99, .01],
-        [.01, .99],
-        ])
-    model = develop.HMM(
-        p_state_initial,
-        p_state_time_average,
-        p_state2state,
-        y_model,
-        rng)
-
-    model.initialize_y_model(y_data)
-    return model
+@register
+def C4(args, rng) -> develop.HMM:
+    """Four states initialized with normal records
+    """
+    return _four(args.c_names, args, rng)
 
 
 @register
