@@ -29,7 +29,7 @@ $(ApneaFigDir)/sgram.pdf:  $(ApneaPlotScripts)/spectrogram.py $(RESPIRE)/flag
 	python $< --time_window 40 220  --frequency_window 1 30 --name a11 \
 $(LPHR) $(RESPIRE) $(EXPERT) $@
 
-$(ApneaFigDir)/lda_flag: $(ApneaPlotScripts)/lda.py  $(ApneaDerivedData)/Respire/lda_data
+$(ApneaFigDir)/lda_flag: $(ApneaPlotScripts)/lda.py  $(ApneaDerivedData)/Respire/flag
 	python $< --apnea_data_dir $(ApneaDerivedData) $(ApneaFigDir)/LDA1 $(ApneaFigDir)/LDA2
 	touch $@
 

@@ -9,6 +9,14 @@ TEX_OUT = $(BUILD)/TeX/skeleton
 # prepends prefix and appends pdf and pdf_t to names
 ADD_PDF_PDF_T = $(addprefix $(1)/, $(addsuffix .pdf, $(2)) $(addsuffix .pdf_t, $(2)))
 
+
+LASER_FIG_DIR = $(BUILD)/figs/laser/
+# FixMe: Some of these figures may not be required
+LASER_FIGS = $(addsuffix .pdf, $(addprefix $(LASER_FIG_DIR), \
+LaserLP5 LaserLogLike LaserStates LaserForecast LaserHist gui_plot \
+ekf_powell250_plot ekf_powell2876_plot pf_ekf250_plot pf_opt_noise_plot \
+pf_hand_noise_plot forecast_errors))
+
 INTRODUCTION_FIGS = $(addsuffix .pdf, $(addprefix $(BUILD)/figs/introduction/, \
 TSintro STSintro Statesintro))
 INTRODUCTION_XFIGS = $(call ADD_PDF_PDF_T, $(BUILD)/figs/introduction, Markov_mm Markov_dhmm Markov_dhmm_net nonmm)
@@ -30,6 +38,7 @@ ApneaNLD a03erA sgram a03HR a03erN pass1 )) $(BUILD)/figs/apnea/lda_flag
 APNEA_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/apnea, class_net)
 
 SKELETON_FIGS = $(INTRODUCTION_FIGS) \
+$(LASER_FIGS) \
 $(INTRODUCTION_XFIGS) \
 $(BASIC_ALGORITHMS_FIGS) \
 $(BASIC_ALGORITHMS_XFIGS) \

@@ -59,13 +59,14 @@ def main(argv=None):
     assert context_dim == 4
 
     # Make initial model
-    model = make_varg_hmm(args.n_states, vector_dim, context_dim, vectors)
+    model = make_varg_hmm(args.n_states, vector_dim, context_dim, vectors, 1.0e6, 4.0e6)
 
     # Train while loosening prior.  Recall update formula: Cov[s] =
-    # (Psi + rrsum)/(wsum[s]+nu+dimension+1)
-    for nu, psi in ((1e6, 4e6), (4.0, 1.0), (1.0, 0.25), (0.25, 0.05)):
-        model.y_mod.nu = nu
-        model.y_mod.Psi = numpy.eye(3) * psi
+    # (Psi + rrsum)/(wsum[s]+nu+dimension+1).  FixMe: Don't modify
+    # from outside.  Call some kind of method of model.y_mod instead.
+    for scale in ( 1, 1e-5, .5, .5):
+        model.y_mod.nu *= scale
+        model.y_mod.Psi *= scale
         model.train(y, 10)
 
     # Do Viterbi decoding
@@ -83,7 +84,7 @@ def main(argv=None):
     return 0
 
 
-def make_varg_hmm(n_states, out_dimension, context_dimension, vectors):
+def make_varg_hmm(n_states, out_dimension, context_dimension, vectors, nu, psi):
     """Returns a normalized random initial model.
 
     Args:
@@ -128,7 +129,7 @@ def make_varg_hmm(n_states, out_dimension, context_dimension, vectors):
     # Make the model
     model = hmm.base.HMM(
         p_s0, p_s0_ergodic, p_s_to_s,
-        hmm.observe_float.VARG(a_forecast, covariance_state, rng))
+        hmm.observe_float.VARG(a_forecast, covariance_state, rng, nu=nu, Psi=psi))
     assert model.p_state_initial.shape == (12,)
     return model
 

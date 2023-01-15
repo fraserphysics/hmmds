@@ -71,7 +71,7 @@ def main(argv=None):
         # Create a list of open files, one for each state
         # pylint: disable = consider-using-with
         state_files = list(
-            open(os.path.join(args.data_dir, 'state{state}'),
+            open(os.path.join(args.data_dir, f'state{state}'),
                  encoding='utf-8',
                  mode='w') for state in range(n_states))
 

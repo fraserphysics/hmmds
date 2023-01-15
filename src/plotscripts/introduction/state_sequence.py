@@ -30,13 +30,13 @@ def main(argv=None):
     """
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
-    data = numpy.empty((args.n_samples, 2), dtype=int)
+    data = numpy.empty((args.n_samples,), dtype=int)
     with open(args.data, 'r', encoding='utf-8') as _file:
-        for data_i in data:
-            data_i[:] = [int(x) for x in _file.readline().split()]
+        for i in range(args.n_samples):
+            data[i] = int(_file.readline().split()[0])
 
     fig, axes = pyplot.subplots(1, 1, figsize=(6, 2))
-    axes.plot(data[:, 0], data[:, 1], 'kd')
+    axes.plot(data, 'kd')
     axes.set_xlabel(r'$t$')
     axes.set_ylabel(r'$s(t)$')
     axes.set_ylim(-.5, 12)

@@ -3,14 +3,18 @@
 # project, HMMDS is where most code is, and BUILD is where derived
 # results go.
 
+# Data built elsewhere
+RTIMES = /mnt/cheap/home/andy/Rtimes/
+RAW_DATA = /mnt/precious/home/andy_nix/projects/dshmm/raw_data
+EXPERT =  $(RAW_DATA)/apnea/summary_of_training
+OLDA03ER = /mnt/precious/home/andy_nix/projects/dshmm/build/derived_data/apnea/a03er.pickle
+
 ApneaDerivedData = $(ROOT)/build/derived_data/apnea
 ApneaCode = $(HMMDS)/applications/apnea
 # This file is in the ApneaCode directory
-RAW_DATA = $(ROOT)/raw_data
-EXPERT =  $(ROOT)/raw_data/apnea/summary_of_training
+
 LPHR = $(ApneaDerivedData)/Lphr
 RESPIRE = $(ApneaDerivedData)/Respire
-RTIMES = $(ApneaDerivedData)/Rtimes
 # HMMs go in ${MODELS}
 MODELS = ${ROOT}/build/derived_data/apnea/models
 
@@ -35,8 +39,8 @@ CNAMES = c01 c02 c03 c04 c05 c06 c07 c08 c09 c10
 
 NAMES = $(ANAMES) $(BNAMES) $(CNAMES) $(XNAMES)
 
-$(ApneaDerivedData)/a03er.pickle:
-	$(error Use wfdb code to extract $@ from PhysioNet database)
+$(ApneaDerivedData)/a03er.pickle: $(OLDA03ER)
+	cp $< $@
 
 $(RTIMES)/%.rtimes:
 	$(error Use wfdb code to extract $@ from PhysioNet database)
@@ -59,7 +63,7 @@ $(RESPIRE)/flag: $(ApneaCode)/respire.py $(EXPERT) $(RTIMES)/flag
 	touch $@
 
 # The trained files are expensive to build.  Don't delete them
-.PRECIOUS: $(addprefix ${MODELS}/, modelA2 model_Low model_Medium model_High initial_Low)
+.PRECIOUS: ${MODELS}/initial_% ${MODELS}/p1model_%
 
 # Rule for initial models: initial_A2, initial_C1, initial_High, initial_Medium, initial_Low
 ${MODELS}/initial_%: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(ApneaCode)/observation.py $(RESPIRE)/flag $(LPHR)/flag

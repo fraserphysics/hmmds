@@ -29,6 +29,7 @@ $(FILTER_DATA)/log_likelihood_data: $(FILTER_CODE)/log_likelihood.py
 	mkdir -p $(FILTER_DATA)
 	python $<  --n_samples 1000 --n_b 10 --b_range .8 1.2 $@
 
+# FixMe: My build structure does not get the library built
 $(FILTER_CODE)/lorenz_sde.flag: $(FILTER_CODE)/lorenz_sde.pyx $(FILTER_CODE)/build.py
 	cd $(FILTER_CODE) ; python build.py build_ext --inplace
 	touch $@
