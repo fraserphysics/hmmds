@@ -59,12 +59,13 @@ def main(argv=None):
     assert context_dim == 4
 
     # Make initial model
-    model = make_varg_hmm(args.n_states, vector_dim, context_dim, vectors, 1.0e6, 4.0e6)
+    model = make_varg_hmm(args.n_states, vector_dim, context_dim, vectors,
+                          1.0e6, 4.0e6)
 
     # Train while loosening prior.  Recall update formula: Cov[s] =
     # (Psi + rrsum)/(wsum[s]+nu+dimension+1).  FixMe: Don't modify
     # from outside.  Call some kind of method of model.y_mod instead.
-    for scale in ( 1, 1e-5, .5, .5):
+    for scale in (1, 1e-5, .5, .5):
         model.y_mod.nu *= scale
         model.y_mod.Psi *= scale
         model.train(y, 10)
@@ -129,7 +130,11 @@ def make_varg_hmm(n_states, out_dimension, context_dimension, vectors, nu, psi):
     # Make the model
     model = hmm.base.HMM(
         p_s0, p_s0_ergodic, p_s_to_s,
-        hmm.observe_float.VARG(a_forecast, covariance_state, rng, nu=nu, Psi=psi))
+        hmm.observe_float.VARG(a_forecast,
+                               covariance_state,
+                               rng,
+                               nu=nu,
+                               Psi=psi))
     assert model.p_state_initial.shape == (12,)
     return model
 

@@ -30,7 +30,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         container.setFixedSize(300, 500)
         controls_layout.addWidget(container)
         buttons_layout = PyQt5.QtWidgets.QVBoxLayout(container)
-        
+
         sliders_layout = PyQt5.QtWidgets.QHBoxLayout()
         plot_layout = PyQt5.QtWidgets.QVBoxLayout()
         layout0.addLayout(controls_layout)
@@ -63,7 +63,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Layout button section
         buttons_layout.addWidget(quit_button)
-        
+
         record_layout = PyQt5.QtWidgets.QHBoxLayout()
         record_layout.addWidget(record_ok)
         record_layout.addWidget(record_box)
@@ -79,7 +79,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         buttons_layout.addWidget(resp_button)
         buttons_layout.addWidget(like_button)
 
-        
         self.variable = {}  # A dict to hold variables
         # Layout row of sliders
         for name, minimum, maximum in (
@@ -94,7 +93,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         ecg = pyqtgraph.GraphicsLayoutWidget(title="ECG")
         ecg_plot = ecg.addPlot()
         self.ecg_curve = ecg_plot.plot(pen='g')
-        self.qrs_times = ecg_plot.plot(pen=None, symbol='+', symbolSize=15, symbolBrush=('b'))
+        self.qrs_times = ecg_plot.plot(pen=None,
+                                       symbol='+',
+                                       symbolSize=15,
+                                       symbolBrush=('b'))
 
         hr = pyqtgraph.GraphicsLayoutWidget(title="Heart Rate")
         hr_plot = hr.addPlot()
@@ -134,7 +136,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             times: 1-d array of x axis values
             values: 1-d array of y axis values
         """
-        window = [self.variable['T'](), self.variable['T']() + self.variable['Delta T']()]
+        window = [
+            self.variable['T'](),
+            self.variable['T']() + self.variable['Delta T']()
+        ]
         start, stop = numpy.searchsorted(times, window)
         plot.setData(times[start:stop], values[start:stop])
 

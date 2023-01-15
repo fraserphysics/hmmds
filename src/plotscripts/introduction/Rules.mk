@@ -16,7 +16,7 @@ $(FIGS_INTRO)/TSintro.pdf: $(IntroPlotScripts)/ts_intro.py $(SYNTHETIC_DATA)/lor
 
 $(FIGS_INTRO)/STSintro.pdf: $(IntroPlotScripts)/state_sequence.py $(SYNTHETIC_DATA)/states
 	mkdir -p $(FIGS_INTRO)
-	python $< $(SYNTHETIC_DATA)/state_sequence $@
+	python $< $(SYNTHETIC_DATA)/states $@
 
 # Statesintro.pdf needs state0 ... state11 in addition to states.
 # Those should have been made as a side effect of making states

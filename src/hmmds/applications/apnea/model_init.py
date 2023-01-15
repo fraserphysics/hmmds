@@ -283,7 +283,7 @@ def outlier(args, rng) -> develop.HMM:
     #                  Fails       OK          Choice
     # (nu, variances)  (1e7, 1e-1) (1e7, 1e0)  (1e7, 1e9)
     # (alpha, beta)    (1e7, 1e13) (1e7, 1e14) (1e7, 1e15)
-    
+
     nu = numpy.array([1.0e7])
     variances = numpy.array([1.0e9])
     alpha = numpy.array([1.0e7])
@@ -317,14 +317,14 @@ def _two(names, args, rng):
 
     p_state_initial = numpy.array([.01, .99])
     p_state_time_average = numpy.array([.01, .99])
-    p_state2state = numpy.array([ #
-        [.99, .01], #
+    p_state2state = numpy.array([  #
+        [.99, .01],  #
         [.01, .99],
     ])
 
     return _make_hmm(nu, variances, alpha, beta, p_state_initial,
-                     p_state_time_average, p_state2state, names, args,
-                     rng)
+                     p_state_time_average, p_state2state, names, args, rng)
+
 
 def _three(names, args, rng) -> develop.HMM:
     """Model with three states.
@@ -338,14 +338,13 @@ def _three(names, args, rng) -> develop.HMM:
     p_state_initial = numpy.array([.01, .01, .98])
     p_state_time_average = numpy.array([.01, .495, .495])
     p_state2state = numpy.array([  #
-        [.99,  .001, .001],  #
-        [.001, .01,  .989],
+        [.99, .001, .001],  #
+        [.001, .01, .989],
         [.001, .989, .01]
     ])
 
     return _make_hmm(nu, variances, alpha, beta, p_state_initial,
-                     p_state_time_average, p_state2state, names, args,
-                     rng)
+                     p_state_time_average, p_state2state, names, args, rng)
 
 
 def _four(names, args, rng) -> develop.HMM:
@@ -360,15 +359,15 @@ def _four(names, args, rng) -> develop.HMM:
     p_state_initial = numpy.array([.01, .01, .01, .97])
     p_state_time_average = numpy.array([.01, .33, .33, .33])
     p_state2state = numpy.array([  #
-        [.99,  .001, .001, .008],  #
-        [.001, .01,  .01,  .979],
-        [.001, .979, .01,  .01],
-        [.001, .01,  .979, .01]
+        [.99, .001, .001, .008],  #
+        [.001, .01, .01, .979],
+        [.001, .979, .01, .01],
+        [.001, .01, .979, .01]
     ])
 
     return _make_hmm(nu, variances, alpha, beta, p_state_initial,
-                     p_state_time_average, p_state2state, names, args,
-                     rng)
+                     p_state_time_average, p_state2state, names, args, rng)
+
 
 @register
 def A2(args, rng) -> develop.HMM:
@@ -376,11 +375,13 @@ def A2(args, rng) -> develop.HMM:
     """
     return _two(args.a_names, args, rng)
 
+
 @register
 def C2(args, rng) -> develop.HMM:
     """Two states initialized with normal records
     """
     return _two(args.c_names, args, rng)
+
 
 @register
 def A3(args, rng) -> develop.HMM:
@@ -388,17 +389,20 @@ def A3(args, rng) -> develop.HMM:
     """
     return _three(args.a_names, args, rng)
 
+
 @register
 def C3(args, rng) -> develop.HMM:
     """Three states initialized with normal records
     """
     return _three(args.c_names, args, rng)
 
+
 @register
 def A4(args, rng) -> develop.HMM:
     """Four states initialized with apnea records
     """
     return _four(args.a_names, args, rng)
+
 
 @register
 def C4(args, rng) -> develop.HMM:

@@ -34,8 +34,16 @@ def lines(ax):
     x = numpy.array([-2.0, 3.0])
     low_line = 1.82
     high_line = 2.6
-    ax.plot(x,low_line - .5 * x, 'm-', label=r'$R+\frac{llr}{2}=%4.2f$' % low_line)
-    ax.plot(x, high_line - .5 * x, 'k-', label=r'$R+\frac{llr}{2}=%4.2f$' % high_line)
+    ax.plot(x,
+            low_line - .5 * x,
+            'm-',
+            label=r'$R+\frac{llr}{2}=%4.2f$' % low_line)
+    ax.plot(x,
+            high_line - .5 * x,
+            'k-',
+            label=r'$R+\frac{llr}{2}=%4.2f$' % high_line)
+
+
 def main(argv=None):
     '''Call with arguments: report, fig_file
 
@@ -49,17 +57,21 @@ def main(argv=None):
         parse_args, argv)
     fig, ax = pyplot.subplots(figsize=(8, 4))
 
-    color = {'a':'r', 'b':'g', 'c':'b', 'x':'k'}
+    color = {'a': 'r', 'b': 'g', 'c': 'b', 'x': 'k'}
     ax.set_xlabel('$ll_A$')
     ax.set_ylabel('$ll_C$')
-    
+
     with open(args.report, 'rb') as _file:
         reports = pickle.load(_file)
     for name, report in reports.items():
         # Plot log likelihood per sample
-        a_per = report['a_ll']/report['n_times']
-        n_per = report['n_ll']/report['n_times']
-        ax.plot(a_per, n_per, marker=f'${name}$', markersize=20, color=color[name[0]])
+        a_per = report['a_ll'] / report['n_times']
+        n_per = report['n_ll'] / report['n_times']
+        ax.plot(a_per,
+                n_per,
+                marker=f'${name}$',
+                markersize=20,
+                color=color[name[0]])
 
     fig.savefig(args.output)
     if args.show:

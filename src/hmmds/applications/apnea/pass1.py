@@ -56,7 +56,8 @@ def r_stat(data: numpy.ndarray) -> float:
     return peaks[int(.74 * len(peaks))] / (numpy.abs(data).sum() / n_times)
 
 
-def log_likelihood_ratio(data, normal_model, apnea_model) -> typing.Tuple[float, float, int]:
+def log_likelihood_ratio(data, normal_model,
+                         apnea_model) -> typing.Tuple[float, float, int]:
     """Calculate the ratio of the likelihoods for two models
 
     Args:
@@ -101,12 +102,13 @@ def make_reports(args, names: list):
         y_data = hmmds.applications.apnea.utilities.heart_rate_respiration_data(
             name, args)
         # y_data is a dict
-        a_ll, n_ll, n_times = log_likelihood_ratio(y_data, normal_model, apnea_model)
+        a_ll, n_ll, n_times = log_likelihood_ratio(y_data, normal_model,
+                                                   apnea_model)
         reports[name] = {
             'a_ll': a_ll,
             'n_ll': n_ll,
-            'n_times':n_times,
-            }
+            'n_times': n_times,
+        }
     return reports
 
 
@@ -123,10 +125,11 @@ def main(argv=None):
         pickle.dump(reports, _file)
     with open(args.pass1, 'w') as _file:
         for name, report in reports.items():
-            a_per = report['a_ll']/report['n_times']
-            n_per = report['n_ll']/report['n_times']
+            a_per = report['a_ll'] / report['n_times']
+            n_per = report['n_ll'] / report['n_times']
             _file.write(
-                f'{name} # a: {a_per:6.3f} n: {n_per:6.3f} a-n: {a_per-n_per:6.3f}')
+                f'{name} # a: {a_per:6.3f} n: {n_per:6.3f} a-n: {a_per-n_per:6.3f}'
+            )
     return 0
 
 
