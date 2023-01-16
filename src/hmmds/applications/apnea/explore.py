@@ -5,8 +5,9 @@ Derived from hmmds/applications/laser/explore.py
 """
 
 # PyQt5 is hopeless: pylint: skip-file
-import sys  # We need sys so that we can pass argv to QApplication
+import sys  # Need sys to pass argv to QApplication
 import os
+import pickle
 
 import PyQt5.QtWidgets
 import pyqtgraph
@@ -14,7 +15,11 @@ import pyqtgraph
 import numpy
 import numpy.linalg
 import scipy.optimize
+import pint
 
+import rtimes2hr # For read_rtimes FixMe: Move to utilities
+
+PINT = pint.UnitRegistry()
 
 class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
@@ -41,37 +46,49 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         quit_button = PyQt5.QtWidgets.QPushButton('Quit', self)
         quit_button.clicked.connect(self.close)
 
-        record_box = PyQt5.QtWidgets.QLineEdit(self)
+        self.root_box = PyQt5.QtWidgets.QLineEdit(self)
+        self.root_box.setText('../../../..')
+        root_ok = PyQt5.QtWidgets.QPushButton('Root', self)
+        root_ok.clicked.connect(self.new_root)
+
+        self.record_box = PyQt5.QtWidgets.QLineEdit(self)
+        self.record_box.setText('a01')
         record_ok = PyQt5.QtWidgets.QPushButton('Record', self)
         record_ok.clicked.connect(self.new_record)
 
-        model_box = PyQt5.QtWidgets.QLineEdit(self)
+        self.model_box = PyQt5.QtWidgets.QLineEdit(self)
+        self.model_box.setText('p1model_A4')
         model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
         model_ok.clicked.connect(self.new_model)
 
         ecg_button = PyQt5.QtWidgets.QPushButton('Plot ECG', self)
-        ecg_button.clicked.connect(self.plot_ecg)
+        ecg_button.clicked.connect(self.read_ecg)
 
         hr_button = PyQt5.QtWidgets.QPushButton('Plot Heart Rate', self)
-        ecg_button.clicked.connect(self.plot_hr)
+        hr_button.clicked.connect(self.read_hr)
 
         resp_button = PyQt5.QtWidgets.QPushButton('Plot Resp', self)
-        resp_button.clicked.connect(self.plot_resp)
+        resp_button.clicked.connect(self.read_resp)
 
         like_button = PyQt5.QtWidgets.QPushButton('Log Likelihood', self)
-        like_button.clicked.connect(self.plot_like)
+        like_button.clicked.connect(self.calculate_like)
 
         # Layout button section
         buttons_layout.addWidget(quit_button)
 
+        root_layout = PyQt5.QtWidgets.QHBoxLayout()
+        root_layout.addWidget(root_ok)
+        root_layout.addWidget(self.root_box)
+        buttons_layout.addLayout(root_layout)
+
         record_layout = PyQt5.QtWidgets.QHBoxLayout()
         record_layout.addWidget(record_ok)
-        record_layout.addWidget(record_box)
+        record_layout.addWidget(self.record_box)
         buttons_layout.addLayout(record_layout)
 
         model_layout = PyQt5.QtWidgets.QHBoxLayout()
         model_layout.addWidget(model_ok)
-        model_layout.addWidget(model_box)
+        model_layout.addWidget(self.model_box)
         buttons_layout.addLayout(model_layout)
 
         buttons_layout.addWidget(ecg_button)
@@ -104,7 +121,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         resp = pyqtgraph.GraphicsLayoutWidget(title="Resp Components")
         resp_plot = resp.addPlot()
-        self.resp_curve = resp_plot.plot(pen='g')
+        self.resp_curve0 = resp_plot.plot(pen='w')
+        self.resp_curve1 = resp_plot.plot(pen='r')
 
         like = pyqtgraph.GraphicsLayoutWidget(title="Log Likelihood")
         like_plot = like.addPlot()
@@ -119,14 +137,22 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         widget.setLayout(layout0)
         self.setCentralWidget(widget)
 
-    def update_plot(self):
-        pass
+    def update_plots(self):
+        self.plot_ecg()
+        self.plot_hr()
+        self.plot_resp()
+
+    def new_root(self):
+        text = self.root_box.text()
+        print(f'{text=}')
 
     def new_record(self):
-        pass
+        text = self.record_box.text()
+        print(f'{text=}')
 
     def new_model(self):
-        pass
+        text = self.model_box.text()
+        print(f'{text=}')
 
     def plot_window(self, plot, times, values):
         """ Display T to T + Delta T in a plot
@@ -144,20 +170,52 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         plot.setData(times[start:stop], values[start:stop])
 
     def plot_ecg(self):
-        fine_times = numpy.arange(0, 540, .1)
-        ecg = numpy.sin(fine_times)
-        self.plot_window(self.ecg_curve, fine_times, ecg)
-        coarse_times = fine_times[::10]
-        qrs = numpy.sin(coarse_times)
-        self.plot_window(self.qrs_times, coarse_times, qrs)
+        self.plot_window(self.ecg_curve, self.ecg_dict['times'], self.ecg_dict['signal'])
+        #self.plot_window(self.qrs_times, coarse_times, qrs)
 
     def plot_hr(self):
-        pass
+        self.plot_window(self.hr_curve, self.hr_dict['times'], self.hr_dict['signal'])
 
     def plot_resp(self):
-        pass
+        for curve, i in zip((self.resp_curve0, self.resp_curve1),(0,1)):
+            self.plot_window(curve, self.resp_dict['times'].magnitude, self.resp_dict['signal'][i])
 
-    def plot_like(self):
+    def read_ecg(self):
+        prefix = os.path.join(
+            self.root_box.text(),
+            'raw_data/Rtimes',f'{self.record_box.text()}')
+        with open(prefix+'.ecg', 'rb') as _file:
+            _dict = pickle.load(_file)
+            ecg = _dict['raw']
+            times = _dict['times']
+        rtimes, n_ecg = rtimes2hr.read_rtimes(prefix+'.rtimes')
+        self.ecg_dict = {'times':times, 'signal':ecg}
+        self.plot_ecg()
+
+    def read_hr(self):
+        path = os.path.join(
+            self.root_box.text(),
+            'build/derived_data/apnea/Lphr',
+            f'{self.record_box.text()}.lphr')
+        with open(path, 'rb') as _file:
+            hr_dict = pickle.load(_file)
+        signal = hr_dict['hr_low_pass']
+        self.hr_dict = {'times':numpy.arange(len(signal)), 'signal':signal}
+        self.plot_hr()
+
+    def read_resp(self):
+        path = os.path.join(
+            self.root_box.text(),
+            'build/derived_data/apnea/Respire',
+            f'{self.record_box.text()}.resp')
+        with open(path, 'rb') as _file:
+            _dict = pickle.load(_file)
+            times = _dict['times']
+            components = _dict['components']  # c_0, c_1, norm of psd
+        self.resp_dict = {'times':times, 'signal':components.T}
+        self.plot_resp()
+
+    def calculate_like(self):
         pass
 
 
@@ -168,7 +226,7 @@ class Variable(PyQt5.QtWidgets.QWidget):
         label:
         minimum:
         maximum:
-        main_window: For access to method update_plot
+        main_window: For access to method update_plots
         parent:  I don't understand this
     """
 
@@ -229,7 +287,7 @@ class Variable(PyQt5.QtWidgets.QWidget):
         self.slider.setValue(self.slider.minimum() +
                              int((value - self.minimum) / self.dx_dslide))
         self.slider.valueChanged.connect(self.slider_changed)
-        self.main_window.update_plot()
+        self.main_window.update_plots()
 
     def slider_changed(
             self,  # Variable
@@ -238,7 +296,7 @@ class Variable(PyQt5.QtWidgets.QWidget):
         self.spin.disconnect()  # Avoid loop with setValue
         self.spin.setValue(self.x)
         self.spin.valueChanged.connect(self.spin_changed)
-        self.main_window.update_plot()
+        self.main_window.update_plots()
 
 
 if __name__ == '__main__':

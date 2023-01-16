@@ -269,7 +269,7 @@ def main(argv=None):
                     'readme':
                         """times are sample times in seconds with pint units
 components[t,:2] is discriminant components from linear discriminant analysis of spectrograms.
-components[t,2] is the length of the psd at time t"""
+components[t,2] is the norm of the psd at time t"""
                 }, _file)
     return 0
 
