@@ -18,6 +18,7 @@ import scipy.optimize
 import pint
 
 import rtimes2hr # For read_rtimes FixMe: Move to utilities
+import utilities
 
 PINT = pint.UnitRegistry()
 
@@ -56,21 +57,26 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         record_ok = PyQt5.QtWidgets.QPushButton('Record', self)
         record_ok.clicked.connect(self.new_record)
 
-        self.model_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.model_box.setText('p1model_A4')
-        model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
-        model_ok.clicked.connect(self.new_model)
+        self.model0_box = PyQt5.QtWidgets.QLineEdit(self)
+        self.model0_box.setText('p1model_A4')
+        model0_ok = PyQt5.QtWidgets.QPushButton('Model', self)
+        model0_ok.clicked.connect(self.new_model0)
 
-        ecg_button = PyQt5.QtWidgets.QPushButton('Plot ECG', self)
+        self.model1_box = PyQt5.QtWidgets.QLineEdit(self)
+        self.model1_box.setText('p1model_C2')
+        model1_ok = PyQt5.QtWidgets.QPushButton('Model', self)
+        model1_ok.clicked.connect(self.new_model1)
+
+        ecg_button = PyQt5.QtWidgets.QPushButton('Read ECG', self)
         ecg_button.clicked.connect(self.read_ecg)
 
-        hr_button = PyQt5.QtWidgets.QPushButton('Plot Heart Rate', self)
+        hr_button = PyQt5.QtWidgets.QPushButton('Read Heart Rate', self)
         hr_button.clicked.connect(self.read_hr)
 
-        resp_button = PyQt5.QtWidgets.QPushButton('Plot Resp', self)
+        resp_button = PyQt5.QtWidgets.QPushButton('Read Resp', self)
         resp_button.clicked.connect(self.read_resp)
 
-        like_button = PyQt5.QtWidgets.QPushButton('Log Likelihood', self)
+        like_button = PyQt5.QtWidgets.QPushButton('Calculate Likelihood', self)
         like_button.clicked.connect(self.calculate_like)
 
         # Layout button section
@@ -86,10 +92,15 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         record_layout.addWidget(self.record_box)
         buttons_layout.addLayout(record_layout)
 
-        model_layout = PyQt5.QtWidgets.QHBoxLayout()
-        model_layout.addWidget(model_ok)
-        model_layout.addWidget(self.model_box)
-        buttons_layout.addLayout(model_layout)
+        model0_layout = PyQt5.QtWidgets.QHBoxLayout()
+        model0_layout.addWidget(model0_ok)
+        model0_layout.addWidget(self.model0_box)
+        buttons_layout.addLayout(model0_layout)
+
+        model1_layout = PyQt5.QtWidgets.QHBoxLayout()
+        model1_layout.addWidget(model1_ok)
+        model1_layout.addWidget(self.model1_box)
+        buttons_layout.addLayout(model1_layout)
 
         buttons_layout.addWidget(ecg_button)
         buttons_layout.addWidget(hr_button)
@@ -98,35 +109,49 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         self.variable = {}  # A dict to hold variables
         # Layout row of sliders
-        for name, minimum, maximum in (
-            ('T', 0, 540),
-            ('Delta T', 5, 540),
+        for name, minimum, maximum, initial in (
+                ('T', 0, 540, 0),
+                # From 1 second to 9 hours in minutes
+                ('Delta T', numpy.log(1/60), numpy.log(540), numpy.log(540)),
         ):
-            self.variable[name] = Variable(name, minimum, maximum, self)
+            self.variable[name] = Variable(name, minimum, maximum, initial, self)
             sliders_layout.addWidget(self.variable[name])
 
         # Define widgets for plot section
 
         ecg = pyqtgraph.GraphicsLayoutWidget(title="ECG")
         ecg_plot = ecg.addPlot()
-        self.ecg_curve = ecg_plot.plot(pen='g')
-        self.qrs_times = ecg_plot.plot(pen=None,
-                                       symbol='+',
-                                       symbolSize=15,
-                                       symbolBrush=('b'))
+        ecg_plot.addLegend()
+        self.ecg_dict = {'curves': [
+            ecg_plot.plot(pen='g', name='ecg'),
+            ecg_plot.plot(
+                pen=None,
+                symbol='+',
+                symbolSize=15,
+                symbolBrush=('b'),
+                name='qrs',
+            )]}
 
         hr = pyqtgraph.GraphicsLayoutWidget(title="Heart Rate")
         hr_plot = hr.addPlot()
-        self.hr_curve = hr_plot.plot(pen='g')
+        hr_plot.addLegend()
+
+        self.hr_dict = {'curves':[hr_plot.plot(pen='g', name='hr')]}
 
         resp = pyqtgraph.GraphicsLayoutWidget(title="Resp Components")
         resp_plot = resp.addPlot()
-        self.resp_curve0 = resp_plot.plot(pen='w')
-        self.resp_curve1 = resp_plot.plot(pen='r')
+        resp_plot.addLegend()
+        self.resp_dict = {'curves':[
+            resp_plot.plot(pen='w', name='resp0'),
+            resp_plot.plot(pen='r', name='resp1')]}
 
         like = pyqtgraph.GraphicsLayoutWidget(title="Log Likelihood")
         like_plot = like.addPlot()
-        self.like_curve = like_plot.plot(pen='g')
+        like_plot.addLegend()        
+        self.like_dict = {'curves': [
+            like_plot.plot(pen='g', name='model0'),
+            like_plot.plot(pen='w', name='model1'),
+        ]}
 
         # Layout plot section
         for widget in (ecg, hr, resp, like):
@@ -138,47 +163,39 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.setCentralWidget(widget)
 
     def update_plots(self):
-        self.plot_ecg()
-        self.plot_hr()
-        self.plot_resp()
+        for _dict in (self.ecg_dict, self.hr_dict, self.resp_dict, self.like_dict):
+            self.plot_window(**_dict)
 
     def new_root(self):
         text = self.root_box.text()
-        print(f'{text=}')
 
     def new_record(self):
         text = self.record_box.text()
-        print(f'{text=}')
 
-    def new_model(self):
-        text = self.model_box.text()
-        print(f'{text=}')
+    def new_model0(self):
+        text = self.model0_box.text()
 
-    def plot_window(self, plot, times, values):
+    def new_model1(self):
+        text = self.model1_box.text()
+
+    def plot_window(self, curves=None, signals=None):
         """ Display T to T + Delta T in a plot
 
-        Args:
-            plot: a PyQt plot object
-            times: 1-d array of x axis values
-            values: 1-d array of y axis values
+        Keyword args:
+            curves: A list of PyQt plot objects
+            signals: A list of pairs (times, values).  Times with pint
         """
+        if signals is None:
+            print(f'No signals to plot.')
+            return
         window = [
             self.variable['T'](),
-            self.variable['T']() + self.variable['Delta T']()
+            self.variable['T']() + numpy.exp(self.variable['Delta T']())
         ]
-        start, stop = numpy.searchsorted(times, window)
-        plot.setData(times[start:stop], values[start:stop])
-
-    def plot_ecg(self):
-        self.plot_window(self.ecg_curve, self.ecg_dict['times'], self.ecg_dict['signal'])
-        #self.plot_window(self.qrs_times, coarse_times, qrs)
-
-    def plot_hr(self):
-        self.plot_window(self.hr_curve, self.hr_dict['times'], self.hr_dict['signal'])
-
-    def plot_resp(self):
-        for curve, i in zip((self.resp_curve0, self.resp_curve1),(0,1)):
-            self.plot_window(curve, self.resp_dict['times'].magnitude, self.resp_dict['signal'][i])
+        for curve, signal in zip(curves, signals):
+            minutes = signal[0].to('minutes').magnitude
+            start, stop = numpy.searchsorted(minutes, window)
+            curve.setData(minutes[start:stop], signal[1][start:stop])
 
     def read_ecg(self):
         prefix = os.path.join(
@@ -187,10 +204,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         with open(prefix+'.ecg', 'rb') as _file:
             _dict = pickle.load(_file)
             ecg = _dict['raw']
-            times = _dict['times']
+            ecg_times = _dict['times'] * PINT('seconds')
         rtimes, n_ecg = rtimes2hr.read_rtimes(prefix+'.rtimes')
-        self.ecg_dict = {'times':times, 'signal':ecg}
-        self.plot_ecg()
+        indices = numpy.searchsorted(ecg_times.to('seconds').magnitude, rtimes.to('seconds').magnitude)
+        self.ecg_dict['signals']= [(ecg_times, ecg), (rtimes, ecg[indices])]
+        self.plot_window(**self.ecg_dict)
 
     def read_hr(self):
         path = os.path.join(
@@ -198,10 +216,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             'build/derived_data/apnea/Lphr',
             f'{self.record_box.text()}.lphr')
         with open(path, 'rb') as _file:
-            hr_dict = pickle.load(_file)
-        signal = hr_dict['hr_low_pass']
-        self.hr_dict = {'times':numpy.arange(len(signal)), 'signal':signal}
-        self.plot_hr()
+            pickle_dict = pickle.load(_file)
+        hr = pickle_dict['hr_low_pass'].to('1/minute').magnitude
+        times = numpy.arange(len(hr))/pickle_dict['sample_frequency']
+        self.hr_dict['signals'] = [(times,hr)]
+        self.plot_window(**self.hr_dict)
 
     def read_resp(self):
         path = os.path.join(
@@ -211,14 +230,39 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         with open(path, 'rb') as _file:
             _dict = pickle.load(_file)
             times = _dict['times']
-            components = _dict['components']  # c_0, c_1, norm of psd
-        self.resp_dict = {'times':times, 'signal':components.T}
-        self.plot_resp()
+            components = _dict['components'].T
+        # Last component is norm of psd
+        self.resp_dict['signals'] = [(times, components[0]), (times, components[1])]
+        self.plot_window(**self.resp_dict)
 
     def calculate_like(self):
-        pass
+        """Calculate log(prob(y[t]|y[:t],model)) for all t and two models
 
-
+        """
+        derived_apnea_data_dir = os.path.join(self.root_box.text(), 'build/derived_data/apnea')
+        model_dir = os.path.join(derived_apnea_data_dir, 'models')
+        with open(os.path.join(model_dir, self.model0_box.text()), 'rb') as _file:
+            self.model0 = pickle.load(_file)
+            print(f'{self.model0.n_states=}')
+        with open(os.path.join(model_dir, self.model1_box.text()), 'rb') as _file:
+            self.model1 = pickle.load(_file)
+            print(f'{self.model1.n_states=} {type(self.model1)=}')
+        class Args:
+            def __init__(self):
+                """Namespace to pass to utility function
+                """
+                self.heart_rate_dir = os.path.join(derived_apnea_data_dir, 'Lphr')
+                self.respiration_dir  = os.path.join(derived_apnea_data_dir, 'Respire')
+        data = [utilities.heart_rate_respiration_data(self.record_box.text(), Args())]
+        print(f'{data[0]["times"][:5]=}') # respiration_data, filtered_heart_rate_data, times
+        times = data[0]['times']
+        probabilities = []
+        for model in (self.model0, self.model1):
+            model.y_mod.observe(data)
+            probabilities.append((times, model.log_probs()))
+        self.like_dict['signals'] = probabilities
+        self.plot_window(**self.like_dict)
+        
 class Variable(PyQt5.QtWidgets.QWidget):
     """Provide sliders and spin boxes to manipulate variable.
 
@@ -235,6 +279,7 @@ class Variable(PyQt5.QtWidgets.QWidget):
             label: str,
             minimum: float,
             maximum: float,
+            initial: float,
             main_window,
             parent=None):
         super(Variable, self).__init__(parent=parent)
@@ -258,10 +303,11 @@ class Variable(PyQt5.QtWidgets.QWidget):
         # self.slider.minimum() = 0, self.slider.maximum() = 99
         self.dx_dslide = (maximum - minimum) / (self.slider.maximum() -
                                                 self.slider.minimum())
-        self.slider.setValue(
-            int((self.slider.maximum() + self.slider.minimum()) / 2))
-        self.x = (minimum + maximum) / 2
-        self.spin.setValue(self.x)
+        initial_int = self.slider.minimum() + int(
+            (initial - self.minimum) / self.dx_dslide)
+        self.slider.setValue(initial_int)
+        self.x = initial
+        self.spin.setValue(initial)
 
         # Connect signals to slots after setting value so that the slots won't be called
         self.slider.valueChanged.connect(self.slider_changed)

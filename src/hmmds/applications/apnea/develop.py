@@ -79,6 +79,51 @@ class HMM(hmm.base.HMM):
 
     """
 
+    def log_probs(  # pylint: disable = arguments-differ
+            self: HMM,
+            t_start: int = 0,
+            t_stop: int = 0,
+            t_skip: int = 0,
+            last_0=None) -> float:
+        """Recursively calculate state probabilities, P(s[t]|y[0:t])
+
+        Args:
+            t_start: Use self.state_likelihood[t_start] first
+            t_stop: Use self.state_likelihood[t_stop-1] last
+            t_skip: Number of time steps from when "last" is valid till t_start
+            last_0: Optional initial distribution of states
+
+        Returns:
+            Log (base e) likelihood of HMM given entire observation sequence
+
+        The same as forward but this returns the sequence of
+        log conditional likelihoods.
+
+        """
+        if t_stop == 0:
+            # Reduces to ignoring t_start and t_stop and operating on
+            # a single segment
+            assert t_start == 0
+            t_stop = len(self.state_likelihood)
+
+        if last_0 is None:
+            last_0 = self.p_state_initial
+
+        last = numpy.copy(last_0).reshape(-1)
+        for t in range(t_skip):
+            # The following replaces last in place with last *
+            # p_state2state ** t_skip
+            self.p_state2state.step_forward(last)
+
+        for t in range(t_start, t_stop):
+            last *= self.state_likelihood[t]  # Element-wise multiply
+            assert last.sum() > 0
+            self.gamma_inv[t] = 1 / last.sum()
+            last *= self.gamma_inv[t]
+            self.alpha[t, :] = last
+            self.p_state2state.step_forward(last)
+        return -numpy.log(self.gamma_inv[t_start:t_stop])
+
     def bundle_weight(self: HMM, y: list, fudge=[1, 1]) -> numpy.ndarray:
         """Return the sequence of most likely bundles (not the most likely
         sequence of bundles)
