@@ -1,6 +1,9 @@
 """
 """
 from __future__ import annotations  # Enables, eg, (self: Respiration,
+
+import typing
+
 import numpy
 import numpy.random
 import numpy.linalg
@@ -30,6 +33,95 @@ class Respiration(hmm.observe_float.MultivariateGaussian):
 
     def random_out(self: Respiration, s: int) -> numpy.ndarray:
         raise RuntimeError('random_out not implemented for Respiration')
+
+
+class ECG(hmm.observe_float.LinearContext):
+    r"""Nonlinear auto-regressive observation model for raw ecg measurements.
+
+    Args:
+        coefficients[n_states, 4]: Parameters of mu
+        variance[n_states]: Residual variance for each state
+        rng: Random number generator with state
+        alpha: Denominator part of prior for variance
+        beta: Numerator part of prior for variance
+        small: Throw error if likelihood at any time is less than small
+        n_history: mu is a functions of y[t-n_history:t]
+
+    The models is likelihood[t,i] = Normal(mu[i](y[:t]), var[i]) at
+    y[t].  Note that mu[i](y[:t]) is not linear or affine.  The
+    function for state i is:
+
+    mu[i](y[:t]) = a[i][0]*rms(y[t-1000:t]) +
+                   a[i][1]*mean(y[t-1000:t]) + a[i][2] * y[t-1] + a[i][3]
+
+    I hope that the model for each state fits a particular phase of a heart beat well.
+
+    """
+    _parameter_keys = "ar_coefficients offset variance".split()
+
+    def __init__(self: ECG, *args, **kwargs):
+        if 'n_history' in kwargs:
+            n_history = kwargs['n_history']
+            del (kwargs['n_history'])
+        else:
+            n_history = 1000
+        super().__init__(*args, **kwargs)
+        self.n_history = n_history
+
+    def _concatenate(self: ECG, segments) -> tuple:
+        """Calculate and assign self.context
+
+        Args:
+            y_segs: Independent measurement sequences.  Each sequence
+            is a 1-d numpy array.
+
+        Returns:
+            (all_data, segment boundaries)
+
+        """
+        length = 0
+        t_seg = [0]
+        for seg in segments:
+            length += len(seg)
+            t_seg.append(length)
+        all_data = numpy.empty(length)
+        self.context = numpy.ones((length, self.context_dimension)) * -9
+        for i in range(len(t_seg) - 1):
+            all_data[t_seg[i]:t_seg[i + 1]] = segments[i]
+        squared = all_data * all_data
+
+        def assign_context(t, sign=-1):
+            # Default context is from history
+            if sign == -1:
+                start = t - self.n_history
+                stop = t
+                self.context[t, 2] = all_data[t - 1]
+            # There is no history.  Context is from future
+            elif sign == 0:
+                start = t + 1
+                stop = t + self.n_history
+                self.context[t, 2] = all_data[t]
+            # There is not enough history.  Context is from future
+            elif sign == 1:
+                start = t + 1
+                stop = t + self.n_history
+                self.context[t, 2] = all_data[t - 1]
+            else:
+                raise ValueError(f'{sign=} not -1 or 1')
+            self.context[t, 0] = numpy.sqrt(squared[start:stop].mean())
+            self.context[t, 1] = all_data[start:stop].mean()
+            self.context[t, 3] = 1.0
+
+        for t in range(self.n_history, len(all_data)):
+            assign_context(t)
+        # For times without relevant history, use future values
+        # instead.  It's not right, but it's not too bad, and it's
+        # only for the first 10 seconds of an eight hour record.
+        for t_start in t_seg[:-1]:
+            assign_context(t_start, sign=0)
+            for t in range(t_start + 1, t_start + self.n_history):
+                assign_context(t, sign=1)
+        return all_data, t_seg
 
 
 class FilteredHeartRate(hmm.observe_float.AutoRegressive):
@@ -212,3 +304,68 @@ class FilteredHeartRate_Respiration(hmm.base.BaseObservation):
         """
         self.filtered_heart_rate_model.reestimate(w)
         self.respiration_model.reestimate(w)
+
+
+################Code below is for testing##################################
+import sys
+import argparse
+import os
+import pickle
+
+
+def read_ecg(path):
+    with open(path, 'rb') as _file:
+        return pickle.load(_file)['raw']
+
+
+def parse_args(argv):
+    """ Example for reference and testing
+    """
+
+    parser = argparse.ArgumentParser(description='Do not use this code')
+    parser.add_argument('--root',
+                        type=str,
+                        default='../../../../',
+                        help='root of hmmds project')
+    parser.add_argument('--rtimes',
+                        type=str,
+                        default='raw_data/Rtimes',
+                        help='Relative path to directory of ecg files')
+    parser.add_argument('--n_history', type=int, default=10)
+    parser.add_argument('--record_names',
+                        type=str,
+                        nargs='+',
+                        default='a01 x02 b01 c05'.split(),
+                        help='Records to process')
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    args = parse_args(argv)
+
+    records = dict([(name, {}) for name in args.record_names])
+    for name, value in records.items():
+        value['data'] = read_ecg(
+            os.path.join(args.root, args.rtimes, name + '.ecg'))
+
+    coefficients = numpy.ones((2, 4))
+    variance = numpy.ones(2)
+    rng = numpy.random.default_rng()
+
+    ecg = ECG(coefficients, variance, rng, n_history=5)
+
+    segments = [records[name]['data'][:10] for name in args.record_names]
+    ecg.observe(segments)
+    print(f'{ecg._y.shape=} {ecg.context.shape=}')
+    for i, (y, context) in enumerate(zip(ecg._y, ecg.context)):
+        if i % 10 == 0:
+            print('')
+        print(f'{i:2d} {y:6.3f} {context[2]:6.3f}')
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

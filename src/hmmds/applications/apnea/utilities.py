@@ -49,6 +49,10 @@ def common_arguments(parser: argparse.ArgumentParser):
                         default='models',
                         help='path from derived_apnea to models dir')
     #
+    parser.add_argument('--rtimes',
+                        type=str,
+                        default='raw_data/Rtimes',
+                        help='path from root to files created by wfdb')
     parser.add_argument('--expert',
                         type=str,
                         default='raw_data/apnea/summary_of_training',
@@ -95,6 +99,7 @@ def join_common(args: argparse.Namespace):
     for name in 'Amodel   BCmodel  modelLow  modelMedium  modelHigh'.split():
         setattr(args, name, os.path.join(args.models_dir, getattr(args, name)))
 
+    args.rtimes = os.path.join(args.root, args.rtimes)
     args.expert = os.path.join(args.root, args.expert)
 
     args.a_names = [f'a{i:02d}' for i in range(1, 21)]
@@ -159,8 +164,8 @@ def read_low_pass_heart_rate(path: str) -> numpy.ndarray:
     """
     with open(path, 'rb') as _file:
         _dict = pickle.load(_file)
-    #hr = _dict['hr_low_pass']
-    hr = _dict['hr']  # FixMe: Change name of function
+    hr = _dict['hr_low_pass']
+    #hr = _dict['hr']  # FixMe: Change name of function
     times = (numpy.arange(len(hr)) / _dict['sample_frequency']).to('seconds')
     return times, hr
 

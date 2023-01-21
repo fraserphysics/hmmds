@@ -65,7 +65,7 @@ $(RESPIRE)/flag: $(ApneaCode)/respire.py $(EXPERT) $(RTIMES)/flag
 # The trained files are expensive to build.  Don't delete them
 .PRECIOUS: ${MODELS}/initial_% ${MODELS}/p1model_%
 
-# Rule for initial models: initial_A2, initial_C1, initial_High, initial_Medium, initial_Low
+# Rule for initial models
 ${MODELS}/initial_%: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(ApneaCode)/observation.py $(RESPIRE)/flag $(LPHR)/flag
 	mkdir -p ${MODELS}
 	python $(ApneaCode)/model_init.py --root ${ROOT} $* $@
@@ -73,6 +73,10 @@ ${MODELS}/initial_%: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(Apne
 # Rule for pass 1 models
 ${MODELS}/p1model_%: $(ApneaCode)/apnea_train.py ${MODELS}/initial_%
 	python $< --iterations 5 --root ${ROOT} $* $(word 2,$^) $@
+
+${MODELS}/initial_ECG: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(ApneaCode)/observation.py $(RESPIRE)/flag $(LPHR)/flag
+	mkdir -p ${MODELS}
+	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 x02 b01 c05 -- ECG $@
 
 ${MODELS}/model_outlier: $(ApneaCode)/apnea_train.py ${MODELS}/initial_outlier
 	python $(ApneaCode)/apnea_train.py --iterations 1 --root ${ROOT} outlier ${MODELS}/initial_outlier $@

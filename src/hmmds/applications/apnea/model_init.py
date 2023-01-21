@@ -1,10 +1,13 @@
 """model_init.py Create initial HMM models with apnea observations
 
-From Makefile:
+A rule modified from Rules.mk:
 
-python model_init.py $* $@
+${MODELS}/initial_%: model_init.py utilities.py observation.py
+	python model_init.py --root ${ROOT} $* $@
 
-$* is one of: A2 C1 High Medium Low
+The pattern % or $* selects one of the registered functions in this
+module.
+
 """
 import sys
 import os.path
@@ -26,9 +29,15 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Create and write/pickle an initial model")
     hmmds.applications.apnea.utilities.common_arguments(parser)
-    parser.add_argument('key',
+    # args.records is None if --records is not on command line
+    parser.add_argument('--records',
                         type=str,
-                        help='One of A2 A3 A4 C2 C3 C4 High Medium Low')
+                        nargs='+',
+                        help='--records a01 x02 -- ')
+    parser.add_argument(
+        'key',
+        type=str,
+        help='One of the functions registered in the source, eg, A4')
     parser.add_argument('write_path', type=str, help='path of file to write')
     args = parser.parse_args(argv)
     hmmds.applications.apnea.utilities.join_common(args)
@@ -102,6 +111,60 @@ P_SS_High = hmm.simple.Prob(
         dtype=numpy.float64),)
 
 
+def _make_hmm(y_model, p_state_initial, p_state_time_average, p_state2state,
+              names, args, rng):
+    """Create a hmm using parameters defined in the caller
+
+    Args:
+        y_model: P(y[t]|s[t]) and functions to support reestimation
+        p_state_initial:
+        p_state_time_average:
+        p_state2state: p[t=1] = numpy.dot(p[t=0], p_state2state)
+        names: List of record names, eg, 'c01 a05 x35'.split()
+        rng: Random number generator
+
+    Return: hmm initialized with data specified by names
+    
+    Unsupervised, ie, no bundles. AR-4 for heart rate. 3-d
+    multivariate Gaussian for respiration.
+
+    """
+
+    _hmm = develop.HMM(p_state_initial, p_state_time_average, p_state2state,
+                       y_model, rng)
+
+    y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
+        names, args)
+    _hmm.initialize_y_model(y_data)
+    return _hmm
+
+
+def _make_hr_resp_model(nu: numpy.ndarray, variances: numpy.ndarray,
+                        alpha: numpy.ndarray, beta: numpy.ndarray, rng):
+    """Create an observation model
+
+    Args:
+        nu: Denominator for respiration variance prior.
+        variances: Numerator for respiration variance prior.
+        alpha: Denominator for heart rate variance prior.
+        beta: Numerator for heart rate variance.
+        rng: Random number generator
+
+    Return: observation model
+ 
+    """
+    n_states = len(nu)
+
+    # Prior for respiration variance
+    psi = numpy.empty((n_states, 3, 3))
+    for state in range(n_states):
+        psi[state, :, :] = numpy.eye(3) * nu[state] * variances[state]
+
+    return hmmds.applications.apnea.observation.FilteredHeartRate_Respiration(
+        filtered_heart_rate_model(n_states, rng, alpha=alpha, beta=beta),
+        respiration_model(n_states, rng, Psi=psi, nu=nu), rng)
+
+
 def filtered_heart_rate_model(n_states, rng, ar_order=4, **kwargs):
     """Make an initial observation model
     """
@@ -149,6 +212,88 @@ def register(func):
     #See https://realpython.com/primer-on-python-decorators/
     MODELS[func.__name__] = func
     return func
+
+
+@register
+def test(args, rng):
+    for key, value in args.__dict__.items():
+        print(f'{key}: {value}')
+
+
+@register
+def ECG(args, rng) -> develop.HMM:
+    """
+    """
+
+    assert type(args.records) == list
+    n_states = 21
+
+    # Define state probability parameters
+    p_state_initial = numpy.ones(n_states) * 1e-3
+    p_state_initial[0] = 1.0 - p_state_initial.sum()  # Break symmetry
+    p_state_time_average = numpy.ones(n_states) / n_states
+    p_state2state = numpy.zeros((n_states, n_states))
+    normal = p_state2state[:-1, :-1]
+
+    # Normally states progress monotonically around a loop of 20
+    # normal states.  Transitions go from a state to itself or to the
+    # next state in the loop.  An extra state, called bad, exists to
+    # cover anomalous observations.  A pair of low probability
+    # transisitons connects each of the normal states to the bad
+    # state, and the bad state transitions to itself with high
+    # probability.
+    small = 1e-3
+    bad = n_states - 1
+    for state in range(n_states - 1):
+        normal[state, state] = .5 - small
+        normal[state - 1, state] = .5
+        p_state2state[state, bad] = small
+        p_state2state[bad, state] = small
+    p_state2state[bad, bad] = 1.0 - small * (n_states - 1)
+
+    # Define observation model and the data
+    n_context = 4
+    coefficients = numpy.ones((n_states, n_context))
+    variances = numpy.ones(n_states)
+    n_history = 1000
+    # A weak prior is sufficient for normal states because the network
+    # structure ensures that they will all have about the same weight.
+    # Lead noise in the data goes to +/- 10 mV, and there are about
+    # 1e7 total observations in the training data.  So the prior for
+    # the bad state ensures that it will have a variance of about 100
+    # that will lead noise plausible.
+    alpha = numpy.ones(n_states) * 1.0e2
+    beta = numpy.ones(n_states) * 1.0e2
+    alpha[bad] = 1.0e8
+    beta[bad] = 1.0e20
+    # 1e10 Lets the bad state model the R peak
+    # 1e16 with 20 iterstions lets R state model noise 2 cycles per beat
+    # 1e13 with 10 iterations lets R state model noise 2 cycles per beat
+    # 1e20 Train on a01 only.  Nice result
+    # 1e20 Train on a01 x02 b01 c05.  Result not nice.
+
+    # 1e20 Train starting with model trained on a01 only then train on
+    # a01 x02 b01 c05.  Performs well on all training data
+    y_model = hmmds.applications.apnea.observation.ECG(coefficients,
+                                                       variances,
+                                                       rng,
+                                                       alpha=alpha,
+                                                       beta=beta,
+                                                       n_history=n_history)
+    paths = [
+        os.path.join(args.root, 'raw_data/Rtimes', f'{name}.ecg')
+        for name in args.records
+    ]
+    y_data = [
+        hmmds.applications.apnea.observation.read_ecg(path) for path in paths
+    ]
+
+    # Create and initialize the hmm
+    hmm = develop.HMM(p_state_initial, p_state_time_average, p_state2state,
+                      y_model, rng)
+    hmm.initialize_y_model(y_data)
+
+    return hmm
 
 
 @register
@@ -212,53 +357,6 @@ def C1(args, rng):
     return model
 
 
-def _make_hmm(nu: numpy.ndarray, variances: numpy.ndarray, alpha: numpy.ndarray,
-              beta: numpy.ndarray, p_state_initial, p_state_time_average,
-              p_state2state, names, args, rng):
-    """Create a hmm using parameters defined in the caller
-
-    Args:
-        nu: Denominator for respiration variance prior.
-        variances: Numerator for respiration variance prior.
-        alpha: Denominator for heart rate variance prior.
-        beta: Numerator for heart rate variance.
-        p_state_initial:
-        p_state_time_average:
-        p_state2state: p[t=1] = numpy.dot(p[t=0], p_state2state)
-        names: List of record names, eg, 'c01 a05 x35'.split()
-        rng: Random number generator
-
-    Return: hmm initialized with data specified by names
-    
-    Unsupervised, ie, no bundles. AR-4 for heart rate. 3-d
-    multivariate Gaussian for respiration.
-
-    """
-
-    n_states = len(nu)
-    for argument in (nu, variances, alpha, beta, p_state_initial,
-                     p_state_time_average):
-        assert argument.shape == (n_states,)
-    assert p_state2state.shape == (n_states, n_states)
-
-    # Prior for respiration variance
-    psi = numpy.empty((n_states, 3, 3))
-    for state in range(n_states):
-        psi[state, :, :] = numpy.eye(3) * nu[state] * variances[state]
-
-    y_model = hmmds.applications.apnea.observation.FilteredHeartRate_Respiration(
-        filtered_heart_rate_model(n_states, rng, alpha=alpha, beta=beta),
-        respiration_model(n_states, rng, Psi=psi, nu=nu), rng)
-
-    _hmm = develop.HMM(p_state_initial, p_state_time_average, p_state2state,
-                       y_model, rng)
-
-    y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
-        names, args)
-    _hmm.initialize_y_model(y_data)
-    return _hmm
-
-
 @register
 def outlier(args, rng) -> develop.HMM:
     """Single state.  For finding model that makes all outliers plausible.
@@ -293,9 +391,9 @@ def outlier(args, rng) -> develop.HMM:
     p_state_time_average = numpy.array([1.0])
     p_state2state = numpy.array([[1.0]])
 
-    return _make_hmm(nu, variances, alpha, beta, p_state_initial,
-                     p_state_time_average, p_state2state, args.all_names, args,
-                     rng)
+    return _make_hmm(_make_hr_resp_model(nu, variances, alpha, beta, rng),
+                     p_state_initial, p_state_time_average, p_state2state,
+                     args.all_names, args, rng)
 
 
 def _two(names, args, rng):
@@ -322,7 +420,8 @@ def _two(names, args, rng):
         [.01, .99],
     ])
 
-    return _make_hmm(nu, variances, alpha, beta, p_state_initial,
+    return _make_hmm(_make_hr_resp_model(nu, variances, alpha, beta,
+                                         rng), p_state_initial,
                      p_state_time_average, p_state2state, names, args, rng)
 
 
@@ -343,7 +442,8 @@ def _three(names, args, rng) -> develop.HMM:
         [.001, .989, .01]
     ])
 
-    return _make_hmm(nu, variances, alpha, beta, p_state_initial,
+    return _make_hmm(_make_hr_resp_model(nu, variances, alpha, beta,
+                                         rng), p_state_initial,
                      p_state_time_average, p_state2state, names, args, rng)
 
 
@@ -365,7 +465,8 @@ def _four(names, args, rng) -> develop.HMM:
         [.001, .01, .979, .01]
     ])
 
-    return _make_hmm(nu, variances, alpha, beta, p_state_initial,
+    return _make_hmm(_make_hr_resp_model(nu, variances, alpha, beta,
+                                         rng), p_state_initial,
                      p_state_time_average, p_state2state, names, args, rng)
 
 

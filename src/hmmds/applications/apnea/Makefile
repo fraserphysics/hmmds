@@ -71,10 +71,6 @@ pass1_matrix: $(MATRIX)
 ########################## Block for matrix of pass1 attempts #################
 
 
-${ApneaDerivedData}/pass1_report.pickle: $(ApneaCode)/pass1.py ${MODELS}/p1model_A4 ${MODELS}/p1model_C2
-	python $(ApneaCode)/pass1.py --root ${ROOT} --Amodel p1model_A4 --BCmodel p1model_C2
-
-
 ## yapf                           : Force google format on all python code
 .PHONY : yapf
 yapf :
