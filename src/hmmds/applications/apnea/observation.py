@@ -9,6 +9,7 @@ import numpy.random
 import numpy.linalg
 
 import hmm
+import hmm.C
 import hmm.observe_float
 
 #ToDo: This small value of Small is required to run pass1 and perhaps to train
@@ -35,7 +36,7 @@ class Respiration(hmm.observe_float.MultivariateGaussian):
         raise RuntimeError('random_out not implemented for Respiration')
 
 
-class ECG(hmm.observe_float.LinearContext):
+class ECG(hmm.C.LinearContext):
     r"""Nonlinear auto-regressive observation model for raw ecg measurements.
 
     Args:

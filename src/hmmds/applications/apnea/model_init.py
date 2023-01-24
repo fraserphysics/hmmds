@@ -20,6 +20,7 @@ import hmm.base
 
 import hmmds.applications.apnea.utilities
 import hmmds.applications.apnea.observation
+import hmm.C
 import develop
 
 
@@ -112,7 +113,7 @@ P_SS_High = hmm.simple.Prob(
 
 
 def _make_hmm(y_model, p_state_initial, p_state_time_average, p_state2state,
-              names, args, rng):
+              names, args, rng, Class=develop.hmm):
     """Create a hmm using parameters defined in the caller
 
     Args:
@@ -130,7 +131,7 @@ def _make_hmm(y_model, p_state_initial, p_state_time_average, p_state2state,
 
     """
 
-    _hmm = develop.HMM(p_state_initial, p_state_time_average, p_state2state,
+    _hmm = Class.HMM(p_state_initial, p_state_time_average, p_state2state,
                        y_model, rng)
 
     y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
@@ -289,11 +290,11 @@ def ECG(args, rng) -> develop.HMM:
     ]
 
     # Create and initialize the hmm
-    hmm = develop.HMM(p_state_initial, p_state_time_average, p_state2state,
+    model = hmm.C.HMM(p_state_initial, p_state_time_average, p_state2state,
                       y_model, rng)
-    hmm.initialize_y_model(y_data)
+    model.initialize_y_model(y_data)
 
-    return hmm
+    return model
 
 
 @register
