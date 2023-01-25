@@ -76,7 +76,11 @@ ${MODELS}/p1model_%: $(ApneaCode)/apnea_train.py ${MODELS}/initial_%
 
 ${MODELS}/initial_ECG: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(ApneaCode)/observation.py $(RESPIRE)/flag $(LPHR)/flag
 	mkdir -p ${MODELS}
-	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 x02 b01 c05 -- ECG $@
+	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 -- ECG $@
+
+#${MODELS}/trained_ECG
+foo: $(ApneaCode)/train.py ${MODELS}/initial_ECG
+	python $< --iterations 5 --records a01 x02 b01 c05 --type ECG ${MODELS}/initial_ECG $@
 
 ${MODELS}/model_outlier: $(ApneaCode)/apnea_train.py ${MODELS}/initial_outlier
 	python $(ApneaCode)/apnea_train.py --iterations 1 --root ${ROOT} outlier ${MODELS}/initial_outlier $@
