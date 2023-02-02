@@ -17,10 +17,11 @@ import argparse
 import numpy
 
 import hmm.base
+import hmm.simple
 
+import hmm.C
 import hmmds.applications.apnea.utilities
 import hmmds.applications.apnea.observation
-import hmm.C
 import develop
 
 
@@ -125,7 +126,7 @@ def _make_hmm(y_model, p_state_initial, p_state_time_average, p_state2state,
         rng: Random number generator
 
     Return: hmm initialized with data specified by names
-    
+
     Unsupervised, ie, no bundles. AR-4 for heart rate. 3-d
     multivariate Gaussian for respiration.
 
@@ -152,7 +153,7 @@ def _make_hr_resp_model(nu: numpy.ndarray, variances: numpy.ndarray,
         rng: Random number generator
 
     Return: observation model
- 
+
     """
     n_states = len(nu)
 
@@ -223,10 +224,16 @@ def test(args, rng):
 
 @register
 def ECG(args, rng) -> develop.HMM:
-    """
+    """Normally states progress monotonically around a loop of 20
+    normal states.  Transitions go from a state to itself or to the
+    next state in the loop.  An extra state, called bad, exists to
+    cover anomalous observations.  A pair of low probability
+    transisitons connects each of the normal states to the bad state,
+    and the bad state transitions to itself with high probability.
+
     """
 
-    assert type(args.records) == list
+    assert isinstance(args.records, list)
     n_states = 21
 
     # Define state probability parameters
@@ -236,13 +243,6 @@ def ECG(args, rng) -> develop.HMM:
     p_state2state = numpy.zeros((n_states, n_states))
     normal = p_state2state[:-1, :-1]
 
-    # Normally states progress monotonically around a loop of 20
-    # normal states.  Transitions go from a state to itself or to the
-    # next state in the loop.  An extra state, called bad, exists to
-    # cover anomalous observations.  A pair of low probability
-    # transisitons connects each of the normal states to the bad
-    # state, and the bad state transitions to itself with high
-    # probability.
     small = 1e-3
     bad = n_states - 1
     for state in range(n_states - 1):
@@ -298,36 +298,81 @@ def ECG(args, rng) -> develop.HMM:
 
 
 @register
-def A2(args, rng) -> develop.HMM:
-    """Two states, no bundles, AR-4 for heart rate, single Gaussian for
-    respiration
+def ECG300(args, rng) -> develop.HMM:
+    r"""300 regular states in a loop and one _bad_ state for trouble
+    with leads.  The bad state has transitions to itself and all of
+    the other states.  The regular states don't have transitions to
+    themselves.  They can step forward around the loop by 1 to 10
+    steps which makes it possible to model pulse rates from 20 to 200
+    beats per minute.  Since the data is sampled at 100Hz, I get:
 
-    Args:
-        rng: A numpy random number generator instance
-        args: A Collection of information for the apnea project.
+    Pulse (bpm)  Period (sec)  Samples/beat
+    20           3.0           300
+    200          0.3            30
+    60           1.0           100
 
-    Use data from all a files to initialize parameters of the observation model
+    Make P(i+j|i) \propto 1/j for j in [1,...,10] and get expected
+    value of j = 3.414 or 68.28 cylces per minute.  P(i|t=0) = [.99,
+    .01/300, ...].  P(i|bad) = P(bad|i) = (1.0e-3)/300, P(bad|bad) =
+    (1.0-1.0e-3)
+
     """
-    n_states = 2
 
-    y_model = hmmds.applications.apnea.observation.FilteredHeartRate_Respiration(
-        filtered_heart_rate_model(n_states, rng),
-        respiration_model(n_states, rng), rng)
+    assert isinstance(args.records, list)
+    n_states = 301
+    bad = n_states - 1
+    epsilon = 1.0e-5
+    n_forward = 10
 
-    y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
-        args.a_names, args)
-    # a list with a dict for each a-file
+    # Define state probability parameters
+    p_state_initial = numpy.ones(n_states) * 0.01 /(n_states-1)
+    p_state_initial[0,0] = .99
+    p_state_initial /= p_state_initial.sum()
 
-    model = develop.HMM(
-        random_1d_prob(rng, 2),  # p_state_initial
-        random_1d_prob(rng, 2),  # p_state_time_average
-        random_conditional_prob(rng, (2, 2)),  # p_state2state
-        y_model,
-        rng)
+    p_state_time_average = numpy.ones(n_states)/n_states
 
+    p_state2state = hmm.simple.Prob(numpy.zeros((n_states, n_states)))
+    row = numpy.zeros(n_states-1)
+    row[1:n_forward+1] = 1/numpy.arange(1,n_forward+1)
+    for i in range(1,n_forward+1):
+        row[i] = 1/i
+    row /= row.sum()
+    for i in range(n_states-1):
+        p_state2state[i,:-1] = numpy.roll(row, i)
+    p_state2state[bad,:] = epsilon
+    p_state2state[:,bad] = epsilon
+    p_state2state[bad,bad] = 1.0 - (n_states-1)*epsilon
+    p_state2state.normalize()
+
+    # Define observation model and the data
+    n_context = 4
+    coefficients = numpy.ones((n_states, n_context))
+    variances = numpy.ones(n_states)
+    n_history = 1000
+    alpha = numpy.ones(n_states) * 1.0e2
+    beta = numpy.ones(n_states) * 1.0e2
+    alpha[bad] = 1.0e8
+    beta[bad] = 1.0e20
+    y_model = hmmds.applications.apnea.observation.ECG(coefficients,
+                                                       variances,
+                                                       rng,
+                                                       alpha=alpha,
+                                                       beta=beta,
+                                                       n_history=n_history)
+    paths = [
+        os.path.join(args.root, 'raw_data/Rtimes', f'{name}.ecg')
+        for name in args.records
+    ]
+    y_data = [
+        hmmds.applications.apnea.observation.read_ecg(path) for path in paths
+    ]
+
+    # Create and initialize the hmm
+    model = hmm.C.HMM(p_state_initial, p_state_time_average, p_state2state,
+                      y_model, rng)
     model.initialize_y_model(y_data)
-    return model
 
+    return model
 
 @register
 def C1(args, rng):
