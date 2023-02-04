@@ -27,15 +27,14 @@ class BaseClass(unittest.TestCase):
     # self.n_states.  # This imitates proj_hmm/hmm/tests/test_simple.py
 
     n_states = 12
-    common = utilities.Common('../../../')
-    train_names = common.a_names + common.b_names + common.c_names
+    train_names = args.a_names + args.b_names + args.c_names
 
     respiration = {}
     heart_rate = {}
     expert = {}
-    for name in common.all_names:
+    for name in args.all_names:
         # Build both so that the lengths of each are the same
-        both = utilities.heart_rate_respiration_data(name, common)
+        both = utilities.heart_rate_respiration_data(name, args)
         respiration[name] = both['respiration_data']
         heart_rate[name] = both['filtered_heart_rate_data']
         if name[0] == 'x':
@@ -43,7 +42,7 @@ class BaseClass(unittest.TestCase):
 
         # Read expert annotations
         samples_per_minute = 10
-        expert[name] = utilities.read_expert(common.expert,
+        expert[name] = utilities.read_expert(args.expert,
                                              name).repeat(samples_per_minute)
 
     def random_name(self, names):
@@ -62,8 +61,8 @@ class BaseClass(unittest.TestCase):
         self.rng = numpy.random.default_rng(0)
 
         # Use same records for both data sets
-        data_names = list((self.random_name(self.common.all_names)
-                           for n in range(self.n_files)))
+        data_names = list(
+            (self.random_name(args.all_names) for n in range(self.n_files)))
 
         # Make respiration model
         self.dimension = 3
@@ -142,7 +141,7 @@ class TestRespiration(BaseClass):
         super().setUp()
         self.model = self.respiration_model
         self.test_data = list(
-            (self.respiration[self.random_name(self.common.all_names)]
+            (self.respiration[self.random_name(args.all_names)]
              for n in range(self.n_files)))
 
     test_calculate = BaseClass.calculate
@@ -171,9 +170,8 @@ class TestFilteredHeartRate(BaseClass):
         super().setUp()
         self.model = self.filtered_heart_rate_model
 
-        self.test_data = list(
-            (self.heart_rate[self.random_name(self.common.all_names)]
-             for n in range(self.n_files)))
+        self.test_data = list((self.heart_rate[self.random_name(args.all_names)]
+                               for n in range(self.n_files)))
 
     test_calculate = BaseClass.calculate
     test_str = BaseClass.string
@@ -258,7 +256,7 @@ class TestBundle(TestFilteredHeartRate_Respiration):
         self.test_data = []
         for name in self.data_names:
             self.test_data.append(
-                utilities.heart_rate_respiration_bundle_data(name, self.common))
+                utilities.heart_rate_respiration_bundle_data(name, args))
 
     def test_reestimate(self):
         """ Difference from super is "underlying"
