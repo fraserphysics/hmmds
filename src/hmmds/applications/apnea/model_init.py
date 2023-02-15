@@ -326,7 +326,7 @@ def ECG300(args, rng) -> develop.HMM:
 
     # Define state probability parameters
     p_state_initial = numpy.ones(n_states) * 0.01 /(n_states-1)
-    p_state_initial[0,0] = .99
+    p_state_initial[0] = .99
     p_state_initial /= p_state_initial.sum()
 
     p_state_time_average = numpy.ones(n_states)/n_states
@@ -370,7 +370,11 @@ def ECG300(args, rng) -> develop.HMM:
     # Create and initialize the hmm
     model = hmm.C.HMM(p_state_initial, p_state_time_average, p_state2state,
                       y_model, rng)
-    model.initialize_y_model(y_data)
+    n_y = len(y_data[0])
+    state_sequence = numpy.zeros((n_y,), dtype=int)
+    for i in range(n_y):
+        state_sequence[i] = i%n_states
+    model.initialize_y_model(y_data, state_sequence)
 
     return model
 
@@ -625,7 +629,7 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     args = parse_args(argv)
-    rng = numpy.random.default_rng()
+    rng = numpy.random.default_rng(3)
 
     # Run the function specified by args.key
     model = MODELS[args.key](args, rng)
