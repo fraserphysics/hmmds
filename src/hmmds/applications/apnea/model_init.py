@@ -223,7 +223,7 @@ def test(args, rng):
 
 
 @register
-def ECG(args, rng) -> develop.HMM:
+def AR1k20(args, rng) -> develop.HMM:
     """Normally states progress monotonically around a loop of 20
     normal states.  Transitions go from a state to itself or to the
     next state in the loop.  An extra state, called bad, exists to

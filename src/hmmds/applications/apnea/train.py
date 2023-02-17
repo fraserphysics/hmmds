@@ -49,7 +49,7 @@ def register(func):
 
 
 @register
-def ECG(args) -> develop.HMM:
+def AR1k(args) -> develop.HMM:
     """A model for raw ecg data
     """
 
@@ -70,18 +70,17 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     args = parse_args(argv)
-    rng = numpy.random.default_rng()
 
     with open(args.input, 'rb') as _file:
-        hmm = pickle.load(_file)
+        _hmm = pickle.load(_file)
 
     # Use the registered function to read the training data
-    data = TYPES[args.type](args)
+    data = TYPES[(args.type).rstrip('0123456789')](args)
 
-    hmm.multi_train(data, args.iterations)
+    _hmm.multi_train(data, args.iterations)
 
     with open(args.output, 'wb') as _file:
-        pickle.dump(hmm, _file)
+        pickle.dump(_hmm, _file)
 
     return 0
 

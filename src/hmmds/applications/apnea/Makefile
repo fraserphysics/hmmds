@@ -17,7 +17,15 @@ $(ApneaDerivedData)/pass1_report.pickle:
 include Rules.mk
 # Rules.mk defines RAW_DATA EXPERT LPHR RESPIRE RTIMES MODELS
 
+modelAR1k20.pdf: ecg_states_fig.py $(ECG)/AR1k20/states_a01
+	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/AR1k20/states_a01 70.1 70.14 $@
 ${DATA}/score_report:
+
+ECG_FIGS = modelAR1k20.pdf
+
+ecg.pdf: ecg.tex $(ECG_FIGS)
+	pdflatex $<
+	pdflatex $<
 
 .PHONY : trained
 trained: ${MODELS}/model_Low ${MODELS}/model_Medium ${MODELS}/model_High

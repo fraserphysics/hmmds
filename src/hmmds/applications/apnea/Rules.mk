@@ -17,6 +17,7 @@ LPHR = $(ApneaDerivedData)/Lphr
 RESPIRE = $(ApneaDerivedData)/Respire
 # HMMs go in ${MODELS}
 MODELS = ${ROOT}/build/derived_data/apnea/models
+ECG = $(MODELS)/ECG
 
 # I made the Rtimes files using the script wfdb2Rtimes.py in my
 # project wfdb which imports PhysioNet's wfdb using its own shell.nix
@@ -74,19 +75,26 @@ ${MODELS}/initial_%: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(Apne
 ${MODELS}/p1model_%: $(ApneaCode)/apnea_train.py ${MODELS}/initial_%
 	python $< --iterations 5 --root ${ROOT} $* $(word 2,$^) $@
 
-${MODELS}/initial_ECG: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(ApneaCode)/observation.py $(RESPIRE)/flag $(LPHR)/flag
-	mkdir -p ${MODELS}
-	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 -- ECG $@
+# ECG models in $(ECG).  Each family has root name, eg, AR1k20
+$(ECG)/%/initial:  $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(ApneaCode)/observation.py $(RESPIRE)/flag $(LPHR)/flag
+	mkdir -p $(@D)
+	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 -- $* $@
 
-${MODELS}/trained_ECG: $(ApneaCode)/train.py ${MODELS}/initial_ECG
-	python $< --iterations 5 --records a01 x02 b01 c05 --type ECG ${MODELS}/initial_ECG $@
+
+$(ECG)/%/trained_a01: $(ApneaCode)/train.py $(ECG)/%/initial
+	python $< --iterations 5 --records a01 --type $* $(ECG)/$*/initial $@.5 > $@.log
+	python $< --iterations 5 --records a01 --type $* $@.5 $@.10 >> $@.log
+	python $< --iterations 5 --records a01 --type $* $@.10 $@.15 >> $@.log
+	python $< --iterations 5 --records a01 --type $* $@.15 $@.20 >> $@.log
+	python $< --iterations 5 --records a01 --type $* $@.20 $@.25 >> $@.log
+	python $< --iterations 5 --records a01 --type $* $@.25 $@ >> $@.log
+
+$(ECG)/%/states_a01: $(ApneaCode)/ecg_decode.py $(ECG)/%/trained_a01
+	python $^ a01 $@
 
 ${MODELS}/initial_ECG300: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(ApneaCode)/observation.py $(RESPIRE)/flag $(LPHR)/flag
 	mkdir -p ${MODELS}
 	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 -- ECG300 $@
-
-${MODELS}/trained_ECG300: $(ApneaCode)/train.py ${MODELS}/initial_ECG300
-	python $< --iterations 5 --records a01 x02 b01 c05 --type ECG ${MODELS}/initial_ECG300 $@
 
 ${MODELS}/model_outlier: $(ApneaCode)/apnea_train.py ${MODELS}/initial_outlier
 	python $(ApneaCode)/apnea_train.py --iterations 1 --root ${ROOT} outlier ${MODELS}/initial_outlier $@

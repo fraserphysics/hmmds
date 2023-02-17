@@ -1,0 +1,128 @@
+% Notes on modeling ECGs with HMMs directly
+
+\documentclass[12pt]{article}
+\usepackage{graphicx,color}
+\usepackage{amsmath, amsfonts}
+\usepackage{placeins}
+
+
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\INTEGER}{\field{Z}}
+\newcommand{\REAL}{\field{R}}
+\newcommand{\COMPLEX}{\field{C}}
+\newcommand{\id}{\mathbb{I}}
+\newcommand{\variance}[1]{\field{V}\left[ #1 \right]}
+\newcommand{\normal}[2]{{\cal N}\left(#1,#2 \right)}
+
+\newcommand{\filterplot}[2]{
+\begin{figure}
+  \centering
+  \resizebox{1.0\textwidth}{!}{\includegraphics{#1_plot.pdf}}
+  \caption{#2}
+  \label{fig:#1}
+\end{figure}
+}
+
+\title{HMMs for ECGs}
+\author{Andrew M.\ Fraser}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+I wrote explore.py to see how processing ECGs for apnea detection was
+working.  Because I was disappointed by the performance of standard qrs
+detectors that I got from
+https://github.com/berndporr/py-ecg-detectors, I wrote my own by
+building HMMs for ECG time series.
+
+Recipes for making the models and figures described here appear in
+Rules.mk.
+
+\section{Outliers}
+\label{sec:outliers}
+
+While most of the ECG data consists of oscillations with amplitudes
+less than $\pm$ 2mV, some intervals have spurious signals with $\pm$
+10mV.  I call such signals \emph{lead noise}\footnote{The data in
+  record \emph{C01} is less than .1mV till minute 5.1 when it goes to
+  10 mV.  The useable data only starts at minute 10.24.}.  A model,
+$\theta$, fit to the typical data can assign $P(y|\theta) = 0$ to lead
+noise.  The observation models use inverse gamma priors for the
+variance, and I use a single state, which I call the \emph{bad} state,
+with prior that enforces a large variance to accomodate lead noise.
+In particular the parameters are $\alpha=10^{8}$ and $\beta=10^{20}$
+which in the reestimation formula
+\begin{equation*}
+  \sigma^2 = \frac{2 \beta + \text{data}}{2 \alpha +2 + \text{weight}}
+\end{equation*}
+gives $\sigma^2 \approx 10^{12}$ if there is not much data.  I arrived
+at those values by trial and error.
+
+Since lead noise can start abruptly at any time, I allow transitions
+between the bad state and every other state.  It's important to ensure
+that those transitions are infrequent.  The high variance makes the
+likelihood for the bad state small.
+
+\section{A Monotonic Model with 21 States}
+\label{sec:mono20}
+
+I've built HMMs with 20 normal states and 1 bad state.  Each normal
+state has transitions to and from the bad state.  Otherwise the only
+transitions are from a normal state to itself and to its successor.
+The successor of state 19 is state 0, so the normal states progress
+monotonically around a loop.
+
+My first output model was Gaussian with the mean for state $s$ given
+in terms of the mean and rms deviation of the previosu thousand
+observations, the previous observation and a fixed offset, with
+\begin{align*}
+  s &= \sqrt{\frac{\sum_{\tau=1,000}^{\tau=1} y[t-\tau]^2}{1,000}} \\
+  m &=  \frac{\sum_{\tau=1,000}^{\tau=1} y[t-\tau]}{1,000} \\
+  \mu[t,i](y[:t]) &= a[i,0] \cdot s + a[i,1] \cdot m + a[i,2] \cdot
+  y[t-1] + a[i,3]
+\end{align*}
+
+Veterbi decoding with such a model after training for 20 iterations on
+record \emph{a01} yields Figure~\ref{fig:modelAR1k20}
+
+\begin{figure}
+  \centering
+    \resizebox{0.7\textwidth}{!}{\includegraphics{modelAR1k20.pdf}}
+  \caption{Performance of an HMM with 20 normal states with an output
+    model that uses the previous 1,000 observations to characterize
+    the mean and variance of the signal.  An ECG trace appears in the
+    upper plot, while the decoded state sequence appears in the lower
+    plot.}
+  \label{fig:modelAR1k20}
+\end{figure}
+
+A simple linear auto-regressive model with
+\begin{equation*}
+  \mu[t,i] = a[i,0] \cdot y[t-1] + a[i,1] \cdot y[t-2] + a[i,2] \cdot
+  y[t-2]  + a[i,3]
+\end{equation*}
+similarly yields Figure~\ref{fig:model20AR3}.
+
+\begin{figure}
+  \centering
+    %\resizebox{1.0\textwidth}{!}{\includegraphics{forecast_errors.pdf}}
+    \caption{Some Pig}
+  \label{fig:model20AR3}
+\end{figure}
+
+\section{To Do}
+\label{sec:todo}
+
+\begin{itemize}
+\item Build document, data, and figures using make.
+\item For each base model name, eg, 20AR1k, make initializes a model
+  and trains it for 30 iterations saving the training characteristic
+  and the model at 5 step intervals.
+\item Train on \emph{a01}
+\item Plots show data from \emph{a01} and \emph{c01}
+\item Train on subsegments of records to enable parallel processing.
+\end{itemize}
+\end{document}

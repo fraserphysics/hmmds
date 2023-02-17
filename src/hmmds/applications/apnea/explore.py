@@ -17,6 +17,7 @@ import numpy.linalg
 import scipy.optimize
 import pint
 
+import hmm.C
 import rtimes2hr  # For read_rtimes FixMe: Move to utilities
 import utilities
 
