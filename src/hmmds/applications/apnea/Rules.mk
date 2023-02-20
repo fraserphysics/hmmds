@@ -75,6 +75,7 @@ ${MODELS}/initial_%: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(Apne
 ${MODELS}/p1model_%: $(ApneaCode)/apnea_train.py ${MODELS}/initial_%
 	python $< --iterations 5 --root ${ROOT} $* $(word 2,$^) $@
 
+.PRECIOUS: $(ECG)/%/initial $(ECG)/%/trained_a01
 # ECG models in $(ECG).  Each family has root name, eg, AR1k20
 $(ECG)/%/initial:  $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(ApneaCode)/observation.py $(RESPIRE)/flag $(LPHR)/flag
 	mkdir -p $(@D)

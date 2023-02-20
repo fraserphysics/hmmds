@@ -199,11 +199,23 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                       self.resp_dict, self.like_dict):
             self.plot_window(**_dict)
 
+    def open_file_dialog(self, directory=None):
+        if directory is None:
+            directory = self.root_box.text()
+        dialog = PyQt5.QtWidgets.QFileDialog(self)
+        dialog.setDirectory(directory)
+        dialog.setFileMode(PyQt5.QtWidgets.QFileDialog.FileMode.ExistingFiles)
+        dialog.setViewMode(PyQt5.QtWidgets.QFileDialog.ViewMode.List)
+        filename, ok = dialog.getOpenFileName()
+        return filename
+
     def new_root(self):
         pass  # No action
 
     def new_ecg_hmm(self):
-        pass  # No action
+        path = [self.root_box.text()] + 'build derived_data apnea models ECG'.split()
+        file_name = self.open_file_dialog(os.path.join(*path))
+        self.ecg_hmm_box.setText(file_name)
 
     def new_record(self):
         pass  # No action
@@ -229,7 +241,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         window = [start, stop]
         for curve, signal in zip(curves, signals):
             minutes = signal[0].to('minutes').magnitude
-            start, stop = numpy.searchsorted(minutes, window)
+            start, _stop = numpy.searchsorted(minutes, window)
+            stop = min(_stop, len(minutes), len(signal[1]))
             curve.setData(minutes[start:stop], signal[1][start:stop])
 
     def read_ecg(self):

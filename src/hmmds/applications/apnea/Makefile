@@ -19,9 +19,16 @@ include Rules.mk
 
 modelAR1k20.pdf: ecg_states_fig.py $(ECG)/AR1k20/states_a01
 	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/AR1k20/states_a01 70.1 70.14 $@
+
+modelAR3_20.pdf: ecg_states_fig.py $(ECG)/AR3_20/states_a01
+	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/AR3_20/states_a01 70.1 70.14 $@
+
+modelAR3_300.pdf: ecg_states_fig.py $(ECG)/AR3_300/states_a01
+	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/AR3_300/states_a01 70.1 70.14 $@
+
 ${DATA}/score_report:
 
-ECG_FIGS = modelAR1k20.pdf
+ECG_FIGS = modelAR1k20.pdf modelAR3_20.pdf modelAR3_300.pdf
 
 ecg.pdf: ecg.tex $(ECG_FIGS)
 	pdflatex $<

@@ -205,26 +205,10 @@ def filtered_heart_rate_respiration_bundle_model(n_states,
                                              rng)
 
 
-MODELS = {}  # Is populated by @register decorated functions.  The keys
-# are function names, and the values are functions
+def loop(n_states, y_model, y_data, rng):
+    """Builds a model in which states progress around a loop
 
-
-def register(func):
-    """Decorator that puts function in MODELS dictionary"""
-    #See https://realpython.com/primer-on-python-decorators/
-    MODELS[func.__name__] = func
-    return func
-
-
-@register
-def test(args, rng):
-    for key, value in args.__dict__.items():
-        print(f'{key}: {value}')
-
-
-@register
-def AR1k20(args, rng) -> develop.HMM:
-    """Normally states progress monotonically around a loop of 20
+    Normally states progress monotonically around a loop of n_states
     normal states.  Transitions go from a state to itself or to the
     next state in the loop.  An extra state, called bad, exists to
     cover anomalous observations.  A pair of low probability
@@ -232,10 +216,6 @@ def AR1k20(args, rng) -> develop.HMM:
     and the bad state transitions to itself with high probability.
 
     """
-
-    assert isinstance(args.records, list)
-    n_states = 21
-
     # Define state probability parameters
     p_state_initial = numpy.ones(n_states) * 1e-3
     p_state_initial[0] = 1.0 - p_state_initial.sum()  # Break symmetry
@@ -252,7 +232,181 @@ def AR1k20(args, rng) -> develop.HMM:
         p_state2state[bad, state] = small
     p_state2state[bad, bad] = 1.0 - small * (n_states - 1)
 
+    # Create and initialize the hmm
+    model = hmm.C.HMM(p_state_initial, p_state_time_average, p_state2state,
+                      y_model, rng)
+    model.initialize_y_model(y_data)
+
+    return model
+
+def strict_loop(n_states, y_model, y_data, rng):
+    """Builds a model in which states progress around a loop
+
+    Normally states progress monotonically around a loop of n_states
+    normal states.  An extra state, called bad, exists to cover
+    anomalous observations.  A pair of low probability transisitons
+    connects each of the normal states to the bad state, and the bad
+    state transitions to itself with high probability.  The regular
+    states don't have transitions to themselves.  They can step
+    forward around the loop by 1 to 10 steps.  With 300 normal states
+    it is possible to model pulse rates from 20 to 200 beats per
+    minute.  Since the data is sampled at 100Hz, I get:
+
+    Pulse (bpm)  Period (sec)  Samples/beat
+    20           3.0           300
+    200          0.3            30
+    60           1.0           100
+
+    Make P(i+j|i) \propto 1/j for j in [1,...,10] and get expected
+    value of j = 3.414 or 68.28 cylces per minute.  P(i|t=0) = [.99,
+    .01/300, ...].  P(i|bad) = P(bad|i) = (1.0e-3)/300, P(bad|bad) =
+    (1.0-1.0e-3)
+
+    """
+
+    n_states = 301
+    bad = n_states - 1
+    epsilon = 1.0e-5
+    n_forward = 10
+
+    # Define state probability parameters
+    p_state_initial = numpy.ones(n_states) * 0.01 /(n_states-1)
+    p_state_initial[0] = .99
+    p_state_initial /= p_state_initial.sum()
+
+    p_state_time_average = numpy.ones(n_states)/n_states
+
+    p_state2state = hmm.simple.Prob(numpy.zeros((n_states, n_states)))
+    row = numpy.zeros(n_states-1)
+    row[1:n_forward+1] = 1/numpy.arange(1,n_forward+1)
+    for i in range(1,n_forward+1):
+        row[i] = 1/i
+    row /= row.sum()
+    for i in range(n_states-1):
+        p_state2state[i,:-1] = numpy.roll(row, i)
+    p_state2state[bad,:] = epsilon
+    p_state2state[:,bad] = epsilon
+    p_state2state[bad,bad] = 1.0 - (n_states-1)*epsilon
+    p_state2state.normalize()
+
+    # Create and initialize the hmm
+    model = hmm.C.HMM(p_state_initial, p_state_time_average, p_state2state,
+                      y_model, rng)
+    n_y = len(y_data[0])
+    state_sequence = numpy.zeros((n_y,), dtype=int)
+    for i in range(n_y):
+        state_sequence[i] = int(3.7*i)%n_states
+    model.initialize_y_model(y_data, state_sequence)
+
+    return model
+
+MODELS = {}  # Is populated by @register decorated functions.  The keys
+# are function names, and the values are functions
+
+
+def register(func):
+    """Decorator that puts function in MODELS dictionary"""
+    #See https://realpython.com/primer-on-python-decorators/
+    MODELS[func.__name__] = func
+    return func
+
+@register
+def test(args, rng):
+    for key, value in args.__dict__.items():
+        print(f'{key}: {value}')
+
+
+@register
+def AR3_20(args, rng) -> develop.HMM:
+    """ Simple affine autoregressive model for outputs
+
+    """
+
+    assert isinstance(args.records, list)
+
     # Define observation model and the data
+    n_states = 21
+    ar_order = 3
+    ar_coefficients = numpy.ones((n_states, ar_order))
+    offset = numpy.ones(n_states)
+    variances = numpy.ones(n_states)
+    alpha = numpy.ones(n_states) * 1.0e2
+    beta = numpy.ones(n_states) * 1.0e2
+    alpha[n_states-1] = 1.0e8
+    beta[n_states-1] = 1.0e20
+
+    y_model = hmm.observe_float.AutoRegressive(
+        ar_coefficients,
+        offset,
+        variances,
+        rng,
+        alpha=alpha,
+        beta=beta)
+    paths = [
+        os.path.join(args.root, 'raw_data/Rtimes', f'{name}.ecg')
+        for name in args.records
+    ]
+    y_data = [
+        hmmds.applications.apnea.observation.read_ecg(path) for path in paths
+    ]
+
+    return loop(n_states, y_model, y_data, rng)
+
+
+
+
+@register
+def AR3_300(args, rng) -> develop.HMM:
+    """ Simple affine autoregressive model for outputs
+
+    """
+
+    assert isinstance(args.records, list)
+
+    # Define observation model and the data
+    n_states = 301
+    ar_order = 3
+    ar_coefficients = numpy.ones((n_states, ar_order))
+    offset = numpy.ones(n_states)
+    variances = numpy.ones(n_states)
+    alpha = numpy.ones(n_states) * 1.0e2
+    beta = numpy.ones(n_states) * 1.0e2
+    alpha[n_states-1] = 1.0e8
+    beta[n_states-1] = 1.0e20
+
+    y_model = hmm.observe_float.AutoRegressive(
+        ar_coefficients,
+        offset,
+        variances,
+        rng,
+        alpha=alpha,
+        beta=beta)
+    paths = [
+        os.path.join(args.root, 'raw_data/Rtimes', f'{name}.ecg')
+        for name in args.records
+    ]
+    y_data = [
+        hmmds.applications.apnea.observation.read_ecg(path) for path in paths
+    ]
+
+    return strict_loop(n_states, y_model, y_data, rng)
+
+
+@register
+def AR1k20(args, rng) -> develop.HMM:
+    """Normally states progress monotonically around a loop of 20
+    normal states.  Transitions go from a state to itself or to the
+    next state in the loop.  An extra state, called bad, exists to
+    cover anomalous observations.  A pair of low probability
+    transisitons connects each of the normal states to the bad state,
+    and the bad state transitions to itself with high probability.
+
+    """
+
+    assert isinstance(args.records, list)
+
+    # Define observation model and the data
+    n_states = 21
     n_context = 4
     coefficients = numpy.ones((n_states, n_context))
     variances = numpy.ones(n_states)
@@ -265,8 +419,8 @@ def AR1k20(args, rng) -> develop.HMM:
     # that will lead noise plausible.
     alpha = numpy.ones(n_states) * 1.0e2
     beta = numpy.ones(n_states) * 1.0e2
-    alpha[bad] = 1.0e8
-    beta[bad] = 1.0e20
+    alpha[n_states-1] = 1.0e8
+    beta[n_states-1] = 1.0e20
     # 1e10 Lets the bad state model the R peak
     # 1e16 with 20 iterstions lets R state model noise 2 cycles per beat
     # 1e13 with 10 iterations lets R state model noise 2 cycles per beat
@@ -289,12 +443,7 @@ def AR1k20(args, rng) -> develop.HMM:
         hmmds.applications.apnea.observation.read_ecg(path) for path in paths
     ]
 
-    # Create and initialize the hmm
-    model = hmm.C.HMM(p_state_initial, p_state_time_average, p_state2state,
-                      y_model, rng)
-    model.initialize_y_model(y_data)
-
-    return model
+    return loop(n_states, y_model, y_data, rng)
 
 
 @register

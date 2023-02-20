@@ -62,6 +62,12 @@ def AR1k(args) -> develop.HMM:
     paths = [os.path.join(args.rtimes, f'{name}.ecg') for name in args.records]
     return [read_ecg(path) for path in paths]
 
+@register
+def AR3_(args) -> develop.HMM:
+    """A model for raw ecg data
+    """
+    return AR1k(args)
+
 
 def main(argv=None):
     """
@@ -78,6 +84,7 @@ def main(argv=None):
     data = TYPES[(args.type).rstrip('0123456789')](args)
 
     _hmm.multi_train(data, args.iterations)
+    _hmm.strip()
 
     with open(args.output, 'wb') as _file:
         pickle.dump(_hmm, _file)

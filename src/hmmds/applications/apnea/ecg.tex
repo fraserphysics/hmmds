@@ -5,7 +5,6 @@
 \usepackage{amsmath, amsfonts}
 \usepackage{placeins}
 
-
 \newcommand{\field}[1]{\mathbb{#1}}
 \newcommand{\INTEGER}{\field{Z}}
 \newcommand{\REAL}{\field{R}}
@@ -13,15 +12,6 @@
 \newcommand{\id}{\mathbb{I}}
 \newcommand{\variance}[1]{\field{V}\left[ #1 \right]}
 \newcommand{\normal}[2]{{\cal N}\left(#1,#2 \right)}
-
-\newcommand{\filterplot}[2]{
-\begin{figure}
-  \centering
-  \resizebox{1.0\textwidth}{!}{\includegraphics{#1_plot.pdf}}
-  \caption{#2}
-  \label{fig:#1}
-\end{figure}
-}
 
 \title{HMMs for ECGs}
 \author{Andrew M.\ Fraser}
@@ -95,7 +85,8 @@ record \emph{a01} yields Figure~\ref{fig:modelAR1k20}
     model that uses the previous 1,000 observations to characterize
     the mean and variance of the signal.  An ECG trace appears in the
     upper plot, while the decoded state sequence appears in the lower
-    plot.}
+    plot.  The likelihood of the data after 30 iterations of the Baum
+    Welch algorithm is $5.686 \times 10^{6}$.}
   \label{fig:modelAR1k20}
 \end{figure}
 
@@ -104,13 +95,22 @@ A simple linear auto-regressive model with
   \mu[t,i] = a[i,0] \cdot y[t-1] + a[i,1] \cdot y[t-2] + a[i,2] \cdot
   y[t-2]  + a[i,3]
 \end{equation*}
-similarly yields Figure~\ref{fig:model20AR3}.
+similarly yields Figure~\ref{fig:modelAR3_20}.
 
 \begin{figure}
   \centering
-    %\resizebox{1.0\textwidth}{!}{\includegraphics{forecast_errors.pdf}}
+    \resizebox{1.0\textwidth}{!}{\includegraphics{modelAR3_20.pdf}}
+    \caption{Seems similar to \ref{fig:modelAR1k20}.  The likelihood
+      of the data after 30 iterations of the Baum Welch algorithm is
+      $6.046 \times 10^{6}$.}
+  \label{fig:modelAR3_20}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{1.0\textwidth}{!}{\includegraphics{modelAR3_300.pdf}}
     \caption{Some Pig}
-  \label{fig:model20AR3}
+  \label{fig:modelAR3_300}
 \end{figure}
 
 \section{To Do}
