@@ -68,6 +68,12 @@ def AR3_(args) -> develop.HMM:
     """
     return AR1k(args)
 
+@register
+def AR3A_(args) -> develop.HMM:
+    """A model for raw ecg data
+    """
+    return AR1k(args)
+
 
 def main(argv=None):
     """

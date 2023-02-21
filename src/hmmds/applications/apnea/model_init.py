@@ -239,7 +239,7 @@ def loop(n_states, y_model, y_data, rng):
 
     return model
 
-def strict_loop(n_states, y_model, y_data, rng):
+def big_loop(n_states, y_model, y_data, rng, p_self=0):
     """Builds a model in which states progress around a loop
 
     Normally states progress monotonically around a loop of n_states
@@ -264,7 +264,6 @@ def strict_loop(n_states, y_model, y_data, rng):
 
     """
 
-    n_states = 301
     bad = n_states - 1
     epsilon = 1.0e-5
     n_forward = 10
@@ -281,6 +280,7 @@ def strict_loop(n_states, y_model, y_data, rng):
     row[1:n_forward+1] = 1/numpy.arange(1,n_forward+1)
     for i in range(1,n_forward+1):
         row[i] = 1/i
+    row[0] = p_self
     row /= row.sum()
     for i in range(n_states-1):
         p_state2state[i,:-1] = numpy.roll(row, i)
@@ -353,8 +353,6 @@ def AR3_20(args, rng) -> develop.HMM:
     return loop(n_states, y_model, y_data, rng)
 
 
-
-
 @register
 def AR3_300(args, rng) -> develop.HMM:
     """ Simple affine autoregressive model for outputs
@@ -389,7 +387,44 @@ def AR3_300(args, rng) -> develop.HMM:
         hmmds.applications.apnea.observation.read_ecg(path) for path in paths
     ]
 
-    return strict_loop(n_states, y_model, y_data, rng)
+    return big_loop(n_states, y_model, y_data, rng)
+
+
+@register
+def AR3A_300(args, rng) -> develop.HMM:
+    """ Simple affine autoregressive model for outputs
+
+    """
+
+    assert isinstance(args.records, list)
+
+    # Define observation model and the data
+    n_states = 301
+    ar_order = 3
+    ar_coefficients = numpy.ones((n_states, ar_order))
+    offset = numpy.ones(n_states)
+    variances = numpy.ones(n_states)
+    alpha = numpy.ones(n_states) * 1.0e2
+    beta = numpy.ones(n_states) * 1.0e2
+    alpha[n_states-1] = 1.0e8
+    beta[n_states-1] = 1.0e20
+
+    y_model = hmm.observe_float.AutoRegressive(
+        ar_coefficients,
+        offset,
+        variances,
+        rng,
+        alpha=alpha,
+        beta=beta)
+    paths = [
+        os.path.join(args.root, 'raw_data/Rtimes', f'{name}.ecg')
+        for name in args.records
+    ]
+    y_data = [
+        hmmds.applications.apnea.observation.read_ecg(path) for path in paths
+    ]
+
+    return big_loop(n_states, y_model, y_data, rng, p_self=0.05)
 
 
 @register
@@ -784,6 +819,7 @@ def main(argv=None):
     model = MODELS[args.key](args, rng)
     assert model.p_state_initial.min() > 0
 
+    model.strip()
     with open(args.write_path, 'wb') as _file:
         pickle.dump(model, _file)
 

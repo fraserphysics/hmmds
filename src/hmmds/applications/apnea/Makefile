@@ -26,9 +26,15 @@ modelAR3_20.pdf: ecg_states_fig.py $(ECG)/AR3_20/states_a01
 modelAR3_300.pdf: ecg_states_fig.py $(ECG)/AR3_300/states_a01
 	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/AR3_300/states_a01 70.1 70.14 $@
 
+modelAR3_300_double.pdf: ecg_states_fig.py $(ECG)/AR3_300/states_a01
+	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/AR3_300/states_a01 216.83 216.93 $@
+
+modelAR3A_300_double.pdf: ecg_states_fig.py $(ECG)/AR3A_300/states_a01
+	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/AR3A_300/states_a01 216.83 216.93 $@
+
 ${DATA}/score_report:
 
-ECG_FIGS = modelAR1k20.pdf modelAR3_20.pdf modelAR3_300.pdf
+ECG_FIGS = modelAR1k20.pdf modelAR3_20.pdf modelAR3_300.pdf modelAR3_300_double.pdf modelAR3A_300_double.pdf
 
 ecg.pdf: ecg.tex $(ECG_FIGS)
 	pdflatex $<

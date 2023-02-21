@@ -100,7 +100,7 @@ similarly yields Figure~\ref{fig:modelAR3_20}.
 \begin{figure}
   \centering
     \resizebox{1.0\textwidth}{!}{\includegraphics{modelAR3_20.pdf}}
-    \caption{Seems similar to \ref{fig:modelAR1k20}.  The likelihood
+    \caption{Seems similar to Fig.~\ref{fig:modelAR1k20}.  The likelihood
       of the data after 30 iterations of the Baum Welch algorithm is
       $6.046 \times 10^{6}$.}
   \label{fig:modelAR3_20}
@@ -109,8 +109,25 @@ similarly yields Figure~\ref{fig:modelAR3_20}.
 \begin{figure}
   \centering
     \resizebox{1.0\textwidth}{!}{\includegraphics{modelAR3_300.pdf}}
-    \caption{Some Pig}
+    \caption{Like Fig.~\ref{fig:modelAR3_20}.}
   \label{fig:modelAR3_300}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{1.0\textwidth}{!}{\includegraphics{modelAR3_300_double.pdf}}
+    \caption{Trouble with two cycles for one beat when HR is less than
+      about 50 bpm.  The stock analyzer puts in extra beats at 40 bpm.}
+  \label{fig:modelAR3_300_double}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{1.0\textwidth}{!}{\includegraphics{modelAR3A_300_double.pdf}}
+    \caption{This model is like the one for
+      Fig.~\ref{fig:modelAR3_300_double} but there are transitions
+      from each normal state to itself.}
+  \label{fig:modelAR3A_300_double}
 \end{figure}
 
 \section{To Do}
