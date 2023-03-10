@@ -335,7 +335,7 @@ def AR3_20(args, rng) -> develop.HMM:
     alpha[n_states-1] = 1.0e8
     beta[n_states-1] = 1.0e20
 
-    y_model = hmm.observe_float.AutoRegressive(
+    y_model = hmm.C.AutoRegressive(
         ar_coefficients,
         offset,
         variances,
@@ -372,7 +372,7 @@ def AR3_300(args, rng) -> develop.HMM:
     alpha[n_states-1] = 1.0e8
     beta[n_states-1] = 1.0e20
 
-    y_model = hmm.observe_float.AutoRegressive(
+    y_model = hmm.C.AutoRegressive(
         ar_coefficients,
         offset,
         variances,
@@ -409,7 +409,7 @@ def AR3A_300(args, rng) -> develop.HMM:
     alpha[n_states-1] = 1.0e8
     beta[n_states-1] = 1.0e20
 
-    y_model = hmm.observe_float.AutoRegressive(
+    y_model = hmm.C.AutoRegressive(
         ar_coefficients,
         offset,
         variances,

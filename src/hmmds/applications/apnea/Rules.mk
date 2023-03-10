@@ -83,12 +83,12 @@ $(ECG)/%/initial:  $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(ApneaC
 
 
 $(ECG)/%/trained_a01: $(ApneaCode)/train.py $(ECG)/%/initial
-	python $< --iterations 5 --records a01 --type $* $(ECG)/$*/initial $@.5 > $@.log
-	python $< --iterations 5 --records a01 --type $* $@.5 $@.10 >> $@.log
-	python $< --iterations 5 --records a01 --type $* $@.10 $@.15 >> $@.log
-	python $< --iterations 5 --records a01 --type $* $@.15 $@.20 >> $@.log
-	python $< --iterations 5 --records a01 --type $* $@.20 $@.25 >> $@.log
-	python $< --iterations 5 --records a01 --type $* $@.25 $@ >> $@.log
+	python $< --iterations 20 --records a01 --type $* $(ECG)/$*/initial $@.20 > $@.log
+	python $< --iterations 20 --records a01 --type $* $@.20 $@.40 >> $@.log
+	python $< --iterations 20 --records a01 --type $* $@.40 $@.60 >> $@.log
+	python $< --iterations 20 --records a01 --type $* $@.60 $@.80 >> $@.log
+	python $< --iterations 20 --records a01 --type $* $@.80 $@.100 >> $@.log
+	cd $(@D); ln -s trained_a01.100 trained_a01
 
 $(ECG)/%/states_a01: $(ApneaCode)/ecg_decode.py $(ECG)/%/trained_a01
 	python $^ a01 $@

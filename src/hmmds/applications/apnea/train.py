@@ -37,9 +37,13 @@ def parse_args(argv):
     return args
 
 
+# ToDo: Put this in utilities?
+def read_ecg(path):
+    with open(path, 'rb') as _file:
+        return pickle.load(_file)['raw']
+
 TYPES = {}  # Is populated by @register decorated functions.  The keys
 # are function names, and the values are functions
-
 
 def register(func):
     """Decorator that puts function in TYPES dictionary"""
@@ -47,16 +51,10 @@ def register(func):
     TYPES[func.__name__] = func
     return func
 
-
 @register
 def AR1k(args) -> develop.HMM:
-    """A model for raw ecg data
+    """Read raw ecg data for hmms with AR1k output models
     """
-
-    # ToDo: Put this in utilities?
-    def read_ecg(path):
-        with open(path, 'rb') as _file:
-            return pickle.load(_file)['raw']
 
     # Read the records
     paths = [os.path.join(args.rtimes, f'{name}.ecg') for name in args.records]
@@ -64,16 +62,26 @@ def AR1k(args) -> develop.HMM:
 
 @register
 def AR3_(args) -> develop.HMM:
-    """A model for raw ecg data
+    """Read raw ecg data for hmms with AR3_ output models.  Sample
+    data with segments a half hour apart to enable parallel training.
+
     """
-    return AR1k(args)
+    period = 10*60*100  # 100 samples per second
+    interval = period//10  # Length of each segment
+    paths = [os.path.join(args.rtimes, f'{name}.ecg') for name in args.records]
+    result = []
+    for path in paths:
+        data = read_ecg(path)
+        for start in range(0,int(len(data)),period):
+            stop = min(start+interval, len(data))
+            result.append(data[start:stop])
+    return result
 
 @register
 def AR3A_(args) -> develop.HMM:
     """A model for raw ecg data
     """
-    return AR1k(args)
-
+    return AR3_(args)
 
 def main(argv=None):
     """
