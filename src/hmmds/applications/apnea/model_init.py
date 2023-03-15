@@ -23,6 +23,7 @@ import hmm.C
 import hmmds.applications.apnea.utilities
 import hmmds.applications.apnea.observation
 import develop
+import utilities
 
 
 def parse_args(argv):
@@ -278,8 +279,6 @@ def big_loop(n_states, y_model, y_data, rng, p_self=0):
     p_state2state = hmm.simple.Prob(numpy.zeros((n_states, n_states)))
     row = numpy.zeros(n_states-1)
     row[1:n_forward+1] = 1/numpy.arange(1,n_forward+1)
-    for i in range(1,n_forward+1):
-        row[i] = 1/i
     row[0] = p_self
     row /= row.sum()
     for i in range(n_states-1):
@@ -297,6 +296,35 @@ def big_loop(n_states, y_model, y_data, rng, p_self=0):
     for i in range(n_y):
         state_sequence[i] = int(3.7*i)%n_states
     model.initialize_y_model(y_data, state_sequence)
+
+    return model
+
+def circulant(n_states, y_model, y_data, rng, n_forward=10, p_self=0):
+    """Circulant p_state2state for monotonic rotation.
+
+    This is like big_loop without a bad state.  Applications can use
+    bundles in y_data to break symmetry
+
+    """
+
+    # Define state probability parameters
+    p_state_initial = numpy.ones(n_states)/n_states
+    p_state_time_average = numpy.ones(n_states)/n_states
+
+    row = numpy.zeros(n_states)
+    row[1:n_forward+1] = 1/numpy.arange(1,n_forward+1)
+    row[0] = p_self
+    row /= row.sum()
+
+    p_state2state = hmm.simple.Prob(numpy.zeros((n_states, n_states)))
+    for i in range(n_states):
+        p_state2state[i,:] = numpy.roll(row, i)
+    p_state2state.normalize()
+
+    # Create and initialize the hmm
+    model = hmm.C.HMM(p_state_initial, p_state_time_average, p_state2state,
+                      y_model, rng)
+    model.initialize_y_model(y_data)
 
     return model
 
@@ -351,6 +379,44 @@ def AR3_20(args, rng) -> develop.HMM:
     ]
 
     return loop(n_states, y_model, y_data, rng)
+
+
+@register
+def masked3_300(args, rng) -> develop.HMM:
+    """ Like AR3_300 but no bad state and bundle observations
+
+    """
+
+    assert isinstance(args.records, list)
+
+    # Define observation model and the data
+    n_forward = 10
+    p_self = 0.05
+    n_states = 300
+    ar_order = 3
+    ar_coefficients = numpy.ones((n_states, ar_order))
+    offset = numpy.ones(n_states)
+    variances = numpy.ones(n_states)
+    alpha = numpy.ones(n_states) * 1.0e2
+    beta = numpy.ones(n_states) * 1.0e2
+
+    underlying = hmm.C.AutoRegressive(
+        ar_coefficients,
+        offset,
+        variances,
+        rng,
+        alpha=alpha,
+        beta=beta)
+    # Allowing state[0:n_forward] only when peak is detected should
+    # force one cycle through states for each detected peak.
+    y_model = hmm.base.ObservationWithBundles(underlying, {0:numpy.arange(n_forward), 1:numpy.arange(n_forward,n_states)}, rng)
+
+    a01_masked_data = utilities.read_masked_ecg("a01", args)
+    n_minute = 60*100
+    # 25*60*100 = 1.5e5
+    y_data = [a01_masked_data[75*n_minute:100*n_minute]]
+
+    return circulant(n_states, y_model, y_data, rng, n_forward=n_forward,p_self=p_self)
 
 
 @register

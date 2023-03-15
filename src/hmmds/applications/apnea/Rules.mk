@@ -75,6 +75,16 @@ ${MODELS}/initial_%: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(Apne
 ${MODELS}/p1model_%: $(ApneaCode)/apnea_train.py ${MODELS}/initial_%
 	python $< --iterations 5 --root ${ROOT} $* $(word 2,$^) $@
 
+$(ECG)/masked/initial: model_init.py
+	mkdir -p  $(@D)
+	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 -- masked3_300 $@
+$(ECG)/masked/masked_trained: $(ApneaCode)/train.py $(ECG)/masked/initial
+	python $< --iterations 100 --records a01 --type Masked $(ECG)/masked/initial $@ > masked.log
+$(ECG)/masked/unmasked_hmm: $(ApneaCode)/declass.py $(ECG)/masked/masked_trained
+	python $^ $@
+$(ECG)/masked/unmasked_trained: $(ApneaCode)/train.py $(ECG)/masked/unmasked_hmm
+	python $< --iterations 20 --records a01 --type AR3_300 $(ECG)/masked/unmasked_hmm $@ > unmasked.log
+
 .PRECIOUS: $(ECG)/%/initial $(ECG)/%/trained_a01
 # ECG models in $(ECG).  Each family has root name, eg, AR1k20
 $(ECG)/%/initial:  $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(ApneaCode)/observation.py $(RESPIRE)/flag $(LPHR)/flag

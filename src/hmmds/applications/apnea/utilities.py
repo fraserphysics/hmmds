@@ -2,12 +2,12 @@ from __future__ import annotations  # Enables, eg, (self: Pass1Item,
 
 import sys
 import os
-import glob
 import typing
 import pickle
 import argparse
 
 import numpy
+import scipy.signal
 
 import hmm.base
 
@@ -277,6 +277,23 @@ def list_heart_rate_respiration_data(names: list, args) -> list:
     return return_list
 
 
+def read_ecg(path):
+    with open(path, 'rb') as _file:
+        return pickle.load(_file)['raw']
+
+def read_masked_ecg(name: str, args) -> hmm.base.Bundle_segment:
+    """Read ecg data, and return data with qrs peaks tagged and model.
+
+    Peaks are class 0 all other samples are class 1.  Tagging is tuned
+    for a01.
+
+    """
+    ecg = read_ecg(os.path.join(args.rtimes, name + '.ecg'))
+    _class = numpy.ones(len(ecg), dtype=int)
+    peaks, _ = scipy.signal.find_peaks(ecg, height=0.7, distance=40)
+    _class[peaks] = 0
+    return hmm.base.BundleSegment(_class, ecg)
+
 def heart_rate_respiration_bundle_data(name: str,
                                        args) -> hmm.base.Bundle_segment:
 
@@ -337,6 +354,11 @@ def main(argv=None):
     args = parse_args(argv)
     for key, value in args.__dict__.items():
         print(f'{key}: {value}')
+
+    print(f"{args.root=} {args.rtimes=}")
+    bundle = read_masked_ecg('a01', args)
+    print(f"{type(bundle)=}")
+    print(f"{bundle[0:5].bundles=}")
     return 0
 
 

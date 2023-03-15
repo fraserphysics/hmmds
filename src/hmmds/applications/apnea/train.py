@@ -18,6 +18,7 @@ import hmm.base
 import hmmds.applications.apnea.utilities
 import hmmds.applications.apnea.observation
 import develop
+import utilities
 
 
 def parse_args(argv):
@@ -43,7 +44,7 @@ def read_ecg(path):
         return pickle.load(_file)['raw']
 
 TYPES = {}  # Is populated by @register decorated functions.  The keys
-# are function names, and the values are functions
+# are function names, and the values are functions for reading data.
 
 def register(func):
     """Decorator that puts function in TYPES dictionary"""
@@ -78,6 +79,22 @@ def AR3_(args) -> develop.HMM:
     return result
 
 @register
+def Masked(args):
+    """Read a01 apply mask and return a 32 minute subset broken into
+    16 intervals
+
+    """
+    n_minute = 60*100
+    a01_masked_data = utilities.read_masked_ecg("a01", args)
+    result = []
+    for start_minute in range(75, 107 ,2):
+        start = start_minute * n_minute
+        stop = (start_minute+2) * n_minute
+        print(f"{start=} {a01_masked_data.bundles[start:start+10]=}")
+        result.append(a01_masked_data[start:stop])
+    return result
+
+@register
 def AR3A_(args) -> develop.HMM:
     """A model for raw ecg data
     """
@@ -93,6 +110,7 @@ def main(argv=None):
 
     with open(args.input, 'rb') as _file:
         _hmm = pickle.load(_file)
+
 
     # Use the registered function to read the training data
     data = TYPES[(args.type).rstrip('0123456789')](args)

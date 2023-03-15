@@ -15,6 +15,7 @@ import pyqtgraph
 import numpy
 import numpy.linalg
 import scipy.optimize
+import scipy.signal
 import pint
 
 import hmm.C
@@ -149,6 +150,13 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                     symbolSize=15,
                     symbolBrush=('b'),
                     name='qrs',
+                ),
+                ecg_plot.plot(
+                    pen=None,
+                    symbol='x',
+                    symbolSize=15,
+                    symbolBrush=('r'),
+                    name='peaks',
                 )
             ]
         }
@@ -256,7 +264,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         indices = numpy.searchsorted(
             ecg_times.to('seconds').magnitude,
             rtimes.to('seconds').magnitude)
-        self.ecg_dict['signals'] = [(ecg_times, ecg), (rtimes, ecg[indices])]
+        peaks, properties = scipy.signal.find_peaks(ecg, height=0.7, distance=40)
+        self.ecg_dict['signals'] = [(ecg_times, ecg), (rtimes, ecg[indices]), (ecg_times[peaks], ecg[peaks])]
         self.plot_window(**self.ecg_dict)
 
     def viterbi(self):
