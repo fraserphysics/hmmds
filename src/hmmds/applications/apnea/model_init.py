@@ -328,6 +328,65 @@ def circulant(n_states, y_model, y_data, rng, n_forward=10, p_self=0):
 
     return model
 
+class State:
+    """For defining HMM graph
+
+    Args:
+        successors: List of names (dict keys) of successor states
+        probabilities: List of float probabilities for successors
+        times: List of inetger times
+        bundle: Integer class
+    """
+    def __init__(self, successors, probabilities, bundle):
+        self.successors = successors
+        self.probabilities = probabilities
+        self.bundle = bundle
+
+
+def dict2hmm(state_dict, underlying_y_model, y_data, rng):
+    """Translate definition based on dict to HMM
+
+    Args:
+        state_dict: state_dict[state_name] is a State instance
+        y_model:
+        y_data: A single hmm.base.BundleSegment
+        rng: A random number generator
+    """
+
+    n_states = len(state_dict)
+    n_times = len(y_data)
+    bundle2state = {}
+    p_state_initial = numpy.ones(n_states)/n_states
+    p_state_time_average = numpy.ones(n_states)/n_states
+    p_state2state = hmm.simple.Prob(numpy.zeros((n_states, n_states)))
+
+    name2index = {}
+    index2name = []
+    for index, name in enumerate(state_dict.keys()):
+        name2index[name] = index
+        index2name.append(name)
+
+    for name, state in state_dict.items():
+        index = name2index[name]
+        for successor, probability in zip(state.successors, state.probabilities):
+            p_state2state[index, name2index[successor]] = probability
+        if state.bundle in bundle2state:
+            bundle2state[state.bundle].append(index)
+        else:
+            bundle2state[state.bundle] = [index]
+
+    p_state2state.normalize()
+
+    y_model = hmm.base.ObservationWithBundles(underlying_y_model, bundle2state, rng)
+
+    y_model.observe(y_data)
+    weights = hmm.simple.Prob(y_model.calculate()).normalize()
+    y_model.reestimate(weights)
+
+    # Create and return the hmm
+    return hmm.C.HMM(p_state_initial, p_state_time_average, p_state2state,
+                      y_model, rng)
+
 MODELS = {}  # Is populated by @register decorated functions.  The keys
 # are function names, and the values are functions
 
@@ -379,6 +438,58 @@ def AR3_20(args, rng) -> develop.HMM:
     ]
 
     return loop(n_states, y_model, y_data, rng)
+
+
+@register
+def masked_dict(args, rng):
+
+    n_before = 18 # Fast states before peak
+    n_after = 30 # Fast states after peak
+    n_slow = 3 # Slow states with transitions to themselves
+
+    state_dict = {}
+    # Define slow states with transitions to themselves
+    for i in range(n_slow-1):
+        state_dict[f'slow_{i}'] = State(
+            [f'slow_{i}', f'slow_{i+1}'],
+            [.5, .5],
+            0)
+    state_dict[f'slow_{n_slow-1}'] = State([-n_before], [1.0], 0)
+
+    # Define fast states that only have forward transitions
+    for t in range(-n_before, n_after):
+        state_dict[t] = State([t+1], [1.0], t + n_before + 1)
+    # Close loop
+    state_dict[n_after] = State(['slow_0'], [1.0], n_after + n_before +1)
+
+    n_states= len(state_dict)
+    ar_order = 3
+    ar_coefficients = numpy.ones((n_states, ar_order))
+    offset = numpy.ones(n_states)
+    variances = numpy.ones(n_states)
+    # I think right variance is between .05 and .001, and there are
+    # about 50,000 samples per state in a01
+    alpha = numpy.ones(n_states) * 1.0e3
+    beta = numpy.ones(n_states) * 1.0e2
+
+    underlying = hmm.C.AutoRegressive(
+        ar_coefficients,
+        offset,
+        variances,
+        rng,
+        alpha=alpha,
+        beta=beta)
+
+    return dict2hmm(
+        state_dict,
+        underlying,
+        [utilities.read_tagged_ecg("a01", args, n_before, n_after)],
+        rng)
+
+    keys = list(state_dict.keys())
+    for key in keys:
+        print(f"state_dict[{key}].successors={state_dict[key].successors} bundle={state_dict[key].bundle}")
+    sys.exit(0)
 
 
 @register

@@ -294,6 +294,26 @@ def read_masked_ecg(name: str, args) -> hmm.base.Bundle_segment:
     _class[peaks] = 0
     return hmm.base.BundleSegment(_class, ecg)
 
+def read_tagged_ecg(name: str, args, n_before, n_after) -> hmm.base.Bundle_segment:
+    """Read ecg data and find R peaks.  Create a BundleSegment with
+    tags for the region around each peak.
+
+    """
+    ecg = read_ecg(os.path.join(args.rtimes, name + '.ecg'))
+    classes = numpy.zeros(len(ecg), dtype=int)
+    peaks, _ = scipy.signal.find_peaks(ecg, height=0.7, distance=40)
+    tags = numpy.arange(2 + n_before + n_after, dtype=int)
+    last_stop = 0
+    for peak in peaks:
+        start = peak-n_before
+        stop = peak+n_after+2
+        # Don't tag segments that overlap each other or the ends of
+        # the data.
+        if start >= last_stop and stop <= len(ecg):
+            classes[start:stop] = tags
+            last_stop = stop
+    return hmm.base.BundleSegment(classes, ecg)
+
 def heart_rate_respiration_bundle_data(name: str,
                                        args) -> hmm.base.Bundle_segment:
 
@@ -357,7 +377,7 @@ def main(argv=None):
 
     print(f"{args.root=} {args.rtimes=}")
     bundle = read_masked_ecg('a01', args)
-    print(f"{type(bundle)=}")
+    print(f"{len(bundle)=}")
     print(f"{bundle[0:5].bundles=}")
     return 0
 

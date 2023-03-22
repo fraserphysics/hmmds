@@ -37,12 +37,6 @@ def parse_args(argv):
     hmmds.applications.apnea.utilities.join_common(args)
     return args
 
-
-# ToDo: Put this in utilities?
-def read_ecg(path):
-    with open(path, 'rb') as _file:
-        return pickle.load(_file)['raw']
-
 TYPES = {}  # Is populated by @register decorated functions.  The keys
 # are function names, and the values are functions for reading data.
 
@@ -59,24 +53,45 @@ def AR1k(args) -> develop.HMM:
 
     # Read the records
     paths = [os.path.join(args.rtimes, f'{name}.ecg') for name in args.records]
-    return [read_ecg(path) for path in paths]
+    return [utilities.read_ecg(path) for path in paths]
 
+def segment(data):
+    """Break ECG data into 15 minute segments for parallel processing
+
+    """
+
+    f_pm = 60 * 100  # Samples per minute
+    minutes_per_segment = 15
+    samples_per_segment = minutes_per_segment * f_pm
+
+    result = []
+    for n_start in range(0, len(data), samples_per_segment):
+        n_stop = n_start + samples_per_segment
+        result.append(data[n_start:n_stop])
+    return result
+
+    
 @register
 def AR3_(args) -> develop.HMM:
     """Read raw ecg data for hmms with AR3_ output models.  Sample
-    data with segments a half hour apart to enable parallel training.
+    data with 15 minute segments to enable parallel training.
 
     """
-    period = 10*60*100  # 100 samples per second
-    interval = period//10  # Length of each segment
     paths = [os.path.join(args.rtimes, f'{name}.ecg') for name in args.records]
     result = []
     for path in paths:
-        data = read_ecg(path)
-        for start in range(0,int(len(data)),period):
-            stop = min(start+interval, len(data))
-            result.append(data[start:stop])
+        result.extend(segment(utilities.read_ecg(path)))
     return result
+
+@register
+def Dict(args):
+    """Read a01, create classes, and return 32 subsets of 15 minute intervals.
+
+    """
+    n_before = 18  # Number of samples before peak
+    n_after = 30  # Number of samples after peak
+    a01_tagged = utilities.read_tagged_ecg("a01", args, n_before, n_after)
+    return segment(a01_tagged)
 
 @register
 def Masked(args):
@@ -84,12 +99,12 @@ def Masked(args):
     16 intervals
 
     """
-    n_minute = 60*100
+    samples_per_minute = 60*100
     a01_masked_data = utilities.read_masked_ecg("a01", args)
     result = []
     for start_minute in range(75, 107 ,2):
-        start = start_minute * n_minute
-        stop = (start_minute+2) * n_minute
+        start = start_minute * samples_per_minute
+        stop = (start_minute+2) * samples_per_minute
         print(f"{start=} {a01_masked_data.bundles[start:start+10]=}")
         result.append(a01_masked_data[start:stop])
     return result
