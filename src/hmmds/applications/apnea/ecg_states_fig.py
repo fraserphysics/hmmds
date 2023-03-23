@@ -19,6 +19,7 @@ import plotscripts.utilities
 
 PINT = pint.UnitRegistry()
 
+
 def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
@@ -33,6 +34,7 @@ def parse_args(argv):
     parser.add_argument('t_stop', type=float, help="Time in minutes")
     parser.add_argument('fig_path', type=str, help="path to figure")
     return parser.parse_args(argv)
+
 
 def main(argv=None):
     """Make time series picture with ecg and state data.
@@ -52,7 +54,8 @@ def main(argv=None):
     t_start = args.t_start * PINT('minutes')
     t_stop = args.t_stop * PINT('minutes')
 
-    n_start, n_stop = numpy.searchsorted(ecg_times.to('minutes').magnitude, (args.t_start, args.t_stop))
+    n_start, n_stop = numpy.searchsorted(
+        ecg_times.to('minutes').magnitude, (args.t_start, args.t_stop))
 
     fig, (ecg_axes, states_axes) = pyplot.subplots(nrows=2, figsize=(6, 8))
 

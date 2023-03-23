@@ -221,7 +221,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         pass  # No action
 
     def new_ecg_hmm(self):
-        path = [self.root_box.text()] + 'build derived_data apnea models ECG'.split()
+        path = [self.root_box.text()
+               ] + 'build derived_data apnea models ECG'.split()
         file_name = self.open_file_dialog(os.path.join(*path))
         self.ecg_hmm_box.setText(file_name)
 
@@ -264,8 +265,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         indices = numpy.searchsorted(
             ecg_times.to('seconds').magnitude,
             rtimes.to('seconds').magnitude)
-        peaks, properties = scipy.signal.find_peaks(ecg, height=0.7, distance=40)
-        self.ecg_dict['signals'] = [(ecg_times, ecg), (rtimes, ecg[indices]), (ecg_times[peaks], ecg[peaks])]
+        peaks, properties = scipy.signal.find_peaks(ecg,
+                                                    height=0.7,
+                                                    distance=40)
+        self.ecg_dict['signals'] = [(ecg_times, ecg), (rtimes, ecg[indices]),
+                                    (ecg_times[peaks], ecg[peaks])]
         self.plot_window(**self.ecg_dict)
 
     def viterbi(self):

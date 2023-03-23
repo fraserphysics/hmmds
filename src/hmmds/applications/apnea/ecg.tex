@@ -51,98 +51,53 @@ which in the reestimation formula
 gives $\sigma^2 \approx 10^{12}$ if there is not much data.  I arrived
 at those values by trial and error.
 
-Since lead noise can start abruptly at any time, I allow transitions
+Since lead noise can start abruptly at any time, I allow
+transitions\footnote{As of 2023-03-22 I am not using bad states.}
 between the bad state and every other state.  It's important to ensure
 that those transitions are infrequent.  The high variance makes the
 likelihood for the bad state small.
 
-\section{A Monotonic Model with 21 States}
+\section{A Model with a 49 State Chain}
 \label{sec:mono20}
 
-I've built HMMs with 20 normal states and 1 bad state.  Each normal
-state has transitions to and from the bad state.  Otherwise the only
-transitions are from a normal state to itself and to its successor.
-The successor of state 19 is state 0, so the normal states progress
-monotonically around a loop.
-
-My first output model was Gaussian with the mean for state $s$ given
-in terms of the mean and rms deviation of the previous thousand
-observations, the previous observation and a fixed offset, with
-\begin{align*}
-  s &= \sqrt{\frac{\sum_{\tau=1,000}^{\tau=1} y[t-\tau]^2}{1,000}} \\
-  m &=  \frac{\sum_{\tau=1,000}^{\tau=1} y[t-\tau]}{1,000} \\
-  \mu[t,i](y[:t]) &= a[i,0] \cdot s + a[i,1] \cdot m + a[i,2] \cdot
-  y[t-1] + a[i,3]
-\end{align*}
-
-Viterbi decoding with such a model after training for 20 iterations on
-record \emph{a01} yields Figure~\ref{fig:modelAR1k20}
+After trying many state topologies, I found that an HMM with a chain
+of states that matches the ECG sequence PQRST with a fixed
+duration\footnote{Each state in the chain has a single successor.}
+works for record a01 if it is trained on that record.  Viterbi
+decoding with the model after training for 50 iterations on record
+\emph{a01} yields Figures~\ref{fig:dict_states_70} and
+\ref{fig:dict_states_71}.  Note that the segments in the two figures
+have the same duration, 0.04 minutes or 2.4 seconds, and that they are
+separated by 10.5 seconds.  The doubling of the patient's heart rate
+reflects an apnea cycle.  The HMM tracks the changing heart rate
+without missing or inserting beats.
 
 \begin{figure}
   \centering
-    \resizebox{0.7\textwidth}{!}{\includegraphics{modelAR1k20.pdf}}
-    \caption{Performance of an HMM with 20 normal states with an
-      output model that uses the previous 1,000 observations to
-      characterize the mean and variance of the signal.  An ECG trace
-      appears in the upper plot, while the decoded state sequence
-      appears in the lower plot.  The model was fit using 30
-      iterations of the Baum Welch algorithm.}
-  \label{fig:modelAR1k20}
-\end{figure}
-
-A simple linear auto-regressive model with
-\begin{equation*}
-  \mu[t,i] = a[i,0] \cdot y[t-1] + a[i,1] \cdot y[t-2] + a[i,2] \cdot
-  y[t-2]  + a[i,3]
-\end{equation*}
-similarly yields Figure~\ref{fig:modelAR3_20}.
-
-\begin{figure}
-  \centering
-    \resizebox{0.7\textwidth}{!}{\includegraphics{modelAR3_20.pdf}}
-    \caption{Model for this figure differs from the one used for
-      Fig.~\ref{fig:modelAR1k20} by using an affine function of only
-      the three previous samples to calculate the forecast mean.  The
-      model has 20 states.}
-  \label{fig:modelAR3_20}
+    \resizebox{0.7\textwidth}{!}{\includegraphics{dict_states_70.pdf}}
+    \caption{Performance of the HMM with a single chain of 49 states
+      trained to model PRQST sequences.  An short segment of the ECG
+      signal appears in the upper plot, while the corresponding
+      decoded state sequence appears in the lower plot.  The model was
+      fit using 50 iterations of the Baum Welch algorithm.}
+  \label{fig:dict_states_70}
 \end{figure}
 
 \begin{figure}
   \centering
-    \resizebox{0.7\textwidth}{!}{\includegraphics{modelAR3_300.pdf}}
-    \caption{The model for this figure has 301 states.  The states
-      progress in a cycle of states from 0 to 299 strictly
-      monotonically.  State 300 is reserved for atypical data.}
-  \label{fig:modelAR3_300}
-\end{figure}
-
-\begin{figure}
-  \centering
-    \resizebox{0.7\textwidth}{!}{\includegraphics{modelAR3_300_double.pdf}}
-    \caption{This figure displays a later segment of the data.  It is
-      based on the same model as Fig.~\ref{fig:modelAR3_300}.  The time
-      between beats corresponds to a pulse of less than 50 bpm, and the
-      model looses synchronization and puts in extra beats.  The stock
-      analyzer also puts in extra beats when the heart rate drops
-      below 40 bpm.}
-  \label{fig:modelAR3_300_double}
-\end{figure}
-
-\begin{figure}
-  \centering
-    \resizebox{0.7\textwidth}{!}{\includegraphics{modelAR3A_300_double.pdf}}
-    \caption{This model is like the one for
-      Fig.~\ref{fig:modelAR3_300_double} but there are transitions
-      from each normal state to itself.  The model doesn't insert
-      extra beats, but it does use state 300 for data that seems
-      typical.}
-  \label{fig:modelAR3A_300_double}
+    \resizebox{0.7\textwidth}{!}{\includegraphics{dict_states_71.pdf}}
+    \caption{Performance of the same model used for
+      Fig.~\ref{fig:dict_states_70}, but looking at a different
+      segment of the data.}
+    \label{fig:dict_states_71}
 \end{figure}
 
 \section{To Do}
 \label{sec:todo}
 
 \begin{itemize}
+\item See if parallel PQRST chains let me relax the prior of the
+  observation model.
 \item Plots to show data from \emph{a01} and \emph{c01}
 \end{itemize}
 \section{Times}

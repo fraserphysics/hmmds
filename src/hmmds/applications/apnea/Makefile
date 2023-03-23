@@ -17,24 +17,15 @@ $(ApneaDerivedData)/pass1_report.pickle:
 include Rules.mk
 # Rules.mk defines RAW_DATA EXPERT LPHR RESPIRE RTIMES MODELS
 
-modelAR1k20.pdf: ecg_states_fig.py $(ECG)/AR1k20/states_a01
-	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/AR1k20/states_a01 70.1 70.14 $@
+%_states_71.pdf: ecg_states_fig.py $(ECG)/%/states
+	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/$*/states 71.1 71.14 $@
 
-modelAR3_20.pdf: ecg_states_fig.py $(ECG)/AR3_20/states_a01
-	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/AR3_20/states_a01 70.1 70.14 $@
-
-modelAR3_300.pdf: ecg_states_fig.py $(ECG)/AR3_300/states_a01
-	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/AR3_300/states_a01 70.1 70.14 $@
-
-modelAR3_300_double.pdf: ecg_states_fig.py $(ECG)/AR3_300/states_a01
-	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/AR3_300/states_a01 216.83 216.93 $@
-
-modelAR3A_300_double.pdf: ecg_states_fig.py $(ECG)/AR3A_300/states_a01
-	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/AR3A_300/states_a01 216.83 216.93 $@
+%_states_70.pdf: ecg_states_fig.py $(ECG)/%/states
+	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/$*/states 70.785 70.825 $@
 
 ${DATA}/score_report:
 
-ECG_FIGS = modelAR1k20.pdf modelAR3_20.pdf modelAR3_300.pdf modelAR3_300_double.pdf modelAR3A_300_double.pdf
+ECG_FIGS = dict_states_70.pdf dict_states_71.pdf 
 
 ecg.pdf: ecg.tex $(ECG_FIGS)
 	pdflatex $<

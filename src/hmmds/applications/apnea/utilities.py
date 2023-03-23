@@ -281,6 +281,7 @@ def read_ecg(path):
     with open(path, 'rb') as _file:
         return pickle.load(_file)['raw']
 
+
 def read_masked_ecg(name: str, args) -> hmm.base.Bundle_segment:
     """Read ecg data, and return data with qrs peaks tagged and model.
 
@@ -294,7 +295,9 @@ def read_masked_ecg(name: str, args) -> hmm.base.Bundle_segment:
     _class[peaks] = 0
     return hmm.base.BundleSegment(_class, ecg)
 
-def read_tagged_ecg(name: str, args, n_before, n_after) -> hmm.base.Bundle_segment:
+
+def read_tagged_ecg(name: str, args, n_before,
+                    n_after) -> hmm.base.Bundle_segment:
     """Read ecg data and find R peaks.  Create a BundleSegment with
     tags for the region around each peak.
 
@@ -305,14 +308,15 @@ def read_tagged_ecg(name: str, args, n_before, n_after) -> hmm.base.Bundle_segme
     tags = numpy.arange(2 + n_before + n_after, dtype=int)
     last_stop = 0
     for peak in peaks:
-        start = peak-n_before
-        stop = peak+n_after+2
+        start = peak - n_before
+        stop = peak + n_after + 2
         # Don't tag segments that overlap each other or the ends of
         # the data.
         if start >= last_stop and stop <= len(ecg):
             classes[start:stop] = tags
             last_stop = stop
     return hmm.base.BundleSegment(classes, ecg)
+
 
 def heart_rate_respiration_bundle_data(name: str,
                                        args) -> hmm.base.Bundle_segment:
