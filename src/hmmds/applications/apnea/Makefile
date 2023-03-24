@@ -25,7 +25,7 @@ include Rules.mk
 
 ${DATA}/score_report:
 
-ECG_FIGS = dict_states_70.pdf dict_states_71.pdf 
+ECG_FIGS = dict_3_2_states_70.pdf dict_3_2_states_71.pdf dict_2_0_states_70.pdf dict_2_0_states_71.pdf 
 
 ecg.pdf: ecg.tex $(ECG_FIGS)
 	pdflatex $<

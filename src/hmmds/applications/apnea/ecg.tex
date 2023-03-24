@@ -12,6 +12,7 @@
 \newcommand{\id}{\mathbb{I}}
 \newcommand{\variance}[1]{\field{V}\left[ #1 \right]}
 \newcommand{\normal}[2]{{\cal N}\left(#1,#2 \right)}
+\newcommand{\argmax}{\operatorname*{argmax}}
 
 \title{HMMs for ECGs}
 \author{Andrew M.\ Fraser}
@@ -74,7 +75,7 @@ without missing or inserting beats.
 
 \begin{figure}
   \centering
-    \resizebox{0.7\textwidth}{!}{\includegraphics{dict_states_70.pdf}}
+    \resizebox{0.7\textwidth}{!}{\includegraphics{dict_3_2_states_70.pdf}}
     \caption{Performance of the HMM with a single chain of 49 states
       trained to model PRQST sequences.  An short segment of the ECG
       signal appears in the upper plot, while the corresponding
@@ -85,12 +86,61 @@ without missing or inserting beats.
 
 \begin{figure}
   \centering
-    \resizebox{0.7\textwidth}{!}{\includegraphics{dict_states_71.pdf}}
-    \caption{Performance of the same model used for
-      Fig.~\ref{fig:dict_states_70}, but looking at a different
-      segment of the data.}
-    \label{fig:dict_states_71}
+  \resizebox{0.7\textwidth}{!}{\includegraphics{dict_3_2_states_71.pdf}}
+  \caption{Performance of the same model used for
+    Fig.~\ref{fig:dict_states_70}, but looking at a different
+    segment of the data.}
+  \label{fig:dict_states_71}
 \end{figure}
+
+\subsection{Awkward Prior}
+\label{sec:awkward}
+
+I used inverse gamma priors with hyper-parameters $\alpha=10^3$ and
+$\beta=10^2$ for observation models in generating
+Figs.~\ref{fig:dict_states_70} and \ref{fig:dict_states_71}.  Those
+values kept the variances of the observation models larger than they
+would be otherwise.  Allowing smaller variances with $\alpha=10^2$ and
+$\beta=1.0$ yields Figs.~\ref{fig:bad_dict_70} and
+\ref{fig:bad_dict_71}.
+
+\begin{figure}
+  \centering
+    \resizebox{0.7\textwidth}{!}{\includegraphics{dict_2_0_states_70.pdf}}
+    \caption{Like Fig.~\ref{fig:dict_states_70}, but with less
+      constraining prior.}
+  \label{fig:bad_dict_70}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \resizebox{0.7\textwidth}{!}{\includegraphics{dict_2_0_states_71.pdf}}
+  \caption{Like Fig.~\ref{fig:dict_states_71}, but with less
+    constraining prior.}
+  \label{fig:bad_dict_71}
+\end{figure}
+
+\section{Quadratic Fit to Peak}
+\label{sec:quadratic}
+
+Here I find an estimate of the location of a peak based data sampled
+periodically.  I fit a quadratic function to a local maximum and its
+two neighbors.  WLOG the (x,y) sample pairs are $[(-d,a), (0,b),
+(d,c)]$, and the quadratic function is
+\begin{equation*}
+  y(x) = \alpha x^2 + \beta x + \gamma.
+\end{equation*}
+Some manipulation yields:
+\begin{align*}
+  \alpha &= \frac{a+c-2b}{2d^2} \\
+  \beta &= \frac{c-a}{2d} \\
+  \gamma &= b \\
+  \frac{d}{dx} y(x) &= 2x\alpha + \beta
+\end{align*}
+So the quadratic estimate of the peak location is
+\begin{equation*}
+  \argmax_x y(x) = \frac{-\beta}{2\alpha} = \frac{d(a-c)}{2(a+c-2b)}.
+\end{equation*}
 
 \section{To Do}
 \label{sec:todo}
