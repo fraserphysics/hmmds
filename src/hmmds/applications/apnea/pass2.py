@@ -123,7 +123,7 @@ def main(argv=None):
     models = {}
     for name in 'model_Low model_Medium model_High'.split():
         with open(os.path.join(args.models_dir, name), 'rb') as _file:
-            models[name] = pickle.load(_file)
+            _, models[name] = pickle.load(_file)
 
     with open(args.result, 'w') as report:
         for name in args.names:

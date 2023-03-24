@@ -33,6 +33,23 @@ def parse_args(argv):
     parser = argparse.ArgumentParser("Create and write/pickle an initial model")
     hmmds.applications.apnea.utilities.common_arguments(parser)
     # args.records is None if --records is not on command line
+    parser.add_argument("--alpha", type=float, default=100,
+                        help="denominator term of prior for variance")
+    parser.add_argument("--beta", type=float, default=10,
+                        help="numerator term of prior for variance")
+    parser.add_argument('--tag_ecg',
+                        action='store_true',
+                        help="Block tagging in utilities.read_ecgs()")
+    parser.add_argument('--AR_order',
+                        type=int,
+                        default=3,
+                        help="Number of previous values for prediction.")
+    parser.add_argument('--before_after_slow',
+                        nargs=3,
+                        type=int,
+                        default=(18, 30, 3),
+                        help="Number of transient states before and after R in ECG, and number of slow states.")
+
     parser.add_argument('--records',
                         type=str,
                         nargs='+',
@@ -295,16 +312,15 @@ def test(args, rng):
 @register
 def masked_dict(args, rng):
 
-    n_before = 18  # Fast states before peak
-    n_after = 30  # Fast states after peak
-    n_slow = 3  # Slow states with transitions to themselves
+    n_before, n_after, n_slow = args.before_after_slow
+    slow_class = 0
 
     state_dict = {}
     # Define slow states with transitions to themselves
     for i in range(n_slow - 1):
         state_dict[f'slow_{i}'] = State([f'slow_{i}', f'slow_{i+1}'], [.5, .5],
-                                        0)
-    state_dict[f'slow_{n_slow-1}'] = State([-n_before], [1.0], 0)
+                                        slow_class)
+    state_dict[f'slow_{n_slow-1}'] = State([-n_before], [1.0], slow_class)
 
     # Define fast states that only have forward transitions
     for t in range(-n_before, n_after):
@@ -313,14 +329,72 @@ def masked_dict(args, rng):
     state_dict[n_after] = State(['slow_0'], [1.0], n_after + n_before + 1)
 
     n_states = len(state_dict)
+    ar_coefficients = numpy.ones((n_states, args.AR_order))
+    offset = numpy.ones(n_states)
+    variances = numpy.ones(n_states)
+    # I think right variance is between .05 and .001, and there are
+    # about 50,000 samples per state in a01
+
+    underlying = hmm.C.AutoRegressive(ar_coefficients,
+                                      offset,
+                                      variances,
+                                      rng,
+                                      alpha=numpy.ones(n_states) * args.alpha,
+                                      beta=numpy.ones(n_states) * args.beta)
+
+    return dict2hmm(state_dict, underlying, utilities.read_ecgs(args), rng)
+
+    keys = list(state_dict.keys())
+    for key in keys:
+        print(
+            f"state_dict[{key}].successors={state_dict[key].successors} bundle={state_dict[key].bundle}"
+        )
+    sys.exit(0)
+
+@register
+def masked_dict2(args, rng):
+    """Differs from masked_dict in having parallel PQRST chains.
+
+    """
+
+    n_before = 18  # Fast states before peak
+    n_after = 30  # Fast states after peak
+    n_chain = n_before + n_after + 1
+    n_slow = 3  # Slow states with transitions to themselves
+    slow_class = 0
+
+    state_dict = {}
+    # Define slow states with transitions to themselves
+    for i in range(n_slow - 1):
+        state_dict[f'slow_{i}'] = State([f'slow_{i}', f'slow_{i+1}'], [.5, .5],
+                                        slow_class)
+    successors = [3 * shift * n_chain - n_before for shift in (-1, 0, 1)]
+    probabilities = numpy.ones(3)/3
+    state_dict[f'slow_{n_slow-1}'] = State(successors, probabilities, slow_class)
+
+    # Define fast states that only have forward transitions
+    for shift in (-1, 0, 1):
+        for t_ in range(-n_before, n_after):
+            t = t_ + 3 * shift * n_chain
+            successors = [t+1]
+            probabilities = [1.0]
+            _class = t_ + n_before + 1 + shift
+            if _class < 0 or _class > n_before + n_after + 1:
+                _class = slow_class
+            state_dict[t] = State(successors, probabilities, _class)
+        # Close loop
+        t = n_after + 3 * shift * n_chain
+        state_dict[t] = State(['slow_0'], [1.0], n_chain + 1)
+
+    n_states = len(state_dict)
     ar_order = 3
     ar_coefficients = numpy.ones((n_states, ar_order))
     offset = numpy.ones(n_states)
     variances = numpy.ones(n_states)
     # I think right variance is between .05 and .001, and there are
     # about 50,000 samples per state in a01
-    alpha = numpy.ones(n_states) * 1.0e3
-    beta = numpy.ones(n_states) * 1.0e2
+    alpha = numpy.ones(n_states) * args.alpha
+    beta = numpy.ones(n_states) * args.beta
 
     underlying = hmm.C.AutoRegressive(ar_coefficients,
                                       offset,
@@ -330,7 +404,7 @@ def masked_dict(args, rng):
                                       beta=beta)
 
     return dict2hmm(state_dict, underlying,
-                    [utilities.read_tagged_ecg("a01", args, n_before, n_after)],
+                    utilities.read_ecgs(args),
                     rng)
 
     keys = list(state_dict.keys())
@@ -339,51 +413,6 @@ def masked_dict(args, rng):
             f"state_dict[{key}].successors={state_dict[key].successors} bundle={state_dict[key].bundle}"
         )
     sys.exit(0)
-
-
-@register
-def masked3_300(args, rng) -> develop.HMM:
-    """ Like AR3_300 but no bad state and bundle observations
-
-    """
-
-    assert isinstance(args.records, list)
-
-    # Define observation model and the data
-    n_forward = 10
-    p_self = 0.05
-    n_states = 300
-    ar_order = 3
-    ar_coefficients = numpy.ones((n_states, ar_order))
-    offset = numpy.ones(n_states)
-    variances = numpy.ones(n_states)
-    alpha = numpy.ones(n_states) * 1.0e2
-    beta = numpy.ones(n_states) * 1.0e2
-
-    underlying = hmm.C.AutoRegressive(ar_coefficients,
-                                      offset,
-                                      variances,
-                                      rng,
-                                      alpha=alpha,
-                                      beta=beta)
-    # Allowing state[0:n_forward] only when peak is detected should
-    # force one cycle through states for each detected peak.
-    y_model = hmm.base.ObservationWithBundles(underlying, {
-        0: numpy.arange(n_forward),
-        1: numpy.arange(n_forward, n_states)
-    }, rng)
-
-    a01_masked_data = utilities.read_masked_ecg("a01", args)
-    n_minute = 60 * 100
-    # 25*60*100 = 1.5e5
-    y_data = [a01_masked_data[75 * n_minute:100 * n_minute]]
-
-    return circulant(n_states,
-                     y_model,
-                     y_data,
-                     rng,
-                     n_forward=n_forward,
-                     p_self=p_self)
 
 
 @register
@@ -645,7 +674,7 @@ def main(argv=None):
 
     model.strip()
     with open(args.write_path, 'wb') as _file:
-        pickle.dump(model, _file)
+        pickle.dump((args, model), _file)
 
     return 0
 

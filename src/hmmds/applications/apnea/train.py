@@ -66,28 +66,16 @@ def segment(data):
 
 
 @register
-def AR3_(args) -> develop.HMM:
-    """Read raw ecg data for hmms with AR3_ output models.  Sample
-    data with 15 minute segments to enable parallel training.
+def segmented(args) -> list:
+    """Read raw ecg data specified by args.  Sample data with 15
+    minute segments to enable parallel training.
 
     """
-    paths = [os.path.join(args.rtimes, f'{name}.ecg') for name in args.records]
+    data = utilities.read_ecgs(args)
     result = []
-    for path in paths:
-        result.extend(segment(utilities.read_ecg(path)))
+    for data_record in data:
+        result.extend(segment(data_record))
     return result
-
-
-@register
-def Dict(args):
-    """Read a01, create classes, and return 32 subsets of 15 minute intervals.
-
-    """
-    n_before = 18  # Number of samples before peak
-    n_after = 30  # Number of samples after peak
-    a01_tagged = utilities.read_tagged_ecg("a01", args, n_before, n_after)
-    return segment(a01_tagged)
-
 
 def main(argv=None):
     """
@@ -98,16 +86,16 @@ def main(argv=None):
     args = parse_args(argv)
 
     with open(args.input, 'rb') as _file:
-        _hmm = pickle.load(_file)
+        _args, _hmm = pickle.load(_file)
 
     # Use the registered function to read the training data
-    data = TYPES[(args.type).rstrip('0123456789')](args)
+    data = TYPES["segmented"](_args)  # FixMe: segmented should be in _args
 
     _hmm.multi_train(data, args.iterations)
     _hmm.strip()
 
     with open(args.output, 'wb') as _file:
-        pickle.dump(_hmm, _file)
+        pickle.dump((_args, _hmm), _file)
 
     return 0
 

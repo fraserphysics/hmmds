@@ -279,7 +279,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                             'build/derived_data/apnea/models',
                             f'{self.ecg_hmm_box.text()}')
         with open(path, 'rb') as _file:
-            hmm = pickle.load(_file)
+            _, hmm = pickle.load(_file)
         prefix = os.path.join(self.root_box.text(), 'raw_data/Rtimes',
                               f'{self.record_box.text()}')
         with open(prefix + '.ecg', 'rb') as _file:
@@ -326,10 +326,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         model_dir = os.path.join(derived_apnea_data_dir, 'models')
         with open(os.path.join(model_dir, self.model0_box.text()),
                   'rb') as _file:
-            self.model0 = pickle.load(_file)
+            _, self.model0 = pickle.load(_file)
         with open(os.path.join(model_dir, self.model1_box.text()),
                   'rb') as _file:
-            self.model1 = pickle.load(_file)
+            _, self.model1 = pickle.load(_file)
 
         class Args:
 

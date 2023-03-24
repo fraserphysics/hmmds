@@ -94,9 +94,9 @@ def make_reports(args, names: list):
 
     """
     with open(args.Amodel, 'rb') as _file:
-        apnea_model = pickle.load(_file)
+        _, apnea_model = pickle.load(_file)
     with open(args.BCmodel, 'rb') as _file:
-        normal_model = pickle.load(_file)
+        _, normal_model = pickle.load(_file)
     reports = {}
     for name in names:
         y_data = hmmds.applications.apnea.utilities.heart_rate_respiration_data(

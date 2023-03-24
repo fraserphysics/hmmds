@@ -32,13 +32,14 @@ def main(argv=None):
     args = parse_args(argv)
 
     with open(args.input, 'rb') as _file:
-        old_hmm = pickle.load(_file)
+        old_args, old_hmm = pickle.load(_file)
 
     new_y_mod = old_hmm.y_mod.underlying_model
     new_hmm = old_hmm.set_y_mod(new_y_mod)
+    old_args.tag_ecg = False
 
     with open(args.output, 'wb') as _file:
-        pickle.dump(new_hmm, _file)
+        pickle.dump((old_args, new_hmm), _file)
 
     return 0
 

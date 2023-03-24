@@ -64,7 +64,8 @@ $(RESPIRE)/flag: $(ApneaCode)/respire.py $(EXPERT) $(RTIMES)/flag
 	touch $@
 
 # The trained files are expensive to build.  Don't delete them
-.PRECIOUS: ${MODELS}/initial_% ${MODELS}/p1model_%
+.PRECIOUS: ${MODELS}/initial_% ${MODELS}/p1model_% $(ECG)/%/masked_trained \
+$(ECG)/%/unmasked_trained $(ECG)/%/unmasked_hmm
 
 # Rule for initial models
 ${MODELS}/initial_%: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(ApneaCode)/observation.py $(RESPIRE)/flag $(LPHR)/flag
@@ -75,25 +76,33 @@ ${MODELS}/initial_%: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(Apne
 ${MODELS}/p1model_%: $(ApneaCode)/apnea_train.py ${MODELS}/initial_%
 	python $< --iterations 5 --root ${ROOT} $* $(word 2,$^) $@
 
-# Time to make all from initial to unmasked_trained is 8m49.4s
-$(ECG)/dict/initial: model_init.py
+# Time to make $(ECG)/dict_3_2/states from scratch: real 9m23.888s user 82m23.335s
+$(ECG)/dict_3_2/initial: model_init.py
 	mkdir -p  $(@D)
-	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 -- masked_dict $@
-$(ECG)/dict/masked_trained: $(ApneaCode)/train.py $(ECG)/dict/initial
-	python $< --iterations 5 --records a01 --type Dict $(ECG)/dict/initial $@ >  $(ECG)/dict/masked.log
-$(ECG)/dict/unmasked_hmm: $(ApneaCode)/declass.py $(ECG)/dict/masked_trained
+	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 --tag_ecg \
+--alpha 1.0e3 --beta 1.0e2 --before_after_slow 18 30 3 --AR_order 3 masked_dict $@
+
+$(ECG)/%/masked_trained: $(ApneaCode)/train.py $(ECG)/%/initial
+	python $<  --records a01 --iterations 5 $(ECG)/$*/initial $@ >  $(ECG)/$*/masked.log
+$(ECG)/%/unmasked_hmm: $(ApneaCode)/declass.py $(ECG)/%/masked_trained
 	python $^ $@
-$(ECG)/dict/unmasked_trained: $(ApneaCode)/train.py $(ECG)/dict/unmasked_hmm
+$(ECG)/%/unmasked_trained: $(ApneaCode)/train.py $(ECG)/%/unmasked_hmm
 	rm -f $@
-	python $< --iterations 10 --records a01 --type AR3_ $(ECG)/dict/unmasked_hmm $@.10 >  $@.log
-	python $< --iterations 10 --records a01 --type AR3_ $@.10 $@.20 >>  $@.log
-	python $< --iterations 10 --records a01 --type AR3_ $@.20 $@.30 >>  $@.log
-	python $< --iterations 10 --records a01 --type AR3_ $@.30 $@.40 >>  $@.log
-	python $< --iterations 10 --records a01 --type AR3_ $@.40 $@.50 >>  $@.log
+	python $< --records a01 --iterations 10 $(@D)/unmasked_hmm $@.10 >  $@.log
+	python $< --records a01 --iterations 10 $@.10 $@.20 >>  $@.log
+	python $< --records a01 --iterations 10 $@.20 $@.30 >>  $@.log
+	python $< --records a01 --iterations 10 $@.30 $@.40 >>  $@.log
+	python $< --records a01 --iterations 10 $@.40 $@.50 >>  $@.log
 	cd $(@D); ln -s unmasked_trained.50 unmasked_trained
 
 $(ECG)/%/states: $(ApneaCode)/ecg_decode.py $(ECG)/%/unmasked_trained
 	python $^ a01 $@
+
+
+$(ECG)/dict_2_0/initial: model_init.py
+	mkdir -p  $(@D)
+	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 --tag_ecg \
+--alpha 1.0e2 --beta 1.0e0 --before_after_slow 18 30 3 --AR_order 3 masked_dict $@
 
 # Use p1model_A4 and p1model_C2 to create file with lines like: x24 # Low
 # stat= 1.454 llr= -0.603 R= 1.755.  For each line, calculate

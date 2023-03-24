@@ -38,7 +38,7 @@ def main(argv=None):
     args = parse_args(argv)
 
     with open(args.hmm, 'rb') as _file:
-        _hmm = pickle.load(_file)
+        _, _hmm = pickle.load(_file)
 
     ecg_path = os.path.join(args.rtimes, args.record + ".ecg")
     with open(ecg_path, 'rb') as _file:

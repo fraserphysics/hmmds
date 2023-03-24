@@ -96,7 +96,7 @@ def main(argv=None):
         raise RuntimeError('Unknown model_name: {0}'.format(args.model_name))
 
     with open(args.initial_path, 'rb') as _file:
-        model = pickle.load(_file)
+        _, model = pickle.load(_file)
 
     model.multi_train(y_data, args.iterations)
 
