@@ -33,9 +33,13 @@ def parse_args(argv):
     parser = argparse.ArgumentParser("Create and write/pickle an initial model")
     hmmds.applications.apnea.utilities.common_arguments(parser)
     # args.records is None if --records is not on command line
-    parser.add_argument("--alpha", type=float, default=100,
+    parser.add_argument("--alpha",
+                        type=float,
+                        default=100,
                         help="denominator term of prior for variance")
-    parser.add_argument("--beta", type=float, default=10,
+    parser.add_argument("--beta",
+                        type=float,
+                        default=10,
                         help="numerator term of prior for variance")
     parser.add_argument('--tag_ecg',
                         action='store_true',
@@ -44,11 +48,14 @@ def parse_args(argv):
                         type=int,
                         default=3,
                         help="Number of previous values for prediction.")
-    parser.add_argument('--before_after_slow',
-                        nargs=3,
-                        type=int,
-                        default=(18, 30, 3),
-                        help="Number of transient states before and after R in ECG, and number of slow states.")
+    parser.add_argument(
+        '--before_after_slow',
+        nargs=3,
+        type=int,
+        default=(18, 30, 3),
+        help=
+        "Number of transient states before and after R in ECG, and number of slow states."
+    )
 
     parser.add_argument('--records',
                         type=str,
@@ -151,7 +158,7 @@ def _make_hmm(y_model,
 
     Return: hmm initialized with data specified by names
 
-    Unsupervised, ie, no bundles. AR-4 for heart rate. 3-d
+    Unsupervised, ie, no class information. AR-4 for heart rate. 3-d
     multivariate Gaussian for respiration.
 
     """
@@ -212,6 +219,7 @@ def respiration_model(n_states, rng, dimension=3, **kwargs):
         mu, sigma, rng, **kwargs)
 
 
+# FixMe: Replace bundle with class
 def filtered_heart_rate_respiration_bundle_model(n_states,
                                                  bundle2state,
                                                  rng,
@@ -236,60 +244,57 @@ class State:
         successors: List of names (dict keys) of successor states
         probabilities: List of float probabilities for successors
         times: List of inetger times
-        bundle: Integer class
+        class_: Integer class
     """
 
-    def __init__(self, successors, probabilities, bundle):
+    def __init__(self, successors, probabilities, class_):
         self.successors = successors
         self.probabilities = probabilities
-        self.bundle = bundle
+        self.class_ = class_  # FixMe: Call this class_name?  Do they have to be ints?
 
 
-def dict2hmm(state_dict, underlying_y_model, y_data, rng):
-    """Translate definition based on dict to HMM
+def dict2hmm(state_dict, ecg_model, rng):
+    """Create HMM based on dict for supervised training
 
     Args:
         state_dict: state_dict[state_name] is a State instance
-        y_model:
-        y_data: A single hmm.base.BundleSegment
+        ecg_model: Observation model for raw ecg samples
         rng: A random number generator
+
     """
 
     n_states = len(state_dict)
-    n_times = len(y_data)
-    bundle2state = {}
+    class_name2state_index = {}
     p_state_initial = numpy.ones(n_states) / n_states
     p_state_time_average = numpy.ones(n_states) / n_states
     p_state2state = hmm.simple.Prob(numpy.zeros((n_states, n_states)))
 
-    name2index = {}
-    index2name = []
-    for index, name in enumerate(state_dict.keys()):
-        name2index[name] = index
-        index2name.append(name)
+    state_name2state_index = {}
+    for index, (name, state) in enumerate(state_dict.items()):
+        state_name2state_index[name] = index
+        if not state.class_ in class_name2state_index:
+            class_name2state_index[state.class_] = []
 
-    for name, state in state_dict.items():
-        index = name2index[name]
+    # Build p_state2state and class_name2state_index
+    for state_name, state in state_dict.items():
+        state_index = state_name2state_index[state_name]
+        class_name2state_index[state.class_].append(state_index)
         for successor, probability in zip(state.successors,
                                           state.probabilities):
-            p_state2state[index, name2index[successor]] = probability
-        if state.bundle in bundle2state:
-            bundle2state[state.bundle].append(index)
-        else:
-            bundle2state[state.bundle] = [index]
-
+            successor_index = state_name2state_index[successor]
+            p_state2state[state_index, successor_index] = probability
     p_state2state.normalize()
 
-    y_model = hmm.base.ObservationWithBundles(underlying_y_model, bundle2state,
-                                              rng)
+    class_model = hmm.base.ClassObservation(class_name2state_index)
 
-    y_model.observe(y_data)
-    weights = hmm.simple.Prob(y_model.calculate()).normalize()
-    y_model.reestimate(weights)
+    y_model = hmm.base.JointObservation({
+        "class": class_model,
+        "ecg": ecg_model
+    })
 
     # Create and return the hmm
     return hmm.C.HMM(p_state_initial, p_state_time_average, p_state2state,
-                     y_model, rng)
+                     y_model, rng), state_name2state_index
 
 
 MODELS = {}  # Is populated by @register decorated functions.  The keys
@@ -311,22 +316,42 @@ def test(args, rng):
 
 @register
 def masked_dict(args, rng):
+    """Return an hmm based on a dict specified in this function.
+
+    """
 
     n_before, n_after, n_slow = args.before_after_slow
     slow_class = 0
+    bad = "bad"
+    epsilon = 1.0e-7
 
-    state_dict = {}
-    # Define slow states with transitions to themselves
-    for i in range(n_slow - 1):
-        state_dict[f'slow_{i}'] = State([f'slow_{i}', f'slow_{i+1}'], [.5, .5],
-                                        slow_class)
-    state_dict[f'slow_{n_slow-1}'] = State([-n_before], [1.0], slow_class)
+    # The bad state is for outliers
+    bad_state = State([bad, 'slow_0'], [1.0 - epsilon, epsilon], slow_class)
+    state_dict = {bad: bad_state}
 
-    # Define fast states that only have forward transitions
+    # Define fast states.  This is fit to the PQRST sequence.  In a
+    # normal ECG, each instance of the PQRST sequence has about the
+    # same duration.  In this hmm the sequence of fast states normally
+    # progresses through one state each time step.
     for t in range(-n_before, n_after):
-        state_dict[t] = State([t + 1], [1.0], t + n_before + 1)
-    # Close loop
-    state_dict[n_after] = State(['slow_0'], [1.0], n_after + n_before + 1)
+        state_dict[t] = State(
+            [t + 1, bad],  # successors
+            [1.0 - epsilon, epsilon],  # probabilities
+            t + n_before + 1  # class
+        )
+
+    # Define slow states with transitions to themselves.  These states
+    # model the variable intervals between PARST sequences
+    for i in range(n_slow - 1):
+        state_dict[f'slow_{i}'] = State(
+            [f'slow_{i}', f'slow_{i+1}', bad],
+            [.5 - epsilon / 2, .5 - epsilon / 2, epsilon], slow_class)
+    state_dict[f'slow_{n_slow-1}'] = State([-n_before, bad],
+                                           [1.0 - epsilon, epsilon], slow_class)
+
+    # Close the loop by connecting the last fast state to the first slow state
+    state_dict[n_after] = State(['slow_0', bad], [1.0 - epsilon, epsilon],
+                                n_after + n_before + 1)
 
     n_states = len(state_dict)
     ar_coefficients = numpy.ones((n_states, args.AR_order))
@@ -335,14 +360,28 @@ def masked_dict(args, rng):
     # I think right variance is between .05 and .001, and there are
     # about 50,000 samples per state in a01
 
-    underlying = hmm.C.AutoRegressive(ar_coefficients,
-                                      offset,
-                                      variances,
-                                      rng,
-                                      alpha=numpy.ones(n_states) * args.alpha,
-                                      beta=numpy.ones(n_states) * args.beta)
+    ecg_model = hmm.C.AutoRegressive(ar_coefficients,
+                                     offset,
+                                     variances,
+                                     rng,
+                                     alpha=numpy.ones(n_states) * args.alpha,
+                                     beta=numpy.ones(n_states) * args.beta)
 
-    return dict2hmm(state_dict, underlying, utilities.read_ecgs(args), rng)
+    result, name2index = dict2hmm(state_dict, ecg_model, rng)
+    # Force the variance of the bad state to be 100
+    i_bad = name2index['bad']
+    ecg_model.alpha[i_bad] = 1.0e8
+    ecg_model.beta[i_bad] = 1.0e10
+
+    # Initialize the y_model parameters based on the data
+    y_data = utilities.read_ecgs(args)
+    for segment in y_data:
+        segment['class'] = segment['class'][args.AR_order:]
+    result.y_mod.observe(y_data)
+    weights = hmm.simple.Prob(result.y_mod.calculate()).normalize()
+    result.y_mod.reestimate(weights)
+
+    return result
 
     keys = list(state_dict.keys())
     for key in keys:
@@ -351,8 +390,9 @@ def masked_dict(args, rng):
         )
     sys.exit(0)
 
+
 @register
-def masked_dict2(args, rng):
+def masked_dict2(args, rng):  # FixMe: This is dead code
     """Differs from masked_dict in having parallel PQRST chains.
 
     """
@@ -369,14 +409,15 @@ def masked_dict2(args, rng):
         state_dict[f'slow_{i}'] = State([f'slow_{i}', f'slow_{i+1}'], [.5, .5],
                                         slow_class)
     successors = [3 * shift * n_chain - n_before for shift in (-1, 0, 1)]
-    probabilities = numpy.ones(3)/3
-    state_dict[f'slow_{n_slow-1}'] = State(successors, probabilities, slow_class)
+    probabilities = numpy.ones(3) / 3
+    state_dict[f'slow_{n_slow-1}'] = State(successors, probabilities,
+                                           slow_class)
 
     # Define fast states that only have forward transitions
     for shift in (-1, 0, 1):
         for t_ in range(-n_before, n_after):
             t = t_ + 3 * shift * n_chain
-            successors = [t+1]
+            successors = [t + 1]
             probabilities = [1.0]
             _class = t_ + n_before + 1 + shift
             if _class < 0 or _class > n_before + n_after + 1:
@@ -403,9 +444,8 @@ def masked_dict2(args, rng):
                                       alpha=alpha,
                                       beta=beta)
 
-    return dict2hmm(state_dict, underlying,
-                    utilities.read_ecgs(args),
-                    rng)
+    hmm, name2index = dict2hmm(state_dict, underlying,  # FixMe: wrong signature
+                               utilities.read_ecgs(args), rng)
 
     keys = list(state_dict.keys())
     for key in keys:

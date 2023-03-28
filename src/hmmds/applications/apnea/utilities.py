@@ -276,6 +276,7 @@ def list_heart_rate_respiration_data(names: list, args) -> list:
         return_list.append(heart_rate_respiration_data(name, args))
     return return_list
 
+
 def read_ecgs(args):
     ecgs = []
     for name in args.records:
@@ -285,10 +286,13 @@ def read_ecgs(args):
     if not args.tag_ecg:
         return ecgs
 
-    result = []
+    result = [hmm.base.JointSegment({"class": [], "ecg": []}) for dummy in ecgs]
     n_before, n_after, n_slow = args.before_after_slow
-    classes = [numpy.zeros(len(ecg), dtype=int) for ecg in ecgs]
-    for ecg, class_array in zip(ecgs, classes):
+
+    for ecg, joint_segment in zip(ecgs, result):
+        joint_segment["ecg"] = ecg
+        # The class for the slow states is 0
+        joint_segment["class"] = numpy.zeros(len(ecg), dtype=int)
         peaks, _ = scipy.signal.find_peaks(ecg, height=0.7, distance=40)
         tags = numpy.arange(2 + n_before + n_after, dtype=int)
         last_stop = 0
@@ -298,11 +302,12 @@ def read_ecgs(args):
             # Don't tag segments that overlap each other or the ends of
             # the data.
             if start >= last_stop and stop <= len(ecg):
-                class_array[start:stop] = tags
+                joint_segment["class"][start:stop] = tags
                 last_stop = stop
-        result.append(hmm.base.BundleSegment(class_array, ecg))
     return result
 
+
+# FixMe: bundles are gone
 def heart_rate_respiration_bundle_data(name: str,
                                        args) -> hmm.base.Bundle_segment:
 
@@ -365,6 +370,7 @@ def main(argv=None):
         print(f'{key}: {value}')
 
     print(f"{args.root=} {args.rtimes=}")
+    # FixMe: bundles are gone
     bundle = read_masked_ecg('a01', args)
     print(f"{len(bundle)=}")
     print(f"{bundle[0:5].bundles=}")
