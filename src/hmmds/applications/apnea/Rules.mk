@@ -80,7 +80,8 @@ ${MODELS}/p1model_%: $(ApneaCode)/apnea_train.py ${MODELS}/initial_%
 $(ECG)/dict_3_2/initial: model_init.py
 	mkdir -p  $(@D)
 	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 --tag_ecg \
---alpha 1.0e3 --beta 1.0e2 --before_after_slow 18 30 3 --AR_order 3 masked_dict $@
+--ecg_alpha_beta 1.0e3 1.0e2 --noise_parameters 1.0e2 1.0e4 1.0e-165 \
+--before_after_slow 18 30 3 --AR_order 3 masked_dict $@
 
 $(ECG)/%/masked_trained: $(ApneaCode)/train.py $(ECG)/%/initial
 	python $<  --records a01 --type segmented --iterations 5 $(ECG)/$*/initial $@ >  $(ECG)/$*/masked.log

@@ -4,6 +4,8 @@ re-make only what's necessary.  """
 
 from __future__ import annotations  # Enables, eg, (self: HMM,
 
+# Some of this is dead code.
+
 import sys
 import os.path
 import pickle
@@ -14,162 +16,31 @@ import sortedcontainers
 import anytree
 
 import hmm.base
+import hmm.C
 
 import hmmds.applications.apnea.utilities
 import observation
 
 
-class ItemScoreT:
-    """For list that is sorted by a function of score and t
-
-    Args:
-        number: Value for sorting, ie, score + fudge*t
-        node: Pointer to associated BundleNode
-        reference: Key for list sorted by score
-    """
-
-    def __init__(self, number: float, node: BundleNode, reference: float):
-        assert isinstance(reference, float)
-        self.number = number
-        self.node = node
-        self.reference = reference
-        self.key = (number, node)
-
-    def __eq__(self, other):
-        return self.key == other.key
-
-    def __lt__(self, other):
-        return self.key[0] < other.key[0]
-
-
-class BundleNode(anytree.NodeMixin):
-    """Defines b_0^t, a partial sequence of bundles, and related probabilities
-
-    Args:
-
-        bundle_id: Integer label of bundle
-        score: Log probability data y_0^t given b_0^t
-        p_state: The probability of states at t given y_0^t and b_0^t
-        parent: The parent node
-        children: A list of child nodes
+class HMM(hmm.C.HMM):
+    """Holds state transition probabilities constant
 
     """
+    def reestimate(self: HMM):
+        """Variant that holds self.p_state2state constant.
 
-    def __init__(
-        self: BundleNode,
-        bundle_id,
-        score,
-        p_state,
-        parent,
-        children,
-    ):
-        self.bundle_id = bundle_id
-        self.score = score
-        self.p_state = p_state
-        self.parent = parent
-        if children:
-            self.children = children
-        # Calling code should assign priority_item
-        self.priority_item = None
-
-
-class HMM(hmm.base.HMM):
-    """This subclass provides methods to estimate the sequence of bundles
-    based on measured data.
-
-    """
-
-    def log_probs(  # pylint: disable = arguments-differ
-            self: HMM,
-            t_start: int = 0,
-            t_stop: int = 0,
-            t_skip: int = 0,
-            last_0=None) -> float:
-        """Recursively calculate state probabilities, P(s[t]|y[0:t])
-
-        Args:
-            t_start: Use self.state_likelihood[t_start] first
-            t_stop: Use self.state_likelihood[t_stop-1] last
-            t_skip: Number of time steps from when "last" is valid till t_start
-            last_0: Optional initial distribution of states
-
-        Returns:
-            Log (base e) likelihood of HMM given entire observation sequence
-
-        The same as forward but this returns the sequence of
-        log conditional likelihoods.
-
-        """
-        if t_stop == 0:
-            # Reduces to ignoring t_start and t_stop and operating on
-            # a single segment
-            assert t_start == 0
-            t_stop = len(self.state_likelihood)
-
-        if last_0 is None:
-            last_0 = self.p_state_initial
-
-        last = numpy.copy(last_0).reshape(-1)
-        for t in range(t_skip):
-            # The following replaces last in place with last *
-            # p_state2state ** t_skip
-            self.p_state2state.step_forward(last)
-
-        for t in range(t_start, t_stop):
-            last *= self.state_likelihood[t]  # Element-wise multiply
-            assert last.sum() > 0
-            self.gamma_inv[t] = 1 / last.sum()
-            last *= self.gamma_inv[t]
-            self.alpha[t, :] = last
-            self.p_state2state.step_forward(last)
-        return -numpy.log(self.gamma_inv[t_start:t_stop])
-
-    def bundle_weight(self: HMM, y: list, fudge=[1, 1]) -> numpy.ndarray:
-        """Return the sequence of most likely bundles (not the most likely
-        sequence of bundles)
-
-        Args:
-            y: List with single element that is time series of measurements
-            fudge: At each time multiply the calculated bundle probabilities by
-                fudge
-
-        The complexity of this code is linear in the length of the
-        data.  The method calls observe, calculate, forward and
-        backward to calculate a weight array of state probabilities
-        for each time given all of the data.  Then at each time, it
-        pools the state weights to get the bundle weights it reports.
+        Reestimates observation model parameters.
 
         """
 
-        n_bundles = self.y_mod.n_bundle
-        # bundle_and_state[bundle, state] = True iff state \in bundle
-        bundle_and_state = self.y_mod.bundle_and_state
+        self.alpha *= self.beta  # Saves allocating a new array for
+        alpha_beta = self.alpha  # the result
 
-        fudge = numpy.array(fudge)
-
-        # Take the data and calculate likelihood of states
-        assert len(y) == 1
-        t_seg = self.y_mod.underlying_model.observe(y)
-        assert len(t_seg) == 2
-        self.n_times = t_seg[-1]
-        self.state_likelihood = self.y_mod.underlying_model.calculate()
-        # The records are between 6 and 10 hours
-        assert 3600 < self.n_times < 6000, 'self.n_times={0}'.format(
-            self.n_times)
-
-        self.alpha = numpy.empty((self.n_times, self.n_states))
-        self.beta = numpy.empty((self.n_times, self.n_states))
-        self.gamma_inv = numpy.empty((self.n_times,))
-
-        # Forward and backward use all the data with arguments 0,0
-        log_likelihood = self.forward(0, 0)
-        self.backward(0, 0)
-        state_weight = self.alpha * self.beta
-        assert state_weight.shape == (self.n_times, self.n_states)
-        bundle_weight = numpy.dot(state_weight, bundle_and_state.T) * fudge
-        bundle_sequence = bundle_weight.argmax(axis=1)
-        assert len(bundle_sequence) == self.n_times
-        return bundle_sequence
+        self.p_state_time_average = alpha_beta.sum(axis=0)  # type: ignore
+        self.p_state_initial = numpy.copy(alpha_beta[0])
+        for x in (self.p_state_time_average, self.p_state_initial):
+            x /= x.sum()
+        self.y_mod.reestimate(alpha_beta)
 
     def bundle_decode(self: HMM,
                       y: list,
@@ -335,6 +206,29 @@ class HMM(hmm.base.HMM):
         return bundle_sequence
 
 
+
+class ItemScoreT:
+    """For list that is sorted by a function of score and t
+
+    Args:
+        number: Value for sorting, ie, score + fudge*t
+        node: Pointer to associated FixMe (was BundleNode)
+        reference: Key for list sorted by score
+    """
+
+    def __init__(self, number: float, node, reference: float):
+        assert isinstance(reference, float)
+        self.number = number
+        self.node = node
+        self.reference = reference
+        self.key = (number, node)
+
+    def __eq__(self, other):
+        return self.key == other.key
+
+    def __lt__(self, other):
+        return self.key[0] < other.key[0]
+
 def main(argv=None):
     """ Put small tests here
     """
@@ -342,12 +236,6 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     nodes_by_priority = sortedcontainers.SortedList()
-    nodes_by_priority.add(ItemScoreT(.1, 1))
-    nodes_by_priority.add(ItemScoreT(.1, 2))
-    nodes_by_priority.add(ItemScoreT(.2, 1))
-    nodes_by_priority.add(ItemScoreT(0, 1))
-    print('nodes_by_score range from {0} to {1}'.format(
-        nodes_by_priority[0].number, nodes_by_priority[-1].number))
     return 0
 
 

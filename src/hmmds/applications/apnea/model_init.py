@@ -33,14 +33,8 @@ def parse_args(argv):
     parser = argparse.ArgumentParser("Create and write/pickle an initial model")
     hmmds.applications.apnea.utilities.common_arguments(parser)
     # args.records is None if --records is not on command line
-    parser.add_argument("--alpha",
-                        type=float,
-                        default=100,
-                        help="denominator term of prior for variance")
-    parser.add_argument("--beta",
-                        type=float,
-                        default=10,
-                        help="numerator term of prior for variance")
+    parser.add_argument("--ecg_alpha_beta", type=float, nargs=2, default=(1.0e3, 1.0e2), help="Paramters of inverse gamma prior for variance for normal ecg signal")
+    parser.add_argument("--noise_parameters", type=float, nargs=3, default=(1.0e8, 1.0e10, 1.0e-10), help="Outlier model: alpha, beta, noise probability")
     parser.add_argument('--tag_ecg',
                         action='store_true',
                         help="Invoke tagging in utilities.read_ecgs()")
@@ -308,7 +302,7 @@ def dict2hmm(state_dict, ecg_model, rng, truncate=0):
     }, truncate=truncate)
 
     # Create and return the hmm
-    return hmm.C.HMM(p_state_initial, p_state_time_average, p_state2state,
+    return develop.HMM(p_state_initial, p_state_time_average, p_state2state,
                      y_model, rng), state_name2state_index
 
 
@@ -335,13 +329,14 @@ def masked_dict(args, rng):
 
     """
 
+    alpha, beta = args.ecg_alpha_beta
+    noise_alpha, noise_beta, p_noise = args.noise_parameters
     n_before, n_after, n_slow = args.before_after_slow
     slow_class = 0
     bad = "bad"
-    epsilon = 1.0e-7
 
     # The bad state is for outliers
-    bad_state = State([bad, 'slow_0'], [1.0 - epsilon, epsilon], slow_class)
+    bad_state = State([bad, 'slow_0'], [1.0 - p_noise, p_noise], slow_class)
     state_dict = {bad: bad_state}  # Maps state name to State instance
 
     # Define fast states.  This is fit to the PQRST sequence.  In a
@@ -351,7 +346,7 @@ def masked_dict(args, rng):
     for t in range(-n_before, n_after):
         state_dict[t] = State(
             [t + 1, bad],  # successors
-            [1.0 - epsilon, epsilon],  # probabilities
+            [1.0 - p_noise, p_noise],  # probabilities
             t + n_before + 1  # class
         )
 
@@ -360,12 +355,12 @@ def masked_dict(args, rng):
     for i in range(n_slow - 1):
         state_dict[f'slow_{i}'] = State(
             [f'slow_{i}', f'slow_{i+1}', bad],
-            [.5 - epsilon / 2, .5 - epsilon / 2, epsilon], slow_class)
+            [.5 - p_noise / 2, .5 - p_noise / 2, p_noise], slow_class)
     state_dict[f'slow_{n_slow-1}'] = State([-n_before, bad],
-                                           [1.0 - epsilon, epsilon], slow_class)
+                                           [1.0 - p_noise, p_noise], slow_class)
 
     # Close the loop by connecting the last fast state to the first slow state
-    state_dict[n_after] = State(['slow_0', bad], [1.0 - epsilon, epsilon],
+    state_dict[n_after] = State(['slow_0', bad], [1.0 - p_noise, p_noise],
                                 n_after + n_before + 1)
 
     class_set = set((state.class_index for state in state_dict.values()))
@@ -383,14 +378,14 @@ def masked_dict(args, rng):
                                      offset,
                                      variances,
                                      rng,
-                                     alpha=numpy.ones(n_states) * args.alpha,
-                                     beta=numpy.ones(n_states) * args.beta)
+                                     alpha=numpy.ones(n_states) * alpha,
+                                     beta=numpy.ones(n_states) * beta)
 
     result, state_name2state_index = dict2hmm(state_dict, ecg_model, rng, truncate=args.AR_order)
     # Force the variance of the bad state to be 100
     i_bad = state_name2state_index['bad']
-    ecg_model.alpha[i_bad] = 1.0e8
-    ecg_model.beta[i_bad] = 1.0e14
+    ecg_model.alpha[i_bad] = noise_alpha
+    ecg_model.beta[i_bad] = noise_beta
 
     # Initialize the y_model parameters based on the data
     y_data = utilities.read_ecgs(args)
@@ -399,13 +394,6 @@ def masked_dict(args, rng):
     result.y_mod.reestimate(weights)
 
     return result
-
-    keys = list(state_dict.keys())
-    for key in keys:
-        print(
-            f"state_dict[{key}].successors={state_dict[key].successors} bundle={state_dict[key].bundle}"
-        )
-    sys.exit(0)
 
 
 @register

@@ -77,6 +77,29 @@ def segmented(args) -> list:
         result.extend(segment(data_record))
     return result
 
+
+def compare(a, b, attribute):
+    value_a, value_b = (getattr(x, attribute) for x in (a, b))
+    if numpy.array_equal(value_a, value_b):
+        return
+    if numpy.allclose(value_a, value_b):
+        print(f"values of {attribute} are close but not equal")
+    else:
+        print(f"values of {attribute} are not close")
+
+
+def compare_hmms(a, b):
+    print("Comparing two hmms")
+    for attribute in "p_state_initial p_state2state p_state_time_average".split(
+    ):
+        compare(a, b, attribute)
+
+    print("Comparing the underlying y models")
+    y_mod_a, y_mod_b = (hmm.y_mod.underlying_model for hmm in (a, b))
+    for attribute in "alpha beta coefficients norm variance".split():
+        compare(y_mod_a, y_mod_b, attribute)
+
+
 def main(argv=None):
     """
     """
@@ -89,7 +112,7 @@ def main(argv=None):
         _args, _hmm = pickle.load(_file)
 
     # Use the registered function to read the training data
-    data = TYPES["segmented"](_args)  # FixMe: segmented should be in _args
+    data = TYPES[args.type](_args)
 
     _hmm.multi_train(data, args.iterations)
     _hmm.strip()
