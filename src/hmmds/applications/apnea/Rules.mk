@@ -83,26 +83,20 @@ $(ECG)/dict_3_2/initial: model_init.py
 --alpha 1.0e3 --beta 1.0e2 --before_after_slow 18 30 3 --AR_order 3 masked_dict $@
 
 $(ECG)/%/masked_trained: $(ApneaCode)/train.py $(ECG)/%/initial
-	python $<  --records a01 --iterations 5 $(ECG)/$*/initial $@ >  $(ECG)/$*/masked.log
+	python $<  --records a01 --type segmented --iterations 5 $(ECG)/$*/initial $@ >  $(ECG)/$*/masked.log
 $(ECG)/%/unmasked_hmm: $(ApneaCode)/declass.py $(ECG)/%/masked_trained
 	python $^ $@
 $(ECG)/%/unmasked_trained: $(ApneaCode)/train.py $(ECG)/%/unmasked_hmm
 	rm -f $@
-	python $< --records a01 --iterations 10 $(@D)/unmasked_hmm $@.10 >  $@.log
-	python $< --records a01 --iterations 10 $@.10 $@.20 >>  $@.log
-	python $< --records a01 --iterations 10 $@.20 $@.30 >>  $@.log
-	python $< --records a01 --iterations 10 $@.30 $@.40 >>  $@.log
-	python $< --records a01 --iterations 10 $@.40 $@.50 >>  $@.log
+	python $< --records a01 --type segmented --iterations 10 $(@D)/unmasked_hmm $@.10 >  $@.log
+	python $< --records a01 --type segmented --iterations 10 $@.10 $@.20 >>  $@.log
+	python $< --records a01 --type segmented --iterations 10 $@.20 $@.30 >>  $@.log
+	python $< --records a01 --type segmented --iterations 10 $@.30 $@.40 >>  $@.log
+	python $< --records a01 --type segmented --iterations 10 $@.40 $@.50 >>  $@.log
 	cd $(@D); ln -s unmasked_trained.50 unmasked_trained
 
 $(ECG)/%/states: $(ApneaCode)/ecg_decode.py $(ECG)/%/unmasked_trained
 	python $^ a01 $@
-
-
-$(ECG)/dict_2_0/initial: model_init.py
-	mkdir -p  $(@D)
-	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 --tag_ecg \
---alpha 1.0e2 --beta 1.0e0 --before_after_slow 18 30 3 --AR_order 3 masked_dict $@
 
 # Use p1model_A4 and p1model_C2 to create file with lines like: x24 # Low
 # stat= 1.454 llr= -0.603 R= 1.755.  For each line, calculate

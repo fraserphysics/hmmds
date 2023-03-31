@@ -34,7 +34,7 @@ def main(argv=None):
     with open(args.input, 'rb') as _file:
         old_args, old_hmm = pickle.load(_file)
 
-    new_y_mod = old_hmm.y_mod.underlying_model
+    new_y_mod = old_hmm.y_mod['ecg']
     new_hmm = old_hmm.set_y_mod(new_y_mod)
     old_args.tag_ecg = False
 

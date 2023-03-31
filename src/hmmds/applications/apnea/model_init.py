@@ -43,7 +43,7 @@ def parse_args(argv):
                         help="numerator term of prior for variance")
     parser.add_argument('--tag_ecg',
                         action='store_true',
-                        help="Block tagging in utilities.read_ecgs()")
+                        help="Invoke tagging in utilities.read_ecgs()")
     parser.add_argument('--AR_order',
                         type=int,
                         default=3,
@@ -243,54 +243,69 @@ class State:
     Args:
         successors: List of names (dict keys) of successor states
         probabilities: List of float probabilities for successors
-        times: List of inetger times
-        class_: Integer class
+        class_index: Integer class
     """
 
-    def __init__(self, successors, probabilities, class_):
+    def __init__(self, successors, probabilities, class_index):
         self.successors = successors
         self.probabilities = probabilities
-        self.class_ = class_  # FixMe: Call this class_name?  Do they have to be ints?
+        self.class_index = class_index
+        # Each class_index must be an int because the model will be a
+        # subclass of hmm.base.IntegerObservation
 
 
-def dict2hmm(state_dict, ecg_model, rng):
-    """Create HMM based on dict for supervised training
+def dict2hmm(state_dict, ecg_model, rng, truncate=0):
+    """Create an HMM based on state_dict for supervised training
 
     Args:
         state_dict: state_dict[state_name] is a State instance
         ecg_model: Observation model for raw ecg samples
         rng: A random number generator
+        truncate: Number of elements to drop from the beginning of each segment
+                  of class observations.
 
     """
 
     n_states = len(state_dict)
-    class_name2state_index = {}
+    class_index2state_indices = {}
     p_state_initial = numpy.ones(n_states) / n_states
     p_state_time_average = numpy.ones(n_states) / n_states
     p_state2state = hmm.simple.Prob(numpy.zeros((n_states, n_states)))
-
     state_name2state_index = {}
-    for index, (name, state) in enumerate(state_dict.items()):
-        state_name2state_index[name] = index
-        if not state.class_ in class_name2state_index:
-            class_name2state_index[state.class_] = []
 
-    # Build p_state2state and class_name2state_index
+    # Build state_name2state_index and class_index2state_indices
+    for state_index, (state_name, state) in enumerate(state_dict.items()):
+        state_name2state_index[state_name] = state_index
+        if state.class_index in class_index2state_indices:
+            class_index2state_indices[state.class_index].append(state_index)
+        else:
+            class_index2state_indices[state.class_index] = [state_index]
+            
+
+    # Build p_state2state
     for state_name, state in state_dict.items():
         state_index = state_name2state_index[state_name]
-        class_name2state_index[state.class_].append(state_index)
-        for successor, probability in zip(state.successors,
+        for successor_name, probability in zip(state.successors,
                                           state.probabilities):
-            successor_index = state_name2state_index[successor]
+            successor_index = state_name2state_index[successor_name]
             p_state2state[state_index, successor_index] = probability
     p_state2state.normalize()
 
-    class_model = hmm.base.ClassObservation(class_name2state_index)
+    if "bad" in state_dict:
+        n_classes = len(class_index2state_indices)
+        likelihood = 1.0/n_classes
+        # Given the bad state all classes have the same likelihood
+        bad2class = {
+            state_name2state_index["bad"]:
+            list((class_index, likelihood) for class_index in range(n_classes))}
+        class_model = hmm.base.BadObservation(class_index2state_indices, bad2class)
+    else:
+        class_model = hmm.base.ClassObservation(class_index2state_indices)
 
     y_model = hmm.base.JointObservation({
         "class": class_model,
         "ecg": ecg_model
-    })
+    }, truncate=truncate)
 
     # Create and return the hmm
     return hmm.C.HMM(p_state_initial, p_state_time_average, p_state2state,
@@ -327,7 +342,7 @@ def masked_dict(args, rng):
 
     # The bad state is for outliers
     bad_state = State([bad, 'slow_0'], [1.0 - epsilon, epsilon], slow_class)
-    state_dict = {bad: bad_state}
+    state_dict = {bad: bad_state}  # Maps state name to State instance
 
     # Define fast states.  This is fit to the PQRST sequence.  In a
     # normal ECG, each instance of the PQRST sequence has about the
@@ -353,6 +368,10 @@ def masked_dict(args, rng):
     state_dict[n_after] = State(['slow_0', bad], [1.0 - epsilon, epsilon],
                                 n_after + n_before + 1)
 
+    class_set = set((state.class_index for state in state_dict.values()))
+    if class_set != set(range(len(class_set))):
+        raise RuntimeError(f"Classes are not sequential integers.  {class_set=}")
+
     n_states = len(state_dict)
     ar_coefficients = numpy.ones((n_states, args.AR_order))
     offset = numpy.ones(n_states)
@@ -367,16 +386,14 @@ def masked_dict(args, rng):
                                      alpha=numpy.ones(n_states) * args.alpha,
                                      beta=numpy.ones(n_states) * args.beta)
 
-    result, name2index = dict2hmm(state_dict, ecg_model, rng)
+    result, state_name2state_index = dict2hmm(state_dict, ecg_model, rng, truncate=args.AR_order)
     # Force the variance of the bad state to be 100
-    i_bad = name2index['bad']
+    i_bad = state_name2state_index['bad']
     ecg_model.alpha[i_bad] = 1.0e8
-    ecg_model.beta[i_bad] = 1.0e10
+    ecg_model.beta[i_bad] = 1.0e14
 
     # Initialize the y_model parameters based on the data
     y_data = utilities.read_ecgs(args)
-    for segment in y_data:
-        segment['class'] = segment['class'][args.AR_order:]
     result.y_mod.observe(y_data)
     weights = hmm.simple.Prob(result.y_mod.calculate()).normalize()
     result.y_mod.reestimate(weights)
@@ -444,7 +461,7 @@ def masked_dict2(args, rng):  # FixMe: This is dead code
                                       alpha=alpha,
                                       beta=beta)
 
-    hmm, name2index = dict2hmm(state_dict, underlying,  # FixMe: wrong signature
+    hmm, state_name2state_index = dict2hmm(state_dict, underlying,  # FixMe: wrong signature
                                utilities.read_ecgs(args), rng)
 
     keys = list(state_dict.keys())

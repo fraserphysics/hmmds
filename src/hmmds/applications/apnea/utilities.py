@@ -286,15 +286,12 @@ def read_ecgs(args):
     if not args.tag_ecg:
         return ecgs
 
-    result = [hmm.base.JointSegment({"class": [], "ecg": []}) for dummy in ecgs]
+    result = []
     n_before, n_after, n_slow = args.before_after_slow
-
-    for ecg, joint_segment in zip(ecgs, result):
-        joint_segment["ecg"] = ecg
-        # The class for the slow states is 0
-        joint_segment["class"] = numpy.zeros(len(ecg), dtype=int)
+    tags = numpy.arange(2 + n_before + n_after, dtype=int)
+    for ecg in ecgs:
+        class_ = numpy.zeros(len(ecg), dtype=int)
         peaks, _ = scipy.signal.find_peaks(ecg, height=0.7, distance=40)
-        tags = numpy.arange(2 + n_before + n_after, dtype=int)
         last_stop = 0
         for peak in peaks:
             start = peak - n_before
@@ -302,8 +299,9 @@ def read_ecgs(args):
             # Don't tag segments that overlap each other or the ends of
             # the data.
             if start >= last_stop and stop <= len(ecg):
-                joint_segment["class"][start:stop] = tags
+                class_[start:stop] = tags
                 last_stop = stop
+    result.append(hmm.base.JointSegment({"class": class_, "ecg": ecg}))
     return result
 
 
