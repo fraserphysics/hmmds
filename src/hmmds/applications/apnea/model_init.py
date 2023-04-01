@@ -339,6 +339,15 @@ def masked_dict(args, rng):
     bad_state = State([bad, 'slow_0'], [1.0 - p_noise, p_noise], slow_class)
     state_dict = {bad: bad_state}  # Maps state name to State instance
 
+    # Define slow states with transitions to themselves.  These states
+    # model the variable intervals between PARST sequences
+    for i in range(n_slow - 1):
+        state_dict[f'slow_{i}'] = State(
+            [f'slow_{i}', f'slow_{i+1}', bad],
+            [.5 - p_noise / 2, .5 - p_noise / 2, p_noise], slow_class)
+    state_dict[f'slow_{n_slow-1}'] = State([-n_before, bad],
+                                           [1.0 - p_noise, p_noise], slow_class)
+
     # Define fast states.  This is fit to the PQRST sequence.  In a
     # normal ECG, each instance of the PQRST sequence has about the
     # same duration.  In this hmm the sequence of fast states normally
@@ -349,15 +358,6 @@ def masked_dict(args, rng):
             [1.0 - p_noise, p_noise],  # probabilities
             t + n_before + 1  # class
         )
-
-    # Define slow states with transitions to themselves.  These states
-    # model the variable intervals between PARST sequences
-    for i in range(n_slow - 1):
-        state_dict[f'slow_{i}'] = State(
-            [f'slow_{i}', f'slow_{i+1}', bad],
-            [.5 - p_noise / 2, .5 - p_noise / 2, p_noise], slow_class)
-    state_dict[f'slow_{n_slow-1}'] = State([-n_before, bad],
-                                           [1.0 - p_noise, p_noise], slow_class)
 
     # Close the loop by connecting the last fast state to the first slow state
     state_dict[n_after] = State(['slow_0', bad], [1.0 - p_noise, p_noise],
