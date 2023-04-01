@@ -65,6 +65,7 @@ def analyze(name, model, args, report):
     print('decoding {0}'.format(name))
     data = hmmds.applications.apnea.utilities.heart_rate_respiration_data(
         name, args)
+    # FixMe: Bundles are gone
     sequence = model.bundle_decode([data], fudge=0.7, power=1.0)
     #sequence = model.old_bundle_decode([data])
 

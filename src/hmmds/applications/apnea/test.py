@@ -225,6 +225,7 @@ class TestFilteredHeartRate_Respiration(BaseClass):
             self.assertTrue(abs(norm - 1.37) < .02)
 
 
+# FixMe: Bundles are gone
 class TestBundle(TestFilteredHeartRate_Respiration):
     """Creates an instance of observation.FilteredHeartRate_Respiration
     and uses it as the underlying model in an instance of

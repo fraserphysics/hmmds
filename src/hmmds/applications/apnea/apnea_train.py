@@ -47,7 +47,7 @@ def make_data_level(common, level):
         level: One of High, Medium, Low
 
     Returns:
-        list of hmm.base.Bundle_segment instances
+        list of hmm.base.JointSegment instances
 
     """
 
@@ -62,9 +62,10 @@ def make_data_level(common, level):
         if name[0] == 'x':
             continue
 
-        return_list.append(
-            hmmds.applications.apnea.utilities.
-            heart_rate_respiration_bundle_data(name, common))
+        # Was heart_rate_respiration_bundle_data
+        # return_list.append(
+        #     hmmds.applications.apnea.utilities.fixme
+        #    fixme(name, common))
     return return_list
 
 
