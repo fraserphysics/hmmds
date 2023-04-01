@@ -61,7 +61,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         record_ok.clicked.connect(self.new_record)
 
         self.ecg_hmm_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.ecg_hmm_box.setText('trained_20_ECG')
+        self.ecg_hmm_box.setText('ECG/dict_3_2/unmasked_trained')
         ecg_hmm_ok = PyQt5.QtWidgets.QPushButton('ECG HMM', self)
         ecg_hmm_ok.clicked.connect(self.new_ecg_hmm)
 
@@ -165,7 +165,16 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         viterbi_plot = viterbi.addPlot()
         viterbi_plot.addLegend()
         self.viterbi_dict = {
-            'curves': [viterbi_plot.plot(pen='g', name='state')]
+            'curves': [
+                viterbi_plot.plot(pen='g', name='state'),
+                viterbi_plot.plot(
+                    pen=None,
+                    symbol='+',
+                    symbolSize=15,
+                    symbolBrush=('r'),
+                    name='noise',
+                )
+            ]
         }
 
         hr = pyqtgraph.GraphicsLayoutWidget(title="Heart Rate")
@@ -290,7 +299,13 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         print('start decode')
         states = hmm.decode([ecg])
         print('finished decode')
-        self.viterbi_dict['signals'] = [(ecg_times, states)]
+        indices = numpy.nonzero(
+            (states[1:-1] == 0) & 
+                ((states[:-2] != states[1:-1]) # Leading edge
+                |
+                (states[2:] != states[1:-1])) # Trailing edge
+        )[0] + 1
+        self.viterbi_dict['signals'] = [(ecg_times, states), (ecg_times[indices], states[indices])]
         self.plot_window(**self.viterbi_dict)
 
     def read_hr(self):
