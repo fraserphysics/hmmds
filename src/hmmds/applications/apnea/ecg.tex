@@ -44,19 +44,18 @@ $\theta$, fit to the typical data can assign $P(y|\theta) = 0$ to lead
 noise.  The observation models use inverse gamma priors for the
 variance, and I use a single state, which I call the \emph{bad} state,
 with prior that enforces a large variance to accommodate lead noise.
-In particular the parameters are $\alpha=10^{8}$ and $\beta=10^{20}$
+In particular the parameters are $\alpha=10^{2}$ and $\beta=10^{4}$
 which in the reestimation formula
 \begin{equation*}
   \sigma^2 = \frac{2 \beta + \text{data}}{2 \alpha +2 + \text{weight}}
 \end{equation*}
-gives $\sigma^2 \approx 10^{12}$ if there is not much data.  I arrived
-at those values by trial and error.
+gives $\sigma^2 \approx 100$ if there is not much data.
 
-Since lead noise can start abruptly at any time, I allow
-transitions\footnote{As of 2023-03-22 I am not using bad states.}
-between the bad state and every other state.  It's important to ensure
-that those transitions are infrequent.  The high variance makes the
-likelihood for the bad state small.
+Since lead noise can start abruptly at any time, I allow transitions
+to the bad state from every other state.  It's important to ensure
+that those transitions are infrequent.  I set the probability of
+transitions with the argument \emph{--noise\_parameters} of
+model\_init.py to $10^{-165}$.
 
 \section{A Model with a 49 State Chain}
 \label{sec:mono20}
@@ -66,18 +65,18 @@ of states that matches the ECG sequence PQRST with a fixed
 duration\footnote{Each state in the chain has a single successor.}
 works for record a01 if it is trained on that record.  Viterbi
 decoding with the model after training for 50 iterations on record
-\emph{a01} yields Figures~\ref{fig:dict_states_70} and
-\ref{fig:dict_states_71}.  Note that the segments in the two figures
-have the same duration, 0.04 minutes or 2.4 seconds, and that they are
-separated by 10.5 seconds.  The doubling of the patient's heart rate
-reflects an apnea cycle.  The HMM tracks the changing heart rate
-without missing or inserting beats.
+\emph{a01} yields Figures~\ref{fig:dict_states_70}
+and~\ref{fig:dict_states_71}.  Note that the segments in the two
+figures have the same duration, 0.04 minutes or 2.4 seconds, and that
+they are separated by 10.5 seconds.  The doubling of the patient's
+heart rate reflects an apnea cycle.  The HMM tracks the changing heart
+rate without missing or inserting beats.
 
 \begin{figure}
   \centering
     \resizebox{0.7\textwidth}{!}{\includegraphics{dict_3_2_states_70.pdf}}
     \caption{Performance of the HMM with a single chain of 49 states
-      trained to model PRQST sequences.  An short segment of the ECG
+      trained to model PQRST sequences.  An short segment of the ECG
       signal appears in the upper plot, while the corresponding
       decoded state sequence appears in the lower plot.  The model was
       fit using 50 iterations of the Baum Welch algorithm.}
@@ -93,31 +92,49 @@ without missing or inserting beats.
   \label{fig:dict_states_71}
 \end{figure}
 
-\subsection{Awkward Prior}
+\section{A Successful Model}
 \label{sec:awkward}
 
-I used inverse gamma priors with hyper-parameters $\alpha=10^3$ and
-$\beta=10^2$ for observation models in generating
-Figs.~\ref{fig:dict_states_70} and \ref{fig:dict_states_71}.  Those
-values kept the variances of the observation models larger than they
-would be otherwise.  Allowing smaller variances with $\alpha=10^2$ and
-$\beta=1.0$ yields Figs.~\ref{fig:bad_dict_70} and
-\ref{fig:bad_dict_71}.
+On 2023-03-31 I created a model that I trained on only the a01 record.
+It worked surprisingly well on all of the other CINC-2000 records
+except a19.  Here is a list of features of the code and model that I
+think are important:
+\begin{description}
+\item[Joint Observation Model] My old code for training created
+  special classes that I called \emph{bundles}.  I eliminated bundles
+  and wrote a more general class called \emph{JointObservation} that
+  can combine any number of component observation models of any type.
+  I also wrote an observation class called \emph{ClassObservation}
+  designed to be used as a component of a JointObservation.  A
+  ClassObservation instance deterministically produces an observation
+  that indicates the class of which the state is a member.  The
+  reestimate method of ClassObservation does nothing.  Its parameters
+  never change.
+\item[Modeling Outliers] In a ClassObservation instance the sets of
+  states defined by the classes constitute a disjoint and exhaustive
+  partitioning.  To accommodate outliers in ECG data, I wrote a
+  subclass of ClassObservation called \emph{BadObservation} that
+  supports states that have positive likelihood for all classes.  I
+  also wrote a subclass of HMM for which training does not modify the
+  state transition probabilities.  Using that subclass, I set the
+  probability of each other state transitioning to the single state
+  that models outliers to be extremely small.
+\item[Plausible Priors] Before I wrote the classes to model outliers
+  specifically, I used priors that forced large variances for states
+  that modeled outliers.  With the new classes, the priors give a
+  variance of 100 for the outliers which is appropriate because the
+  signal is clamped at $\pm 10$ mV.
+\end{description}
 
 \begin{figure}
   \centering
-    \resizebox{0.7\textwidth}{!}{\includegraphics{dict_2_0_states_70.pdf}}
-    \caption{Like Fig.~\ref{fig:dict_states_70}, but with less
-      constraining prior.}
-  \label{fig:bad_dict_70}
-\end{figure}
-
-\begin{figure}
-  \centering
-  \resizebox{0.7\textwidth}{!}{\includegraphics{dict_2_0_states_71.pdf}}
-  \caption{Like Fig.~\ref{fig:dict_states_71}, but with less
-    constraining prior.}
-  \label{fig:bad_dict_71}
+  \resizebox{1.2\textwidth}{!}{\includegraphics{a01a19c02.pdf}}
+  \caption{Subsets of data from three CINC-2000 records.  The trace
+    labeled \emph{c02 states} illustrates the performance of the model
+    trained on a01 alone.  I am surprised that the same model fails on
+    the ECG from a19 because that ECG seems more similar to a01 than
+    c02.}
+  \label{fig:a01a19c02}
 \end{figure}
 
 \section{Quadratic Fit to Peak}
@@ -146,9 +163,11 @@ So the quadratic estimate of the peak location is
 \label{sec:todo}
 
 \begin{itemize}
-\item See if parallel PQRST chains let me relax the prior of the
-  observation model.
-\item Plots to show data from \emph{a01} and \emph{c01}
+\item Plot training curve
+\item Create table with scores (cross entropy and \% noise) for each
+  record
+\item Plot conditional likelihood vs t
+\item Plot simulated data
 \end{itemize}
 \section{Times}
 \label{sec:times}

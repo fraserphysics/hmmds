@@ -99,6 +99,9 @@ $(ECG)/%/unmasked_trained: $(ApneaCode)/train.py $(ECG)/%/unmasked_hmm
 $(ECG)/%/states: $(ApneaCode)/ecg_decode.py $(ECG)/%/unmasked_trained
 	python $^ a01 $@
 
+$(ECG)/%/c02states: $(ApneaCode)/ecg_decode.py $(ECG)/%/unmasked_trained
+	python $^ c02 $@
+
 # Use p1model_A4 and p1model_C2 to create file with lines like: x24 # Low
 # stat= 1.454 llr= -0.603 R= 1.755.  For each line, calculate
 # Low/Medium/High using stat, low_stat, and high_stat.  40 minutes on cathcart
