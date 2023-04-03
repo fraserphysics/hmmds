@@ -96,11 +96,14 @@ $(ECG)/%/unmasked_trained: $(ApneaCode)/train.py $(ECG)/%/unmasked_hmm
 	python $< --records a01 --type segmented --iterations 10 $@.40 $@.50 >>  $@.log
 	cd $(@D); ln -s unmasked_trained.50 unmasked_trained
 
-$(ECG)/%/states: $(ApneaCode)/ecg_decode.py $(ECG)/%/unmasked_trained
-	python $^ a01 $@
-
-$(ECG)/%/c02states: $(ApneaCode)/ecg_decode.py $(ECG)/%/unmasked_trained
-	python $^ c02 $@
+# 8.67 seconds
+$(ECG)/dict_3_2/states/%: $(ApneaCode)/ecg_decode.py $(ECG)/dict_3_2/unmasked_trained
+	mkdir -p  $(@D)
+	python $^ $* $@
+# 8.62 seconds
+$(ECG)/dict_3_2/likelihood/%: $(ApneaCode)/ecg_decode.py $(ECG)/dict_3_2/unmasked_trained
+	mkdir -p  $(@D)
+	python $^ $* $@
 
 # Use p1model_A4 and p1model_C2 to create file with lines like: x24 # Low
 # stat= 1.454 llr= -0.603 R= 1.755.  For each line, calculate

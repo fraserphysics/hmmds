@@ -26,9 +26,11 @@ a01a19c02.pdf:  a01a19c02.py $(ECG)/dict_3_2/states $(ECG)/dict_3_2/c02states
 %_states_70.pdf: ecg_states_fig.py $(ECG)/%/states
 	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/$*/states 70.785 70.825 $@
 
+train_log.pdf: train_characteristic.py $(ECG)/dict_3_2/states
+	python $< $(ECG)/dict_3_2/unmasked_trained.log $@
 ${DATA}/score_report:
 
-ECG_FIGS = dict_3_2_states_70.pdf dict_3_2_states_71.pdf a01a19c02.pdf
+ECG_FIGS = dict_3_2_states_70.pdf dict_3_2_states_71.pdf a01a19c02.pdf train_log.pdf
 
 ecg.pdf: ecg.tex $(ECG_FIGS)
 	pdflatex $<
