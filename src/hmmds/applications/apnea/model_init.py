@@ -33,8 +33,18 @@ def parse_args(argv):
     parser = argparse.ArgumentParser("Create and write/pickle an initial model")
     hmmds.applications.apnea.utilities.common_arguments(parser)
     # args.records is None if --records is not on command line
-    parser.add_argument("--ecg_alpha_beta", type=float, nargs=2, default=(1.0e3, 1.0e2), help="Paramters of inverse gamma prior for variance for normal ecg signal")
-    parser.add_argument("--noise_parameters", type=float, nargs=3, default=(1.0e8, 1.0e10, 1.0e-10), help="Outlier model: alpha, beta, noise probability")
+    parser.add_argument(
+        "--ecg_alpha_beta",
+        type=float,
+        nargs=2,
+        default=(1.0e3, 1.0e2),
+        help=
+        "Paramters of inverse gamma prior for variance for normal ecg signal")
+    parser.add_argument("--noise_parameters",
+                        type=float,
+                        nargs=3,
+                        default=(1.0e8, 1.0e10, 1.0e-10),
+                        help="Outlier model: alpha, beta, noise probability")
     parser.add_argument('--tag_ecg',
                         action='store_true',
                         help="Invoke tagging in utilities.read_ecgs()")
@@ -274,36 +284,39 @@ def dict2hmm(state_dict, ecg_model, rng, truncate=0):
             class_index2state_indices[state.class_index].append(state_index)
         else:
             class_index2state_indices[state.class_index] = [state_index]
-            
 
     # Build p_state2state
     for state_name, state in state_dict.items():
         state_index = state_name2state_index[state_name]
         for successor_name, probability in zip(state.successors,
-                                          state.probabilities):
+                                               state.probabilities):
             successor_index = state_name2state_index[successor_name]
             p_state2state[state_index, successor_index] = probability
     p_state2state.normalize()
 
     if "bad" in state_dict:
         n_classes = len(class_index2state_indices)
-        likelihood = 1.0/n_classes
+        likelihood = 1.0 / n_classes
         # Given the bad state all classes have the same likelihood
         bad2class = {
             state_name2state_index["bad"]:
-            list((class_index, likelihood) for class_index in range(n_classes))}
-        class_model = hmm.base.BadObservation(class_index2state_indices, bad2class)
+                list((class_index, likelihood)
+                     for class_index in range(n_classes))
+        }
+        class_model = hmm.base.BadObservation(class_index2state_indices,
+                                              bad2class)
     else:
         class_model = hmm.base.ClassObservation(class_index2state_indices)
 
     y_model = hmm.base.JointObservation({
         "class": class_model,
         "ecg": ecg_model
-    }, truncate=truncate)
+    },
+                                        truncate=truncate)
 
     # Create and return the hmm
     return develop.HMM(p_state_initial, p_state_time_average, p_state2state,
-                     y_model, rng), state_name2state_index
+                       y_model, rng), state_name2state_index
 
 
 MODELS = {}  # Is populated by @register decorated functions.  The keys
@@ -365,7 +378,8 @@ def masked_dict(args, rng):
 
     class_set = set((state.class_index for state in state_dict.values()))
     if class_set != set(range(len(class_set))):
-        raise RuntimeError(f"Classes are not sequential integers.  {class_set=}")
+        raise RuntimeError(
+            f"Classes are not sequential integers.  {class_set=}")
 
     n_states = len(state_dict)
     ar_coefficients = numpy.ones((n_states, args.AR_order))
@@ -381,7 +395,10 @@ def masked_dict(args, rng):
                                      alpha=numpy.ones(n_states) * alpha,
                                      beta=numpy.ones(n_states) * beta)
 
-    result, state_name2state_index = dict2hmm(state_dict, ecg_model, rng, truncate=args.AR_order)
+    result, state_name2state_index = dict2hmm(state_dict,
+                                              ecg_model,
+                                              rng,
+                                              truncate=args.AR_order)
     # Force the variance of the bad state to be 100
     i_bad = state_name2state_index['bad']
     ecg_model.alpha[i_bad] = noise_alpha
@@ -449,8 +466,11 @@ def masked_dict2(args, rng):  # FixMe: This is dead code
                                       alpha=alpha,
                                       beta=beta)
 
-    hmm, state_name2state_index = dict2hmm(state_dict, underlying,  # FixMe: wrong signature
-                               utilities.read_ecgs(args), rng)
+    hmm, state_name2state_index = dict2hmm(
+        state_dict,
+        underlying,  # FixMe: wrong signature
+        utilities.read_ecgs(args),
+        rng)
 
     keys = list(state_dict.keys())
     for key in keys:

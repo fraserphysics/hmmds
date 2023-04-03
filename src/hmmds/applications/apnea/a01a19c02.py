@@ -39,15 +39,14 @@ def main(argv=None):
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
-    
     fig, axeses_2x2 = pyplot.subplots(nrows=2, ncols=2, figsize=(6, 6))
-    axeses = axeses_2x2.flatten()[[0,2,1,3]]
+    axeses = axeses_2x2.flatten()[[0, 2, 1, 3]]
     for i, name in enumerate('a01 a19 c02'.split()):
 
         with open(os.path.join(args.ecg_dir, f'{name}.ecg'), 'rb') as _file:
-                  _dict = pickle.load(_file)
-                  ecg = _dict['raw']
-                  ecg_times = _dict['times'] * PINT('seconds')
+            _dict = pickle.load(_file)
+            ecg = _dict['raw']
+            ecg_times = _dict['times'] * PINT('seconds')
 
         t_start = args.t_start * PINT('minutes')
         t_stop = args.t_stop * PINT('minutes')

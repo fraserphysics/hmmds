@@ -100,8 +100,8 @@ $(ECG)/%/unmasked_trained: $(ApneaCode)/train.py $(ECG)/%/unmasked_hmm
 $(ECG)/dict_3_2/states/%: $(ApneaCode)/ecg_decode.py $(ECG)/dict_3_2/unmasked_trained
 	mkdir -p  $(@D)
 	python $^ $* $@
-# 8.62 seconds
-$(ECG)/dict_3_2/likelihood/%: $(ApneaCode)/ecg_decode.py $(ECG)/dict_3_2/unmasked_trained
+# 18.84 seconds
+$(ECG)/dict_3_2/likelihood/%: $(ApneaCode)/ecg_likelihood.py $(ECG)/dict_3_2/unmasked_trained
 	mkdir -p  $(@D)
 	python $^ $* $@
 

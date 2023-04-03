@@ -45,10 +45,10 @@ def main(argv=None):
         _dict = pickle.load(_file)
         ecg = _dict["raw"]
 
-    _hmm.forward([ecg])
+    likelihood_sequence = _hmm.likelihood([ecg])
 
     with open(args.output, 'wb') as _file:
-        pickle.dump(1/_hmm.inv_gamma, _file)
+        pickle.dump(likelihood_sequence, _file)
 
     return 0
 

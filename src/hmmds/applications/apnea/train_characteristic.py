@@ -47,17 +47,15 @@ def main(argv=None):
             likelihood += value
 
     fig, axeses = pyplot.subplots(nrows=3, sharex='all', figsize=(6, 8))
-    for i, (y,label) in enumerate((
-            (likelihood/ecg_length, 'likelihood'),
-            (column_dict['prior']/ecg_length, 'prior'),
-            (column_dict['U/n'], 'MAP'))):
+    for i, (y, label) in enumerate(((likelihood / ecg_length, 'likelihood'),
+                                    (column_dict['prior'] / ecg_length,
+                                     'prior'), (column_dict['U/n'], 'MAP'))):
         axeses[i].plot(y, label=label)
         axeses[i].legend()
     if args.show:
         pyplot.show()
     fig.savefig(args.fig_path)
 
-    
     return 0
 
 

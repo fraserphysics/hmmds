@@ -61,34 +61,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         record_ok.clicked.connect(self.new_record)
 
         self.ecg_hmm_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.ecg_hmm_box.setText('ECG/dict_3_2/unmasked_trained')
-        ecg_hmm_ok = PyQt5.QtWidgets.QPushButton('ECG HMM', self)
+        self.ecg_hmm_box.setText('ECG/dict_3_2/')
+        ecg_hmm_ok = PyQt5.QtWidgets.QPushButton('HMM Dir', self)
         ecg_hmm_ok.clicked.connect(self.new_ecg_hmm)
 
-        self.model0_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.model0_box.setText('p1model_A4')
-        model0_ok = PyQt5.QtWidgets.QPushButton('Model0', self)
-        model0_ok.clicked.connect(self.new_model0)
-
-        self.model1_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.model1_box.setText('p1model_C2')
-        model1_ok = PyQt5.QtWidgets.QPushButton('Model1', self)
-        model1_ok.clicked.connect(self.new_model1)
-
-        ecg_button = PyQt5.QtWidgets.QPushButton('Read ECG', self)
-        ecg_button.clicked.connect(self.read_ecg)
-
-        viterbi_button = PyQt5.QtWidgets.QPushButton('Viterbi', self)
-        viterbi_button.clicked.connect(self.viterbi)
-
-        hr_button = PyQt5.QtWidgets.QPushButton('Read Heart Rate', self)
-        hr_button.clicked.connect(self.read_hr)
-
-        resp_button = PyQt5.QtWidgets.QPushButton('Read Resp', self)
-        resp_button.clicked.connect(self.read_resp)
-
-        like_button = PyQt5.QtWidgets.QPushButton('Calculate Likelihood', self)
-        like_button.clicked.connect(self.calculate_like)
+        read_button = PyQt5.QtWidgets.QPushButton('Read Data', self)
+        read_button.clicked.connect(self.read_data)
 
         # Layout button section
         buttons_layout.addWidget(quit_button)
@@ -108,21 +86,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         ecg_hmm_layout.addWidget(self.ecg_hmm_box)
         buttons_layout.addLayout(ecg_hmm_layout)
 
-        model0_layout = PyQt5.QtWidgets.QHBoxLayout()
-        model0_layout.addWidget(model0_ok)
-        model0_layout.addWidget(self.model0_box)
-        buttons_layout.addLayout(model0_layout)
-
-        model1_layout = PyQt5.QtWidgets.QHBoxLayout()
-        model1_layout.addWidget(model1_ok)
-        model1_layout.addWidget(self.model1_box)
-        buttons_layout.addLayout(model1_layout)
-
-        buttons_layout.addWidget(ecg_button)
-        buttons_layout.addWidget(viterbi_button)
-        buttons_layout.addWidget(hr_button)
-        buttons_layout.addWidget(resp_button)
-        buttons_layout.addWidget(like_button)
+        buttons_layout.addWidget(read_button)
 
         self.variable = {}  # A dict to hold variables
         # Layout row of sliders
@@ -151,13 +115,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                     symbolBrush=('b'),
                     name='qrs',
                 ),
-                ecg_plot.plot(
-                    pen=None,
-                    symbol='x',
-                    symbolSize=15,
-                    symbolBrush=('r'),
-                    name='peaks',
-                )
             ]
         }
 
@@ -177,33 +134,20 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             ]
         }
 
+        like = pyqtgraph.GraphicsLayoutWidget(title="Likelihood")
+        like_plot = like.addPlot()
+        like_plot.addLegend()
+        self.like_dict = {
+            'curves': [like_plot.plot(pen='g', name='likelihood')]
+        }
+
         hr = pyqtgraph.GraphicsLayoutWidget(title="Heart Rate")
         hr_plot = hr.addPlot()
         hr_plot.addLegend()
         self.hr_dict = {'curves': [hr_plot.plot(pen='g', name='hr')]}
 
-        resp = pyqtgraph.GraphicsLayoutWidget(title="Resp Components")
-        resp_plot = resp.addPlot()
-        resp_plot.addLegend()
-        self.resp_dict = {
-            'curves': [
-                resp_plot.plot(pen='w', name='resp0'),
-                resp_plot.plot(pen='r', name='resp1')
-            ]
-        }
-
-        like = pyqtgraph.GraphicsLayoutWidget(title="Log Likelihood")
-        like_plot = like.addPlot()
-        like_plot.addLegend()
-        self.like_dict = {
-            'curves': [
-                like_plot.plot(pen='g', name='model0'),
-                like_plot.plot(pen='w', name='model1'),
-            ]
-        }
-
         # Layout plot section
-        for widget in (ecg, viterbi, hr, resp, like):
+        for widget in (ecg, viterbi, like, hr):
             plot_layout.addWidget(widget)
 
         # Make self the central widget
@@ -213,7 +157,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
     def update_plots(self):
         for _dict in (self.ecg_dict, self.viterbi_dict, self.hr_dict,
-                      self.resp_dict, self.like_dict):
+                      self.like_dict):
             self.plot_window(**_dict)
 
     def open_file_dialog(self, directory=None):
@@ -238,12 +182,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
     def new_record(self):
         pass  # No action
 
-    def new_model0(self):
-        pass  # No action
-
-    def new_model1(self):
-        pass  # No action
-
     def plot_window(self, curves=None, signals=None):
         """ Display T to T + Delta T in a plot
 
@@ -263,6 +201,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             stop = min(_stop, len(minutes), len(signal[1]))
             curve.setData(minutes[start:stop], signal[1][start:stop])
 
+    def read_data(self):
+        self.read_ecg()
+        self.read_viterbi()
+        self.read_like()
+        self.read_hr()
+
     def read_ecg(self):
         prefix = os.path.join(self.root_box.text(), 'raw_data/Rtimes',
                               f'{self.record_box.text()}')
@@ -274,39 +218,42 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         indices = numpy.searchsorted(
             ecg_times.to('seconds').magnitude,
             rtimes.to('seconds').magnitude)
-        peaks, properties = scipy.signal.find_peaks(ecg,
-                                                    height=0.7,
-                                                    distance=40)
-        self.ecg_dict['signals'] = [(ecg_times, ecg), (rtimes, ecg[indices]),
-                                    (ecg_times[peaks], ecg[peaks])]
+        self.ecg_dict['signals'] = [
+            (ecg_times, ecg),
+            (rtimes, ecg[indices]),
+        ]
         self.plot_window(**self.ecg_dict)
 
-    def viterbi(self):
-        """Read the model and the data.  Then run model.decode.
+    def read_viterbi(self):
+        """Read the state data.
         """
         path = os.path.join(self.root_box.text(),
                             'build/derived_data/apnea/models',
-                            f'{self.ecg_hmm_box.text()}')
+                            f'{self.ecg_hmm_box.text()}', 'states',
+                            self.record_box.text())
         with open(path, 'rb') as _file:
-            _, hmm = pickle.load(_file)
-        prefix = os.path.join(self.root_box.text(), 'raw_data/Rtimes',
-                              f'{self.record_box.text()}')
-        with open(prefix + '.ecg', 'rb') as _file:
-            _dict = pickle.load(_file)
-            ecg = _dict['raw']
-            ecg_times = _dict['times'] * PINT('seconds')
-
-        print('start decode')
-        states = hmm.decode([ecg])
-        print('finished decode')
-        indices = numpy.nonzero(
-            (states[1:-1] == 0) & 
-                ((states[:-2] != states[1:-1]) # Leading edge
-                |
-                (states[2:] != states[1:-1])) # Trailing edge
-        )[0] + 1
-        self.viterbi_dict['signals'] = [(ecg_times, states), (ecg_times[indices], states[indices])]
+            states = pickle.load(_file)
+        times = numpy.arange(0, len(states)) / (100 * 60) * PINT('minutes')
+        indices = numpy.nonzero((states[1:-1] == 0) &
+                                ((states[:-2] != states[1:-1])  # Leading edge
+                                 |
+                                 (states[2:] != states[1:-1]))  # Trailing edge
+                               )[0] + 1
+        self.viterbi_dict['signals'] = [(times, states),
+                                        (times[indices], states[indices])]
         self.plot_window(**self.viterbi_dict)
+
+    def read_like(self):
+        path = os.path.join(self.root_box.text(),
+                            'build/derived_data/apnea/models',
+                            f'{self.ecg_hmm_box.text()}', 'likelihood',
+                            self.record_box.text())
+        with open(path, 'rb') as _file:
+            likelihood = pickle.load(_file)
+            likelihood[0] = 1.0  # FixMe: Why is likelihood[0] crazy?
+        times = numpy.arange(0, len(likelihood)) / (100 * 60) * PINT('minutes')
+        self.like_dict['signals'] = [(times, numpy.log(likelihood))]
+        self.plot_window(**self.like_dict)
 
     def read_hr(self):
         path = os.path.join(self.root_box.text(),
@@ -318,55 +265,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         times = numpy.arange(len(hr)) / pickle_dict['sample_frequency']
         self.hr_dict['signals'] = [(times, hr)]
         self.plot_window(**self.hr_dict)
-
-    def read_resp(self):
-        path = os.path.join(self.root_box.text(),
-                            'build/derived_data/apnea/Respire',
-                            f'{self.record_box.text()}.resp')
-        with open(path, 'rb') as _file:
-            _dict = pickle.load(_file)
-            times = _dict['times']
-            components = _dict['components'].T
-        # Last component is norm of psd
-        self.resp_dict['signals'] = [(times, components[0]),
-                                     (times, components[1])]
-        self.plot_window(**self.resp_dict)
-
-    def calculate_like(self):
-        """Calculate log(prob(y[t]|y[:t],model)) for all t and two models
-
-        """
-        derived_apnea_data_dir = os.path.join(self.root_box.text(),
-                                              'build/derived_data/apnea')
-        model_dir = os.path.join(derived_apnea_data_dir, 'models')
-        with open(os.path.join(model_dir, self.model0_box.text()),
-                  'rb') as _file:
-            _, self.model0 = pickle.load(_file)
-        with open(os.path.join(model_dir, self.model1_box.text()),
-                  'rb') as _file:
-            _, self.model1 = pickle.load(_file)
-
-        class Args:
-
-            def __init__(self):
-                """Namespace to pass to utility function
-                """
-                self.heart_rate_dir = os.path.join(derived_apnea_data_dir,
-                                                   'Lphr')
-                self.respiration_dir = os.path.join(derived_apnea_data_dir,
-                                                    'Respire')
-
-        data = [
-            utilities.heart_rate_respiration_data(self.record_box.text(),
-                                                  Args())
-        ]
-        times = data[0]['times']
-        probabilities = []
-        for model in (self.model0, self.model1):
-            model.y_mod.observe(data)
-            probabilities.append((times, model.log_probs()))
-        self.like_dict['signals'] = probabilities
-        self.plot_window(**self.like_dict)
 
 
 class Variable(PyQt5.QtWidgets.QWidget):

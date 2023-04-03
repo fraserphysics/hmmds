@@ -183,6 +183,7 @@ def read_respiration(path: str) -> numpy.ndarray:
         _dict = pickle.load(_file)
     return _dict['times'], _dict['components']
 
+
 def read_train_log(path: str) -> numpy.ndarray:
     """Read a text file created by train.py
 
@@ -190,16 +191,18 @@ def read_train_log(path: str) -> numpy.ndarray:
         path: Path to log file
 
     """
+
     def parse_line(line):
         result = {}
         parts = line.split()
         for i, key in enumerate(parts):
             if (key[0] == 'L' and len(key) > 1) or key in 'prior U/n'.split():
-                result[key] = float(parts[i+1])
+                result[key] = float(parts[i + 1])
         return result
+
     with open(path, 'r') as log_file:
         lines = log_file.readlines()
-    column_dict = {key:[value] for key,value in parse_line(lines[0]).items()}
+    column_dict = {key: [value] for key, value in parse_line(lines[0]).items()}
     for line in lines[1:]:
         _dict = parse_line(line)
         for key, value in _dict.items():
@@ -207,6 +210,7 @@ def read_train_log(path: str) -> numpy.ndarray:
     for key, value in column_dict.items():
         column_dict[key] = numpy.array(value)
     return column_dict
+
 
 def read_expert(path: str, name: str) -> numpy.ndarray:
     """ Create int array for record specified by name.

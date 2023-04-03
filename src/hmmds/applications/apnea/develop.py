@@ -26,6 +26,7 @@ class HMM(hmm.C.HMM):
     """Holds state transition probabilities constant
 
     """
+
     def reestimate(self: HMM):
         """Variant that holds self.p_state2state constant.
 
@@ -206,7 +207,6 @@ class HMM(hmm.C.HMM):
         return bundle_sequence
 
 
-
 class ItemScoreT:
     """For list that is sorted by a function of score and t
 
@@ -228,6 +228,7 @@ class ItemScoreT:
 
     def __lt__(self, other):
         return self.key[0] < other.key[0]
+
 
 def main(argv=None):
     """ Put small tests here
