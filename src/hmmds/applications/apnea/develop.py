@@ -43,11 +43,37 @@ class HMM(hmm.C.HMM):
             x /= x.sum()
         self.y_mod.reestimate(alpha_beta)
 
-    def bundle_decode(self: HMM,
-                      y: list,
-                      fudge: float = 0.03,
-                      power: float = 0.5,
-                      max_leaves: int = int(1e4)) -> list:
+    def likelihood(self: HMM, y) -> numpy.ndarray:
+        """Calculate p(y[t]|y[:t]) for t < len(y)
+
+        Args:
+            y: A single segment appropriate for self.y_mod.observe([y])
+        
+        """
+        self.y_mod.observe([y])
+        state_likelihood = self.y_mod.calculate()
+        length = len(state_likelihood)  # Less than len(y) if y_mod is
+        # autoregressive
+        result = numpy.empty(length)
+        last = numpy.copy(self.p_state_initial)
+        for t in range(length):
+            last *= state_likelihood[t]
+            last_sum = last.sum()  # Probability of y[t]|y[:t]
+            result[t] = last_sum
+            if last_sum > 0.0:
+                last /= last_sum
+            else:
+                print(f'Zero likelihood at {t=}.  Reset.')
+                last = numpy.copy(self.p_state_initial)
+            self.p_state2state.step_forward(last)
+        return result
+
+    # Dead code
+    def _bundle_decode(self: HMM,
+                       y: list,
+                       fudge: float = 0.03,
+                       power: float = 0.5,
+                       max_leaves: int = int(1e4)) -> list:
         """Search for a high likelihood bundle sequence
 
         Args:

@@ -17,24 +17,26 @@ $(ApneaDerivedData)/pass1_report.pickle:
 include Rules.mk
 # Rules.mk defines RAW_DATA EXPERT LPHR RESPIRE RTIMES MODELS
 
-a01a19c02.pdf:  a01a19c02.py $(ECG)/dict_3_2/states $(ECG)/dict_3_2/c02states
-	python a01a19c02.py $(RTIMES) $(ECG)/dict_3_2/c02states 300.0 300.05 $@
+a01a19c02.pdf:  a01a19c02.py $(ECG)/dict_3_2/states/a01 $(ECG)/dict_3_2/states/c02
+	python a01a19c02.py $(RTIMES) $(ECG)/dict_3_2/states/c02 300.0 300.05 $@
 
 %_states_71.pdf: ecg_states_fig.py $(ECG)/%/states
-	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/$*/states 71.1 71.14 $@
+	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/$*/states/a01 71.1 71.14 $@
 
 %_states_70.pdf: ecg_states_fig.py $(ECG)/%/states
-	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/$*/states 70.785 70.825 $@
+	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/$*/states/a01 70.785 70.825 $@
 
-train_log.pdf: train_characteristic.py $(ECG)/dict_3_2/states
+train_log.pdf: train_characteristic.py $(ECG)/dict_3_2/states/a01
 	python $< $(ECG)/dict_3_2/unmasked_trained.log $@
 ${DATA}/score_report:
 
+table.tex: table.py all_states all_likelihood
+	python table.py $(ECG)/dict_3_2/ $@
+
 ECG_FIGS = dict_3_2_states_70.pdf dict_3_2_states_71.pdf a01a19c02.pdf train_log.pdf
 
-ecg.pdf: ecg.tex $(ECG_FIGS)
-	pdflatex $<
-	pdflatex $<
+ecg.pdf: ecg.tex $(ECG_FIGS) table.tex
+	pdflatex $< ; pdflatex $<
 
 .PHONY : trained
 trained: ${MODELS}/model_Low ${MODELS}/model_Medium ${MODELS}/model_High

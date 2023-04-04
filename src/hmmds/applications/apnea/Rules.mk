@@ -76,7 +76,7 @@ ${MODELS}/initial_%: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(Apne
 ${MODELS}/p1model_%: $(ApneaCode)/apnea_train.py ${MODELS}/initial_%
 	python $< --iterations 5 --root ${ROOT} $* $(word 2,$^) $@
 
-# Time to make $(ECG)/dict_3_2/states from scratch: real 9m23.888s user 82m23.335s
+# Time to make $(ECG)/dict_3_2/states/a01 from scratch: real 9m23.888s user 82m23.335s
 $(ECG)/dict_3_2/initial: model_init.py
 	mkdir -p  $(@D)
 	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 --tag_ecg \
@@ -104,6 +104,12 @@ $(ECG)/dict_3_2/states/%: $(ApneaCode)/ecg_decode.py $(ECG)/dict_3_2/unmasked_tr
 $(ECG)/dict_3_2/likelihood/%: $(ApneaCode)/ecg_likelihood.py $(ECG)/dict_3_2/unmasked_trained
 	mkdir -p  $(@D)
 	python $^ $* $@
+
+all_states: $(addprefix $(ECG)/dict_3_2/states/, $(NAMES))
+	touch $@
+
+all_likelihood: $(addprefix $(ECG)/dict_3_2/likelihood/, $(NAMES))
+	touch $@
 
 # Use p1model_A4 and p1model_C2 to create file with lines like: x24 # Low
 # stat= 1.454 llr= -0.603 R= 1.755.  For each line, calculate

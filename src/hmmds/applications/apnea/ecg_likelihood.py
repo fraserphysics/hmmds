@@ -12,7 +12,7 @@ import argparse
 import numpy
 
 import hmmds.applications.apnea.utilities
-import hmm.C
+import hmm.C, develop
 
 
 def parse_args(argv):
@@ -45,7 +45,7 @@ def main(argv=None):
         _dict = pickle.load(_file)
         ecg = _dict["raw"]
 
-    likelihood_sequence = _hmm.likelihood([ecg])
+    likelihood_sequence = _hmm.likelihood(ecg)
 
     with open(args.output, 'wb') as _file:
         pickle.dump(likelihood_sequence, _file)
