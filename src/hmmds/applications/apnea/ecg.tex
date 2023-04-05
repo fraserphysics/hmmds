@@ -141,8 +141,8 @@ think are important:
   \centering
   \resizebox{1.0\textwidth}{!}{\includegraphics{train_log.pdf}}
   \caption{Iterative training progress.  Each trace is the log of a
-    quantity devided by the number of training samples.}
-  \label{fig:train_log.pdf}
+    quantity divided by the number of training samples.}
+  \label{fig:train_log}
 \end{figure}
 
 \begin{figure}
@@ -151,7 +151,7 @@ think are important:
   \caption{Plots of $\log\left(p(y[t]|y[:t]) \right)$ for records a14
     and x07.  Those records have the high and low likelihoods in
     Table~\ref{tab:cross_entropy}.}
-  \label{fig:train_log.pdf}
+  \label{fig:likelihood}
 \end{figure}
 
 \begin{table}
@@ -188,14 +188,10 @@ So the quadratic estimate of the peak location is
 \label{sec:todo}
 
 \begin{itemize}
-\item Plot training curve
-\item Create table with scores (cross entropy and \% noise) for each
-  record
-\item Plot conditional likelihood vs t
+\item At least one more model trained on different data
+\item Train a01 model on other records too.
 \item Plot simulated data
 \end{itemize}
-\section{Times}
-\label{sec:times}
 
 
 \end{document}

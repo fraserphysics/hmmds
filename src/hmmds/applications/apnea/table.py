@@ -63,6 +63,7 @@ def main(argv=None):
                     reverse=True)
     message = [
         r"""\begin{tabular}{|lrl|lrl|lrl|}
+\hline
 name & $h(X|\theta)$ & plausible &name & $h(X|\theta)$ & plausible &name & h$(X|\theta)$ & plausible \\ \hline
 """
     ]
@@ -77,6 +78,7 @@ name & $h(X|\theta)$ & plausible &name & $h(X|\theta)$ & plausible &name & h$(X|
         else:
             message.append(" & ")
     message.append(r"""
+\hline
 \end{tabular}
     """)
     print(''.join(message))
