@@ -62,7 +62,7 @@ def main(argv=None):
     joint_list.sort(key=lambda name: dict_names[name]['cross_entropy'],
                     reverse=True)
     message = [
-        r"""\begin{tabular}{|lll|lll|lll|}
+        r"""\begin{tabular}{|lrl|lrl|lrl|}
 name & $h(X|\theta)$ & plausible &name & $h(X|\theta)$ & plausible &name & h$(X|\theta)$ & plausible \\ \hline
 """
     ]

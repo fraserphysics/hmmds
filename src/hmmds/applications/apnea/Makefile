@@ -33,7 +33,10 @@ ${DATA}/score_report:
 table.tex: table.py all_states all_likelihood
 	python table.py $(ECG)/dict_3_2/ $@
 
-ECG_FIGS = dict_3_2_states_70.pdf dict_3_2_states_71.pdf a01a19c02.pdf train_log.pdf
+like_a14_x07.pdf: plot_like.py all_states all_likelihood
+	python plot_like.py Rtimes/ $(ECG)/dict_3_2/likelihood/ 300.16 300.19 a14 x07 $@
+
+ECG_FIGS = dict_3_2_states_70.pdf dict_3_2_states_71.pdf a01a19c02.pdf train_log.pdf like_a14_x07.pdf
 
 ecg.pdf: ecg.tex $(ECG_FIGS) table.tex
 	pdflatex $< ; pdflatex $<

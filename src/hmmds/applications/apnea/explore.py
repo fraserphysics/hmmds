@@ -250,7 +250,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                             self.record_box.text())
         with open(path, 'rb') as _file:
             likelihood = pickle.load(_file)
-            likelihood[0] = 1.0  # FixMe: Why is likelihood[0] crazy?
         times = numpy.arange(0, len(likelihood)) / (100 * 60) * PINT('minutes')
         self.like_dict['signals'] = [(times, numpy.log(likelihood))]
         self.plot_window(**self.like_dict)
