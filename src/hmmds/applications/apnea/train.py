@@ -88,19 +88,22 @@ def diverse(args) -> list:
 
     """
 
-    segment_length = 15*60*100 # 90,000 = 15 minutes, 60
-                               # seconds/minute, 100 samples/second
+    segment_length = 15 * 60 * 100  # 90,000 = 15 minutes, 60
+
+    # seconds/minute, 100 samples/second
     class RecordData:
         """Structure to hold data about a record.
 
         """
+
         def __init__(self, record_name, raw_data, model_path):
             self.name = record_name
             self.raw_data = raw_data
             self.n_data = len(raw_data)
             self.dir_path = os.path.dirname(model_path)
             states_path = os.path.join(self.dir_path, 'states', self.name)
-            likelihood_path = os.path.join(self.dir_path, 'likelihood', self.name)
+            likelihood_path = os.path.join(self.dir_path, 'likelihood',
+                                           self.name)
             with open(states_path, 'rb') as _file:
                 self.states = pickle.load(_file)
             with open(likelihood_path, 'rb') as _file:
@@ -110,21 +113,22 @@ def diverse(args) -> list:
             """Find and return a 15 minute segment that is plausible for model
 
             """
-            bad_spots_ = numpy.nonzero((self.states == 0) | (self.likelihood < 1.0e-70))[0]
-            bad_spots = numpy.empty(len(bad_spots_)+2, dtype=int)
+            bad_spots_ = numpy.nonzero((self.states == 0) |
+                                       (self.likelihood < 1.0e-70))[0]
+            bad_spots = numpy.empty(len(bad_spots_) + 2, dtype=int)
             bad_spots[1:-1:] = bad_spots_
             bad_spots[0] = 0
-            bad_spots[-1] = self.n_data-1
+            bad_spots[-1] = self.n_data - 1
             ok_lengths = bad_spots[1:] - bad_spots[:-1]
             i_start = ok_lengths.argmax()
-            interval = (bad_spots[i_start]+1, bad_spots[i_start+1])
+            interval = (bad_spots[i_start] + 1, bad_spots[i_start + 1])
             assert self.likelihood[interval[0]:interval[1]].min() >= 1.0e-70
             interval_length = interval[1] - interval[0]
             if interval_length <= segment_length:
                 assert self.name != 'a01'
                 return self.raw_data[interval[0]:interval[1]]
-            i_start = interval[0] + (interval_length - segment_length)//2
-            return self.raw_data[i_start: i_start+segment_length]
+            i_start = interval[0] + (interval_length - segment_length) // 2
+            return self.raw_data[i_start:i_start + segment_length]
 
     result = []
     records = {}
@@ -133,7 +137,9 @@ def diverse(args) -> list:
         records[name] = RecordData(name, raw_record, args.input)
         segment_ = records[name].segment()
         if len(segment_) < segment_length:
-            print(f'Skipping record {name} because for longest segment {len(segment_)=}')
+            print(
+                f'Skipping record {name} because for longest segment {len(segment_)=}'
+            )
         else:
             result.append(segment_)
     return result

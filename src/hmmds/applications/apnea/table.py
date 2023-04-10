@@ -22,8 +22,14 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Make a table of scores")
     hmmds.applications.apnea.utilities.common_arguments(parser)
-    parser.add_argument('--states', type=str, default='states', help='relative states directory')
-    parser.add_argument('--likelihood', type=str, default='likelihood', help='relative likelihood directory')
+    parser.add_argument('--states',
+                        type=str,
+                        default='states',
+                        help='relative states directory')
+    parser.add_argument('--likelihood',
+                        type=str,
+                        default='likelihood',
+                        help='relative likelihood directory')
     parser.add_argument('model_dir', type=str, help='Path to data')
     parser.add_argument('output', type=str, help='path of file to write')
     args = parser.parse_args(argv)

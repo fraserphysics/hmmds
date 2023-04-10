@@ -27,28 +27,37 @@ class HMM(hmm.C.HMM):
 
     """
 
+    def __init__(self: HMM,
+                 *args,
+                 untrainable_indices=None,
+                 untrainable_values=None):
+        """Option of holding some elements of p_state2state constant
+        in reestimation.
+
+        """
+        hmm.C.HMM.__init__(self, *args)
+        self.untrainable_indices = untrainable_indices
+        self.untrainable_values = untrainable_values
+
     def reestimate(self: HMM):
-        """Variant that holds self.p_state2state constant.
+        """Variant can hold some self.p_state2state values constant.
 
         Reestimates observation model parameters.
 
         """
 
-        self.alpha *= self.beta  # Saves allocating a new array for
-        alpha_beta = self.alpha  # the result
-
-        self.p_state_time_average = alpha_beta.sum(axis=0)  # type: ignore
-        self.p_state_initial = numpy.copy(alpha_beta[0])
-        for x in (self.p_state_time_average, self.p_state_initial):
-            x /= x.sum()
-        self.y_mod.reestimate(alpha_beta)
+        hmm.C.HMM.reestimate(self)
+        if self.untrainable_indices is None:
+            return
+        self.p_state2state[self.untrainable_indices] = self.untrainable_values
+        return
 
     def likelihood(self: HMM, y) -> numpy.ndarray:
         """Calculate p(y[t]|y[:t]) for t < len(y)
 
         Args:
             y: A single segment appropriate for self.y_mod.observe([y])
-        
+
         """
         self.y_mod.observe([y])
         state_likelihood = self.y_mod.calculate()

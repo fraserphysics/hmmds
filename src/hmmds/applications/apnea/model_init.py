@@ -248,12 +248,14 @@ class State:
         successors: List of names (dict keys) of successor states
         probabilities: List of float probabilities for successors
         class_index: Integer class
+        trainable: List of True/False for transitions described above
     """
 
-    def __init__(self, successors, probabilities, class_index):
+    def __init__(self, successors, probabilities, class_index, trainable=None):
         self.successors = successors
         self.probabilities = probabilities
         self.class_index = class_index
+        self.trainable = trainable
         # Each class_index must be an int because the model will be a
         # subclass of hmm.base.IntegerObservation
 
@@ -276,6 +278,8 @@ def dict2hmm(state_dict, ecg_model, rng, truncate=0):
     p_state_time_average = numpy.ones(n_states) / n_states
     p_state2state = hmm.simple.Prob(numpy.zeros((n_states, n_states)))
     state_name2state_index = {}
+    untrainable_indices = []
+    untrainable_values = []
 
     # Build state_name2state_index and class_index2state_indices
     for state_index, (state_name, state) in enumerate(state_dict.items()):
@@ -288,10 +292,13 @@ def dict2hmm(state_dict, ecg_model, rng, truncate=0):
     # Build p_state2state
     for state_name, state in state_dict.items():
         state_index = state_name2state_index[state_name]
-        for successor_name, probability in zip(state.successors,
-                                               state.probabilities):
+        for successor_name, probability, trainable in zip(
+                state.successors, state.probabilities, state.trainable):
             successor_index = state_name2state_index[successor_name]
             p_state2state[state_index, successor_index] = probability
+            if not trainable:
+                untrainable_indices.append((state_index, successor_index))
+                untrainable_values.append(probability)
     p_state2state.normalize()
 
     if "bad" in state_dict:
@@ -315,8 +322,15 @@ def dict2hmm(state_dict, ecg_model, rng, truncate=0):
                                         truncate=truncate)
 
     # Create and return the hmm
-    return develop.HMM(p_state_initial, p_state_time_average, p_state2state,
-                       y_model, rng), state_name2state_index
+    indices = tuple(numpy.array(untrainable_indices).T)
+    return develop.HMM(p_state_initial,
+                       p_state_time_average,
+                       p_state2state,
+                       y_model,
+                       rng,
+                       untrainable_indices=indices,
+                       untrainable_values=numpy.array(
+                           untrainable_values)), state_name2state_index
 
 
 MODELS = {}  # Is populated by @register decorated functions.  The keys
@@ -349,17 +363,20 @@ def masked_dict(args, rng):
     bad = "bad"
 
     # The bad state is for outliers
-    bad_state = State([bad, 'slow_0'], [1.0 - p_noise, p_noise], slow_class)
+    bad_state = State([bad, 'slow_0'], [1.0 - p_noise, p_noise], slow_class,
+                      [False, False])
     state_dict = {bad: bad_state}  # Maps state name to State instance
 
     # Define slow states with transitions to themselves.  These states
-    # model the variable intervals between PARST sequences
+    # model the variable intervals between PQRST sequences
     for i in range(n_slow - 1):
         state_dict[f'slow_{i}'] = State(
             [f'slow_{i}', f'slow_{i+1}', bad],
-            [.5 - p_noise / 2, .5 - p_noise / 2, p_noise], slow_class)
+            [.5 - p_noise / 2, .5 - p_noise / 2, p_noise], slow_class,
+            [True, True, False])
     state_dict[f'slow_{n_slow-1}'] = State([-n_before, bad],
-                                           [1.0 - p_noise, p_noise], slow_class)
+                                           [1.0 - p_noise, p_noise], slow_class,
+                                           [False, False])
 
     # Define fast states.  This is fit to the PQRST sequence.  In a
     # normal ECG, each instance of the PQRST sequence has about the
@@ -369,12 +386,13 @@ def masked_dict(args, rng):
         state_dict[t] = State(
             [t + 1, bad],  # successors
             [1.0 - p_noise, p_noise],  # probabilities
-            t + n_before + 1  # class
+            t + n_before + 1,  # class
+            [False, False]  # Trainable
         )
 
     # Close the loop by connecting the last fast state to the first slow state
     state_dict[n_after] = State(['slow_0', bad], [1.0 - p_noise, p_noise],
-                                n_after + n_before + 1)
+                                n_after + n_before + 1, [False, False])
 
     class_set = set((state.class_index for state in state_dict.values()))
     if class_set != set(range(len(class_set))):
@@ -411,73 +429,6 @@ def masked_dict(args, rng):
     result.y_mod.reestimate(weights)
 
     return result
-
-
-@register
-def masked_dict2(args, rng):  # FixMe: This is dead code
-    """Differs from masked_dict in having parallel PQRST chains.
-
-    """
-
-    n_before = 18  # Fast states before peak
-    n_after = 30  # Fast states after peak
-    n_chain = n_before + n_after + 1
-    n_slow = 3  # Slow states with transitions to themselves
-    slow_class = 0
-
-    state_dict = {}
-    # Define slow states with transitions to themselves
-    for i in range(n_slow - 1):
-        state_dict[f'slow_{i}'] = State([f'slow_{i}', f'slow_{i+1}'], [.5, .5],
-                                        slow_class)
-    successors = [3 * shift * n_chain - n_before for shift in (-1, 0, 1)]
-    probabilities = numpy.ones(3) / 3
-    state_dict[f'slow_{n_slow-1}'] = State(successors, probabilities,
-                                           slow_class)
-
-    # Define fast states that only have forward transitions
-    for shift in (-1, 0, 1):
-        for t_ in range(-n_before, n_after):
-            t = t_ + 3 * shift * n_chain
-            successors = [t + 1]
-            probabilities = [1.0]
-            _class = t_ + n_before + 1 + shift
-            if _class < 0 or _class > n_before + n_after + 1:
-                _class = slow_class
-            state_dict[t] = State(successors, probabilities, _class)
-        # Close loop
-        t = n_after + 3 * shift * n_chain
-        state_dict[t] = State(['slow_0'], [1.0], n_chain + 1)
-
-    n_states = len(state_dict)
-    ar_order = 3
-    ar_coefficients = numpy.ones((n_states, ar_order))
-    offset = numpy.ones(n_states)
-    variances = numpy.ones(n_states)
-    # I think right variance is between .05 and .001, and there are
-    # about 50,000 samples per state in a01
-    alpha = numpy.ones(n_states) * args.alpha
-    beta = numpy.ones(n_states) * args.beta
-
-    underlying = hmm.C.AutoRegressive(ar_coefficients,
-                                      offset,
-                                      variances,
-                                      rng,
-                                      alpha=alpha,
-                                      beta=beta)
-
-    hmm, state_name2state_index = dict2hmm(
-        state_dict,
-        underlying,  # FixMe: wrong signature
-        utilities.read_ecgs(args),
-        rng)
-
-    keys = list(state_dict.keys())
-    for key in keys:
-        print(
-            f"state_dict[{key}].successors={state_dict[key].successors} bundle={state_dict[key].bundle}"
-        )
-    sys.exit(0)
 
 
 @register

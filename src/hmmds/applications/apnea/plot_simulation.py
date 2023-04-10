@@ -25,7 +25,9 @@ def parse_args(argv):
                         action='store_true',
                         help="display figure using Qt5")
     parser.add_argument('hmm', type=str, help='Path to data')
-    parser.add_argument('n_simulate', type=int, help='Number of samples to simulate')
+    parser.add_argument('n_simulate',
+                        type=int,
+                        help='Number of samples to simulate')
     parser.add_argument('fig_path', type=str, help="path to figure")
     return parser.parse_args(argv)
 
@@ -41,7 +43,7 @@ def main(argv=None):
         _, _hmm = pickle.load(_file)
 
     states, ecg = _hmm.simulate(args.n_simulate)
-    times = numpy.arange(args.n_simulate)/100
+    times = numpy.arange(args.n_simulate) / 100
 
     fig, axes = pyplot.subplots(nrows=2, sharex='all', figsize=(5, 4))
     axes[0].plot(times, ecg)
