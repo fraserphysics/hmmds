@@ -20,10 +20,10 @@ include Rules.mk
 a01a19c02.pdf:  a01a19c02.py $(ECG)/dict_3_2/states/a01 $(ECG)/dict_3_2/states/c02
 	python a01a19c02.py $(RTIMES) $(ECG)/dict_3_2/states/c02 300.0 300.05 $@
 
-%_states_71.pdf: ecg_states_fig.py $(ECG)/%/states
+%_states_71.pdf: ecg_states_fig.py $(ECG)/%/states/a01
 	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/$*/states/a01 71.1 71.14 $@
 
-%_states_70.pdf: ecg_states_fig.py $(ECG)/%/states
+%_states_70.pdf: ecg_states_fig.py $(ECG)/%/states/a01
 	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/$*/states/a01 70.785 70.825 $@
 
 train_log.pdf: train_characteristic.py $(ECG)/dict_3_2/states/a01
@@ -39,7 +39,10 @@ diverse.tex: table.py all_diverse_states all_diverse_likelihood
 like_a14_x07.pdf: plot_like.py all_states all_likelihood
 	python plot_like.py Rtimes/ $(ECG)/dict_3_2/likelihood/ 300.16 300.19 a14 x07 $@
 
-ECG_FIGS = dict_3_2_states_70.pdf dict_3_2_states_71.pdf a01a19c02.pdf train_log.pdf like_a14_x07.pdf
+simulated.pdf: plot_simulation.py $(ECG)/dict_3_2/diverse_trained
+	python $^ 1000 $@
+
+ECG_FIGS = dict_3_2_states_70.pdf dict_3_2_states_71.pdf a01a19c02.pdf train_log.pdf like_a14_x07.pdf simulated.pdf
 
 ecg.pdf: ecg.tex $(ECG_FIGS) table.tex diverse.tex
 	pdflatex $< ; pdflatex $<

@@ -360,6 +360,8 @@ def masked_dict(args, rng):
     noise_alpha, noise_beta, p_noise = args.noise_parameters
     n_before, n_after, n_slow = args.before_after_slow
     slow_class = 0
+    first_fast = -n_before
+    last_slow = f'slow_{n_slow-1}'
     bad = "bad"
 
     # The bad state is for outliers
@@ -371,18 +373,18 @@ def masked_dict(args, rng):
     # model the variable intervals between PQRST sequences
     for i in range(n_slow - 1):
         state_dict[f'slow_{i}'] = State(
-            [f'slow_{i}', f'slow_{i+1}', bad],
-            [.5 - p_noise / 2, .5 - p_noise / 2, p_noise], slow_class,
-            [True, True, False])
-    state_dict[f'slow_{n_slow-1}'] = State([-n_before, bad],
-                                           [1.0 - p_noise, p_noise], slow_class,
-                                           [False, False])
+            [f'slow_{i}', f'slow_{i+1}', first_fast, bad],
+            [.4 - p_noise / 2, .4 - p_noise / 2, .2, p_noise], slow_class,
+            [True, True, True, False])
+    state_dict[last_slow] = State([last_slow, first_fast, bad],
+                                  [.5 - p_noise, .5, p_noise], slow_class,
+                                  [True, True, False])
 
     # Define fast states.  This is fit to the PQRST sequence.  In a
     # normal ECG, each instance of the PQRST sequence has about the
     # same duration.  In this hmm the sequence of fast states normally
     # progresses through one state each time step.
-    for t in range(-n_before, n_after):
+    for t in range(first_fast, n_after):
         state_dict[t] = State(
             [t + 1, bad],  # successors
             [1.0 - p_noise, p_noise],  # probabilities
