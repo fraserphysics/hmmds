@@ -96,6 +96,48 @@ $(ECG)/%/unmasked_trained: $(ApneaCode)/train.py $(ECG)/%/unmasked_hmm
 	python $< --records a01 --type segmented --iterations 10 $@.40 $@.50 >>  $@.log
 	cd $(@D); ln -s unmasked_trained.50 unmasked_trained
 
+
+# I looked at ecg signals and put signals that didn't look typical to
+# me in the list FUNNY.  When I first ran train.py with --type
+# diverse, the program rejected the records in IMPLAUSIBLE because
+# they don't have 15 minute segments of plausible data.  I think the
+# signals in those files are bigger.
+
+# a01 1.5 mV
+
+# a07 3mV
+# a08 4mV
+# a15 3mV
+# a16 4mV
+# a19 3mV
+# x01 3.5mV
+# x20 3.5mV
+# x21 3mV
+# x27 3.5 mV
+# x30 3mV
+
+# Diverse gets trained on a01 a02 a03 a04 a05 a06 a09 a11 a13 a14 a17
+# a18 a20 b01 b03 b04 c01 c03 c04 c05 c06 c07 c08 c09 c10 x02 x03 x04
+# x08 x09 x10 x12 x13 x14 x15 x16 x17 x18 x19 x22 x23 x24 x25 x26 x28
+# x29 x31 x32 x35
+FUNNY =       x06 x33 x34 a12 b02 c02 x05 a10 x07 x11
+IMPLAUSIBLE = a07 a08 a15 a16 a19 x01 x20 x21 x27 x30
+DIVERSE_RECORDS = $(filter-out $(FUNNY) $(IMPLAUSIBLE), $(NAMES))
+DIVERSE = --records $(DIVERSE_RECORDS) --type diverse --iterations 5
+$(ECG)/%/diverse_trained: $(ApneaCode)/train.py $(ECG)/%/unmasked_trained
+	rm -f $@
+	python $< $(DIVERSE) $(@D)/unmasked_trained $@.5 >  $@.log
+	python $< $(DIVERSE) $@.5 $@.10 >>  $@.log
+	python $< $(DIVERSE) $@.10 $@.15 >>  $@.log
+	cd $(@D); ln -s diverse_trained.15 diverse_trained
+
+$(ECG)/dict_3_2/diverse_states/%: $(ApneaCode)/ecg_decode.py $(ECG)/dict_3_2/diverse_trained
+	mkdir -p  $(@D)
+	python $^ $* $@
+$(ECG)/dict_3_2/diverse_likelihood/%: $(ApneaCode)/ecg_likelihood.py $(ECG)/dict_3_2/diverse_trained
+	mkdir -p  $(@D)
+	python $^ $* $@
+
 # 8.67 seconds
 $(ECG)/dict_3_2/states/%: $(ApneaCode)/ecg_decode.py $(ECG)/dict_3_2/unmasked_trained
 	mkdir -p  $(@D)
@@ -109,6 +151,12 @@ all_states: $(addprefix $(ECG)/dict_3_2/states/, $(NAMES))
 	touch $@
 
 all_likelihood: $(addprefix $(ECG)/dict_3_2/likelihood/, $(NAMES))
+	touch $@
+
+all_diverse_states: $(addprefix $(ECG)/dict_3_2/diverse_states/, $(NAMES))
+	touch $@
+
+all_diverse_likelihood: $(addprefix $(ECG)/dict_3_2/diverse_likelihood/, $(NAMES))
 	touch $@
 
 # Use p1model_A4 and p1model_C2 to create file with lines like: x24 # Low
