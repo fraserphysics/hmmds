@@ -17,8 +17,8 @@ $(ApneaDerivedData)/pass1_report.pickle:
 include Rules.mk
 # Rules.mk defines RAW_DATA EXPERT LPHR RESPIRE RTIMES MODELS
 
-a01a19c02.pdf:  a01a19c02.py $(ECG)/dict_3_2/states/a01 $(ECG)/dict_3_2/states/c02
-	python a01a19c02.py $(RTIMES) $(ECG)/dict_3_2/states/c02 300.0 300.05 $@
+a01a19c02.pdf:  a01a19c02.py $(ECG)/a01_trained_AR3/states/a01 $(ECG)/a01_trained_AR3/states/c02
+	python a01a19c02.py $(RTIMES) $(ECG)/a01_trained_AR3/states/c02 300.0 300.05 $@
 
 %_states_71.pdf: ecg_states_fig.py $(ECG)/%/states/a01
 	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/$*/states/a01 71.1 71.14 $@
@@ -26,23 +26,23 @@ a01a19c02.pdf:  a01a19c02.py $(ECG)/dict_3_2/states/a01 $(ECG)/dict_3_2/states/c
 %_states_70.pdf: ecg_states_fig.py $(ECG)/%/states/a01
 	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/$*/states/a01 70.785 70.825 $@
 
-train_log.pdf: train_characteristic.py $(ECG)/dict_3_2/states/a01
-	python $< $(ECG)/dict_3_2/unmasked_trained.log $@
+train_log.pdf: train_characteristic.py $(ECG)/a01_trained_AR3/unmasked_trained
+	python $< $(ECG)/a01_trained_AR3/unmasked_trained.log $@
 ${DATA}/score_report:
 
-table.tex: table.py all_states all_likelihood
-	python table.py $(ECG)/dict_3_2/ $@
+table.tex: table.py $(ECG)/a01_trained_AR3/all_states_likelihood_heart_rate
+	python table.py $(ECG)/a01_trained_AR3/ $@
 
-diverse.tex: table.py all_diverse_states all_diverse_likelihood
-	python table.py --states diverse_states --likelihood diverse_likelihood $(ECG)/dict_3_2/ $@
+diverse.tex: table.py $(ECG)/diverse_trained_AR3/all_states_likelihood_heart_rate
+	python table.py $(ECG)/diverse_trained_AR3/ $@
 
-like_a14_x07.pdf: plot_like.py all_states all_likelihood
-	python plot_like.py Rtimes/ $(ECG)/dict_3_2/likelihood/ 300.16 300.19 a14 x07 $@
+like_a14_x07.pdf: plot_like.py $(ECG)/a01_trained_AR3/all_states_likelihood_heart_rate
+	python plot_like.py Rtimes/ $(ECG)/a01_trained_AR3/likelihood/ 300.16 300.19 a14 x07 $@
 
-simulated.pdf: plot_simulation.py $(ECG)/dict_3_2/diverse_trained
+simulated.pdf: plot_simulation.py $(ECG)/diverse_trained_AR3/unmasked_trained
 	python $^ 1000 $@
 
-ECG_FIGS = dict_3_2_states_70.pdf dict_3_2_states_71.pdf a01a19c02.pdf train_log.pdf like_a14_x07.pdf simulated.pdf
+ECG_FIGS = a01_trained_AR3_states_70.pdf a01_trained_AR3_states_71.pdf a01a19c02.pdf train_log.pdf like_a14_x07.pdf simulated.pdf
 
 ecg.pdf: ecg.tex $(ECG_FIGS) table.tex diverse.tex
 	pdflatex $< ; pdflatex $<
@@ -110,7 +110,6 @@ variables:
 	@echo LMH_MODELS: $(LMH_MODELS)
 	@echo MODELS: $(MODELS)
 	@echo MATRIX: $(MATRIX)
-	@echo DIVERSE: $(DIVERSE)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help

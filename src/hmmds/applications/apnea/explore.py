@@ -29,7 +29,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Exploring Lorenz Parameters")
+        self.setWindowTitle("Examine ECG Model Performance")
         # Configure the main window
         layout0 = PyQt5.QtWidgets.QHBoxLayout()
         controls_layout = PyQt5.QtWidgets.QVBoxLayout()
@@ -61,7 +61,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         record_ok.clicked.connect(self.new_record)
 
         self.ecg_hmm_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.ecg_hmm_box.setText('ECG/dict_3_2/')
+        self.ecg_hmm_box.setText('ECG/diverse_trained_AR3/')
         ecg_hmm_ok = PyQt5.QtWidgets.QPushButton('HMM Dir', self)
         ecg_hmm_ok.clicked.connect(self.new_ecg_hmm)
 
@@ -168,11 +168,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
     def open_file_dialog(self, directory=None):
         if directory is None:
             directory = self.root_box.text()
-        dialog = PyQt5.QtWidgets.QFileDialog(self)
-        dialog.setDirectory(directory)
-        dialog.setFileMode(PyQt5.QtWidgets.QFileDialog.FileMode.ExistingFiles)
-        dialog.setViewMode(PyQt5.QtWidgets.QFileDialog.ViewMode.List)
-        filename, ok = dialog.getOpenFileName()
+        filename = str(PyQt5.QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory"))
         return filename
 
     def new_root(self):

@@ -30,7 +30,8 @@ https://github.com/berndporr/py-ecg-detectors, I wrote my own by
 building HMMs for ECG time series.
 
 Recipes for making the models and figures described here appear in
-Rules.mk.
+Makefile and Rules.mk.  On 2023-04-12 building this document from
+scratch too real 21m46.683s user 264m52.028s sys 5m38.888s.
 
 \section{Outliers}
 \label{sec:outliers}
@@ -74,7 +75,7 @@ rate without missing or inserting beats.
 
 \begin{figure}
   \centering
-    \resizebox{0.7\textwidth}{!}{\includegraphics{dict_3_2_states_70.pdf}}
+    \resizebox{0.7\textwidth}{!}{\includegraphics{a01_trained_AR3_states_70.pdf}}
     \caption{Performance of the HMM with a single chain of 49 states
       trained to model PQRST sequences.  An short segment of the ECG
       signal appears in the upper plot, while the corresponding
@@ -85,7 +86,7 @@ rate without missing or inserting beats.
 
 \begin{figure}
   \centering
-  \resizebox{0.7\textwidth}{!}{\includegraphics{dict_3_2_states_71.pdf}}
+  \resizebox{0.7\textwidth}{!}{\includegraphics{a01_trained_AR3_states_71.pdf}}
   \caption{Performance of the same model used for
     Fig.~\ref{fig:dict_states_70}, but looking at a different
     segment of the data.}
@@ -204,10 +205,8 @@ So the quadratic estimate of the peak location is
 \label{sec:todo}
 
 \begin{itemize}
-\item Code to score heart rate derived from ECG models
 \item Develop collection of ECG models that get good heart rates for
   all records.  Perhaps different models for different amplitudes.
-\item Shorten a01 training to 20 iterations
 \item Plot training characteristic for diverse model
 \end{itemize}
 

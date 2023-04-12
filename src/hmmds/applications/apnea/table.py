@@ -89,7 +89,6 @@ name & $h(X|\theta)$ & plausible &name & $h(X|\theta)$ & plausible &name & h$(X|
 \hline
 \end{tabular}
     """)
-    print(''.join(message))
     with open(args.output, encoding='utf-8', mode='w') as _file:
         _file.write(''.join(message))
     return 0

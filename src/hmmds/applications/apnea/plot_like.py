@@ -60,7 +60,6 @@ def main(argv=None):
         axeses[1, i].plot(times,
                           numpy.log(likelihood[n_start:n_stop]),
                           label=f'log prob_{name}')
-        print(f'{name=} {numpy.log(likelihood[n_start:n_stop]).min()=}')
 
     # Legends for all axes
     for axis in axeses.flatten():

@@ -64,8 +64,7 @@ $(RESPIRE)/flag: $(ApneaCode)/respire.py $(EXPERT) $(RTIMES)/flag
 	touch $@
 
 # The trained files are expensive to build.  Don't delete them
-.PRECIOUS: ${MODELS}/initial_% ${MODELS}/p1model_% $(ECG)/%/masked_trained \
-$(ECG)/%/unmasked_trained $(ECG)/%/unmasked_hmm
+.PRECIOUS: ${MODELS}/initial_% ${MODELS}/p1model_%
 
 # Rule for initial models
 ${MODELS}/initial_%: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(ApneaCode)/observation.py $(RESPIRE)/flag $(LPHR)/flag
@@ -76,26 +75,68 @@ ${MODELS}/initial_%: $(ApneaCode)/model_init.py $(ApneaCode)/utilities.py $(Apne
 ${MODELS}/p1model_%: $(ApneaCode)/apnea_train.py ${MODELS}/initial_%
 	python $< --iterations 5 --root ${ROOT} $* $(word 2,$^) $@
 
-# Time to make $(ECG)/dict_3_2/states/a01 from scratch: real 9m23.888s user 82m23.335s
-$(ECG)/dict_3_2/initial: model_init.py
+################## Begin ECG Targets #########################################
+
+# Each ECG_DIR has a unique rule for making its "unmasked_trained" file
+ECG_NAMES = a01_trained_AR3 diverse_trained_AR3
+ECG_DIRS =  $(addprefix $(ECG)/, $(ECG_NAMES))
+KEEPERS = initial masked_trained unmasked_trained
+
+# The trained files are expensive to build.  Don't delete them
+.PRECIOUS: $(foreach X,$(ECG_DIRS),$(foreach Y,$(KEEPERS),$X/$Y))
+
+# Because Gnu make doesn't support pattern rules with two patterns, I
+# have the following section of almost repeated pattern rules:
+
+#################### Block for a01_trained_AR3 ##############################
+$(ECG)/a01_trained_AR3/states/%: $(ApneaCode)/ecg_decode.py $(ECG)/a01_trained_AR3/unmasked_trained
+	mkdir -p  $(@D)
+	python $^ $* $@
+$(ECG)/a01_trained_AR3/likelihood/%: $(ApneaCode)/ecg_likelihood.py $(ECG)/a01_trained_AR3/unmasked_trained
+	mkdir -p  $(@D)
+	python $^ $* $@
+$(ECG)/a01_trained_AR3/heart_rate/%: $(ApneaCode)/states2hr.py $(ECG)/a01_trained_AR3/states/%
+	mkdir -p  $(@D)
+	python $<  $(ECG)/a01_trained_AR3/states/ $(@D) $*
+
+$(ECG)/a01_trained_AR3/all_states_likelihood_heart_rate: $(foreach X, states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG)/a01_trained_AR3/, $X/$Y)))
+	touch $@
+
+#################### Block for diverse_trained_AR3 ###########################
+$(ECG)/diverse_trained_AR3/states/%: $(ApneaCode)/ecg_decode.py $(ECG)/diverse_trained_AR3/unmasked_trained
+	mkdir -p  $(@D)
+	python $^ $* $@
+$(ECG)/diverse_trained_AR3/likelihood/%: $(ApneaCode)/ecg_likelihood.py $(ECG)/diverse_trained_AR3/unmasked_trained
+	mkdir -p  $(@D)
+	python $^ $* $@
+$(ECG)/diverse_trained_AR3/heart_rate/%: $(ApneaCode)/states2hr.py $(ECG)/diverse_trained_AR3/states/%
+	mkdir -p  $(@D)
+	python $<  $(ECG)/diverse_trained_AR3/states/ $(@D) $*
+
+$(ECG)/diverse_trained_AR3/all_states_likelihood_heart_rate: $(foreach X, states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG)/diverse_trained_AR3/, $X/$Y)))
+	touch $@
+
+
+#################### Rules to make a01_trained_AR3/unmasked_trained ############
+$(ECG)/a01_trained_AR3/initial: model_init.py
 	mkdir -p  $(@D)
 	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 --tag_ecg \
 --ecg_alpha_beta 1.0e3 1.0e2 --noise_parameters 1.0e2 1.0e4 1.0e-50 \
 --before_after_slow 18 30 10 --AR_order 3 masked_dict $@
 
-$(ECG)/%/masked_trained: $(ApneaCode)/train.py $(ECG)/%/initial
-	python $<  --records a01 --type segmented --iterations 5 $(ECG)/$*/initial $@ >  $(ECG)/$*/masked.log
+$(ECG)/a01_trained_AR3/masked_trained: $(ApneaCode)/train.py $(ECG)/a01_trained_AR3/initial
+	python $<  --records a01 --type segmented --iterations 5 $(ECG)/a01_trained_AR3/initial $@ >  $(ECG)/a01_trained_AR3/masked.log
+
 $(ECG)/%/unmasked_hmm: $(ApneaCode)/declass.py $(ECG)/%/masked_trained
 	python $^ $@
-$(ECG)/%/unmasked_trained: $(ApneaCode)/train.py $(ECG)/%/unmasked_hmm
-	rm -f $@
-	python $< --records a01 --type segmented --iterations 10 $(@D)/unmasked_hmm $@.10 >  $@.log
-	python $< --records a01 --type segmented --iterations 10 $@.10 $@.20 >>  $@.log
-	python $< --records a01 --type segmented --iterations 10 $@.20 $@.30 >>  $@.log
-	python $< --records a01 --type segmented --iterations 10 $@.30 $@.40 >>  $@.log
-	python $< --records a01 --type segmented --iterations 10 $@.40 $@.50 >>  $@.log
-	cd $(@D); ln -s unmasked_trained.50 unmasked_trained
 
+$(ECG)/a01_trained_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/a01_trained_AR3/unmasked_hmm
+	rm -f $@
+	python $< --records a01 --type segmented --iterations 20 $(@D)/unmasked_hmm $@ >  $@.log
+
+
+
+#################### Rules to make diverse_trained_AR3/unmasked_trained ########
 
 # I looked at ecg signals and put signals that didn't look typical to
 # me in the list FUNNY.  When I first ran train.py with --type
@@ -121,48 +162,15 @@ $(ECG)/%/unmasked_trained: $(ApneaCode)/train.py $(ECG)/%/unmasked_hmm
 # x08 x09 x10 x12 x13 x14 x15 x16 x17 x18 x19 x22 x23 x24 x25 x26 x28
 # x29 x31 x32 x35
 FUNNY =       x06 x33 x34 a12 b02 c02 x05 a10 x07 x11
-IMPLAUSIBLE = a07 a08 a15 a16 a19 x01 x20 x21 x27 x30
+IMPLAUSIBLE = a03 a07 a08 a15 a16 a19 x01 x16 x19 x20 x21 x27 x30
 DIVERSE_RECORDS = $(filter-out $(FUNNY) $(IMPLAUSIBLE), $(NAMES))
-DIVERSE = --records $(DIVERSE_RECORDS) --type diverse --iterations 5
-$(ECG)/%/diverse_trained: $(ApneaCode)/train.py $(ECG)/%/unmasked_trained
+
+$(ECG)/diverse_trained_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/a01_trained_AR3/unmasked_hmm  $(ECG)/a01_trained_AR3/all_states_likelihood_heart_rate
 	rm -f $@
-	python $< $(DIVERSE) $(@D)/unmasked_trained $@.5 >  $@.log
-	python $< $(DIVERSE) $@.5 $@.10 >>  $@.log
-	python $< $(DIVERSE) $@.10 $@.15 >>  $@.log
-	cd $(@D); ln -s diverse_trained.15 diverse_trained
+	mkdir -p $(@D)
+	python $< --records $(DIVERSE_RECORDS) --type diverse --iterations 20 $(ECG)/a01_trained_AR3/unmasked_hmm $@ >  $@.log
 
-$(ECG)/dict_3_2/diverse_states/%: $(ApneaCode)/ecg_decode.py $(ECG)/dict_3_2/diverse_trained
-	mkdir -p  $(@D)
-	python $^ $* $@
-
-$(ECG)/dict_3_2/diverse_likelihood/%: $(ApneaCode)/ecg_likelihood.py $(ECG)/dict_3_2/diverse_trained
-	mkdir -p  $(@D)
-	python $^ $* $@
-
-$(ECG)/dict_3_2/heart_rate/%: $(ApneaCode)/states2hr.py $(ECG)/dict_3_2/states/%
-	mkdir -p  $(@D)
-	python $<  $(ECG)/dict_3_2/states/ $(@D) $*
-
-# 8.67 seconds
-$(ECG)/dict_3_2/states/%: $(ApneaCode)/ecg_decode.py $(ECG)/dict_3_2/unmasked_trained
-	mkdir -p  $(@D)
-	python $^ $* $@
-# 18.84 seconds
-$(ECG)/dict_3_2/likelihood/%: $(ApneaCode)/ecg_likelihood.py $(ECG)/dict_3_2/unmasked_trained
-	mkdir -p  $(@D)
-	python $^ $* $@
-
-all_states: $(addprefix $(ECG)/dict_3_2/states/, $(NAMES))
-	touch $@
-
-all_likelihood: $(addprefix $(ECG)/dict_3_2/likelihood/, $(NAMES))
-	touch $@
-
-all_diverse_states: $(addprefix $(ECG)/dict_3_2/diverse_states/, $(NAMES))
-	touch $@
-
-all_diverse_likelihood: $(addprefix $(ECG)/dict_3_2/diverse_likelihood/, $(NAMES))
-	touch $@
+################## End ECG Targets #########################################
 
 # Use p1model_A4 and p1model_C2 to create file with lines like: x24 # Low
 # stat= 1.454 llr= -0.603 R= 1.755.  For each line, calculate
