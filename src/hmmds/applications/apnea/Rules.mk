@@ -134,9 +134,14 @@ $(ECG)/%/diverse_trained: $(ApneaCode)/train.py $(ECG)/%/unmasked_trained
 $(ECG)/dict_3_2/diverse_states/%: $(ApneaCode)/ecg_decode.py $(ECG)/dict_3_2/diverse_trained
 	mkdir -p  $(@D)
 	python $^ $* $@
+
 $(ECG)/dict_3_2/diverse_likelihood/%: $(ApneaCode)/ecg_likelihood.py $(ECG)/dict_3_2/diverse_trained
 	mkdir -p  $(@D)
 	python $^ $* $@
+
+$(ECG)/dict_3_2/heart_rate/%: $(ApneaCode)/states2hr.py $(ECG)/dict_3_2/states/%
+	mkdir -p  $(@D)
+	python $<  $(ECG)/dict_3_2/states/ $(@D) $*
 
 # 8.67 seconds
 $(ECG)/dict_3_2/states/%: $(ApneaCode)/ecg_decode.py $(ECG)/dict_3_2/unmasked_trained

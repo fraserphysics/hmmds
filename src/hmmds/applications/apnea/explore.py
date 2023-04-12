@@ -144,7 +144,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         hr = pyqtgraph.GraphicsLayoutWidget(title="Heart Rate")
         hr_plot = hr.addPlot()
         hr_plot.addLegend()
-        self.hr_dict = {'curves': [hr_plot.plot(pen='g', name='hr')]}
+        self.hr_dict = {
+            'curves': [
+                hr_plot.plot(pen='g', name='old_hr'),
+                hr_plot.plot(pen='r', name='new_hr'),
+                hr_plot.plot(pen='w', name='difference'),
+            ]}
 
         # Layout plot section
         for widget in (ecg, viterbi, like, hr):
@@ -255,6 +260,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_window(**self.like_dict)
 
     def read_hr(self):
+
+        # Read heart rate from traditional qrs detector
         path = os.path.join(self.root_box.text(),
                             'build/derived_data/apnea/Lphr',
                             f'{self.record_box.text()}.lphr')
@@ -262,7 +269,25 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             pickle_dict = pickle.load(_file)
         hr = pickle_dict['hr'].to('1/minute').magnitude
         times = numpy.arange(len(hr)) / pickle_dict['sample_frequency']
-        self.hr_dict['signals'] = [(times, hr)]
+
+        # Read heart rate from HMM based detector
+        path = os.path.join(self.root_box.text(),
+                            'build/derived_data/apnea/models',
+                            f'{self.ecg_hmm_box.text()}', 'heart_rate',
+                            self.record_box.text())
+        with open(path, 'rb') as _file:
+            pickle_dict = pickle.load(_file)
+        hr_states = pickle_dict['hr'].to('1/minute').magnitude
+
+        length = min(len(times), len(hr), len(hr_states))
+
+        difference = numpy.abs(hr[:length]-hr_states[:length])
+
+        self.hr_dict['signals'] = [
+            (times, hr),
+            (times[:length], hr_states[:length]),
+            (times[:length], difference),
+        ]
         self.plot_window(**self.hr_dict)
 
 
