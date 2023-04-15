@@ -97,7 +97,7 @@ $(ECG)/a01_trained_AR3/likelihood/%: $(ApneaCode)/ecg_likelihood.py $(ECG)/a01_t
 	python $^ $* $@
 $(ECG)/a01_trained_AR3/heart_rate/%: $(ApneaCode)/states2hr.py $(ECG)/a01_trained_AR3/states/%
 	mkdir -p  $(@D)
-	python $<  $(ECG)/a01_trained_AR3/states/ $(@D) $*
+	python $<  $(ECG)/a01_trained_AR3/states/$* $@
 
 $(ECG)/a01_trained_AR3/all_states_likelihood_heart_rate: $(foreach X, states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG)/a01_trained_AR3/, $X/$Y)))
 	touch $@
@@ -111,9 +111,39 @@ $(ECG)/diverse_trained_AR3/likelihood/%: $(ApneaCode)/ecg_likelihood.py $(ECG)/d
 	python $^ $* $@
 $(ECG)/diverse_trained_AR3/heart_rate/%: $(ApneaCode)/states2hr.py $(ECG)/diverse_trained_AR3/states/%
 	mkdir -p  $(@D)
-	python $<  $(ECG)/diverse_trained_AR3/states/ $(@D) $*
+	python $<  $(ECG)/diverse_trained_AR3/states/$* $@
 
 $(ECG)/diverse_trained_AR3/all_states_likelihood_heart_rate: $(foreach X, states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG)/diverse_trained_AR3/, $X/$Y)))
+	touch $@
+
+
+#################### Block for implausible_AR3 ###########################
+$(ECG)/implausible_AR3/states/%: $(ApneaCode)/ecg_decode.py $(ECG)/implausible_AR3/unmasked_trained
+	mkdir -p  $(@D)
+	python $^ $* $@
+$(ECG)/implausible_AR3/likelihood/%: $(ApneaCode)/ecg_likelihood.py $(ECG)/implausible_AR3/unmasked_trained
+	mkdir -p  $(@D)
+	python $^ $* $@
+$(ECG)/implausible_AR3/heart_rate/%: $(ApneaCode)/states2hr.py $(ECG)/implausible_AR3/states/%
+	mkdir -p  $(@D)
+	python $<  $(ECG)/implausible_AR3/states/$* $@
+
+$(ECG)/implausible_AR3/all_states_likelihood_heart_rate: $(foreach X, states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG)/implausible_AR3/, $X/$Y)))
+	touch $@
+
+
+#################### Block for funny_AR3 ###########################
+$(ECG)/funny_AR3/states/%: $(ApneaCode)/ecg_decode.py $(ECG)/funny_AR3/unmasked_trained
+	mkdir -p  $(@D)
+	python $^ $* $@
+$(ECG)/funny_AR3/likelihood/%: $(ApneaCode)/ecg_likelihood.py $(ECG)/funny_AR3/unmasked_trained
+	mkdir -p  $(@D)
+	python $^ $* $@
+$(ECG)/funny_AR3/heart_rate/%: $(ApneaCode)/states2hr.py $(ECG)/funny_AR3/states/%
+	mkdir -p  $(@D)
+	python $<  $(ECG)/funny_AR3/states/$* $@
+
+$(ECG)/funny_AR3/all_states_likelihood_heart_rate: $(foreach X, states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG)/funny_AR3/, $X/$Y)))
 	touch $@
 
 
@@ -121,17 +151,21 @@ $(ECG)/diverse_trained_AR3/all_states_likelihood_heart_rate: $(foreach X, states
 $(ECG)/a01_trained_AR3/initial: model_init.py
 	mkdir -p  $(@D)
 	python $(ApneaCode)/model_init.py --root ${ROOT} --records a01 --tag_ecg \
---ecg_alpha_beta 1.0e3 1.0e2 --noise_parameters 1.0e2 1.0e4 1.0e-50 \
+--ecg_alpha_beta 1.0e3 1.0e2 --noise_parameters 1.0e6 1.0e8 1.0e-50 \
 --before_after_slow 18 30 10 --AR_order 3 masked_dict $@
+
+# 2023-04-14 note: The model made with --noise_parameters 1.0e2 1.0e4
+# 1.0e-3 says the a03 data is impossible in 5 places.  I think the
+# weak prior (alpha and beta) let the noise state have a variance that
+# is too small.
 
 $(ECG)/a01_trained_AR3/masked_trained: $(ApneaCode)/train.py $(ECG)/a01_trained_AR3/initial
 	python $<  --records a01 --type segmented --iterations 5 $(ECG)/a01_trained_AR3/initial $@ >  $(ECG)/a01_trained_AR3/masked.log
 
-$(ECG)/%/unmasked_hmm: $(ApneaCode)/declass.py $(ECG)/%/masked_trained
+$(ECG)/a01_trained_AR3/unmasked_hmm: $(ApneaCode)/declass.py $(ECG)/a01_trained_AR3/masked_trained
 	python $^ $@
 
 $(ECG)/a01_trained_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/a01_trained_AR3/unmasked_hmm
-	rm -f $@
 	python $< --records a01 --type segmented --iterations 20 $(@D)/unmasked_hmm $@ >  $@.log
 
 
@@ -146,12 +180,15 @@ $(ECG)/a01_trained_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/a01_traine
 
 # a01 1.5 mV
 
+# a03 2.8mV
 # a07 3mV
-# a08 4mV
+# a08 wandering base up to 7 mV
 # a15 3mV
-# a16 4mV
+# a16 more than 4mV
 # a19 3mV
 # x01 3.5mV
+# x16 Base wanders by 3mV
+# x19 almost 4mV
 # x20 3.5mV
 # x21 3mV
 # x27 3.5 mV
@@ -161,14 +198,47 @@ $(ECG)/a01_trained_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/a01_traine
 # a18 a20 b01 b03 b04 c01 c03 c04 c05 c06 c07 c08 c09 c10 x02 x03 x04
 # x08 x09 x10 x12 x13 x14 x15 x16 x17 x18 x19 x22 x23 x24 x25 x26 x28
 # x29 x31 x32 x35
-FUNNY =       x06 x33 x34 a12 b02 c02 x05 a10 x07 x11
+FUNNY =       a10 a12 b02 c02 x05 x06 x07 x11 x33 x34
 IMPLAUSIBLE = a03 a07 a08 a15 a16 a19 x01 x16 x19 x20 x21 x27 x30
 DIVERSE_RECORDS = $(filter-out $(FUNNY) $(IMPLAUSIBLE), $(NAMES))
 
 $(ECG)/diverse_trained_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/a01_trained_AR3/unmasked_hmm  $(ECG)/a01_trained_AR3/all_states_likelihood_heart_rate
-	rm -f $@
 	mkdir -p $(@D)
 	python $< --records $(DIVERSE_RECORDS) --type diverse --iterations 20 $(ECG)/a01_trained_AR3/unmasked_hmm $@ >  $@.log
+
+# I base the next two directories on the trained diverse model because
+# it is more flexible that the model trained on a01.
+
+#################### Rule to make implausible_AR3/unmasked_trained ########
+
+$(ECG)/implausible_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/diverse_trained_AR3/unmasked_trained  $(ECG)/diverse_trained_AR3/all_states_likelihood_heart_rate
+	mkdir -p $(@D)
+	python $< --records $(IMPLAUSIBLE) --type implausible --iterations 20 $(ECG)/diverse_trained_AR3/unmasked_trained $@ >  $@.log
+
+#################### Rule to make funny_AR3/unmasked_trained ########
+
+$(ECG)/funny_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/diverse_trained_AR3/unmasked_trained  $(ECG)/diverse_trained_AR3/all_states_likelihood_heart_rate
+	mkdir -p $(@D)
+	python $< --records $(FUNNY) --type implausible --iterations 20 $(ECG)/diverse_trained_AR3/unmasked_trained $@ >  $@.log
+
+#################### Rule for models trained on a single record ########
+$(ECG)/%_self_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/a01_trained_AR3/unmasked_trained
+	mkdir -p $(@D)
+	python $< --records $* --type segmented --iterations 10 $(ECG)/a01_trained_AR3/unmasked_trained $@ >  $@.log
+$(ECG)/%_self_AR3/states: $(ApneaCode)/ecg_decode.py $(ECG)/%_self_AR3/unmasked_trained
+	python $^ $* $@
+$(ECG)/%_self_AR3/likelihood: $(ApneaCode)/ecg_likelihood.py $(ECG)/%_self_AR3/unmasked_trained
+	python $^ $* $@
+$(ECG)/%_self_AR3/heart_rate: $(ApneaCode)/states2hr.py $(ECG)/%_self_AR3/states
+	python $<  --r_state 35 $(ECG)/$*_self_AR3/states $@
+
+all_selves = $(foreach X, unmasked_trained states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG)/$Y_self_AR3/, $X)))
+$(ECG)/all_selves: $(all_selves)
+	touch $@
+
+# real	341m5.299s
+# user	5348m59.570s
+# sys	75m9.104s
 
 ################## End ECG Targets #########################################
 

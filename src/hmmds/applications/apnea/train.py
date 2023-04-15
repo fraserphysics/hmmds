@@ -65,6 +65,71 @@ def segment(data):
     return result
 
 
+class RecordData:
+    """Structure to hold data about a record.
+
+    """
+
+    def __init__(self, record_name, raw_data, model_path):
+        self.name = record_name
+        self.raw_data = raw_data
+        self.n_data = len(raw_data)
+        self.dir_path = os.path.dirname(model_path)
+        states_path = os.path.join(self.dir_path, 'states', self.name)
+        likelihood_path = os.path.join(self.dir_path, 'likelihood', self.name)
+        with open(states_path, 'rb') as _file:
+            self.states = pickle.load(_file)
+        with open(likelihood_path, 'rb') as _file:
+            self.likelihood = pickle.load(_file)
+
+    def bad_spots(self):
+        bad_spots_ = numpy.nonzero((self.states == 0) |
+                                   (self.likelihood < 1.0e-70))[0]
+        bad_spots = numpy.empty(len(bad_spots_) + 2, dtype=int)
+        bad_spots[1:-1:] = bad_spots_
+        bad_spots[0] = 0
+        bad_spots[-1] = self.n_data - 1
+        return bad_spots
+
+    def segments(self, shortest, longest):
+        """Return a list of segments
+
+        """
+        result = []
+        bad_spots = self.bad_spots()
+        ok_lengths = bad_spots[1:] - (bad_spots[:-1] - 1)
+        for ok_start, length in zip(bad_spots[:-1] + 1, ok_lengths):
+            if length < shortest:
+                continue
+            if length < longest:
+                segment = self.raw_data[ok_start:ok_start + length]
+                assert len(segment) > shortest
+                result.append(segment)
+                continue
+            step_size = length // (length // longest + 1) + 1
+            for segment_start in range(ok_start, ok_start + length, step_size):
+                segment = self.raw_data[segment_start:segment_start + step_size]
+                assert len(segment) > shortest
+                result.append(segment)
+        return result
+
+    def segment(self, segment_length):
+        """Return a segment of length segment_length that is plausible for self
+
+        """
+        bad_spots = self.bad_spots()
+        ok_lengths = bad_spots[1:] - bad_spots[:-1]
+        i_start = ok_lengths.argmax()
+        interval = (bad_spots[i_start] + 1, bad_spots[i_start + 1])
+        assert self.likelihood[interval[0]:interval[1]].min() >= 1.0e-70
+        interval_length = interval[1] - interval[0]
+        if interval_length <= segment_length:
+            assert self.name != 'a01'
+            return self.raw_data[interval[0]:interval[1]]
+        i_start = interval[0] + (interval_length - segment_length) // 2
+        return self.raw_data[i_start:i_start + segment_length]
+
+
 @register
 def segmented(args) -> list:
     """Read raw ecg data specified by args.  Sample data with 15
@@ -80,68 +145,54 @@ def segmented(args) -> list:
 
 @register
 def diverse(args) -> list:
-    """Return a list of segment from each record specified in the args.
+    """Return a list of one segment from each record specified in the args.
 
 
-    one 15 minute segment Ensure that all of the data in each segment is
-    plausible wrt the model in model_dir.
+    Ensure that all of the data in each segment is plausible wrt the
+    model in model_dir.
 
     """
 
     segment_length = 15 * 60 * 100  # 90,000 = 15 minutes, 60
 
     # seconds/minute, 100 samples/second
-    class RecordData:
-        """Structure to hold data about a record.
-
-        """
-
-        def __init__(self, record_name, raw_data, model_path):
-            self.name = record_name
-            self.raw_data = raw_data
-            self.n_data = len(raw_data)
-            self.dir_path = os.path.dirname(model_path)
-            states_path = os.path.join(self.dir_path, 'states', self.name)
-            likelihood_path = os.path.join(self.dir_path, 'likelihood',
-                                           self.name)
-            with open(states_path, 'rb') as _file:
-                self.states = pickle.load(_file)
-            with open(likelihood_path, 'rb') as _file:
-                self.likelihood = pickle.load(_file)
-
-        def segment(self):
-            """Find and return a 15 minute segment that is plausible for model
-
-            """
-            bad_spots_ = numpy.nonzero((self.states == 0) |
-                                       (self.likelihood < 1.0e-70))[0]
-            bad_spots = numpy.empty(len(bad_spots_) + 2, dtype=int)
-            bad_spots[1:-1:] = bad_spots_
-            bad_spots[0] = 0
-            bad_spots[-1] = self.n_data - 1
-            ok_lengths = bad_spots[1:] - bad_spots[:-1]
-            i_start = ok_lengths.argmax()
-            interval = (bad_spots[i_start] + 1, bad_spots[i_start + 1])
-            assert self.likelihood[interval[0]:interval[1]].min() >= 1.0e-70
-            interval_length = interval[1] - interval[0]
-            if interval_length <= segment_length:
-                assert self.name != 'a01'
-                return self.raw_data[interval[0]:interval[1]]
-            i_start = interval[0] + (interval_length - segment_length) // 2
-            return self.raw_data[i_start:i_start + segment_length]
 
     result = []
     records = {}
     raw_data = utilities.read_ecgs(args)
     for raw_record, name in zip(raw_data, args.records):
         records[name] = RecordData(name, raw_record, args.input)
-        segment_ = records[name].segment()
+        segment_ = records[name].segment(segment_length)
         if len(segment_) < segment_length:
             print(
                 f'Skipping record {name} because for longest segment {len(segment_)=}'
             )
         else:
             result.append(segment_)
+    return result
+
+
+@register
+def implausible(args) -> list:
+    """Return a list of all plausible segments from all records longer than 1 minute.
+
+
+    Ensure that all of the data in each segment is plausible wrt the
+    model in model_dir.  Break up segments that are longer than 15
+    minutes.
+
+    """
+
+    one = 60 * 100
+    fifteen = 15 * one
+
+    # seconds/minute, 100 samples/second
+
+    result = []
+    raw_data = utilities.read_ecgs(args)
+    for raw_record, name in zip(raw_data, args.records):
+        record = RecordData(name, raw_record, args.input)
+        result.extend(record.segments(one, fifteen))
     return result
 
 

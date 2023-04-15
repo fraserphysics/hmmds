@@ -149,7 +149,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                 hr_plot.plot(pen='g', name='old_hr'),
                 hr_plot.plot(pen='r', name='new_hr'),
                 hr_plot.plot(pen='w', name='difference'),
-            ]}
+            ]
+        }
 
         # Layout plot section
         for widget in (ecg, viterbi, like, hr):
@@ -168,7 +169,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
     def open_file_dialog(self, directory=None):
         if directory is None:
             directory = self.root_box.text()
-        filename = str(PyQt5.QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory"))
+        filename = str(
+            PyQt5.QtWidgets.QFileDialog.getExistingDirectory(
+                self, "Select Directory"))
         return filename
 
     def new_root(self):
@@ -277,7 +280,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         length = min(len(times), len(hr), len(hr_states))
 
-        difference = numpy.abs(hr[:length]-hr_states[:length])
+        difference = numpy.abs(hr[:length] - hr_states[:length])
 
         self.hr_dict['signals'] = [
             (times, hr),

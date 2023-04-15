@@ -30,6 +30,9 @@ train_log.pdf: train_characteristic.py $(ECG)/a01_trained_AR3/unmasked_trained
 	python $< $(ECG)/a01_trained_AR3/unmasked_trained.log $@
 ${DATA}/score_report:
 
+self_table.tex: self_table.py $(ECG)/all_selves
+	python self_table.py $(ECG) $@
+
 table.tex: table.py $(ECG)/a01_trained_AR3/all_states_likelihood_heart_rate
 	python table.py $(ECG)/a01_trained_AR3/ $@
 
@@ -44,7 +47,7 @@ simulated.pdf: plot_simulation.py $(ECG)/diverse_trained_AR3/unmasked_trained
 
 ECG_FIGS = a01_trained_AR3_states_70.pdf a01_trained_AR3_states_71.pdf a01a19c02.pdf train_log.pdf like_a14_x07.pdf simulated.pdf
 
-ecg.pdf: ecg.tex $(ECG_FIGS) table.tex diverse.tex
+ecg.pdf: ecg.tex $(ECG_FIGS) table.tex diverse.tex self_table.tex
 	pdflatex $< ; pdflatex $<
 
 .PHONY : trained

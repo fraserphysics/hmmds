@@ -93,8 +93,8 @@ rate without missing or inserting beats.
   \label{fig:dict_states_71}
 \end{figure}
 
-\section{A Successful Model}
-\label{sec:awkward}
+\section{Successful Models}
+\label{sec:successful_models}
 
 On 2023-03-31 I created a model that I trained on only the a01 record.
 It worked surprisingly well on all of the other CINC-2000 records
@@ -179,6 +179,52 @@ think are important:
   \label{fig:simulated}
 \end{figure}
 
+\subsection{Models Fit to Only One Record}
+\label{sec:selves}
+
+The statistics in Table~\ref{tab:self_cross_entropy} are drawn from
+models that were each trained on one record and then evaluated on that
+same record.  I call those models self-trained.  A model fit to record
+a01 was the seed for each of the self-trained models.  I used results
+from a peak detector to initally supervise the training of the seed
+model.
+
+\begin{table}
+  \centering
+    \input{self_table.tex}
+  \caption[Cross Entropy]{Cross entropy and fraction of each record
+    that is plausible for models trained the record itself.}
+  \label{tab:self_cross_entropy}
+\end{table}
+
+Here are some comments on the self-trained model including comparison
+to heart rate calculated using foo:
+\begin{description}
+\item[Good Overall] Record a20 is which is at the bottom of both
+  Table~\ref{tab:diverse_cross_entropy} and
+  Table~\ref{tab:self_cross_entropy}.  The statistics improve with
+  $h(X|\theta): 1.1265 \rightarrow 1.4106$ and 98.972\% $\rightarrow$
+  99.89\% plausible.  The self-trained a20 model is better than foo
+  most of the time, but it would be even better if it used the outlier
+  state for noisy patches rather than using the slow states.  Using
+  the slow states there yields unreasonably low heart rates.
+\item[x20] The x20 model finds 98.238\% of the record plausible.  It
+  is one of only two model-record combination in which that score is
+  below 99\%.  Leads disconnected for about 15 minutes starting at
+  about 173.  Starting at 387 -- 410 noisy spell that model handles
+  better than foo
+\item[x29] At 98.625\%, the x29 model also scores badly for
+  plausibity.  The leads are not connected for the first 18 minutes.
+  The model preforms adequately in a difficult interval from 117 --
+  123 and again around 295.  For long intervals in the record there
+  are pairs of beats (with three to five normal beats in between) that
+  are separated by only .6 seconds.  So the estimated heart rate jumps
+  from 100 to 40 between samples (.5 seconds).  Both foo and the
+  self-trained model track those changes.
+\item[x27] Has high cross entropy and high plausibility.  Looking at
+  plots, I think it performs well.  Perhaps the high cross entropy is
+  because the signal amplitude is large (normal peaks above 4mV).
+\end{description}
 \section{Quadratic Fit to Peak}
 \label{sec:quadratic}
 
@@ -205,9 +251,7 @@ So the quadratic estimate of the peak location is
 \label{sec:todo}
 
 \begin{itemize}
-\item Develop collection of ECG models that get good heart rates for
-  all records.  Perhaps different models for different amplitudes.
-\item Plot training characteristic for diverse model
+\item Plot training characteristics
 \end{itemize}
 
 
