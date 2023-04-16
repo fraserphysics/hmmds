@@ -186,7 +186,7 @@ The statistics in Table~\ref{tab:self_cross_entropy} are drawn from
 models that were each trained on one record and then evaluated on that
 same record.  I call those models self-trained.  A model fit to record
 a01 was the seed for each of the self-trained models.  I used results
-from a peak detector to initally supervise the training of the seed
+from a peak detector to initially supervise the training of the seed
 model.
 
 \begin{table}
@@ -200,31 +200,64 @@ model.
 Here are some comments on the self-trained model including comparison
 to heart rate calculated using foo:
 \begin{description}
-\item[Good Overall] Record a20 is which is at the bottom of both
+\item[Good Overall] For record a20 is which is at the bottom of both
   Table~\ref{tab:diverse_cross_entropy} and
-  Table~\ref{tab:self_cross_entropy}.  The statistics improve with
-  $h(X|\theta): 1.1265 \rightarrow 1.4106$ and 98.972\% $\rightarrow$
+  Table~\ref{tab:self_cross_entropy} the statistics improve with
+  $-h(X|\theta): 1.1265 \rightarrow 1.4106$ and 98.972\% $\rightarrow$
   99.89\% plausible.  The self-trained a20 model is better than foo
-  most of the time, but it would be even better if it used the outlier
-  state for noisy patches rather than using the slow states.  Using
-  the slow states there yields unreasonably low heart rates.
+  most of the time, but in the noisy patches the slow states yield
+  unreasonably low heart rates.
 \item[x20] The x20 model finds 98.238\% of the record plausible.  It
   is one of only two model-record combination in which that score is
   below 99\%.  Leads disconnected for about 15 minutes starting at
   about 173.  Starting at 387 -- 410 noisy spell that model handles
   better than foo
 \item[x29] At 98.625\%, the x29 model also scores badly for
-  plausibity.  The leads are not connected for the first 18 minutes.
+  plausibility.  The leads are not connected for the first 18 minutes.
   The model preforms adequately in a difficult interval from 117 --
   123 and again around 295.  For long intervals in the record there
   are pairs of beats (with three to five normal beats in between) that
-  are separated by only .6 seconds.  So the estimated heart rate jumps
+  are separated by only \.6 seconds.  So the estimated heart rate jumps
   from 100 to 40 between samples (.5 seconds).  Both foo and the
   self-trained model track those changes.
 \item[x27] Has high cross entropy and high plausibility.  Looking at
   plots, I think it performs well.  Perhaps the high cross entropy is
   because the signal amplitude is large (normal peaks above 4mV).
+\item[a01-a10] At 3:00 a06 inserts extra beats
+\item[a11-a20] I must fix a12.  It inserts many extra beats.  a19
+  drops beats at 32 places starting at 163.
+\item[b01-b04] b01 lots of extra beats at 9.  At 383.16 there's a beat
+  that's too short for the model (interesting but not a problem).  b03
+  misses a beat at 23.3 and inserts several between 23.6 and 24.0.
+  b03 has several errors that I don't understand.  b04 needs work
+  because it inserts beats in many places.  b05 does not exist.
+\item[c01-c10] Extra beats in c01 between 10 and 26, but otherwise it
+  looks good.  c02 looks good (inverted R signal).  c03: extra beats
+  at 0.3, 2, 6, 36.  Perhaps it would be better if it was easier to go
+  to the outlier state.  c04: extra beats at 21.87, 30 - 30.5.  c06 2
+  extra beats at 91.9, 111.8, 144.  c07 misses every other beat.  It
+  is unusable.
+\item[x01-x10] x04: extra beats at 44.5
+\item[x11-x20] x13: Model says ECG negative excursions are beats;
+  likelihood drops.  x17: foo double marks beats.  HMM seems OK.  x18
+  good data starts at 14.85.  x19 HMM and foo disagree and HMM is
+  right.
+\item[x21-x30] x26 has pathological negative peaks.
+\item[x31-x35] All are OK
+\item[Must Fix] a12 and c07.  The R peaks go negative for a12 from
+  -.2mV to -.9mV.  The peaks of c07 range from .3 mV to .7mV.  Try a
+  scale factor for the peak finding code in utilities.read\_ecgs.
+\item[Could Improve] The ``problem'' with x26 is its treatment of the
+  frequent pathological negative peak.  I think I could/should deal
+  with them at a higher level.  The ECG signal for b04 is noisy.  I
+  should think about how to improve the HMM performance.  Perhaps a
+  higher AR order.  Look at times 27.4 to 29.0.
+\item[Ideas] Discard low likelihood intervals.  Bad regions seem to have low
+integrated log likelihood.  Low likelihood in slow states indicates
+noise.  Feed smoothed likelihood to apnea detector as proxy for noise
+level and low confidence in heart rate.
 \end{description}
+
 \section{Quadratic Fit to Peak}
 \label{sec:quadratic}
 

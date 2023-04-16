@@ -72,7 +72,7 @@ def main(argv=None):
     message = [
         r"""\begin{tabular}{|lrl|lrl|lrl|}
 \hline
-name & $h(X|\theta)$ & plausible &name & $h(X|\theta)$ & plausible &name & h$(X|\theta)$ & plausible \\ \hline
+name & $-h(X|\theta)$ & plausible &name & $-h(X|\theta)$ & plausible &name & $-h(X|\theta)$ & plausible \\ \hline
 """
     ]
     for i, name in enumerate(joint_list):
