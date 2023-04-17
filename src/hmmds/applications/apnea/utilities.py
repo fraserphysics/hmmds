@@ -40,6 +40,10 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=str,
                         default='Respire',
                         help='path from derived_apnea to respiration dir')
+    parser.add_argument('--peak_scale',
+                        type=float,
+                        default=0.7,
+                        help='Threshold for detecting ECG peaks')
     parser.add_argument('--pass1',
                         type=str,
                         default='pass1_report',
@@ -319,7 +323,9 @@ def read_ecgs(args):
     tags = numpy.arange(2 + n_before + n_after, dtype=int)
     for ecg in ecgs:
         class_ = numpy.zeros(len(ecg), dtype=int)
-        peaks, _ = scipy.signal.find_peaks(ecg, height=0.7, distance=40)
+        peaks, _ = scipy.signal.find_peaks(ecg / args.peak_scale,
+                                           height=1.0,
+                                           distance=40)
         last_stop = 0
         for peak in peaks:
             start = peak - n_before

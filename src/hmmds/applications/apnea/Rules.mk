@@ -159,8 +159,11 @@ $(ECG)/a01_trained_AR3/initial: model_init.py
 # weak prior (alpha and beta) let the noise state have a variance that
 # is too small.
 
+# --tag_ecg arg for masked_trained not necessary because initial
+# --carries its own args
 $(ECG)/a01_trained_AR3/masked_trained: $(ApneaCode)/train.py $(ECG)/a01_trained_AR3/initial
-	python $<  --records a01 --type segmented --iterations 5 $(ECG)/a01_trained_AR3/initial $@ >  $(ECG)/a01_trained_AR3/masked.log
+	python $<  --records a01 --type segmented --iterations 5 \
+$(ECG)/a01_trained_AR3/initial $@ >  $(ECG)/a01_trained_AR3/masked.log
 
 $(ECG)/a01_trained_AR3/unmasked_hmm: $(ApneaCode)/declass.py $(ECG)/a01_trained_AR3/masked_trained
 	python $^ $@
@@ -221,7 +224,7 @@ $(ECG)/funny_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/diverse_trained_
 	mkdir -p $(@D)
 	python $< --records $(FUNNY) --type implausible --iterations 20 $(ECG)/diverse_trained_AR3/unmasked_trained $@ >  $@.log
 
-#################### Rule for models trained on a single record ########
+#################### Pattern rules for models trained on a single record #####
 $(ECG)/%_self_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/a01_trained_AR3/unmasked_trained
 	mkdir -p $(@D)
 	python $< --records $* --type segmented --iterations 10 $(ECG)/a01_trained_AR3/unmasked_trained $@ >  $@.log
@@ -232,6 +235,42 @@ $(ECG)/%_self_AR3/likelihood: $(ApneaCode)/ecg_likelihood.py $(ECG)/%_self_AR3/u
 $(ECG)/%_self_AR3/heart_rate: $(ApneaCode)/states2hr.py $(ECG)/%_self_AR3/states
 	python $<  --r_state 35 $(ECG)/$*_self_AR3/states $@
 
+#################### Special rules for models trained on a single record ########
+$(ECG)/a12_self_AR3/initial: model_init.py
+	mkdir -p  $(@D)
+	python $(ApneaCode)/model_init.py --root ${ROOT} --records a12 \
+--peak_scale -.2 --tag_ecg --ecg_alpha_beta 1.0e3 1.0e2 \
+--noise_parameters 1.0e6 1.0e8 1.0e-50 --before_after_slow 18 30 10 \
+--AR_order 3 masked_dict $@
+
+$(ECG)/a12_self_AR3/masked_trained: $(ApneaCode)/train.py $(ECG)/a12_self_AR3/initial
+	python $<  --records a12 --type segmented --iterations 5 \
+$(ECG)/a12_self_AR3/initial $@ >  $(ECG)/a12_self_AR3/masked.log
+
+$(ECG)/a12_self_AR3/unmasked_hmm: $(ApneaCode)/declass.py $(ECG)/a12_self_AR3/masked_trained
+	python $^ $@
+
+$(ECG)/a12_self_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/a12_self_AR3/unmasked_hmm
+	python $< --records a12 --type segmented --iterations 20 $(@D)/unmasked_hmm $@ >  $@.log
+
+$(ECG)/c07_self_AR3/initial: model_init.py
+	mkdir -p  $(@D)
+	python $(ApneaCode)/model_init.py --root ${ROOT} --records c07 \
+--peak_scale .3 --tag_ecg --ecg_alpha_beta 1.0e3 1.0e2 \
+--noise_parameters 1.0e6 1.0e8 1.0e-50 --before_after_slow 18 30 10 \
+--AR_order 3 masked_dict $@
+
+$(ECG)/c07_self_AR3/masked_trained: $(ApneaCode)/train.py $(ECG)/c07_self_AR3/initial
+	python $<  --records c07 --type segmented --iterations 5 \
+$(ECG)/c07_self_AR3/initial $@ >  $(ECG)/c07_self_AR3/masked.log
+
+$(ECG)/c07_self_AR3/unmasked_hmm: $(ApneaCode)/declass.py $(ECG)/c07_self_AR3/masked_trained
+	python $^ $@
+
+$(ECG)/c07_self_AR3/unmasked_trained: $(ApneaCode)/train.py $(ECG)/c07_self_AR3/unmasked_hmm
+	python $< --records c07 --type segmented --iterations 20 $(@D)/unmasked_hmm $@ >  $@.log
+
+################################################################################
 all_selves = $(foreach X, unmasked_trained states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG)/$Y_self_AR3/, $X)))
 $(ECG)/all_selves: $(all_selves)
 	touch $@
@@ -239,6 +278,33 @@ $(ECG)/all_selves: $(all_selves)
 # real	341m5.299s
 # user	5348m59.570s
 # sys	75m9.104s
+
+#####################Test higher AR order######################################
+ORDER=9
+$(ECG)/a12_self_AR$(ORDER)/initial: model_init.py
+	mkdir -p  $(@D)
+	python $(ApneaCode)/model_init.py --root ${ROOT} --records a12 \
+--peak_scale -.2 --tag_ecg --ecg_alpha_beta 1.0e3 1.0e2 \
+--noise_parameters 1.0e6 1.0e8 1.0e-50 --before_after_slow 18 30 10 \
+--AR_order $(ORDER) masked_dict $@
+
+$(ECG)/a12_self_AR$(ORDER)/masked_trained: $(ApneaCode)/train.py $(ECG)/a12_self_AR$(ORDER)/initial
+	python $<  --records a12 --type segmented --iterations 5 \
+$(ECG)/a12_self_AR$(ORDER)/initial $@ >  $(ECG)/a12_self_AR$(ORDER)/masked.log
+
+$(ECG)/a12_self_AR$(ORDER)/unmasked_hmm: $(ApneaCode)/declass.py $(ECG)/a12_self_AR$(ORDER)/masked_trained
+	python $^ $@
+
+$(ECG)/a12_self_AR$(ORDER)/unmasked_trained: $(ApneaCode)/train.py $(ECG)/a12_self_AR$(ORDER)/unmasked_hmm
+	python $< --records a12 --type segmented --iterations 20 $(@D)/unmasked_hmm $@ >  $@.log
+
+$(ECG)/%_self_AR$(ORDER)/states: $(ApneaCode)/ecg_decode.py $(ECG)/%_self_AR$(ORDER)/unmasked_trained
+	python $^ $* $@
+	ln -s $(@D) $(ECG)/x36_self_AR3  # Bogus for self_explore.py
+$(ECG)/%_self_AR$(ORDER)/likelihood: $(ApneaCode)/ecg_likelihood.py $(ECG)/%_self_AR$(ORDER)/unmasked_trained
+	python $^ $* $@
+$(ECG)/%_self_AR$(ORDER)/heart_rate: $(ApneaCode)/states2hr.py $(ECG)/%_self_AR$(ORDER)/states
+	python $<  --r_state 35 $(ECG)/$*_self_AR3/states $@
 
 ################## End ECG Targets #########################################
 

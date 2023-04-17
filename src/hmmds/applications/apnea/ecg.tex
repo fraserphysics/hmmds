@@ -244,14 +244,17 @@ to heart rate calculated using foo:
   right.
 \item[x21-x30] x26 has pathological negative peaks.
 \item[x31-x35] All are OK
-\item[Must Fix] a12 and c07.  The R peaks go negative for a12 from
-  -.2mV to -.9mV.  The peaks of c07 range from .3 mV to .7mV.  Try a
-  scale factor for the peak finding code in utilities.read\_ecgs.
+\item[Fixed] a12 and c07.  The R peaks go negative for a12 from -.2mV
+  to -.9mV.  The peaks of c07 range from .3 mV to .7mV.  Using a scale
+  factor for the peak finding code in utilities.read\_ecgs, I trained
+  custom initial models for both.  Those custom models matched most of
+  the PQRST sequences well.  However, a12 is noisy and that affects
+  the phase of many of the estimated peaks.
 \item[Could Improve] The ``problem'' with x26 is its treatment of the
   frequent pathological negative peak.  I think I could/should deal
-  with them at a higher level.  The ECG signal for b04 is noisy.  I
-  should think about how to improve the HMM performance.  Perhaps a
-  higher AR order.  Look at times 27.4 to 29.0.
+  with them at a higher level.  The ECG signals for a12 and b04 are
+  noisy.  I should think about how to improve the HMM performance.
+  Perhaps a higher AR order.  Look at b04 times 27.4 to 29.0.
 \item[Ideas] Discard low likelihood intervals.  Bad regions seem to have low
 integrated log likelihood.  Low likelihood in slow states indicates
 noise.  Feed smoothed likelihood to apnea detector as proxy for noise
@@ -282,6 +285,13 @@ So the quadratic estimate of the peak location is
 
 \section{To Do}
 \label{sec:todo}
+
+\begin{itemize}
+\item Move ECG work to a sub-directory
+\item Eliminate Funny and Implausible stuff
+\item Clean up the code
+\item Recover old explore.py and return to work on apnea detection.
+\end{itemize}
 
 \begin{itemize}
 \item Plot training characteristics

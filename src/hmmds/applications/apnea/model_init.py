@@ -402,8 +402,8 @@ def masked_dict(args, rng):
             f"Classes are not sequential integers.  {class_set=}")
 
     n_states = len(state_dict)
-    ar_coefficients = numpy.ones((n_states, args.AR_order))
-    offset = numpy.ones(n_states)
+    ar_coefficients = numpy.ones((n_states, args.AR_order)) / args.AR_order
+    offset = numpy.zeros(n_states)
     variances = numpy.ones(n_states)
     # I think right variance is between .05 and .001, and there are
     # about 50,000 samples per state in a01
@@ -419,7 +419,7 @@ def masked_dict(args, rng):
                                               ecg_model,
                                               rng,
                                               truncate=args.AR_order)
-    # Force the variance of the bad state to be 100
+    # Force the variance of the bad state to be special
     i_bad = state_name2state_index['bad']
     ecg_model.alpha[i_bad] = noise_alpha
     ecg_model.beta[i_bad] = noise_beta
