@@ -261,6 +261,14 @@ noise.  Feed smoothed likelihood to apnea detector as proxy for noise
 level and low confidence in heart rate.
 \end{description}
 
+The x12 ECG is noisy.  The most annoying model pathology is that the
+fast states are decoded in the inter-beat interval and the R peak is
+put in the next inter-beat interval.  Varying the AR order didn't
+help.  In fact AR1 misses every other beat.  I found that reducing the
+number of slow states helped.  My guess is that with fewer slow
+states, the output models for those states have larger variance and
+are thus happy to absorb the high noise periods.
+
 \section{Quadratic Fit to Peak}
 \label{sec:quadratic}
 
