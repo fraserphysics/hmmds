@@ -25,7 +25,7 @@ def common_arguments(parser: argparse.ArgumentParser):
     """
     parser.add_argument('--root',
                         type=str,
-                        default='../../../../',
+                        default='../../../../../',
                         help='parent directory of src and build')
     parser.add_argument('--derived_apnea_data',
                         type=str,

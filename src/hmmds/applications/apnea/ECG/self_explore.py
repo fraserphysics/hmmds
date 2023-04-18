@@ -49,7 +49,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         quit_button.clicked.connect(self.close)
 
         self.root_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.root_box.setText('../../../..')
+        self.root_box.setText('../../../../..')
         root_ok = PyQt5.QtWidgets.QPushButton('Root', self)
         root_ok.clicked.connect(self.new_root)
 

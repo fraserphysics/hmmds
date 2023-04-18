@@ -2,20 +2,16 @@
 # See ~/projects/hmmds3/code/applications/apnea/SConscript
 # Several paths and parameters are shared in instances of utilities.Common.
 
-ROOT = ../../../..
+ROOT = ../../../../..
 HMMDS = $(ROOT)/src/hmmds
 BUILD = $(ROOT)/build
 
 ApneaDerivedData = $(ROOT)/build/derived_data/apnea
 MODELS = ${ROOT}/build/derived_data/apnea/models
 # Default target
-.PHONY : p1models
-p1models:  $(addprefix $(MODELS)/p1model_, A2 A3 A4 C2 C3 C4)
-
-$(ApneaDerivedData)/pass1_report.pickle:
+ecg.pdf:
 
 include Rules.mk
-# Rules.mk defines RAW_DATA EXPERT LPHR RESPIRE RTIMES MODELS
 
 a01a19c02.pdf:  a01a19c02.py $(ECG)/a01_trained_AR3/states/a01 $(ECG)/a01_trained_AR3/states/c02
 	python a01a19c02.py $(RTIMES) $(ECG)/a01_trained_AR3/states/c02 300.0 300.05 $@
@@ -28,7 +24,6 @@ a01a19c02.pdf:  a01a19c02.py $(ECG)/a01_trained_AR3/states/a01 $(ECG)/a01_traine
 
 train_log.pdf: train_characteristic.py $(ECG)/a01_trained_AR3/unmasked_trained
 	python $< $(ECG)/a01_trained_AR3/unmasked_trained.log $@
-${DATA}/score_report:
 
 self_table.tex: self_table.py $(ECG)/all_selves
 	python self_table.py $(ECG) $@
@@ -36,22 +31,16 @@ self_table.tex: self_table.py $(ECG)/all_selves
 table.tex: table.py $(ECG)/a01_trained_AR3/all_states_likelihood_heart_rate
 	python table.py $(ECG)/a01_trained_AR3/ $@
 
-diverse.tex: table.py $(ECG)/diverse_trained_AR3/all_states_likelihood_heart_rate
-	python table.py $(ECG)/diverse_trained_AR3/ $@
-
 like_a14_x07.pdf: plot_like.py $(ECG)/a01_trained_AR3/all_states_likelihood_heart_rate
-	python plot_like.py Rtimes/ $(ECG)/a01_trained_AR3/likelihood/ 300.16 300.19 a14 x07 $@
+	python plot_like.py $(RTIMES) $(ECG)/a01_trained_AR3/likelihood/ 300.16 300.19 a14 x07 $@
 
-simulated.pdf: plot_simulation.py $(ECG)/diverse_trained_AR3/unmasked_trained
+simulated.pdf: plot_simulation.py $(ECG)/a01_trained_AR3/unmasked_trained
 	python $^ 1000 $@
 
 ECG_FIGS = a01_trained_AR3_states_70.pdf a01_trained_AR3_states_71.pdf a01a19c02.pdf train_log.pdf like_a14_x07.pdf simulated.pdf
 
-ecg.pdf: ecg.tex $(ECG_FIGS) table.tex diverse.tex self_table.tex
+ecg.pdf: ecg.tex $(ECG_FIGS) table.tex self_table.tex
 	pdflatex $< ; pdflatex $<
-
-.PHONY : trained
-trained: ${MODELS}/model_Low ${MODELS}/model_Medium ${MODELS}/model_High
 
 As = a01 a03 a05 a07 a09 a11 a13 a15 a17 a19 a02 a04 a06 a08 a10 a12	\
 a14 a16 a18 a20
@@ -61,47 +50,6 @@ Xs = x01 x04 x07 x10 x13 x16 x19 x22 x25 x28 x31 x34 x02 x05 x08 x11	\
 x14 x17 x20 x23 x26 x29 x32 x35 x03 x06 x09 x12 x15 x18 x21 x24 x27	\
 x30 x33
 
-# ToDo: Move much of the stuff below to Rules.mk
-
-# Rule to make trained models (model_High, model_Medium, model_Low).
-# Make maps % -> $* which apnea_train uses to select training data
-# based on the classifications Low/Medium/High in pass1_report
-${MODELS}/model_%: apnea_train.py ${MODELS}/initial_% ${DATA}/pass1_report.pickle
-	python apnea_train.py --root ${ROOT} $* ${MODELS}/initial_$* $@
-
-LMH_MODELS = $(addprefix ${MODELS}/, model_Low model_Medium model_High)
-# Classify each minute.
-${DATA}/pass2_report: pass2.py ${DATA}/pass1_report ${LMH_MODELS} develop.py
-	python pass2.py --names ${As} ${Bs} ${Cs}  --root ${ROOT} $@
-
-## score_report                   : Text report comparing classifications by minute
-.PHONY : score_report
-score_report: ${DATA}/score_report
-	cp $< $@
-$(DATA)/score_report: score.py ${DATA}/pass2_report
-	python score.py --root $(ROOT) $(DATA)/pass2_report ${EXPERT} $@ $(As) $(Bs) $(Cs)
-
-## test                           : Run tests defined in test.py
-.PHONY : test
-test:
-	py.test test.py
-
-########################## Block for matrix of pass1 attempts #################
-${ApneaDerivedData}/pass1_report_A2_%: $(MODELS)/p1model_A2 $(MODELS)/p1model_%
-	python pass1.py --root ${ROOT} --Amodel p1model_A2 --BCmodel p1model_$* --pass1 pass1_report_A2_$*
-${ApneaDerivedData}/pass1_report_A3_%: $(MODELS)/p1model_A3 $(MODELS)/p1model_%
-	python pass1.py --root ${ROOT} --Amodel p1model_A3 --BCmodel p1model_$* --pass1 pass1_report_A3_$*
-${ApneaDerivedData}/pass1_report_A4_%: $(MODELS)/p1model_A4 $(MODELS)/p1model_%
-	python pass1.py --root ${ROOT} --Amodel p1model_A4 --BCmodel p1model_$* --pass1 pass1_report_A4_$*
-
-MATRIX = $(addprefix ${ApneaDerivedData}/pass1_report_, A2_C2 A2_C3 A2_C4  A3_C2 A3_C3 A3_C4  A4_C2 A4_C3 A4_C4)
-# On cathcart, "time make -j9 pass1_matrix" reports "real 92m5.002s
-# user 667m41.433s"
-pass1_matrix: $(MATRIX)
-	touch $@
-########################## Block for matrix of pass1 attempts #################
-
-
 ## yapf                           : Force google format on all python code
 .PHONY : yapf
 yapf :
@@ -110,9 +58,7 @@ yapf :
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo LMH_MODELS: $(LMH_MODELS)
-	@echo MODELS: $(MODELS)
-	@echo MATRIX: $(MATRIX)
+	@echo ECG_FIGS: $(ECG_FIGS)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help

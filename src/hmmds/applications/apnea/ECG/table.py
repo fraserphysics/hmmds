@@ -13,7 +13,7 @@ import os
 
 import numpy
 
-import hmmds.applications.apnea.utilities
+import hmmds.applications.apnea.ECG.utilities
 
 
 def parse_args(argv):
@@ -21,7 +21,7 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser("Make a table of scores")
-    hmmds.applications.apnea.utilities.common_arguments(parser)
+    hmmds.applications.apnea.ECG.utilities.common_arguments(parser)
     parser.add_argument('--states',
                         type=str,
                         default='states',
@@ -33,7 +33,7 @@ def parse_args(argv):
     parser.add_argument('model_dir', type=str, help='Path to data')
     parser.add_argument('output', type=str, help='path of file to write')
     args = parser.parse_args(argv)
-    hmmds.applications.apnea.utilities.join_common(args)
+    hmmds.applications.apnea.ECG.utilities.join_common(args)
     return args
 
 
