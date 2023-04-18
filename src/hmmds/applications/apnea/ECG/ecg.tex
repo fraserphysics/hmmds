@@ -26,12 +26,16 @@
 I wrote explore.py to see how processing ECGs for apnea detection was
 working.  Because I was disappointed by the performance of standard qrs
 detectors that I got from
-https://github.com/berndporr/py-ecg-detectors, I wrote my own by
+https://github.com/berndporr/py-ecg-detectors\footnote{After trying
+  each of the detectors in that package I chose the one called
+  \emph{Elgendi} }, I wrote my own by
 building HMMs for ECG time series.
 
 Recipes for making the models and figures described here appear in
 Makefile and Rules.mk.  On 2023-04-12 building this document from
-scratch too real 21m46.683s user 264m52.028s sys 5m38.888s.
+scratch took real 21m46.683s user 264m52.028s sys 5m38.888s.  On
+2023-04-17 it took more than 4 hours because then I trained a
+different HMM on each record.
 
 \section{Outliers}
 \label{sec:outliers}
@@ -43,29 +47,32 @@ less than $\pm$ 2mV, some intervals have spurious signals with $\pm$
   10 mV.  The usable data only starts at minute 10.24.}.  A model,
 $\theta$, fit to the typical data can assign $P(y|\theta) = 0$ to lead
 noise.  The observation models use inverse gamma priors for the
-variance, and I use a single state, which I call the \emph{bad} state,
-with prior that enforces a large variance to accommodate lead noise.
-In particular the parameters are $\alpha=10^{2}$ and $\beta=10^{4}$
-which in the reestimation formula
+variance, and I use a single state, which I call the \emph{outlier}
+state, with a prior that enforces a large variance to accommodate lead
+noise.  In particular the parameters are $\alpha=10^{6}$ and
+$\beta=10^{8}$ which in the reestimation formula
 \begin{equation*}
   \sigma^2 = \frac{2 \beta + \text{data}}{2 \alpha +2 + \text{weight}}
 \end{equation*}
-gives $\sigma^2 \approx 100$ if there is not much data.
+gives $\sigma^2 \approx 100$.  It would take more than a million data
+points to override that.
 
 Since lead noise can start abruptly at any time, I allow transitions
-to the bad state from every other state.  It's important to ensure
+to the outlier state from every other state.  It's important to ensure
 that those transitions are infrequent.  I set the probability of
-transitions with the argument \emph{--noise\_parameters} of
-model\_init.py to $10^{-165}$.
+transitions\footnote{I found that values smaller than $10^{-165}$
+  failed.} with the argument \emph{--noise\_parameters} of
+model\_init.py to $10^{-50}$.
 
 \section{A Model with a 49 State Chain}
 \label{sec:mono20}
 
 After trying many state topologies, I found that an HMM with a chain
 of states that matches the ECG sequence PQRST with a fixed
-duration\footnote{Each state in the chain has a single successor.}
+duration\footnote{Each state in the chain has a single successor
+  except the low probability transition to the outlier state.}
 works for record a01 if it is trained on that record.  Viterbi
-decoding with the model after training for 50 iterations on record
+decoding with the model after training for 20 iterations on record
 \emph{a01} yields Figures~\ref{fig:dict_states_70}
 and~\ref{fig:dict_states_71}.  Note that the segments in the two
 figures have the same duration, 0.04 minutes or 2.4 seconds, and that
@@ -176,9 +183,10 @@ think are important:
 The statistics in Table~\ref{tab:self_cross_entropy} are drawn from
 models that were each trained on one record and then evaluated on that
 same record.  I call those models self-trained.  A model fit to record
-a01 was the seed for each of the self-trained models.  I used results
-from a peak detector to initially supervise the training of the seed
-model.
+a01 was the seed for each of the self-trained models\footnote{I found
+  that records a12 and c07 required custom initialization.  See
+  details in Rules.mk}.  I used results from scipy.signal.find\_peaks to
+initially supervise the training of the seed model.
 
 \begin{table}
   \centering
@@ -189,26 +197,27 @@ model.
 \end{table}
 
 Here are some comments on the self-trained model including comparison
-to heart rate calculated using foo:
+to heart rate calculated using the Elgendi detector in the
+py-ecg-detector package:
 \begin{description}
 \item[Good Overall] For record a20 is which is at the bottom of
   Table~\ref{tab:self_cross_entropy} the statistics improve with
-  $-h(X|\theta): 1.1265 \rightarrow 1.4106$ and 98.972\% $\rightarrow$
-  99.89\% plausible.  The self-trained a20 model is better than foo
+  $-h(X|\theta): -1.3079 \rightarrow 1.4106$ and 92.967\% $\rightarrow$
+  99.887\% plausible.  The self-trained a20 model is better than Elgendi
   most of the time, but in the noisy patches the slow states yield
   unreasonably low heart rates.
 \item[x20] The x20 model finds 98.238\% of the record plausible.  It
   is one of only two model-record combination in which that score is
   below 99\%.  Leads disconnected for about 15 minutes starting at
   about 173.  Starting at 387 -- 410 noisy spell that model handles
-  better than foo
+  better than Elgendi
 \item[x29] At 98.625\%, the x29 model also scores badly for
   plausibility.  The leads are not connected for the first 18 minutes.
   The model preforms adequately in a difficult interval from 117 --
   123 and again around 295.  For long intervals in the record there
   are pairs of beats (with three to five normal beats in between) that
-  are separated by only \.6 seconds.  So the estimated heart rate jumps
-  from 100 to 40 between samples (.5 seconds).  Both foo and the
+  are separated by only 0.6 seconds.  So the estimated heart rate
+  jumps from 100 to 40 between samples.  Both Elgendi and the
   self-trained model track those changes.
 \item[x27] Has high cross entropy and high plausibility.  Looking at
   plots, I think it performs well.  Perhaps the high cross entropy is
@@ -229,8 +238,8 @@ to heart rate calculated using foo:
   is unusable.
 \item[x01-x10] x04: extra beats at 44.5
 \item[x11-x20] x13: Model says ECG negative excursions are beats;
-  likelihood drops.  x17: foo double marks beats.  HMM seems OK.  x18
-  good data starts at 14.85.  x19 HMM and foo disagree and HMM is
+  likelihood drops.  x17: Elgendi double marks beats.  HMM seems OK.  x18
+  good data starts at 14.85.  x19 HMM and Elgendi disagree and HMM is
   right.
 \item[x21-x30] x26 has pathological negative peaks.
 \item[x31-x35] All are OK
@@ -239,12 +248,15 @@ to heart rate calculated using foo:
   factor for the peak finding code in utilities.read\_ecgs, I trained
   custom initial models for both.  Those custom models matched most of
   the PQRST sequences well.  However, a12 is noisy and that affects
-  the phase of many of the estimated peaks.
+  the phase of many of the estimated peaks.  I addressed that noise
+  induced phase shift in a12 by reducing the number of slow states
+  from 10 to 2.  That forces the two slow states to have higher
+  variance which in turn makes decoding more likely to attribute noisy
+  patches to the slow states.
 \item[Could Improve] The ``problem'' with x26 is its treatment of the
   frequent pathological negative peak.  I think I could/should deal
   with them at a higher level.  The ECG signals for a12 and b04 are
-  noisy.  I should think about how to improve the HMM performance.
-  Perhaps a higher AR order.  Look at b04 times 27.4 to 29.0.
+  noisy.  Look at b04 times 27.4 to 29.0.
 \item[Ideas] Discard low likelihood intervals.  Bad regions seem to have low
 integrated log likelihood.  Low likelihood in slow states indicates
 noise.  Feed smoothed likelihood to apnea detector as proxy for noise
@@ -286,8 +298,9 @@ So the quadratic estimate of the peak location is
 \label{sec:todo}
 
 \begin{itemize}
-\item Move ECG work to a sub-directory
-\item Clean up the code
+\item Clean up the code.  Change name \emph{bad} to \emph{outlier}
+\item Eliminate prior for outlier state.  Simply hold it constant in
+  reestimation.
 \item Recover old explore.py and return to work on apnea detection.
 \end{itemize}
 

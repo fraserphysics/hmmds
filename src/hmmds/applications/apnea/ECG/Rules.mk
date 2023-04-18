@@ -5,7 +5,7 @@
 
 # Data built elsewhere
 RTIMES = $(ROOT)/raw_data/Rtimes/
-ECG = ${ROOT}/build/derived_data/apnea/models/ECG
+ECG = ${ROOT}/build/derived_data/ECG
 ECGCode = $(HMMDS)/applications/apnea/ECG
 # This file is in the ECGCode directory
 

@@ -1,13 +1,10 @@
-######################Apnea#########################################
-# See ~/projects/hmmds3/code/applications/apnea/SConscript
+######################ECG#########################################
 # Several paths and parameters are shared in instances of utilities.Common.
 
 ROOT = ../../../../..
 HMMDS = $(ROOT)/src/hmmds
 BUILD = $(ROOT)/build
 
-ApneaDerivedData = $(ROOT)/build/derived_data/apnea
-MODELS = ${ROOT}/build/derived_data/apnea/models
 # Default target
 ecg.pdf:
 
