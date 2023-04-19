@@ -1,4 +1,5 @@
-"""self_explore.py Variant of explore.py for models trained on a single record.
+"""explore.py For exploring ECG and derived time series
+
 
 """
 
@@ -105,6 +106,13 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.ecg_dict = {
             'curves': [
                 ecg_plot.plot(pen='g', name='ecg'),
+                ecg_plot.plot(
+                    pen=None,
+                    symbol='+',
+                    symbolSize=15,
+                    symbolBrush=('b'),
+                    name='state 32',
+                )
             ]
         }
 
@@ -136,7 +144,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         hr_plot.addLegend()
         self.hr_dict = {
             'curves': [
-                hr_plot.plot(pen='r', name='new_hr'),
+                hr_plot.plot(pen='r', name='hr'),
             ]
         }
 
@@ -239,6 +247,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.viterbi_dict['signals'] = [(times, states),
                                         (times[indices], states[indices])]
         self.plot_window(**self.viterbi_dict)
+
+        # Find places where state is 32 and put + in ecg plot there.
+        indices = numpy.nonzero(states == 32)[0]
+        ecg_times, ecg = self.ecg_dict['signals'][0]
+        self.ecg_dict['signals']= [(ecg_times, ecg), (ecg_times[indices], ecg[indices])]
+        self.plot_window(**self.ecg_dict)
 
     def read_like(self):
         with open(self.signal_path('likelihood'), 'rb') as _file:

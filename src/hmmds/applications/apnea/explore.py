@@ -1,6 +1,4 @@
-"""explore.py For exploring ECG and derived time series
-
-Derived from hmmds/applications/laser/explore.py
+"""explore.py For exploring apnea from heart rate time series
 
 """
 
@@ -19,7 +17,6 @@ import scipy.signal
 import pint
 
 import hmm.C
-import rtimes2hr  # For read_rtimes FixMe: Move to utilities
 import utilities
 
 PINT = pint.UnitRegistry()
@@ -29,7 +26,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Examine ECG Model Performance")
+        self.setWindowTitle("Examine Apnea Model Performance")
         # Configure the main window
         layout0 = PyQt5.QtWidgets.QHBoxLayout()
         controls_layout = PyQt5.QtWidgets.QVBoxLayout()
@@ -56,17 +53,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         root_ok.clicked.connect(self.new_root)
 
         self.record_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.record_box.setText('a01')
+        self.record_box.setText('a03')
         record_ok = PyQt5.QtWidgets.QPushButton('Record', self)
         record_ok.clicked.connect(self.new_record)
 
-        self.ecg_hmm_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.ecg_hmm_box.setText('ECG/diverse_trained_AR3/')
-        ecg_hmm_ok = PyQt5.QtWidgets.QPushButton('HMM Dir', self)
-        ecg_hmm_ok.clicked.connect(self.new_ecg_hmm)
-
-        read_button = PyQt5.QtWidgets.QPushButton('Read Data', self)
-        read_button.clicked.connect(self.read_data)
+        read_button = PyQt5.QtWidgets.QPushButton(r'Read and Calculate', self)
+        read_button.clicked.connect(self.read_calculate)
 
         # Layout button section
         buttons_layout.addWidget(quit_button)
@@ -80,11 +72,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         record_layout.addWidget(record_ok)
         record_layout.addWidget(self.record_box)
         buttons_layout.addLayout(record_layout)
-
-        ecg_hmm_layout = PyQt5.QtWidgets.QHBoxLayout()
-        ecg_hmm_layout.addWidget(ecg_hmm_ok)
-        ecg_hmm_layout.addWidget(self.ecg_hmm_box)
-        buttons_layout.addLayout(ecg_hmm_layout)
 
         buttons_layout.addWidget(read_button)
 
@@ -113,47 +100,45 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                     symbol='+',
                     symbolSize=15,
                     symbolBrush=('b'),
-                    name='qrs',
-                ),
-            ]
-        }
-
-        viterbi = pyqtgraph.GraphicsLayoutWidget(title="Decoded States")
-        viterbi_plot = viterbi.addPlot()
-        viterbi_plot.addLegend()
-        self.viterbi_dict = {
-            'curves': [
-                viterbi_plot.plot(pen='g', name='state'),
-                viterbi_plot.plot(
-                    pen=None,
-                    symbol='+',
-                    symbolSize=15,
-                    symbolBrush=('r'),
-                    name='noise',
+                    name='state 32',
                 )
             ]
-        }
-
-        like = pyqtgraph.GraphicsLayoutWidget(title="Likelihood")
-        like_plot = like.addPlot()
-        like_plot.addLegend()
-        self.like_dict = {
-            'curves': [like_plot.plot(pen='g', name='likelihood')]
         }
 
         hr = pyqtgraph.GraphicsLayoutWidget(title="Heart Rate")
         hr_plot = hr.addPlot()
         hr_plot.addLegend()
-        self.hr_dict = {
+        self.hr_dict = {'curves': [hr_plot.plot(pen='g', name='hr')]}
+
+        class_ = pyqtgraph.GraphicsLayoutWidget(title="Classification")
+        class_plot = class_.addPlot()
+        class_plot.addLegend()
+        self.class_dict = {
             'curves': [
-                hr_plot.plot(pen='g', name='old_hr'),
-                hr_plot.plot(pen='r', name='new_hr'),
-                hr_plot.plot(pen='w', name='difference'),
+                class_plot.plot(pen='w', name='expert'),
+                class_plot.plot(pen='r', name='hmm')
+            ]
+        }
+
+        filter = pyqtgraph.GraphicsLayoutWidget(title="Filtered HR")
+        filter_plot = filter.addPlot()
+        filter_plot.addLegend()
+        self.filter_dict = {'curves': [filter_plot.plot(pen='g', name='low'),
+                                       filter_plot.plot(pen='r', name='resp'),
+                                       ]}
+
+        class_ = pyqtgraph.GraphicsLayoutWidget(title="Classification")
+        class_plot = class_.addPlot()
+        class_plot.addLegend()
+        self.class_dict = {
+            'curves': [
+                class_plot.plot(pen='w', name='expert'),
+                class_plot.plot(pen='r', name='hmm')
             ]
         }
 
         # Layout plot section
-        for widget in (ecg, viterbi, like, hr):
+        for widget in (ecg, hr, filter, class_):
             plot_layout.addWidget(widget)
 
         # Make self the central widget
@@ -162,26 +147,22 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.setCentralWidget(widget)
 
     def update_plots(self):
-        for _dict in (self.ecg_dict, self.viterbi_dict, self.hr_dict,
-                      self.like_dict):
+        for _dict in (self.ecg_dict, self.hr_dict,
+                      self.class_dict, self.filter_dict):
             self.plot_window(**_dict)
 
     def open_file_dialog(self, directory=None):
         if directory is None:
             directory = self.root_box.text()
-        filename = str(
-            PyQt5.QtWidgets.QFileDialog.getExistingDirectory(
-                self, "Select Directory"))
+        dialog = PyQt5.QtWidgets.QFileDialog(self)
+        dialog.setDirectory(directory)
+        dialog.setFileMode(PyQt5.QtWidgets.QFileDialog.FileMode.ExistingFiles)
+        dialog.setViewMode(PyQt5.QtWidgets.QFileDialog.ViewMode.List)
+        filename, ok = dialog.getOpenFileName()
         return filename
 
     def new_root(self):
         pass  # No action
-
-    def new_ecg_hmm(self):
-        path = [self.root_box.text()
-               ] + 'build derived_data apnea models ECG'.split()
-        file_name = self.open_file_dialog(os.path.join(*path))
-        self.ecg_hmm_box.setText(file_name)
 
     def new_record(self):
         pass  # No action
@@ -205,62 +186,44 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             stop = min(_stop, len(minutes), len(signal[1]))
             curve.setData(minutes[start:stop], signal[1][start:stop])
 
-    def read_data(self):
+    def read_calculate(self):
+        """ Read data and caclulate filter
+        """
         self.read_ecg()
-        self.read_viterbi()
-        self.read_like()
         self.read_hr()
+        self.read_classification()
+        self.calculate_filter()
+
+    def signal_path(self, signal):
+        """ Return path to signal
+
+        Args:
+            signal: ecg, state, likehood or heart_rate
+        """
+        return f'{self.root_box.text()}/build/derived_data/ECG/{self.record_box.text()}_self_AR3/{signal}'
 
     def read_ecg(self):
+        """"""
+
+        # Read ECG
         prefix = os.path.join(self.root_box.text(), 'raw_data/Rtimes',
                               f'{self.record_box.text()}')
         with open(prefix + '.ecg', 'rb') as _file:
             _dict = pickle.load(_file)
-            ecg = _dict['raw']
-            ecg_times = _dict['times'] * PINT('seconds')
-        rtimes, n_ecg = rtimes2hr.read_rtimes(prefix + '.rtimes')
-        indices = numpy.searchsorted(
-            ecg_times.to('seconds').magnitude,
-            rtimes.to('seconds').magnitude)
-        self.ecg_dict['signals'] = [
-            (ecg_times, ecg),
-            (rtimes, ecg[indices]),
-        ]
+        ecg = _dict['raw']
+        ecg_times = _dict['times'] * PINT('seconds')
+
+        # Read decoded states
+        with open(self.signal_path('states'), 'rb') as _file:
+            states = pickle.load(_file)
+
+        # Find places where state is 32 and put + in ecg plot there.
+        indices = numpy.nonzero(states == 32)[0]
+        self.ecg_dict['signals']= [(ecg_times, ecg), (ecg_times[indices], ecg[indices])]
+
         self.plot_window(**self.ecg_dict)
 
-    def read_viterbi(self):
-        """Read the state data.
-        """
-        path = os.path.join(self.root_box.text(),
-                            'build/derived_data/apnea/models',
-                            f'{self.ecg_hmm_box.text()}', 'states',
-                            self.record_box.text())
-        with open(path, 'rb') as _file:
-            states = pickle.load(_file)
-        times = numpy.arange(0, len(states)) / (100 * 60) * PINT('minutes')
-        indices = numpy.nonzero((states[1:-1] == 0) &
-                                ((states[:-2] != states[1:-1])  # Leading edge
-                                 |
-                                 (states[2:] != states[1:-1]))  # Trailing edge
-                               )[0] + 1
-        self.viterbi_dict['signals'] = [(times, states),
-                                        (times[indices], states[indices])]
-        self.plot_window(**self.viterbi_dict)
-
-    def read_like(self):
-        path = os.path.join(self.root_box.text(),
-                            'build/derived_data/apnea/models',
-                            f'{self.ecg_hmm_box.text()}', 'likelihood',
-                            self.record_box.text())
-        with open(path, 'rb') as _file:
-            likelihood = pickle.load(_file)
-        times = numpy.arange(0, len(likelihood)) / (100 * 60) * PINT('minutes')
-        self.like_dict['signals'] = [(times, numpy.log(likelihood))]
-        self.plot_window(**self.like_dict)
-
     def read_hr(self):
-
-        # Read heart rate from traditional qrs detector
         path = os.path.join(self.root_box.text(),
                             'build/derived_data/apnea/Lphr',
                             f'{self.record_box.text()}.lphr')
@@ -268,26 +231,23 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             pickle_dict = pickle.load(_file)
         hr = pickle_dict['hr'].to('1/minute').magnitude
         times = numpy.arange(len(hr)) / pickle_dict['sample_frequency']
-
-        # Read heart rate from HMM based detector
-        path = os.path.join(self.root_box.text(),
-                            'build/derived_data/apnea/models',
-                            f'{self.ecg_hmm_box.text()}', 'heart_rate',
-                            self.record_box.text())
-        with open(path, 'rb') as _file:
-            pickle_dict = pickle.load(_file)
-        hr_states = pickle_dict['hr'].to('1/minute').magnitude
-
-        length = min(len(times), len(hr), len(hr_states))
-
-        difference = numpy.abs(hr[:length] - hr_states[:length])
-
-        self.hr_dict['signals'] = [
-            (times, hr),
-            (times[:length], hr_states[:length]),
-            (times[:length], difference),
-        ]
+        self.hr_dict['signals'] = [(times, hr)]
         self.plot_window(**self.hr_dict)
+
+    def read_classification(self):
+        path = os.path.join(self.root_box.text(),
+                            'raw_data/apnea/summary_of_training')
+        expert = utilities.read_expert(path, self.record_box.text())
+        times = numpy.arange(len(expert)) * PINT('minutes')
+        self.class_dict['signals'] = [(times, expert),
+                                      (times, expert)]
+        self.plot_window(**self.class_dict)
+
+    def calculate_filter(self):
+        """Calculate spectral filters
+
+        """
+        pass
 
 
 class Variable(PyQt5.QtWidgets.QWidget):
