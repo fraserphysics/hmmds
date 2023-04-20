@@ -150,17 +150,20 @@ class State:
         self.successors = successors
         self.probabilities = probabilities
         self.class_index = class_index
-        self.trainable = trainable
+        if trainable:
+            self.trainable = trainable
+        else:
+            self.trainable = [True]*len(successors)
         # Each class_index must be an int because the model will be a
         # subclass of hmm.base.IntegerObservation
 
 
-def dict2hmm(state_dict, ecg_model, rng, truncate=0):
+def dict2hmm(state_dict, model_dict, rng, truncate=0):
     """Create an HMM based on state_dict for supervised training
 
     Args:
         state_dict: state_dict[state_name] is a State instance
-        ecg_model: Observation model for raw ecg samples
+        model_dict: Components of joint observation model
         rng: A random number generator
         truncate: Number of elements to drop from the beginning of each segment
                   of class observations.
@@ -196,25 +199,9 @@ def dict2hmm(state_dict, ecg_model, rng, truncate=0):
                 untrainable_values.append(probability)
     p_state2state.normalize()
 
-    if "bad" in state_dict:
-        n_classes = len(class_index2state_indices)
-        likelihood = 1.0 / n_classes
-        # Given the bad state all classes have the same likelihood
-        bad2class = {
-            state_name2state_index["bad"]:
-                list((class_index, likelihood)
-                     for class_index in range(n_classes))
-        }
-        class_model = hmm.base.BadObservation(class_index2state_indices,
-                                              bad2class)
-    else:
-        class_model = hmm.base.ClassObservation(class_index2state_indices)
+    model_dict['class'] = hmm.base.ClassObservation(class_index2state_indices)
 
-    y_model = hmm.base.JointObservation({
-        "class": class_model,
-        "ecg": ecg_model
-    },
-                                        truncate=truncate)
+    y_model = hmm.base.JointObservation(model_dict, truncate=truncate)
 
     # Create and return the hmm
     indices = tuple(numpy.array(untrainable_indices).T)
@@ -268,7 +255,10 @@ def apnea_dict(args, rng):
     state_dict = {normal: State([normal, occluded_0], [1.0-1.0e-3, 1.0e-3], normal_class)}
     state_count +=1
     for group in range(11):  # These states are the apnea loop
-        group_end = state_count + 4
+        if group == 10:
+            group_end = occluded_0
+        else:
+            group_end = state_count + 4
         for member in range(4):
             state_dict[state_count] = State(
                 [state_count+1, group_end],
@@ -281,18 +271,46 @@ def apnea_dict(args, rng):
 
     n_states = len(state_dict)
 
+    # Number of data points for each state is going to be about 500
+    alpha = 1.0e2
+    beta = 1.0
+    ar_order = 4
+    ar_coefficients = numpy.ones((n_states, args.AR_order)) / ar_order
+    offset = numpy.zeros(n_states)
+    variances = numpy.ones(n_states)*1e3
+
+    slow_model = hmm.C.AutoRegressive(ar_coefficients.copy(),
+                                     offset.copy(),
+                                     variances.copy(),
+                                     rng,
+                                     alpha=numpy.ones(n_states) * alpha,
+                                     beta=numpy.ones(n_states) * beta)
+    fast_model = hmm.C.AutoRegressive(ar_coefficients.copy(),
+                                     offset.copy(),
+                                     variances.copy(),
+                                     rng,
+                                     alpha=numpy.ones(n_states) * alpha,
+                                     beta=numpy.ones(n_states) * beta)
+
+    result, state_name2state_index = dict2hmm(state_dict,
+                                              {'slow':slow_model,'fast':fast_model},
+                                              rng,
+                                              truncate=args.AR_order)
+
     # ToDo: Create observation models with these characteristics:
 
-    # Observation models are joint slow and fast.  Slow models the
-    # heart rate oscillations that match the occlusion - gasp cycle,
-    # and fast models catch the ~14 cycle per minute respiration
-    # signal.
+    # Observation models are joint slow, fast and class.  Slow models
+    # the heart rate oscillations that match the occlusion - gasp
+    # cycle, and fast models catch the ~14 cycle per minute
+    # respiration signal.
 
     # There is a single observation model for each group of 4 states
     # in the apnea loop.
-    
-    # Initialize the y_model parameters based on the data
-    y_data = utilities.read_ecgs(args)
+
+    # Initialize the y_model parameters based on the data sampled with
+    # a period of 1.5 seconds or 40 samples per minute.
+
+    y_data = [hmm.base.JointSegment(utilities.read_slow_fast_class(args, 'a03'))]
     result.y_mod.observe(y_data)
     weights = hmm.simple.Prob(result.y_mod.calculate()).normalize()
     result.y_mod.reestimate(weights)

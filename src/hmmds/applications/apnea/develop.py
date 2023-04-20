@@ -47,7 +47,7 @@ class HMM(hmm.C.HMM):
         """
 
         hmm.C.HMM.reestimate(self)
-        if self.untrainable_indices is None:
+        if self.untrainable_indices is None or len(self.untrainable_indices) == 0:
             return
         self.p_state2state[self.untrainable_indices] = self.untrainable_values
         return

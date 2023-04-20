@@ -99,8 +99,13 @@ MATRIX = $(addprefix ${ApneaDerivedData}/pass1_report_, A2_C2 A2_C3 A2_C4  A3_C2
 # user 667m41.433s"
 pass1_matrix: $(MATRIX)
 	touch $@
-########################## Block for matrix of pass1 attempts #################
+########################## End block for matrix of pass1 attempts #############
 
+$(MODELS)/a03_initial: model_init.py
+	python model_init.py apnea_dict $@
+
+$(MODELS)/a03_trained: apnea_train.py $(MODELS)/a03_initial
+	python apnea_train.py --iterations 50 --record a03 $(MODELS)/a03_initial $@
 
 ## yapf                           : Force google format on all python code
 .PHONY : yapf

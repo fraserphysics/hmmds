@@ -123,8 +123,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         filter = pyqtgraph.GraphicsLayoutWidget(title="Filtered HR")
         filter_plot = filter.addPlot()
         filter_plot.addLegend()
-        self.filter_dict = {'curves': [filter_plot.plot(pen='g', name='low'),
-                                       filter_plot.plot(pen='r', name='resp'),
+        self.filter_dict = {'curves': [filter_plot.plot(pen='g', name='slow'),
+                                       filter_plot.plot(pen='r', name='fast'),
                                        ]}
 
         class_ = pyqtgraph.GraphicsLayoutWidget(title="Classification")
@@ -224,14 +224,14 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_window(**self.ecg_dict)
 
     def read_hr(self):
-        path = os.path.join(self.root_box.text(),
-                            'build/derived_data/apnea/Lphr',
-                            f'{self.record_box.text()}.lphr')
-        with open(path, 'rb') as _file:
+        with open(self.signal_path('heart_rate'), 'rb') as _file:
             pickle_dict = pickle.load(_file)
-        hr = pickle_dict['hr'].to('1/minute').magnitude
-        times = numpy.arange(len(hr)) / pickle_dict['sample_frequency']
-        self.hr_dict['signals'] = [(times, hr)]
+        hr_signal = pickle_dict['hr'].to('1/minute').magnitude
+        times = numpy.arange(len(hr_signal)) / pickle_dict['sample_frequency']
+
+        self.hr_dict['signals'] = [
+            (times, hr_signal),
+        ]
         self.plot_window(**self.hr_dict)
 
     def read_classification(self):
@@ -256,8 +256,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             bandpass_center=2*numpy.pi*14/PINT('minutes'),
             skip=skip
         )
-        self.filter_dict['signals'] = [(times[::skip], dict_calculate['low_pass']),
-                                       (times[::skip], dict_calculate['band_pass'])]
+        self.filter_dict['signals'] = [(times[::skip], dict_calculate['slow']),
+                                       (times[::skip], dict_calculate['fast'])]
         self.plot_window(**self.filter_dict)
 
 

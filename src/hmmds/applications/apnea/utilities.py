@@ -9,9 +9,11 @@ import argparse
 import numpy
 import numpy.fft
 import scipy.signal
+import pint
 
 import hmm.base
 
+PINT = pint.UnitRegistry()
 
 def common_arguments(parser: argparse.ArgumentParser):
     """Common arguments to add to parsers
@@ -375,14 +377,46 @@ def filter_hr(
         low_pass_width:
         bandpass_center:  To capture 14 cycle per minute respiration
 
-    Return: {'low_pass': x, 'band_pass': y}
+    Return: {'slow': x, 'fast': y}
     """
 
     n = len(raw_hr)
     HR = numpy.fft.rfft(raw_hr, 131072)
     low_pass = numpy.fft.irfft(window(HR, sample_period, 0/sample_period, low_pass_width))
     band_pass = numpy.fft.irfft(window(HR, sample_period, bandpass_center, low_pass_width))
-    return {'low_pass':low_pass[:n:skip], 'band_pass':band_pass[:n:skip]}
+    return {'slow':low_pass[:n:skip], 'fast':band_pass[:n:skip]}
+
+def read_slow_fast(args, name='a03'):
+    """Read heart rate and return filtered versions
+    """
+    
+    # Sample with a period of 1.5 seconds or 40 samples per minute.
+    skip = 3
+    path = os.path.join(args.derived_apnea_data, f'../ECG/{name}_self_AR3/heart_rate')
+    with open(path, 'rb') as _file:
+        _dict = pickle.load(_file)
+        raw_hr = _dict['hr'].to('1/minute').magnitude
+    return filter_hr(
+        raw_hr,
+        0.5 * PINT('seconds'),
+        low_pass_width = 2*numpy.pi/(15*PINT('seconds')),
+        bandpass_center=2*numpy.pi*14/PINT('minutes'),
+        skip=skip
+    )
+
+def read_slow_fast_class(args, name='a03'):
+    """Add class to dict from read_slow_fast
+    """
+    
+    samples_per_minute = 40
+    raw_dict = read_slow_fast(args, name)
+    path = os.path.join(args.root, 'raw_data/apnea/summary_of_training')
+    raw_dict['class'] = read_expert(path, name).repeat(samples_per_minute)
+
+    length = min(*[len(x) for x in raw_dict.values()])
+    for key, value in raw_dict.items():
+        raw_dict[key] = value[:length]
+    return raw_dict
 
 def main(argv=None):
     if argv is None:
