@@ -7,6 +7,7 @@ import pickle
 import argparse
 
 import numpy
+import numpy.fft
 import scipy.signal
 
 import hmm.base
@@ -338,61 +339,49 @@ def read_ecgs(args):
     result.append(hmm.base.JointSegment({"class": class_, "ecg": ecg}))
     return result
 
+def window(
+        F:numpy.ndarray,
+        t_sample,
+        center,
+        width) -> numpy.ndarray:
+    """ Multiply F by a Gaussian window
 
-# FixMe: bundles are gone
-def heart_rate_respiration_bundle_data(name: str,
-                                       args) -> hmm.base.Bundle_segment:
-
-    samples_per_minute = 10
-    tags = read_expert(args.expert, name).repeat(samples_per_minute)
-    underlying = heart_rate_respiration_data(name, common)
-    len_respiration = len(underlying['respiration_data'])
-    len_hr = len(underlying['filtered_heart_rate_data'])
-    n_times = min(len(tags), len_respiration, len_hr)
-    underlying = heart_rate_respiration_data(name, common, t_max=n_times)
-    return hmm.base.Bundle_segment(tags[:n_times], underlying)
-
-
-def rtimes2dev(data, n_ecg, w=1):
-    """ Create heart rate deviations with uniform sample time.
-    
     Args:
-      data:   A numpy array of R times (peak of ecg in a heartbeat)
-      w:      window size.  Look backwards and forwards at w R-times.
-
-    Return: heart rate deviations
+        F: The RFFT of a time series f
+        t_sample: The time between samples in f
+        center: The center frequency in radians per unit
+        width: Sigma in radians per unit
+    """
+    # FixMe: Is this right?
+    omega_max = numpy.pi/t_sample
+    n_center = len(F) * (center / omega_max).to('').magnitude
+    n_width = len(F) * (width / omega_max).to('').magnitude
+    delta_n = numpy.arange(len(F)) - n_center
+    return F * numpy.exp( -(delta_n*delta_n)/(2*n_width*n_width))
+ 
+def filter_hr(
+        raw_hr: numpy.ndarray,
+        sample_period: float,
+        low_pass_width,
+        bandpass_center
+) -> dict:
     
-    Calculate a list of heart rate deviations sampled at 2 HZ.  The
-    diviation is the jitter interpolated between the R time before the
-    sample and the R time after the sample.  The jitter is the
-    fraction of a pulse period by which an actual R time differs from
-    the expected R time (the average time of the time before and the
-    time after the beat in question).
+    """ Calculate filtered heart rate
+ 
+    Args:
+        raw_hr:
+        sample_period:
+        low_pass_width:
+        bandpass_center:  To capture 14 cycle per minute respiration
 
+    Return: {'low_pass': x, 'band_pass': y}
     """
 
-    # jitters is an array of deviations of rtime from prediction
-    jitter = numpy.zeros(len(data))
-    for i in range(w, len(data) - w):
-        # Find expected time for data[i] if rtime intervals are uniform
-        t_hat = (data[i - w:i].sum() + data[i + 1:i + w + 1].sum()) / (2 * w)
-        d_t_hat = (data[i + w] - data[i - w]) / (2 * w)  # Avg pulse period
-        # Fraction of pulse period by which data[i] is early or late
-        fraction = (data[i] - t_hat) / d_t_hat
-        # Clip to +/- 0.25
-        jitter[i] = max(min(0.25, fraction), -0.25)
-    # Create an array of heart rate deviations that is uniformly
-    # sampled at 2 HZ
-    t_final = n_ecg // 100  # in seconds.  Ecg sampled at 100 Hz
-    length = t_final * 2  # Output sampled at 2 Hz
-    times = numpy.arange(length) / 2.0  # Times in seconds of result
-    start, stop = numpy.searchsorted(times, [data[0], data[-1]])
-    result = numpy.empty(len(times))
-    result[start:stop] = jitter[numpy.searchsorted(data, times[start:stop])]
-    result[:start] = result[start]
-    result[stop:] = result[stop - 1]
-    return result
-
+    n = len(raw_hr)
+    HR = numpy.fft.rfft(raw_hr, 131072)
+    low_pass = numpy.fft.irfft(window(HR, sample_period, 0/sample_period, low_pass_width))
+    band_pass = numpy.fft.irfft(window(HR, sample_period, bandpass_center, low_pass_width))
+    return {'low_pass':low_pass[:n], 'band_pass':band_pass[:n]}
 
 def main(argv=None):
     if argv is None:
@@ -407,7 +396,6 @@ def main(argv=None):
     print(f"{len(bundle)=}")
     print(f"{bundle[0:5].bundles=}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -247,7 +247,16 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         """Calculate spectral filters
 
         """
-        pass
+        times, raw_hr = self.hr_dict['signals'][0]
+        dict_calculate = utilities.filter_hr(
+            raw_hr,
+            0.5 * PINT('seconds'),
+            low_pass_width = 2*numpy.pi/(15*PINT('seconds')),
+            bandpass_center=2*numpy.pi*14/PINT('minutes')
+        )
+        self.filter_dict['signals'] = [(times, dict_calculate['low_pass']),
+                                       (times, dict_calculate['band_pass'])]
+        self.plot_window(**self.filter_dict)
 
 
 class Variable(PyQt5.QtWidgets.QWidget):
