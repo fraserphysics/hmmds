@@ -363,7 +363,8 @@ def filter_hr(
         raw_hr: numpy.ndarray,
         sample_period: float,
         low_pass_width,
-        bandpass_center
+        bandpass_center,
+        skip=1
 ) -> dict:
     
     """ Calculate filtered heart rate
@@ -381,7 +382,7 @@ def filter_hr(
     HR = numpy.fft.rfft(raw_hr, 131072)
     low_pass = numpy.fft.irfft(window(HR, sample_period, 0/sample_period, low_pass_width))
     band_pass = numpy.fft.irfft(window(HR, sample_period, bandpass_center, low_pass_width))
-    return {'low_pass':low_pass[:n], 'band_pass':band_pass[:n]}
+    return {'low_pass':low_pass[:n:skip], 'band_pass':band_pass[:n:skip]}
 
 def main(argv=None):
     if argv is None:
@@ -391,10 +392,6 @@ def main(argv=None):
         print(f'{key}: {value}')
 
     print(f"{args.root=} {args.rtimes=}")
-    # FixMe: bundles are gone
-    bundle = read_masked_ecg('a01', args)
-    print(f"{len(bundle)=}")
-    print(f"{bundle[0:5].bundles=}")
     return 0
 
 if __name__ == "__main__":
