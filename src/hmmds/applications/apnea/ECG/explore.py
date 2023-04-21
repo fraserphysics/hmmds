@@ -59,7 +59,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         record_ok.clicked.connect(self.new_record)
 
         self.data_dir_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.data_dir_box.setText(f'{self.root_box.text()}/build/derived_data/ECG/')
+        self.data_dir_box.setText(
+            f'{self.root_box.text()}/build/derived_data/ECG/')
         data_dir_ok = PyQt5.QtWidgets.QPushButton('Data Dir', self)
         data_dir_ok.clicked.connect(self.new_data_dir)
 
@@ -142,11 +143,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         hr = pyqtgraph.GraphicsLayoutWidget(title="Heart Rate")
         hr_plot = hr.addPlot()
         hr_plot.addLegend()
-        self.hr_dict = {
-            'curves': [
-                hr_plot.plot(pen='r', name='hr'),
-            ]
-        }
+        self.hr_dict = {'curves': [hr_plot.plot(pen='r', name='hr'),]}
 
         # Layout plot section
         for widget in (ecg, viterbi, like, hr):
@@ -174,8 +171,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         pass  # No action
 
     def new_data_dir(self):
-        path_list = [self.root_box.text()
-               ] + 'build derived_data ECG'.split()
+        path_list = [self.root_box.text()] + 'build derived_data ECG'.split()
         path = os.path.join(*path_list)
         file_name = self.open_file_dialog(path)
         self.data_dir_box.setText(file_name)
@@ -220,7 +216,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         ]
         self.plot_window(**self.ecg_dict)
 
-
     def signal_path(self, signal):
         """ Return path to signal
 
@@ -251,7 +246,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Find places where state is 32 and put + in ecg plot there.
         indices = numpy.nonzero(states == 32)[0]
         ecg_times, ecg = self.ecg_dict['signals'][0]
-        self.ecg_dict['signals']= [(ecg_times, ecg), (ecg_times[indices], ecg[indices])]
+        self.ecg_dict['signals'] = [(ecg_times, ecg),
+                                    (ecg_times[indices], ecg[indices])]
         self.plot_window(**self.ecg_dict)
 
     def read_like(self):

@@ -101,7 +101,6 @@ def random_conditional_prob(rng: numpy.random.Generator,
     return hmm.simple.Prob(rng.random(shape)).normalize()
 
 
-
 def _make_hmm(y_model,
               p_state_initial,
               p_state_time_average,
@@ -153,7 +152,7 @@ class State:
         if trainable:
             self.trainable = trainable
         else:
-            self.trainable = [True]*len(successors)
+            self.trainable = [True] * len(successors)
         # Each class_index must be an int because the model will be a
         # subclass of hmm.base.IntegerObservation
 
@@ -252,22 +251,22 @@ def apnea_dict(args, rng):
     state_count = 0
     normal = 0
     occluded_0 = 1
-    state_dict = {normal: State([normal, occluded_0], [1.0-1.0e-3, 1.0e-3], normal_class)}
-    state_count +=1
+    state_dict = {
+        normal:
+            State([normal, occluded_0], [1.0 - 1.0e-3, 1.0e-3], normal_class)
+    }
+    state_count += 1
     for group in range(11):  # These states are the apnea loop
         if group == 10:
             group_end = occluded_0
         else:
             group_end = state_count + 4
         for member in range(4):
-            state_dict[state_count] = State(
-                [state_count+1, group_end],
-                [0.9, 1.0], apnea_class)
+            state_dict[state_count] = State([state_count + 1, group_end],
+                                            [0.9, 1.0], apnea_class)
             state_count += 1
     last_gasp = state_count - 1
-    state_dict[last_gasp] = State(
-        [occluded_0, normal],
-        [.99, .01], apnea_class)
+    state_dict[last_gasp] = State([occluded_0, normal], [.99, .01], apnea_class)
 
     n_states = len(state_dict)
 
@@ -277,23 +276,25 @@ def apnea_dict(args, rng):
     ar_order = 4
     ar_coefficients = numpy.ones((n_states, args.AR_order)) / ar_order
     offset = numpy.zeros(n_states)
-    variances = numpy.ones(n_states)*1e3
+    variances = numpy.ones(n_states) * 1e3
 
     slow_model = hmm.C.AutoRegressive(ar_coefficients.copy(),
-                                     offset.copy(),
-                                     variances.copy(),
-                                     rng,
-                                     alpha=numpy.ones(n_states) * alpha,
-                                     beta=numpy.ones(n_states) * beta)
+                                      offset.copy(),
+                                      variances.copy(),
+                                      rng,
+                                      alpha=numpy.ones(n_states) * alpha,
+                                      beta=numpy.ones(n_states) * beta)
     fast_model = hmm.C.AutoRegressive(ar_coefficients.copy(),
-                                     offset.copy(),
-                                     variances.copy(),
-                                     rng,
-                                     alpha=numpy.ones(n_states) * alpha,
-                                     beta=numpy.ones(n_states) * beta)
+                                      offset.copy(),
+                                      variances.copy(),
+                                      rng,
+                                      alpha=numpy.ones(n_states) * alpha,
+                                      beta=numpy.ones(n_states) * beta)
 
-    result, state_name2state_index = dict2hmm(state_dict,
-                                              {'slow':slow_model,'fast':fast_model},
+    result, state_name2state_index = dict2hmm(state_dict, {
+        'slow': slow_model,
+        'fast': fast_model
+    },
                                               rng,
                                               truncate=args.AR_order)
 
@@ -310,7 +311,9 @@ def apnea_dict(args, rng):
     # Initialize the y_model parameters based on the data sampled with
     # a period of 1.5 seconds or 40 samples per minute.
 
-    y_data = [hmm.base.JointSegment(utilities.read_slow_fast_class(args, 'a03'))]
+    y_data = [
+        hmm.base.JointSegment(utilities.read_slow_fast_class(args, 'a03'))
+    ]
     result.y_mod.observe(y_data)
     weights = hmm.simple.Prob(result.y_mod.calculate()).normalize()
     result.y_mod.reestimate(weights)

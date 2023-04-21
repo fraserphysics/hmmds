@@ -135,6 +135,7 @@ def parse_args(argv):
     join_common(args)
     return args
 
+
 def read_train_log(path: str) -> numpy.ndarray:
     """Read a text file created by train.py
 

@@ -15,6 +15,7 @@ import hmm.base
 
 PINT = pint.UnitRegistry()
 
+
 def common_arguments(parser: argparse.ArgumentParser):
     """Common arguments to add to parsers
 
@@ -341,11 +342,8 @@ def read_ecgs(args):
     result.append(hmm.base.JointSegment({"class": class_, "ecg": ecg}))
     return result
 
-def window(
-        F:numpy.ndarray,
-        t_sample,
-        center,
-        width) -> numpy.ndarray:
+
+def window(F: numpy.ndarray, t_sample, center, width) -> numpy.ndarray:
     """ Multiply F by a Gaussian window
 
     Args:
@@ -355,20 +353,18 @@ def window(
         width: Sigma in radians per unit
     """
     # FixMe: Is this right?
-    omega_max = numpy.pi/t_sample
+    omega_max = numpy.pi / t_sample
     n_center = len(F) * (center / omega_max).to('').magnitude
     n_width = len(F) * (width / omega_max).to('').magnitude
     delta_n = numpy.arange(len(F)) - n_center
-    return F * numpy.exp( -(delta_n*delta_n)/(2*n_width*n_width))
- 
-def filter_hr(
-        raw_hr: numpy.ndarray,
-        sample_period: float,
-        low_pass_width,
-        bandpass_center,
-        skip=1
-) -> dict:
-    
+    return F * numpy.exp(-(delta_n * delta_n) / (2 * n_width * n_width))
+
+
+def filter_hr(raw_hr: numpy.ndarray,
+              sample_period: float,
+              low_pass_width,
+              bandpass_center,
+              skip=1) -> dict:
     """ Calculate filtered heart rate
  
     Args:
@@ -382,32 +378,35 @@ def filter_hr(
 
     n = len(raw_hr)
     HR = numpy.fft.rfft(raw_hr, 131072)
-    low_pass = numpy.fft.irfft(window(HR, sample_period, 0/sample_period, low_pass_width))
-    band_pass = numpy.fft.irfft(window(HR, sample_period, bandpass_center, low_pass_width))
-    return {'slow':low_pass[:n:skip], 'fast':band_pass[:n:skip]}
+    low_pass = numpy.fft.irfft(
+        window(HR, sample_period, 0 / sample_period, low_pass_width))
+    band_pass = numpy.fft.irfft(
+        window(HR, sample_period, bandpass_center, low_pass_width))
+    return {'slow': low_pass[:n:skip], 'fast': band_pass[:n:skip]}
+
 
 def read_slow_fast(args, name='a03'):
     """Read heart rate and return filtered versions
     """
-    
+
     # Sample with a period of 1.5 seconds or 40 samples per minute.
     skip = 3
-    path = os.path.join(args.derived_apnea_data, f'../ECG/{name}_self_AR3/heart_rate')
+    path = os.path.join(args.derived_apnea_data,
+                        f'../ECG/{name}_self_AR3/heart_rate')
     with open(path, 'rb') as _file:
         _dict = pickle.load(_file)
         raw_hr = _dict['hr'].to('1/minute').magnitude
-    return filter_hr(
-        raw_hr,
-        0.5 * PINT('seconds'),
-        low_pass_width = 2*numpy.pi/(15*PINT('seconds')),
-        bandpass_center=2*numpy.pi*14/PINT('minutes'),
-        skip=skip
-    )
+    return filter_hr(raw_hr,
+                     0.5 * PINT('seconds'),
+                     low_pass_width=2 * numpy.pi / (15 * PINT('seconds')),
+                     bandpass_center=2 * numpy.pi * 14 / PINT('minutes'),
+                     skip=skip)
+
 
 def read_slow_fast_class(args, name='a03'):
     """Add class to dict from read_slow_fast
     """
-    
+
     samples_per_minute = 40
     raw_dict = read_slow_fast(args, name)
     path = os.path.join(args.root, 'raw_data/apnea/summary_of_training')
@@ -418,6 +417,7 @@ def read_slow_fast_class(args, name='a03'):
         raw_dict[key] = value[:length]
     return raw_dict
 
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
@@ -427,6 +427,7 @@ def main(argv=None):
 
     print(f"{args.root=} {args.rtimes=}")
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

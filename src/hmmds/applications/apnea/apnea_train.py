@@ -42,7 +42,11 @@ def main(argv=None):
     with open(args.initial_path, 'rb') as _file:
         _, model = pickle.load(_file)
 
-    y_data = [hmm.base.JointSegment(hmmds.applications.apnea.utilities.read_slow_fast_class(args, 'a03'))]
+    y_data = [
+        hmm.base.JointSegment(
+            hmmds.applications.apnea.utilities.read_slow_fast_class(
+                args, 'a03'))
+    ]
     model.multi_train(y_data, args.iterations)
 
     with open(args.write_path, 'wb') as _file:
