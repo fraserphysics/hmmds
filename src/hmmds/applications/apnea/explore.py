@@ -110,22 +110,15 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         hr_plot.addLegend()
         self.hr_dict = {'curves': [hr_plot.plot(pen='g', name='hr')]}
 
-        class_ = pyqtgraph.GraphicsLayoutWidget(title="Classification")
-        class_plot = class_.addPlot()
-        class_plot.addLegend()
-        self.class_dict = {
-            'curves': [
-                class_plot.plot(pen='w', name='expert'),
-                class_plot.plot(pen='r', name='hmm')
-            ]
-        }
-
         filter = pyqtgraph.GraphicsLayoutWidget(title="Filtered HR")
         filter_plot = filter.addPlot()
         filter_plot.addLegend()
-        self.filter_dict = {'curves': [filter_plot.plot(pen='g', name='slow'),
-                                       filter_plot.plot(pen='r', name='fast'),
-                                       ]}
+        self.filter_dict = {
+            'curves': [
+                filter_plot.plot(pen='g', name='slow'),
+                filter_plot.plot(pen='r', name='fast'),
+            ]
+        }
 
         class_ = pyqtgraph.GraphicsLayoutWidget(title="Classification")
         class_plot = class_.addPlot()
@@ -147,8 +140,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.setCentralWidget(widget)
 
     def update_plots(self):
-        for _dict in (self.ecg_dict, self.hr_dict,
-                      self.class_dict, self.filter_dict):
+        for _dict in (self.ecg_dict, self.hr_dict, self.class_dict,
+                      self.filter_dict):
             self.plot_window(**_dict)
 
     def open_file_dialog(self, directory=None):
@@ -191,8 +184,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         """
         self.read_ecg()
         self.read_hr()
-        self.read_classification()
         self.calculate_filter()
+        self.read_classification()
 
     def signal_path(self, signal):
         """ Return path to signal
@@ -219,7 +212,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Find places where state is 32 and put + in ecg plot there.
         indices = numpy.nonzero(states == 32)[0]
-        self.ecg_dict['signals']= [(ecg_times, ecg), (ecg_times[indices], ecg[indices])]
+        self.ecg_dict['signals'] = [(ecg_times, ecg),
+                                    (ecg_times[indices], ecg[indices])]
 
         self.plot_window(**self.ecg_dict)
 
@@ -239,25 +233,32 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                             'raw_data/apnea/summary_of_training')
         expert = utilities.read_expert(path, self.record_box.text())
         times = numpy.arange(len(expert)) * PINT('minutes')
-        self.class_dict['signals'] = [(times, expert),
-                                      (times, expert)]
+
+        # FixMe: Load appropriate model
+        with open('a03_trained', 'rb') as _file:
+            model = pickle.load(_file)
+        y_data = [hmm.base.JointSegment(self.dict_calculate)[::3]]
+        result = model.class_estimate(y_data, 3)
+
+        self.class_dict['signals'] = [(times, expert + 0.05), (times, result)]
         self.plot_window(**self.class_dict)
 
     def calculate_filter(self):
         """Calculate spectral filters
 
         """
-        skip=1
+        skip = 1
         times, raw_hr = self.hr_dict['signals'][0]
-        dict_calculate = utilities.filter_hr(
+        self.dict_calculate = utilities.filter_hr(
             raw_hr,
             0.5 * PINT('seconds'),
-            low_pass_width = 2*numpy.pi/(15*PINT('seconds')),
-            bandpass_center=2*numpy.pi*14/PINT('minutes'),
-            skip=skip
-        )
-        self.filter_dict['signals'] = [(times[::skip], dict_calculate['slow']),
-                                       (times[::skip], dict_calculate['fast'])]
+            low_pass_width=2 * numpy.pi / (15 * PINT('seconds')),
+            bandpass_center=2 * numpy.pi * 14 / PINT('minutes'),
+            skip=skip)
+        self.filter_dict['signals'] = [
+            (times[::skip], self.dict_calculate['slow']),
+            (times[::skip], self.dict_calculate['fast'])
+        ]
         self.plot_window(**self.filter_dict)
 
 

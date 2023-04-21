@@ -22,7 +22,9 @@ import hmmds.applications.apnea.utilities
 import observation
 
 
-class HMM(hmm.C.HMM):
+# FixMe: Not using hmm.C.HMM because its forward() doesn't take python
+# numpy array
+class HMM(hmm.base.HMM):
     """Holds state transition probabilities constant
 
     """
@@ -47,7 +49,8 @@ class HMM(hmm.C.HMM):
         """
 
         hmm.C.HMM.reestimate(self)
-        if self.untrainable_indices is None or len(self.untrainable_indices) == 0:
+        if self.untrainable_indices is None or len(
+                self.untrainable_indices) == 0:
             return
         self.p_state2state[self.untrainable_indices] = self.untrainable_values
         return
@@ -75,6 +78,53 @@ class HMM(hmm.C.HMM):
                 print(f'Zero likelihood at {t=}.  Reset.')
                 last = numpy.copy(self.p_state_initial)
             self.p_state2state.step_forward(last)
+        return result
+
+    # Also want relative weighting of slow and fast data
+    def class_estimate(
+        self: HMM,
+        y: list,
+        fudge: float = 1,
+    ) -> list:
+        """ Estimate a sequence of classes
+        Args:
+            y: List with single element that is time series of measurements
+            fudge: >1 increase the number of normal minutes
+
+        Returns:
+            Time series of class identifiers
+        """
+        class_model = self.y_mod['class']
+        del self.y_mod['class']
+        t_seg = self.y_mod.observe(y)
+        self.n_times = self.y_mod.n_times
+        assert len(t_seg) == 2
+        assert t_seg[-1] == self.n_times
+
+        self.alpha = numpy.empty((self.n_times, self.n_states))
+        self.beta = numpy.empty((self.n_times, self.n_states))
+        self.gamma_inv = numpy.empty((self.n_times,))
+        self.state_likelihood = self.y_mod.calculate()
+        assert self.state_likelihood[0, :].sum() > 0.0
+        log_likelihood = self.forward()
+        self.backward()
+        weights = self.alpha * self.beta
+
+        def weights_per_minute(state_list, samples_per_minute=40):
+            minutes = self.n_times // samples_per_minute
+            remainder = self.n_times % samples_per_minute
+            if remainder == 0:
+                result = weights[:, state_list].sum(axis=1).reshape(
+                    -1, samples_per_minute).sum(axis=1)
+            else:
+                result = weights[:-remainder, state_list].sum(axis=1).reshape(
+                    -1, samples_per_minute).sum(axis=1)
+            assert result.shape == (minutes,)
+            return result
+
+        weights_normal = weights_per_minute(class_model.class2state[0])
+        weights_apnea = weights_per_minute(class_model.class2state[1])
+        result = weights_apnea > weights_normal * fudge
         return result
 
     # Dead code
