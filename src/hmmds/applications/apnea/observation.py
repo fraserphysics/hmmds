@@ -333,7 +333,7 @@ def parse_args(argv):
                         default='raw_data/Rtimes',
                         help='Relative path to directory of ecg files')
     parser.add_argument('--n_history', type=int, default=10)
-    parser.add_argument('--record_names',
+    parser.add_argument('--records',
                         type=str,
                         nargs='+',
                         default='a01 x02 b01 c05'.split(),

@@ -35,6 +35,10 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=str,
                         default='build/derived_data/apnea',
                         help='path from root to derived apnea data')
+    parser.add_argument('--records',
+                        type=str,
+                        nargs='+',
+                        help='eg, --records a01 x02 -- ')
     # Group that are relative to derived_apna
     parser.add_argument('--heart_rate_dir',
                         type=str,

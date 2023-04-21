@@ -19,10 +19,6 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Read initial model, train, write result")
     hmmds.applications.apnea.utilities.common_arguments(parser)
-    parser.add_argument('--record_name',
-                        type=str,
-                        default='a03',
-                        help="eg, a03")
     parser.add_argument('initial_path', type=str, help="path to initial model")
     parser.add_argument('write_path', type=str, help='path of file to write')
     args = parser.parse_args(argv)
@@ -45,9 +41,11 @@ def main(argv=None):
     y_data = [
         hmm.base.JointSegment(
             hmmds.applications.apnea.utilities.read_slow_fast_class(
-                args, 'a03'))
+                args, record)) for record in args.records
     ]
     model.multi_train(y_data, args.iterations)
+    print(f"{model.y_mod['slow'].variance=}")
+    print(f"{model.y_mod['fast'].variance=}")
 
     with open(args.write_path, 'wb') as _file:
         pickle.dump(model, _file)

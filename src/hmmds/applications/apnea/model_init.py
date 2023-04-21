@@ -61,10 +61,6 @@ def parse_args(argv):
         "Number of transient states before and after R in ECG, and number of slow states."
     )
 
-    parser.add_argument('--records',
-                        type=str,
-                        nargs='+',
-                        help='--records a01 x02 -- ')
     parser.add_argument(
         'key',
         type=str,
@@ -271,8 +267,8 @@ def apnea_dict(args, rng):
     n_states = len(state_dict)
 
     # Number of data points for each state is going to be about 500
-    alpha = 1.0e2
-    beta = 1.0
+    alpha = 1.0e1
+    beta = 2.0e1
     ar_order = 4
     ar_coefficients = numpy.ones((n_states, args.AR_order)) / ar_order
     offset = numpy.zeros(n_states)
@@ -312,11 +308,14 @@ def apnea_dict(args, rng):
     # a period of 1.5 seconds or 40 samples per minute.
 
     y_data = [
-        hmm.base.JointSegment(utilities.read_slow_fast_class(args, 'a03'))
+        hmm.base.JointSegment(utilities.read_slow_fast_class(args, record))
+        for record in args.records
     ]
     result.y_mod.observe(y_data)
     weights = hmm.simple.Prob(result.y_mod.calculate()).normalize()
     result.y_mod.reestimate(weights)
+    print(f"{result.y_mod['slow'].variance=}")
+    print(f"{result.y_mod['fast'].variance=}")
 
     return result
 

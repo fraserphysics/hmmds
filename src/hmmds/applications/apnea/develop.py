@@ -24,7 +24,7 @@ import observation
 
 # FixMe: Not using hmm.C.HMM because its forward() doesn't take python
 # numpy array
-class HMM(hmm.base.HMM):
+class HMM(hmm.C.HMM):
     """Holds state transition probabilities constant
 
     """
