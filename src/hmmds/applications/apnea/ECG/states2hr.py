@@ -1,10 +1,7 @@
 """states2hr.py: Map a decoded state sequence to a heart rate time
-series in a format comparable to rtimes2hr.py.
+series
 
 python states2hr.py states_file heart_rate_file
-
-Read a states_file, estimate a heart rate time series sampled at the
-frequency --samples_per_minute and write the result.
 
 """
 
@@ -31,7 +28,7 @@ def parse_args(argv):
                         help='path to time series of p(y[t]|y[:t]).')
     parser.add_argument('--censor',
                         type=float,
-                        help='Threshold for censoring data')
+                        help='Fraction of data to censor')
     parser.add_argument('--samples_per_minute', type=int, default=10)
     parser.add_argument('--r_state',
                         type=int,
@@ -79,7 +76,15 @@ def find_beats_and_periods(states: numpy.ndarray,
     if likelihood is None:
         assert censor_fraction == 0
         return time_period, bad_intervals
-    # ToDo: Code for censoring here
+
+    period_likelihood = numpy.empty(len(time_period))
+    for i, (time, period) in enumerate(time_period):
+        period_likelihood[i] = likelihood[time:time + period].min()
+    sorted_ = period_likelihood.copy()
+    sorted_.sort()
+    threshold = sorted_[int(censor_fraction * len(sorted_))]
+    bad_intervals.update(
+        time_period[numpy.nonzero(period_likelihood < threshold)[0], 0])
     return time_period, bad_intervals
 
 
@@ -182,11 +187,14 @@ def main(argv=None):
     args = parse_args(argv)
     with open(args.states_file, 'rb') as _file:
         states = pickle.load(_file)
+    with open(args.likelihood, 'rb') as _file:
+        likelihood = pickle.load(_file)
 
     input_sample_frequency = 100 * PINT('Hz')
-    time_out = len(states)/input_sample_frequency
-    
-    time_period, bad_intervals = find_beats_and_periods(states)
+    time_out = len(states) / input_sample_frequency
+
+    time_period, bad_intervals = find_beats_and_periods(
+        states, likelihood=likelihood, censor_fraction=args.censor)
     hr_dict = calculate(time_period, bad_intervals, time_out)
     with open(args.heart_rate_file, 'wb') as _file:
         pickle.dump(hr_dict, _file)

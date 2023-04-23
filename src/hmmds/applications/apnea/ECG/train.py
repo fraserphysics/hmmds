@@ -37,6 +37,7 @@ def parse_args(argv):
     hmmds.applications.apnea.ECG.utilities.join_common(args)
     return args
 
+
 TYPES = {}  # Is populated by @register decorated functions.  The keys
 # are function names, and the values are functions for reading data.
 
@@ -169,6 +170,7 @@ def diverse(args) -> list:
         else:
             result.append(segment_)
     return result
+
 
 def compare(a, b, attribute):
     value_a, value_b = (getattr(x, attribute) for x in (a, b))

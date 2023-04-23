@@ -71,8 +71,8 @@ $(ECG)/%_self_AR3/states: $(ECGCode)/ecg_decode.py $(ECG)/%_self_AR3/unmasked_tr
 	python $^ $* $@
 $(ECG)/%_self_AR3/likelihood: $(ECGCode)/ecg_likelihood.py $(ECG)/%_self_AR3/unmasked_trained
 	python $^ $* $@
-$(ECG)/%_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/%_self_AR3/states
-	python $<  --r_state 35 $(ECG)/$*_self_AR3/states $@
+$(ECG)/%_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/%_self_AR3/states $(ECG)/%_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG)/$*_self_AR3/likelihood --censor 0.02 $(ECG)/$*_self_AR3/states $@
 
 #################### Special rules for models trained on a single record ########
 $(ECG)/a12_self_AR3/initial: model_init.py
