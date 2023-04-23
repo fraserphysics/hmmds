@@ -347,7 +347,7 @@ def read_ecgs(args):
     return result
 
 
-def window(F: numpy.ndarray, t_sample, center, width) -> numpy.ndarray:
+def window(F: numpy.ndarray, t_sample, center, width, shift=False) -> numpy.ndarray:
     """ Multiply F by a Gaussian window
 
     Args:
@@ -355,13 +355,18 @@ def window(F: numpy.ndarray, t_sample, center, width) -> numpy.ndarray:
         t_sample: The time between samples in f
         center: The center frequency in radians per unit
         width: Sigma in radians per unit
+        shift: Shift phase pi/2
     """
     # FixMe: Is this right?
     omega_max = numpy.pi / t_sample
     n_center = len(F) * (center / omega_max).to('').magnitude
     n_width = len(F) * (width / omega_max).to('').magnitude
     delta_n = numpy.arange(len(F)) - n_center
-    return F * numpy.exp(-(delta_n * delta_n) / (2 * n_width * n_width))
+    result = F * numpy.exp(-(delta_n * delta_n) / (2 * n_width * n_width))
+    if shift:
+        return result * 1j
+    return result
+    
 
 
 def filter_hr(raw_hr: numpy.ndarray,
@@ -377,16 +382,21 @@ def filter_hr(raw_hr: numpy.ndarray,
         low_pass_width:
         bandpass_center:  To capture 14 cycle per minute respiration
 
-    Return: {'slow': x, 'fast': y}
+    Return: {'slow': x, 'fast': y, 'respiration':z}
     """
 
     n = len(raw_hr)
     HR = numpy.fft.rfft(raw_hr, 131072)
     low_pass = numpy.fft.irfft(
         window(HR, sample_period, 0 / sample_period, low_pass_width))
-    band_pass = numpy.fft.irfft(
-        window(HR, sample_period, bandpass_center, low_pass_width))
-    return {'slow': low_pass[:n:skip], 'fast': band_pass[:n:skip]}
+    BP = window(HR, sample_period, bandpass_center, low_pass_width)
+    band_pass = numpy.fft.irfft(BP)
+    SBP = window(HR, sample_period, bandpass_center, low_pass_width, shift=True)
+    shift = numpy.fft.irfft(SBP)
+    respiration = numpy.sqrt(shift*shift + band_pass * band_pass)
+    return {'slow': low_pass[:n:skip],
+            'fast': band_pass[:n:skip],
+            'respiration': respiration[:n:skip]}
 
 
 def read_slow_fast(args, name='a03'):

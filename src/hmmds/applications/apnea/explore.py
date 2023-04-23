@@ -117,6 +117,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             'curves': [
                 filter_plot.plot(pen='g', name='slow'),
                 filter_plot.plot(pen='r', name='fast'),
+                filter_plot.plot(pen='y', name='resp'),
             ]
         }
 
@@ -237,7 +238,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # FixMe: Load appropriate model
         with open('a03_trained', 'rb') as _file:
             model = pickle.load(_file)
-        y_data = [hmm.base.JointSegment(self.dict_calculate)[::3]]
+        temp = {'slow':self.dict_calculate['slow'],
+                    'fast':self.dict_calculate['fast']}
+        y_data = [hmm.base.JointSegment(temp)[::3]]
         result = model.class_estimate(y_data, 3)
 
         self.class_dict['signals'] = [(times, expert + 0.05), (times, result)]
@@ -257,7 +260,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             skip=skip)
         self.filter_dict['signals'] = [
             (times[::skip], self.dict_calculate['slow']),
-            (times[::skip], self.dict_calculate['fast'])
+            (times[::skip], self.dict_calculate['fast']),
+            (times[::skip], self.dict_calculate['respiration']),
         ]
         self.plot_window(**self.filter_dict)
 
