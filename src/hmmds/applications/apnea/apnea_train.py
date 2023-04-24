@@ -40,12 +40,12 @@ def main(argv=None):
 
     y_data = [
         hmm.base.JointSegment(
-            hmmds.applications.apnea.utilities.read_slow_fast_class(
+            hmmds.applications.apnea.utilities.read_slow_respiration_class(
                 args, record)) for record in args.records
     ]
     model.multi_train(y_data, args.iterations)
     print(f"{model.y_mod['slow'].variance=}")
-    print(f"{model.y_mod['fast'].variance=}")
+    print(f"{model.y_mod['respiration'].variance=}")
 
     with open(args.write_path, 'wb') as _file:
         pickle.dump(model, _file)

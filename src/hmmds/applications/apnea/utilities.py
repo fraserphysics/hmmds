@@ -347,7 +347,11 @@ def read_ecgs(args):
     return result
 
 
-def window(F: numpy.ndarray, t_sample, center, width, shift=False) -> numpy.ndarray:
+def window(F: numpy.ndarray,
+           t_sample,
+           center,
+           width,
+           shift=False) -> numpy.ndarray:
     """ Multiply F by a Gaussian window
 
     Args:
@@ -366,7 +370,6 @@ def window(F: numpy.ndarray, t_sample, center, width, shift=False) -> numpy.ndar
     if shift:
         return result * 1j
     return result
-    
 
 
 def filter_hr(raw_hr: numpy.ndarray,
@@ -393,14 +396,16 @@ def filter_hr(raw_hr: numpy.ndarray,
     band_pass = numpy.fft.irfft(BP)
     SBP = window(HR, sample_period, bandpass_center, low_pass_width, shift=True)
     shift = numpy.fft.irfft(SBP)
-    respiration = numpy.sqrt(shift*shift + band_pass * band_pass)
-    return {'slow': low_pass[:n:skip],
-            'fast': band_pass[:n:skip],
-            'respiration': respiration[:n:skip]}
+    respiration = numpy.sqrt(shift * shift + band_pass * band_pass)
+    return {
+        'slow': low_pass[:n:skip],
+        'fast': band_pass[:n:skip],
+        'respiration': respiration[:n:skip]
+    }
 
 
-def read_slow_fast(args, name='a03'):
-    """Read heart rate and return filtered versions
+def read_slow_fast_respiration(args, name='a03'):
+    """Read heart rate and return three filtered versions
     """
 
     # Sample with a period of 1.5 seconds or 40 samples per minute.
@@ -417,12 +422,18 @@ def read_slow_fast(args, name='a03'):
                      skip=skip)
 
 
-def read_slow_fast_class(args, name='a03'):
-    """Add class to dict from read_slow_fast
+def read_slow_respiration(args, name='a03'):
+    result = read_slow_fast_respiration(args, name)
+    del result['fast']
+    return result
+
+
+def read_slow_respiration_class(args, name='a03'):
+    """Add class to dict from read_slow_respiration
     """
 
     samples_per_minute = 40
-    raw_dict = read_slow_fast(args, name)
+    raw_dict = read_slow_respiration(args, name)
     path = os.path.join(args.root, 'raw_data/apnea/summary_of_training')
     raw_dict['class'] = read_expert(path, name).repeat(samples_per_minute)
 

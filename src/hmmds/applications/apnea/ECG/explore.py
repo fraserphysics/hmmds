@@ -128,7 +128,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                     symbol='+',
                     symbolSize=15,
                     symbolBrush=('r'),
-                    name='noise',
+                    name='outlier',
                 )
             ]
         }

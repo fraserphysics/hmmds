@@ -280,25 +280,25 @@ def apnea_dict(args, rng):
                                       rng,
                                       alpha=numpy.ones(n_states) * alpha,
                                       beta=numpy.ones(n_states) * beta)
-    fast_model = hmm.C.AutoRegressive(ar_coefficients.copy(),
-                                      offset.copy(),
-                                      variances.copy(),
-                                      rng,
-                                      alpha=numpy.ones(n_states) * alpha,
-                                      beta=numpy.ones(n_states) * beta)
+    respiration_model = hmm.C.AutoRegressive(ar_coefficients.copy(),
+                                             offset.copy(),
+                                             variances.copy(),
+                                             rng,
+                                             alpha=numpy.ones(n_states) * alpha,
+                                             beta=numpy.ones(n_states) * beta)
 
     result, state_name2state_index = dict2hmm(state_dict, {
         'slow': slow_model,
-        'fast': fast_model
+        'respiration': respiration_model
     },
                                               rng,
                                               truncate=args.AR_order)
 
     # ToDo: Create observation models with these characteristics:
 
-    # Observation models are joint slow, fast and class.  Slow models
+    # Observation models are joint slow, respiration and class.  Slow models
     # the heart rate oscillations that match the occlusion - gasp
-    # cycle, and fast models catch the ~14 cycle per minute
+    # cycle, and respiration models catch the ~14 cycle per minute
     # respiration signal.
 
     # There is a single observation model for each group of 4 states
@@ -308,14 +308,15 @@ def apnea_dict(args, rng):
     # a period of 1.5 seconds or 40 samples per minute.
 
     y_data = [
-        hmm.base.JointSegment(utilities.read_slow_fast_class(args, record))
+        hmm.base.JointSegment(
+            utilities.read_slow_respiration_class(args, record))
         for record in args.records
     ]
     result.y_mod.observe(y_data)
     weights = hmm.simple.Prob(result.y_mod.calculate()).normalize()
     result.y_mod.reestimate(weights)
     print(f"{result.y_mod['slow'].variance=}")
-    print(f"{result.y_mod['fast'].variance=}")
+    print(f"{result.y_mod['respiration'].variance=}")
 
     return result
 
