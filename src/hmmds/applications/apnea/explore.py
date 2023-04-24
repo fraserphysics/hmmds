@@ -8,6 +8,7 @@ import os
 import pickle
 
 import PyQt5.QtWidgets
+import PyQt5.QtCore
 import pyqtgraph
 
 import numpy
@@ -134,7 +135,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.class_dict = {
             'curves': [
                 class_plot.plot(pen='w', name='expert'),
-                class_plot.plot(pen='r', name='hmm')
+                class_plot.plot(pen=pyqtgraph.mkPen(
+                    color=(255, 0, 0), width=1, style=PyQt5.QtCore.Qt.DotLine),
+                                name='hmm')
             ]
         }
 
@@ -148,12 +151,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.setCentralWidget(widget)
 
     def update_plots(self):
-        for _dict in (
-                self.ecg_dict,
-                self.hr_dict,
-                self.filter_dict,
-                self.viterbi_dict,
-                self.class_dict):
+        for _dict in (self.ecg_dict, self.hr_dict, self.filter_dict,
+                      self.viterbi_dict, self.class_dict):
             self.plot_window(**_dict)
 
     def open_file_dialog(self, directory=None):
@@ -262,10 +261,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.y_data = [hmm.base.JointSegment(temp)[::3]]
 
         # Calculate hmm classification
-        self.hmm_class = self.model.class_estimate(self.y_data, 3)
+        fudge = 50  # larger for more estimates of normal
+        self.hmm_class = self.model.class_estimate(self.y_data, fudge)
 
         # Viterbi decode states
         self.states = self.model.decode(self.y_data)
+        self.time_states = self.hr_times[::3]
 
     def plot_ecg(self):
         """"""
@@ -283,12 +284,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_window(**self.hr_dict)
 
     def plot_states(self):
-        self.viterbi_dict['signals'] = [(self.hr_times, self.states)]
+        self.viterbi_dict['signals'] = [(self.time_states, self.states)]
         self.plot_window(**self.viterbi_dict)
 
     def plot_classification(self):
-        self.class_dict['signals'] = [(self.expert_times,
-                                       self.expert_class + 0.05),
+        self.class_dict['signals'] = [(self.expert_times, self.expert_class),
                                       (self.expert_times, self.hmm_class)]
         self.plot_window(**self.class_dict)
 

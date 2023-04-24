@@ -32,39 +32,20 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Create and write/pickle an initial model")
     hmmds.applications.apnea.utilities.common_arguments(parser)
-    # args.records is None if --records is not on command line
-    parser.add_argument(
-        "--ecg_alpha_beta",
-        type=float,
-        nargs=2,
-        default=(1.0e3, 1.0e2),
-        help=
-        "Paramters of inverse gamma prior for variance for normal ecg signal")
-    parser.add_argument("--noise_parameters",
+    parser.add_argument("--alpha_beta",
                         type=float,
-                        nargs=3,
-                        default=(1.0e8, 1.0e10, 1.0e-10),
-                        help="Outlier model: alpha, beta, noise probability")
-    parser.add_argument('--tag_ecg',
-                        action='store_true',
-                        help="Invoke tagging in utilities.read_ecgs()")
+                        nargs=2,
+                        default=(1.0e1, 2.0e1),
+                        help="Paramters of inverse gamma prior for variance")
     parser.add_argument('--AR_order',
                         type=int,
-                        default=3,
+                        default=1,
                         help="Number of previous values for prediction.")
-    parser.add_argument(
-        '--before_after_slow',
-        nargs=3,
-        type=int,
-        default=(18, 30, 3),
-        help=
-        "Number of transient states before and after R in ECG, and number of slow states."
-    )
 
     parser.add_argument(
         'key',
         type=str,
-        help='One of the functions registered in the source, eg, A4')
+        help='One of the functions registered in the source, eg, apnea_dict')
     parser.add_argument('write_path', type=str, help='path of file to write')
     args = parser.parse_args(argv)
     hmmds.applications.apnea.utilities.join_common(args)
@@ -199,13 +180,13 @@ def dict2hmm(state_dict, model_dict, rng, truncate=0):
     y_model = hmm.base.JointObservation(model_dict, truncate=truncate)
 
     # Create and return the hmm
-    indices = tuple(numpy.array(untrainable_indices).T)
     return develop.HMM(p_state_initial,
                        p_state_time_average,
                        p_state2state,
                        y_model,
                        rng,
-                       untrainable_indices=indices,
+                       untrainable_indices=tuple(
+                           numpy.array(untrainable_indices).T),
                        untrainable_values=numpy.array(
                            untrainable_values)), state_name2state_index
 
@@ -247,6 +228,7 @@ def apnea_dict(args, rng):
     state_count = 0
     normal = 0
     occluded_0 = 1
+    small = 1.0e-10
     state_dict = {
         normal:
             State([normal, occluded_0], [1.0 - 1.0e-3, 1.0e-3], normal_class)
@@ -259,7 +241,7 @@ def apnea_dict(args, rng):
             group_end = state_count + 4
         for member in range(4):
             state_dict[state_count] = State([state_count + 1, group_end],
-                                            [0.9, 1.0], apnea_class)
+                                            [1 - small, small], apnea_class)
             state_count += 1
     last_gasp = state_count - 1
     state_dict[last_gasp] = State([occluded_0, normal], [.99, .01], apnea_class)
@@ -267,32 +249,31 @@ def apnea_dict(args, rng):
     n_states = len(state_dict)
 
     # Number of data points for each state is going to be about 500
-    alpha = 1.0e1
-    beta = 2.0e1
-    ar_order = 4
-    ar_coefficients = numpy.ones((n_states, args.AR_order)) / ar_order
+    ar_coefficients = numpy.ones((n_states, args.AR_order)) / args.AR_order
     offset = numpy.zeros(n_states)
     variances = numpy.ones(n_states) * 1e3
 
-    slow_model = hmm.C.AutoRegressive(ar_coefficients.copy(),
-                                      offset.copy(),
-                                      variances.copy(),
-                                      rng,
-                                      alpha=numpy.ones(n_states) * alpha,
-                                      beta=numpy.ones(n_states) * beta)
-    respiration_model = hmm.C.AutoRegressive(ar_coefficients.copy(),
-                                             offset.copy(),
-                                             variances.copy(),
-                                             rng,
-                                             alpha=numpy.ones(n_states) * alpha,
-                                             beta=numpy.ones(n_states) * beta)
+    slow_model = hmm.C.AutoRegressive(
+        ar_coefficients.copy(),
+        offset.copy(),
+        variances.copy(),
+        rng,
+        alpha=numpy.ones(n_states) * args.alpha_beta[0],
+        beta=numpy.ones(n_states) * args.alpha_beta[1])
+    respiration_model = hmm.C.AutoRegressive(
+        ar_coefficients.copy(),
+        offset.copy(),
+        variances.copy(),
+        rng,
+        alpha=numpy.ones(n_states) * args.alpha_beta[0],
+        beta=numpy.ones(n_states) * args.alpha_beta[1])
 
-    result, state_name2state_index = dict2hmm(state_dict, {
+    result, _ = dict2hmm(state_dict, {
         'slow': slow_model,
         'respiration': respiration_model
     },
-                                              rng,
-                                              truncate=args.AR_order)
+                         rng,
+                         truncate=args.AR_order)
 
     # ToDo: Create observation models with these characteristics:
 
@@ -307,14 +288,13 @@ def apnea_dict(args, rng):
     # Initialize the y_model parameters based on the data sampled with
     # a period of 1.5 seconds or 40 samples per minute.
 
-    y_data = [
+    result.y_mod.observe([
         hmm.base.JointSegment(
             utilities.read_slow_respiration_class(args, record))
         for record in args.records
-    ]
-    result.y_mod.observe(y_data)
-    weights = hmm.simple.Prob(result.y_mod.calculate()).normalize()
-    result.y_mod.reestimate(weights)
+    ])
+    result.y_mod.reestimate(
+        hmm.simple.Prob(result.y_mod.calculate()).normalize())
     print(f"{result.y_mod['slow'].variance=}")
     print(f"{result.y_mod['respiration'].variance=}")
 
