@@ -233,7 +233,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.hr_times = numpy.arange(len(
             self.hr_signal)) / pickle_dict['sample_frequency']
 
-        # Calculate spectral filters
+        # Calculate spectral filters using fft method in utilities
         skip = 1
         self.filters = utilities.filter_hr(
             self.hr_signal,
