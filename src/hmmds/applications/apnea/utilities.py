@@ -396,7 +396,9 @@ def filter_hr(raw_hr: numpy.ndarray,
     band_pass = numpy.fft.irfft(BP)
     SBP = window(HR, sample_period, bandpass_center, low_pass_width, shift=True)
     shift = numpy.fft.irfft(SBP)
-    respiration = numpy.sqrt(shift * shift + band_pass * band_pass)
+    TEMP = numpy.fft.rfft(numpy.sqrt(shift * shift + band_pass * band_pass), 131072)
+    respiration = numpy.fft.irfft(window(TEMP, sample_period, 0/sample_period, low_pass_width/2))
+    
     return {
         'slow': low_pass[:n:skip],
         'fast': band_pass[:n:skip],
