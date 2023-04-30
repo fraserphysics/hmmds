@@ -208,7 +208,21 @@ def test(args, rng):
         print(f'{key}: {value}')
 
 
-@register  # At first try to build a model for a05
+@register  # Models for "c" records
+def c_model(args, rng):
+    """Return an hmm based on a dict specified in this function.
+
+    This creates a model with a structure like a model from apnea_dict
+    so that the likelihoods of the models will be easy to compare.
+
+    """
+
+    model = apnea_dict(args, rng)
+    del model.y_mod['class']
+    return model
+
+
+@register  # Models for "a" records
 def apnea_dict(args, rng):
     """Return an hmm based on a dict specified in this function.
 
@@ -239,7 +253,7 @@ def apnea_dict(args, rng):
             group_end = occluded_0
         else:
             group_end = state_count + 4
-        for member in range(4):
+        for _ in range(4):
             state_dict[state_count] = State([state_count + 1, group_end],
                                             [1 - small, small], apnea_class)
             state_count += 1
@@ -295,8 +309,6 @@ def apnea_dict(args, rng):
     ])
     result.y_mod.reestimate(
         hmm.simple.Prob(result.y_mod.calculate()).normalize())
-    print(f"{result.y_mod['slow'].variance=}")
-    print(f"{result.y_mod['respiration'].variance=}")
 
     return result
 

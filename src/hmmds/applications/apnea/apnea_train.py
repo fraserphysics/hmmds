@@ -19,11 +19,44 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Read initial model, train, write result")
     hmmds.applications.apnea.utilities.common_arguments(parser)
+    parser.add_argument('--type',
+                        type=str,
+                        default="masked",
+                        help='Type of data, eg, "masked" or "unmasked"')
     parser.add_argument('initial_path', type=str, help="path to initial model")
     parser.add_argument('write_path', type=str, help='path of file to write')
     args = parser.parse_args(argv)
     hmmds.applications.apnea.utilities.join_common(args)
     return args
+
+
+TYPES = {}  # Is populated by @register decorated functions.  The keys
+# are function names, and the values are functions for reading data.
+
+
+def register(func):
+    """Decorator that puts function in TYPES dictionary"""
+    #See https://realpython.com/primer-on-python-decorators/
+    TYPES[func.__name__] = func
+    return func
+
+
+@register
+def masked(args):
+    return [
+        hmm.base.JointSegment(
+            hmmds.applications.apnea.utilities.read_slow_respiration_class(
+                args, record)) for record in args.records
+    ]
+
+
+@register
+def unmasked(args):
+    return [
+        hmm.base.JointSegment(
+            hmmds.applications.apnea.utilities.read_slow_respiration(
+                args, record)) for record in args.records
+    ]
 
 
 def main(argv=None):
@@ -33,22 +66,16 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     args = parse_args(argv)
-    rng = numpy.random.default_rng()
 
     with open(args.initial_path, 'rb') as _file:
-        _, model = pickle.load(_file)
+        old_args, model = pickle.load(_file)
 
-    y_data = [
-        hmm.base.JointSegment(
-            hmmds.applications.apnea.utilities.read_slow_respiration_class(
-                args, record)) for record in args.records
-    ]
+    y_data = TYPES[args.type](args)
+
     model.multi_train(y_data, args.iterations)
-    print(f"{model.y_mod['slow'].variance=}")
-    print(f"{model.y_mod['respiration'].variance=}")
 
     with open(args.write_path, 'wb') as _file:
-        pickle.dump(model, _file)
+        pickle.dump((old_args, model), _file)
 
     return 0
 

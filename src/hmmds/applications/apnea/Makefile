@@ -22,10 +22,23 @@ test:
 $(MODELS)/a%_initial: model_init.py
 	python $< --records a$* -- apnea_dict $@
 
-$(MODELS)/%_trained: apnea_train.py $(MODELS)/%_initial
-	python apnea_train.py --iterations 10 --records $* -- $(MODELS)/$*_initial $@
+$(MODELS)/a%_masked: apnea_train.py $(MODELS)/a%_initial
+	python $< --iterations 40 --records a$* --type masked $(MODELS)/a$*_initial $@
 
-$(MODELS)/trained_all_a: $(addprefix $(MODELS)/, $(addsuffix _trained, $(ANAMES)))
+$(MODELS)/a%_declass: declass.py $(MODELS)/a%_masked
+	python $^ $@
+
+$(MODELS)/a%_unmasked: apnea_train.py $(MODELS)/a%_declass
+	python $< --iterations 40 --records a$* --type unmasked $(MODELS)/a$*_declass $@
+
+
+$(MODELS)/c%_initial: model_init.py
+	python $< --records c$* -- c_model $@
+
+$(MODELS)/c%_unmasked: apnea_train.py $(MODELS)/c%_initial
+	python apnea_train.py --iterations 40 --records c$* --type unmasked $(MODELS)/c$*_initial $@
+
+$(MODELS)/unmasked_all_ac: $(addprefix $(MODELS)/, $(addsuffix _unmasked, $(ANAMES) $(CNAMES)))
 	touch $@
 
 ## yapf                           : Force google format on all python code

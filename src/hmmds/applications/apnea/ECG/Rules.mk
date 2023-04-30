@@ -3,6 +3,10 @@
 # project, HMMDS is where most code is, and BUILD is where derived
 # results go.
 
+# I get the raw ecg data from files in the RTIMES directory.  The rule
+# for $(ECG)/%_self_AR3/heart_rate makes the best heart rate
+# estimates.
+
 # Data built elsewhere
 RTIMES = $(ROOT)/raw_data/Rtimes/
 ECG = ${ROOT}/build/derived_data/ECG
