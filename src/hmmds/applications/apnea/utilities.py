@@ -48,10 +48,6 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=str,
                         default='Respire',
                         help='path from derived_apnea to respiration dir')
-    parser.add_argument('--peak_scale',
-                        type=float,
-                        default=0.7,
-                        help='Threshold for detecting ECG peaks')
     parser.add_argument('--pass1',
                         type=str,
                         default='pass1_report',
@@ -89,6 +85,15 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=float,
                         default=0.5,
                         help='FixMe for pass1 classification')
+    parser.add_argument('--heart_rate_sample_frequency',
+                        type=int,
+                        default=40,
+                        help='In samples per minute')
+    parser.add_argument(
+        '--trim_start',
+        type=int,
+        default=0,
+        help='Number of minutes to drop from the beginning of each record')
 
 
 def join_common(args: argparse.Namespace):
@@ -317,6 +322,7 @@ def list_heart_rate_respiration_data(names: list, args) -> list:
     return return_list
 
 
+# FixMe: Delete this and use version in ECG dir
 def read_ecgs(args):
     ecgs = []
     for name in args.records:
@@ -412,23 +418,30 @@ def read_slow_fast_respiration(args, name='a03'):
     """Read heart rate and return three filtered versions
     """
 
-    # Sample with a period of 1.5 seconds or 40 samples per minute.
-    skip = 3
     path = os.path.join(args.derived_apnea_data,
                         f'../ECG/{name}_self_AR3/heart_rate')
     with open(path, 'rb') as _file:
         _dict = pickle.load(_file)
-        raw_hr = _dict['hr'].to('1/minute').magnitude
-    return filter_hr(raw_hr,
-                     0.5 * PINT('seconds'),
-                     low_pass_width=2 * numpy.pi / (15 * PINT('seconds')),
-                     bandpass_center=2 * numpy.pi * 14 / PINT('minutes'),
-                     skip=skip)
+    f_in = _dict['sample_frequency'].to('1/minute').magnitude
+    f_out = args.heart_rate_sample_frequency
+    skip = int(f_in / f_out)
+    assert f_in == f_out * skip
+    raw_hr = _dict['hr'].to('1/minute').magnitude
+    result = filter_hr(raw_hr,
+                       0.5 * PINT('seconds'),
+                       low_pass_width=2 * numpy.pi / (15 * PINT('seconds')),
+                       bandpass_center=2 * numpy.pi * 14 / PINT('minutes'),
+                       skip=skip)
+    result['trim_samples'] = int(args.trim_start * f_out)
+    result['sample_frequency'] = f_out * PINT('1/minute')
+    return result
 
 
 def read_slow_respiration(args, name='a03'):
-    result = read_slow_fast_respiration(args, name)
-    del result['fast']
+    input_ = read_slow_fast_respiration(args, name)
+    result = {}
+    for key in 'slow respiration'.split():
+        result[key] = input[key][input_['trim_samples']:]
     return result
 
 

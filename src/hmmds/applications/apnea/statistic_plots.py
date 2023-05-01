@@ -76,8 +76,9 @@ def parse_args(argv):
                         default='.',
                         help='Path for writing figures')
     parser.add_argument('--show',
-                        action='store_false',
+                        action='store_true',
                         help="display figure using Qt5")
+    parser.add_argument('fig_path', type=str, help="path to figure")
     args = parser.parse_args(argv)
     args.sample_rate_in *= PINT('Hz')
     return args
@@ -193,8 +194,9 @@ def main(argv=None):
     plot_stats(args.A_names, 'r')
     plot_stats(args.C_names, 'b')
     plot_stats(args.X_names, 'k')
-    #stats_axes.set_xlim(-2,30)
-    pyplot.show()
+    if args.show:
+        pyplot.show()
+    fig.savefig(args.fig_path)
 
     return 0
 

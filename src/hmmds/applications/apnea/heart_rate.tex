@@ -1,0 +1,120 @@
+
+% Notes on modeling heart rate
+
+\documentclass[12pt]{article}
+\usepackage{graphicx,color}
+\usepackage{amsmath, amsfonts}
+\usepackage{placeins}
+
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\INTEGER}{\field{Z}}
+\newcommand{\REAL}{\field{R}}
+\newcommand{\COMPLEX}{\field{C}}
+\newcommand{\id}{\mathbb{I}}
+\newcommand{\variance}[1]{\field{V}\left[ #1 \right]}
+\newcommand{\normal}[2]{{\cal N}\left(#1,#2 \right)}
+\newcommand{\argmax}{\operatorname*{argmax}}
+
+\title{HMMs for Heart Rate}
+\author{Andrew M.\ Fraser}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+Here I document ideas for redoing the last chapter of my book
+\emph{Hidden Markov Models and Dynamical Systems} in which I address
+the CINC-2000 challenge.  I want to map the products of the ECG
+analysis described in my document \emph{HMMs for ECGs} to to the two
+classification challenges.  The inputs are time series of heart rate
+estimates and likelihoods sampled at 2 Hz and the outputs are
+two stages of classification.  First: For each record determine
+whether or not the patient experienced apnea; and Second: for each
+minute of each record determine whether or not the patient was
+experiencing apnea.
+
+\section{A Model for Record a03}
+\label{sec:a03}
+
+\textbf{To Do:}  Describe structure of the model and its performance.
+
+\subsection{Fit a Separate Models to Each Record}
+\label{sec:selves}
+
+\textbf{To Do:} Imitating the approach in \emph{HMMs for ECGs}, use
+the same structure to build an HMM for each of the labeled records.
+
+Then strip out the class portions of those models and see if it's
+possible to use the cross entropies to do pass-1 classification.
+
+\subsection{C records}
+\label{sec:c_records}
+
+Because the C records have only a few or zero minutes marked as apnea,
+trying to create and train models with states for the apnea class
+fails.  I build models of C records that have a single state and that
+state is in the normal class.
+
+
+\section{Exploiting Likelihood from ECG Models}
+\label{sec:exploit_likelihood}
+
+The ECG models provide both estimates of the heart rate and at time
+series of the conditional probabilities $p(y[t]|y[:t])$.  I believe
+that when those probabilities are small the estimated heart rate is
+unreliable.  I intend to incorporate that belief into my models of
+heart rate.
+
+\textbf{To Do:} Using simple AR-HMM models of the heart rate time
+series, plot likelihood of heart rate data against likelihood of the
+ecg data.
+
+\textbf{To Do:}  Make an AR model of the joint (heart
+rate, ecg likelihood) observations in which the variance of the heart
+rate values is a function of the likelihood values.
+
+\section{To Do}
+\label{sec:todo}
+
+\begin{description}
+\item[move] apnea/models to heart\_rate/models in build dir
+\item[Drop 25 minutes for pass 1] Do it consistently in the training
+  of the models and the pass 1 classification.
+\item[c records have bad starts] 1,2,4,9 and 10 have several minutes
+  with disconnected leads.
+\end{description}
+
+\section{Miscellaneous}
+\label{sec:misc}
+\begin{verbatim}
+
+develop-shell$ time make -j 8 ../../../../build/derived_data/apnea/models/unmasked_all_ac  
+real	174m16.579s
+user	2786m13.984s
+sys	1m26.283s
+
+develop-shell$ time make ../../../../build/derived_data/apnea/models/unmasked_all_ac
+real	3m15.912s
+user	20m57.698s
+sys	0m13.803s
+
+\end{verbatim}
+
+\begin{table}
+  \centering
+  \input{like_table.tex} 
+  \caption[Log Likelihoods]{Log Likelihoods of models trained on one
+    data set and evaluated on another}
+  \label{tab:log_likelihoods}
+\end{table}
+
+\begin{figure}
+  \centering
+    \resizebox{1.0\textwidth}{!}{\includegraphics{statistics.pdf}}
+    \caption{Possible pass1 statistics.}
+  \label{fig:statistics}
+\end{figure}
+
+\end{document}

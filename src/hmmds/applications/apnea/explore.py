@@ -249,16 +249,24 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.expert_times = numpy.arange(len(
             self.expert_class)) * PINT('minutes')
 
-        # Read apnea model.  FixMe: Load appropriate model
-        with open('a03_trained', 'rb') as _file:
-            self.model = pickle.load(_file)
-
         # Get observations for apnea model
         temp = {
             'slow': self.filters['slow'],
             'respiration': self.filters['respiration']
         }
         self.y_data = [hmm.base.JointSegment(temp)[::3]]
+
+        # Read apnea model.
+        name = self.record_box.text()
+        if name[0] == 'a':
+            path = f'{self.root_box.text()}/build/derived_data/apnea/models/{name}_masked'
+            with open(path, 'rb') as _file:
+                self.model = pickle.load(_file)[1]
+        else:
+            print(f'No masked file for {name}')
+            self.hmm_class = []
+            self.states = []
+            return
 
         # Calculate hmm classification
         fudge = 50  # larger for more estimates of normal

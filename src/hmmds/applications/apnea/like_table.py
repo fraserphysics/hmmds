@@ -38,7 +38,7 @@ def parse_args(argv):
                         help='Path to trained models')
     # EG, build/derived_data/apnea/models/a01_declass
 
-    #parser.add_argument('output', type=str, help='path of file to write')
+    parser.add_argument('output', type=str, help='path of file to write')
     args = parser.parse_args(argv)
     hmmds.applications.apnea.utilities.join_common(args)
     return args
@@ -56,7 +56,7 @@ def get_records(args, names):
             hmmds.applications.apnea.utilities.read_slow_respiration(
                 args, name))
 
-        records[name] = (model, y_data[25:])
+        records[name] = (model, y_data)
     return records
 
 
@@ -77,11 +77,42 @@ def calculate_log_likelihoods(record_dict, names):
 
 def calculate_distances(log_likelihoods, names):
     n = len(names)
+    ac_totals = {}
     distance = numpy.empty((n, n))
     for i, data_name in enumerate(names):
+        ac_totals[data_name] = {'a': 0, 'c': 0}
         for j, model_name in enumerate(names):
             distance[i, j] = -log_likelihoods[(data_name, model_name)]
-    return distance
+            if j != i:
+                ac_totals[data_name][model_name[0]] += log_likelihoods[(
+                    data_name, model_name)]
+
+    return distance, ac_totals
+
+
+def classify(args, names: list, reference_models: dict) -> dict:
+    """Classify each record as normal or apnea
+
+    Args:
+        names: strings that identify records, eg, "a01"
+        reference_models: keys are names of records, values are hmms
+
+    Return dict of sums of log_likelihoods of classes
+    """
+    result = {}
+    for name in names:
+        sums = {'a': 0.0, 'c': 0.0}
+        data = hmm.base.JointSegment(
+            hmmds.applications.apnea.utilities.read_slow_respiration(
+                args, name))
+        for model_name, model in reference_models.items():
+            if model_name == name:
+                continue
+            likelihood = model.likelihood(data)
+            assert likelihood.min() > 0
+            sums[model_name[0]] += numpy.log(likelihood).sum() / len(data)
+        result[name] = sums['a'] - sums['c']
+    return result
 
 
 def main(argv=None):
@@ -93,40 +124,42 @@ def main(argv=None):
     args = parse_args(argv)
     names = args.a_names + args.c_names
 
-    names_5 = names[-15:-5]
+    names_5 = 'a06 a09 a10 a11 c07 c08 c09 c10'.split()
     names2index = {}
     for i, name in enumerate(names_5):
         names2index[name] = i
     records = get_records(args, names_5)
     log_likelihood = calculate_log_likelihoods(records, names_5)
-    distance = calculate_distances(log_likelihood, names_5)
+    distance, ac_totals = calculate_distances(log_likelihood, names_5)
     for i, data_name in enumerate(names_5):
         sorted_names = sorted(names_5,
                               key=lambda name: distance[i, names2index[name]])
         print(f'{data_name} {sorted_names}')
-    return 0
-    sorted_names = list(records.keys())
-    sorted_names.sort(key=lambda name: records[name]['cross_entropy'],
-                      reverse=True)
+        print('    ', end='')
+        for name in sorted_names:
+            print(f'{distance[i, names2index[name]]:6.3f} ', end='')
+        print('\n')
 
-    message = [
-        r"""\begin{tabular}{|lrl|lrl|lrl|}
-\hline
-name & $-h(X|\theta)$ & plausible &name & $-h(X|\theta)$ & plausible &name & $-h(X|\theta)$ & plausible \\ \hline
-"""
-    ]
-    for i, name in enumerate(sorted_names):
-        value = records[name]
-        message.append(
-            f" {name}  &   {value['cross_entropy']:7.4f}     &     {value['ok_frac']:7.5f} "
-        )
-        if i % 3 == 2:
-            message.append("""\\\\
-""")
-        else:
-            message.append(" & ")
+    for name, value in ac_totals.items():
+        difference = value["a"] - value["c"]
+        print(f'{name} {difference}')
+
+    print('')
+
+    classifications = classify(
+        args, names, dict((name, value[0]) for name, value in records.items()))
+    for name in names:
+        print(f'{name} {classifications[name]}')
+
+    message = [r"\begin{tabular}{l|" + "c" * len(names_5) + "}"]
+    for i, data_name in enumerate(names_5):
+        message.append(f'{data_name}')
+        for model_name in sorted(
+                names_5, key=lambda name: distance[i, names2index[name]]):
+            message.append(f' & {model_name}')
+        if i < len(names_5) - 1:
+            message.append('\\\\\n')
     message.append(r"""
-\hline
 \end{tabular}
     """)
     with open(args.output, encoding='utf-8', mode='w') as _file:

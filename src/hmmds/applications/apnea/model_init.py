@@ -191,6 +191,31 @@ def dict2hmm(state_dict, model_dict, rng, truncate=0):
                            untrainable_values)), state_name2state_index
 
 
+def initial_model_dict(n_states, args, rng):
+    """Return model for observations
+
+    """
+    ar_coefficients = numpy.ones((n_states, args.AR_order)) / args.AR_order
+    offset = numpy.zeros(n_states)
+    variances = numpy.ones(n_states) * 1e3
+    slow_model = hmm.C.AutoRegressive(
+        ar_coefficients.copy(),
+        offset.copy(),
+        variances.copy(),
+        rng,
+        alpha=numpy.ones(n_states) * args.alpha_beta[0],
+        beta=numpy.ones(n_states) * args.alpha_beta[1])
+    respiration_model = hmm.C.AutoRegressive(
+        ar_coefficients.copy(),
+        offset.copy(),
+        variances.copy(),
+        rng,
+        alpha=numpy.ones(n_states) * args.alpha_beta[0],
+        beta=numpy.ones(n_states) * args.alpha_beta[1])
+
+    return {'slow': slow_model, 'respiration': respiration_model}
+
+
 MODELS = {}  # Is populated by @register decorated functions.  The keys
 # are function names, and the values are functions
 
@@ -217,9 +242,23 @@ def c_model(args, rng):
 
     """
 
-    model = apnea_dict(args, rng)
-    del model.y_mod['class']
-    return model
+    n_states = 4
+    p_state_initial = numpy.ones(n_states)
+    p_state_time_average = numpy.ones(n_states) / n_states
+    p_state2state = hmm.simple.Prob(numpy.ones(
+        (n_states, n_states))) + numpy.eye(n_states) + numpy.roll(
+            numpy.eye(4), 1, axis=1)
+    # break_symmetry
+    p_state_initial[0] = 10
+    p_state_initial /= p_state_initial.sum()
+    p_state2state.normalize()
+
+    y_model = hmm.base.JointObservation(initial_model_dict(n_states, args, rng),
+                                        truncate=args.AR_order)
+
+    # Create and return the hmm
+    return develop.HMM(p_state_initial, p_state_time_average, p_state2state,
+                       y_model, rng)
 
 
 @register  # Models for "a" records
@@ -267,25 +306,8 @@ def apnea_dict(args, rng):
     offset = numpy.zeros(n_states)
     variances = numpy.ones(n_states) * 1e3
 
-    slow_model = hmm.C.AutoRegressive(
-        ar_coefficients.copy(),
-        offset.copy(),
-        variances.copy(),
-        rng,
-        alpha=numpy.ones(n_states) * args.alpha_beta[0],
-        beta=numpy.ones(n_states) * args.alpha_beta[1])
-    respiration_model = hmm.C.AutoRegressive(
-        ar_coefficients.copy(),
-        offset.copy(),
-        variances.copy(),
-        rng,
-        alpha=numpy.ones(n_states) * args.alpha_beta[0],
-        beta=numpy.ones(n_states) * args.alpha_beta[1])
-
-    result, _ = dict2hmm(state_dict, {
-        'slow': slow_model,
-        'respiration': respiration_model
-    },
+    result, _ = dict2hmm(state_dict,
+                         initial_model_dict(n_states, args, rng),
                          rng,
                          truncate=args.AR_order)
 
