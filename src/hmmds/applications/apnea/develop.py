@@ -19,7 +19,6 @@ import hmm.base
 import hmm.C
 
 import hmmds.applications.apnea.utilities
-import observation
 
 
 # FixMe: Not using hmm.C.HMM because its forward() doesn't take python

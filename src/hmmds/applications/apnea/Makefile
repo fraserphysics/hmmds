@@ -6,9 +6,6 @@ ROOT = ../../../..
 HMMDS = $(ROOT)/src/hmmds
 BUILD = $(ROOT)/build
 
-ApneaDerivedData = $(ROOT)/build/derived_data/apnea
-MODELS = ${ROOT}/build/derived_data/apnea/models
-
 include Rules.mk
 
 HR_FIGS = statistics.pdf
@@ -56,6 +53,10 @@ $(MODELS)/unmasked_all_ac: $(addprefix $(MODELS)/, $(addsuffix _unmasked, $(ANAM
 .PHONY : yapf
 yapf :
 	yapf -i --recursive --style "google" .
+
+.PHONY : clean
+clean:
+	rm -f *.aux *.log *.pdf like_table.tex
 
 ## variables     : Print selected variables.
 .PHONY : variables

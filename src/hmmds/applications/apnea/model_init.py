@@ -1,12 +1,10 @@
 """model_init.py Create initial HMM models with apnea observations
 
-A rule modified from Rules.mk:
+A rule from Rules.mk:
 
-${MODELS}/initial_%: model_init.py utilities.py observation.py
-	python model_init.py --root ${ROOT} $* $@
+$(MODELS)/a%_initial: model_init.py
+	python $< --records a$* --alpha_beta 1.0e3 1.0e3 --trim_start 25 apnea_dict $@
 
-The pattern % or $* selects one of the registered functions in this
-module.
 
 """
 import sys
@@ -21,7 +19,6 @@ import hmm.simple
 
 import hmm.C
 import hmmds.applications.apnea.utilities
-import hmmds.applications.apnea.observation
 import develop
 import utilities
 
@@ -310,19 +307,6 @@ def apnea_dict(args, rng):
                          initial_model_dict(n_states, args, rng),
                          rng,
                          truncate=args.AR_order)
-
-    # ToDo: Create observation models with these characteristics:
-
-    # Observation models are joint slow, respiration and class.  Slow models
-    # the heart rate oscillations that match the occlusion - gasp
-    # cycle, and respiration models catch the ~14 cycle per minute
-    # respiration signal.
-
-    # There is a single observation model for each group of 4 states
-    # in the apnea loop.
-
-    # Initialize the y_model parameters based on the data sampled with
-    # a period of 1.5 seconds or 40 samples per minute.
 
     result.y_mod.observe([
         hmm.base.JointSegment(
