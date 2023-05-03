@@ -36,8 +36,6 @@ def parse_args(argv):
                         type=str,
                         default='../../../../build/derived_data/apnea/models',
                         help='Path to trained models')
-    # EG, build/derived_data/apnea/models/a01_declass
-
     parser.add_argument('output', type=str, help='path of file to write')
     args = parser.parse_args(argv)
     hmmds.applications.apnea.utilities.join_common(args)
@@ -45,6 +43,11 @@ def parse_args(argv):
 
 
 def get_records(args, names):
+    """
+
+    Return: Dict with values (model, y_data)
+
+    """
     records = {}
     for name in names:
         model_path = args.model_template % (args.model_dir, name)

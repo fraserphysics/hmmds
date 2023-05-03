@@ -29,6 +29,7 @@ import scipy.signal
 
 import utilities
 import plotscripts.utilities
+import hmm.base
 
 PINT = pint.UnitRegistry()
 
@@ -47,6 +48,24 @@ def parse_args(argv):
                         type=str,
                         nargs='+',
                         default=[f'c{x:02d}' for x in range(1, 11)])
+    parser.add_argument('--a_models',
+                        type=str,
+                        nargs='+',
+                        default='a06 a09 a10 a11'.split(),
+                        help='models to use for statistic_3')
+    parser.add_argument('--c_models',
+                        type=str,
+                        nargs='+',
+                        default='c02 c07 c09 c10'.split(),
+                        help='models to use for statistic_3')
+    parser.add_argument('--model_template',
+                        type=str,
+                        default='%s/%s_unmasked',
+                        help='For paths to models')
+    parser.add_argument('--model_dir',
+                        type=str,
+                        default='../../../../build/derived_data/apnea/models',
+                        help='Path to trained models')
     parser.add_argument('--X_names',
                         type=str,
                         nargs='+',
@@ -79,19 +98,40 @@ def parse_args(argv):
                         action='store_true',
                         help="display figure using Qt5")
     parser.add_argument('fig_path', type=str, help="path to figure")
+    utilities.common_arguments(parser)
     args = parser.parse_args(argv)
     args.sample_rate_in *= PINT('Hz')
+    utilities.join_common(args)
     return args
 
 
 class Record:
 
     def __init__(self, name, args):
+        """Set the following attributs:
+
+        name: EG "a01"
+
+        heart_rate: Time series in cycles per minute
+
+        psd: Power spectral density estimate / sum of all but first 11
+             channels
+
+        respiration: Minimum/maximum of the respiration signal over
+                     each minute.  The values are sorted.  My idea is
+                     that during apnea the resipration signal has
+                     large variations.
+
+        y_data:      Data for calculating likelihood of hmm
+
+        """
         self.name = name
+        self.y_data = hmm.base.JointSegment(
+            utilities.read_slow_respiration(
+                args, name))
         path = args.format.format(args.data_dir, name)
         with open(path, 'rb') as _file:
             pickle_dict = pickle.load(_file)
-        # Skip first 20.2 minutes to avoid lead noise
         self.heart_rate = pickle_dict['hr'].to('1/minute').magnitude[2424:]
         frequencies, raw_psd = scipy.signal.welch(self.heart_rate,
                                                   nperseg=args.fft_width)
@@ -114,8 +154,42 @@ class Record:
             else:
                 self.respiration[minute] = 1.0
         self.respiration.sort()
+    def statistic_1(self):
+        """Spectral power in the range of low frequency apnea
+        oscillations
 
+        """
+        return self.psd[22:62].sum()
+    def statistic_2(self, threshold):
+        """The fraction of minutes in which the min/max is below
+        threshold.
 
+        """
+        return numpy.searchsorted(self.respiration, threshold)/len(self.respiration)
+    def statistic_3(self, a_models, c_models):
+        """ The difference between the log likelihoods of a_models and c_models for self.y_data.
+
+        """
+        def total(models):
+            result = 0
+            for name, model in models.items():
+                likelihood = model.likelihood(self.y_data)
+                if likelihood.min() > 0:
+                    result += numpy.log(likelihood).sum() / len(self.y_data)
+                else:
+                    print(f'likelihood[{name}]({self.name}) = 0')
+                    result -= 2
+            return result
+        return total(a_models) - total(c_models)
+
+def read_models(names, args):
+    result = {}
+    for name in names:
+        model_path = args.model_template % (args.model_dir, name)
+        with open(model_path, 'rb') as _file:
+            old_args, result[name] = pickle.load(_file)
+    return result
+        
 def main(argv=None):
 
     if argv is None:
@@ -123,7 +197,7 @@ def main(argv=None):
     args = parse_args(argv)
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
-    trouble = []  # 'a06 a09 a10'.split()
+    trouble = 'c02 c07 c09 c10 a06 a09 a10'.split()
     fig, (psd_axes, respiration_axes, stats_axes) = pyplot.subplots(nrows=3,
                                                                     figsize=(6,
                                                                              8))
@@ -131,6 +205,8 @@ def main(argv=None):
     records = {}
     for name in args.A_names + args.C_names + args.X_names:
         records[name] = Record(name, args)
+    a_models = read_models(args.a_models, args)
+    c_models = read_models(args.c_models, args)
 
     def plot_psd(names, label, color):
         psd_list = [records[name].psd for name in names]
@@ -162,16 +238,16 @@ def main(argv=None):
                               color=color,
                               linewidth=2)
         for name in names:
-            respiration = records[name].respiration
-            y = numpy.linspace(0, 1, len(respiration))
             if name in trouble:
-                respiration_axes.plot(respiration, y, label=name)
-            else:
-                respiration_axes.plot(respiration,
+                respiration = records[name].respiration
+                y = numpy.linspace(0, 1, len(respiration))
+                if name[0] == 'c':
+                    respiration_axes.plot(respiration, y, label=name)
+                else:
+                    respiration_axes.plot(respiration,
                                       y,
-                                      color=color,
-                                      linestyle='dotted',
-                                      linewidth=1)
+                                      label=name,
+                                      linestyle='dotted')
 
     plot_respiration(args.A_names, 'a', 'r')
     plot_respiration(args.C_names, 'c', 'b')
@@ -180,16 +256,14 @@ def main(argv=None):
 
     def plot_stats(names, color):
         for name in names:
-            stat_1 = records[name].psd[22:62].sum()
-            respiration = records[name].respiration
-            stat_2 = numpy.searchsorted(respiration,
-                                        args.threshold) / len(respiration)
-            stats_axes.plot(stat_1,
-                            stat_2,
-                            color=color,
-                            marker=f'${name}$',
-                            markersize=14,
-                            linestyle='None')
+            stats_axes.plot(
+                records[name].statistic_1(),
+                records[name].statistic_2(args.threshold),
+                #records[name].statistic_3(a_models, c_models),
+                color=color,
+                marker=f'${name}$',
+                markersize=14,
+                linestyle='None')
 
     plot_stats(args.A_names, 'r')
     plot_stats(args.C_names, 'b')

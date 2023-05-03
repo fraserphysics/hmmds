@@ -67,23 +67,87 @@ that when those probabilities are small the estimated heart rate is
 unreliable.  I intend to incorporate that belief into my models of
 heart rate.
 
-\textbf{To Do:} Using simple AR-HMM models of the heart rate time
-series, plot likelihood of heart rate data against likelihood of the
-ecg data.
+\textbf{To Do:} Using s
 
-\textbf{To Do:}  Make an AR model of the joint (heart
-rate, ecg likelihood) observations in which the variance of the heart
-rate values is a function of the likelihood values.
+\section{Pass1 Challenges}
+\label{sec:pass1}
+
+\begin{description}
+\item[Statistic 1] Spectral power in the range of low frequency apnea
+        oscillations.  Channels 22 to 62.
+\end{description}
+
+Setting the threshold for statistic 1 between 0.34 and 0.355 classifies
+all of the \emph{a} and \emph{c} records records correctly except a06
+and c10.  These are the records for which statistic 1 is between 0.3
+and 0.375:
+\begin{description}
+\item[a06] Amplitude of apnea related heart rate oscillations is
+  small.  The hour to hour changes may be helpful.  Classifying the
+  minutes looks hard.  With a threshold of 0.34 in statistic 1, the
+  only records that get misclassified are a06 and c10.
+\item[c10] Heart rate has apnea like oscillations but returns to same
+  baseline.  During those oscillations the respiration signal also
+  oscillates, but perhaps not as deeply as a10.
+\item[a10] Heart rate changes hour to hour
+\item[a09] Respiration signal is very weak.  Heart rate changes hour
+  to hour but not as much as a10.  The amplitude of the oscillations
+  in the heart rate during apnea is small.  It seems difficult to me.
+\item[c02] Hour to hour heart rate changes.  But I bet that the
+  troubling value of statistic 1 is due to spikes in the heart rate
+  that could be masked by looking at negative spikes in the log
+  likelihood.
+\item[c09] Like c02.  Hour to hour heart rate changes.  But I bet that
+  the troubling value of statistic 1 is due to spikes in the heart
+  rate that could be masked by looking at negative spikes in the log
+  likelihood.
+\item[c07] Low hour to hour heart rate variation.
+\item[x24]  Need to trim first 15 minutes.  Looks normal to me.
+  Filter on log likelihood would help with statistic 1.
+\item[x33 x34] These are different measurements of the same thing.
+  It looks normal.  Perhaps filtering based on log likelihood would
+  help a little with statistic 1.
+\item[x13] I guess it's normal.  Filter on likelihood would help.
+\item[x15] Apnea 120 - 140, 180 - 210, 350-390, 490-515.  More hour to
+  hour variation than c07.
+\item[x07] I see apnea oscillations.  Filtering on likelihood might
+  lead to miss-classification.
+\item[x17] Last 5 minutes need to be trimmed.  Apnea 126-150.
+  Filtering by likelihood would not remove many heart rate spikes.
+  ???
+\item[x06] First 5.2 minutes need to be trimmed.  I guess normal.
+  Filtering on likelihood would help.
+\item[x10] Apnea 220 - 250, 360-390
+\item[x18] Need to trim first 14.9 minutes.  206-230 looks like apnea
+  oscillations, but respiration look sort of OK
+\item[x23] Apnea 120-185 but respiration looks sort of OK
+\end{description}
+
+Two ideas come from the review of those records: 1. Use the power in
+very low frequencies as an additional statistic; 2. Use negative
+spikes in the log likelihood of the ecg signal to reduce the weight
+given to heart rate estimates.  I've been thinking of using the log
+likelihood of the ecg signal to influence the variance of the output
+models for the HMMs I use for minute by minute apnea classification.
+After I figure that out, I may be able to the technique implement item
+2 above.
+
 
 \section{To Do}
 \label{sec:todo}
 
 \begin{description}
-\item[LDA] For pass 1
+\item[Likelihood -> Variance] Make the variance of heart rate output
+  models depend on the the likelihood of ecg models.  Start by using
+  simple AR-HMM models of the heart rate time series and plotting
+  likelihood of heart rate data against likelihood of the ecg data.
 \item[move] apnea/models to heart\_rate/models in build dir
 \item[c records have bad starts] 1,2,4,9 and 10 have several minutes
   with disconnected leads.
-\item[Tied Observations] Multiple states with the same observation model
+\item[Tied Observations] Multiple states with the same observation
+  model
+\item[Old Code] Consider removing or rewriting pass1.py, pass2.py, and
+  score.py 
 \end{description}
 
 \section{Miscellaneous}

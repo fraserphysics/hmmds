@@ -243,11 +243,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             skip=skip)
 
         # Read expert
-        path = os.path.join(self.root_box.text(),
-                            'raw_data/apnea/summary_of_training')
-        self.expert_class = utilities.read_expert(path, self.record_box.text())
-        self.expert_times = numpy.arange(len(
-            self.expert_class)) * PINT('minutes')
+        if self.record_box.text()[0] != 'x':
+            path = os.path.join(self.root_box.text(),
+                                'raw_data/apnea/summary_of_training')
+            self.expert_class = utilities.read_expert(path, self.record_box.text())
+            self.expert_times = numpy.arange(len(
+                self.expert_class)) * PINT('minutes')
 
         # Get observations for apnea model
         temp = {
@@ -292,10 +293,14 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_window(**self.hr_dict)
 
     def plot_states(self):
+        if not hasattr(self, 'time_states'):
+            return
         self.viterbi_dict['signals'] = [(self.time_states, self.states)]
         self.plot_window(**self.viterbi_dict)
 
     def plot_classification(self):
+        if self.record_box.text()[0] == 'x':
+            return
         self.class_dict['signals'] = [(self.expert_times, self.expert_class),
                                       (self.expert_times, self.hmm_class)]
         self.plot_window(**self.class_dict)

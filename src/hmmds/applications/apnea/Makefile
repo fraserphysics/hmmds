@@ -33,18 +33,17 @@ $(MODELS)/a%_initial: model_init.py
 $(MODELS)/a%_masked: apnea_train.py $(MODELS)/a%_initial
 	python $< --iterations 40 --records a$* --type masked --trim_start 25 $(MODELS)/a$*_initial $@
 
-$(MODELS)/a%_declass: declass.py $(MODELS)/a%_masked
-	python $^ $@
+$(MODELS)/a%_small: model_init.py
+	python $< --records a$* --alpha_beta 1.0e3 1.0e3  --trim_start 25 c_model $@
 
-$(MODELS)/a%_unmasked: apnea_train.py $(MODELS)/a%_declass
-	python $< --iterations 40 --records a$* --type unmasked --trim_start 25 $(MODELS)/a$*_declass $@
+$(MODELS)/a%_unmasked: apnea_train.py $(MODELS)/a%_small
+	python $< --iterations 40 --records a$* --type unmasked --trim_start 25 $(MODELS)/a$*_small $@
 
-
-$(MODELS)/c%_initial: model_init.py
+$(MODELS)/c%_small: model_init.py
 	python $< --records c$* --alpha_beta 1.0e3 1.0e3 --trim_start 25 c_model $@
 
-$(MODELS)/c%_unmasked: apnea_train.py $(MODELS)/c%_initial
-	python apnea_train.py --iterations 40 --records c$* --type unmasked $(MODELS)/c$*_initial --trim_start 25  $@
+$(MODELS)/c%_unmasked: apnea_train.py $(MODELS)/c%_small
+	python apnea_train.py --iterations 40 --records c$* --type unmasked $(MODELS)/c$*_small --trim_start 25  $@
 
 $(MODELS)/unmasked_all_ac: $(addprefix $(MODELS)/, $(addsuffix _unmasked, $(ANAMES) $(CNAMES)))
 	touch $@
