@@ -74,7 +74,7 @@ def calculate_log_likelihoods(record_dict, names):
                 result[(data_name, model_name)] = -numpy.inf
             else:
                 result[(data_name, model_name)] = numpy.log(
-                    model.likelihood(data)).sum() / len(data)
+                    likelihood).sum() / len(data)
     return result
 
 

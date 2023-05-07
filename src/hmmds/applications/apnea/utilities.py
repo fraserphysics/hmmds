@@ -75,6 +75,7 @@ def join_common(args: argparse.Namespace):
 
     # Add derived_data prefix to paths in that directory
     args.derived_apnea_data = os.path.join(args.root, args.derived_apnea_data)
+    args.heart_rate_sample_frequency *= PINT('1/minutes')
 
     args.rtimes = os.path.join(args.root, args.rtimes)
     args.expert = os.path.join(args.root, args.expert)
@@ -244,9 +245,9 @@ def read_slow_fast_respiration(args, name='a03'):
     with open(path, 'rb') as _file:
         _dict = pickle.load(_file)
     f_in = _dict['sample_frequency'].to('1/minute').magnitude
-    f_out = args.heart_rate_sample_frequency
+    f_out = args.heart_rate_sample_frequency.to('1/minute').magnitude
     skip = int(f_in / f_out)
-    assert f_in == f_out * skip
+    assert f_in == f_out * skip,f'{f_in=} {f_out=} {skip=}'
     raw_hr = _dict['hr'].to('1/minute').magnitude
     result = filter_hr(raw_hr,
                        0.5 * PINT('seconds'),
