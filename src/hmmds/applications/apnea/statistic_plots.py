@@ -1,5 +1,7 @@
 """statistic_plots.py.  Make plots for choosing statistics for pass1.
 
+python statistic_plots.py --a_models a06 --c_models c10 --trim_start 25 --show foo.pdf
+
 Each plot has one trace for the C files and another trace for the A
 files.  The first plot is the cumulative distribution of the
 normalized respiration signal, and the second plot is a PSD estimate.
@@ -129,6 +131,11 @@ class Record:
         self.y_data = hmm.base.JointSegment(
             utilities.read_slow_respiration(
                 args, name))
+        self.cdf = self.y_data['respiration'].copy()
+        self.cdf.sort()
+        self.percents = dict(
+            (frac,self.cdf[int(frac * len(self.cdf))])
+            for frac in (0.01, 0.05, 0.1, 0.2, 0.5, 0.8, 0.95))
         path = args.format.format(args.data_dir, name)
         with open(path, 'rb') as _file:
             pickle_dict = pickle.load(_file)
@@ -137,12 +144,14 @@ class Record:
                                                   nperseg=args.fft_width)
         self.psd = raw_psd / raw_psd[11:].sum()
 
-        raw = utilities.filter_hr(
+        dict_ = utilities.filter_hr(
             self.heart_rate,
             0.5 * PINT('seconds'),
             low_pass_width=2 * numpy.pi / (15 * PINT('seconds')),
             bandpass_center=2 * numpy.pi * 14 / PINT('minutes'),
-            skip=1)['respiration']
+            skip=1,
+        )
+        raw = dict_['respiration']
         len_minutes = len(raw) // 120
         self.respiration = numpy.empty(len_minutes)
         for minute in range(len_minutes):
@@ -154,6 +163,18 @@ class Record:
             else:
                 self.respiration[minute] = 1.0
         self.respiration.sort()
+    def statistic_4(self):
+        """Linear function of CDF of slow heart rate estimate.
+
+        Try <D,CDF> where D is the difference between the combined a
+        records and the combined c records?
+
+        """
+        return self.percents[.95]
+        a = numpy.array([-1.0, 1.0, -1.0])
+        v = numpy.array([self.percents[x] for x in (.01, .8, .95)])
+        return numpy.dot(a, v)
+
     def statistic_1(self):
         """Spectral power in the range of low frequency apnea
         oscillations
@@ -189,7 +210,7 @@ def read_models(names, args):
         with open(model_path, 'rb') as _file:
             old_args, result[name] = pickle.load(_file)
     return result
-        
+
 def main(argv=None):
 
     if argv is None:
@@ -197,7 +218,7 @@ def main(argv=None):
     args = parse_args(argv)
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
-    trouble = 'c02 c07 c09 c10 a06 a09 a10'.split()
+    trouble = 'c02 c10 a06 x17'.split()
     fig, (psd_axes, respiration_axes, stats_axes) = pyplot.subplots(nrows=3,
                                                                     figsize=(6,
                                                                              8))
@@ -205,8 +226,8 @@ def main(argv=None):
     records = {}
     for name in args.A_names + args.C_names + args.X_names:
         records[name] = Record(name, args)
-    a_models = read_models(args.a_models, args)
-    c_models = read_models(args.c_models, args)
+    #a_models = read_models(args.a_models, args)
+    #c_models = read_models(args.c_models, args)
 
     def plot_psd(names, label, color):
         psd_list = [records[name].psd for name in names]
@@ -223,9 +244,6 @@ def main(argv=None):
     for name in trouble:
         psd_axes.plot(numpy.log(records[name].psd), label=name)
     psd_axes.legend()
-
-    #psd_axes.set_xlim(0,200)
-    #psd_axes.set_ylim(3.5, 9.5)
 
     def plot_respiration(names, label, color):
         respiration_list = [records[name].respiration for name in names]
@@ -249,17 +267,36 @@ def main(argv=None):
                                       label=name,
                                       linestyle='dotted')
 
-    plot_respiration(args.A_names, 'a', 'r')
-    plot_respiration(args.C_names, 'c', 'b')
+    def plot_combined_cdf(names, color):
+        combined = numpy.concatenate([records[name].cdf for name in names])
+        combined.sort()
+        y = numpy.linspace(0,1,len(combined))
+        respiration_axes.plot(combined,y,color=color, linewidth=2, linestyle='dashed')
+    def plot_cdf(name, color=None, linestyle='solid', label=False):
+        x = records[name].cdf
+        y = numpy.linspace(0,1,len(x))
+        if color is None:
+            respiration_axes.plot(x,y, label=name, linestyle=linestyle)
+            return
+        if not label:
+            respiration_axes.plot(x,y,color=color, linestyle=linestyle)
+            return
+        respiration_axes.plot(x,y,color=color, linestyle=linestyle, label=name)
+    plot_combined_cdf(args.A_names, 'r')
+    plot_combined_cdf(args.C_names, 'b')
+    # for name in args.A_names:
+    #     plot_cdf(name, color= 'r')
+    # for name in args.C_names:
+    #     plot_cdf(name, color= 'b')
+    for name in trouble:
+        plot_cdf(name, label=True)
     respiration_axes.legend()
-    respiration_axes.plot((args.threshold, args.threshold), (0, 1))
 
     def plot_stats(names, color):
         for name in names:
             stats_axes.plot(
                 records[name].statistic_1(),
-                records[name].statistic_2(args.threshold),
-                #records[name].statistic_3(a_models, c_models),
+                records[name].statistic_4(),
                 color=color,
                 marker=f'${name}$',
                 markersize=14,

@@ -1,6 +1,8 @@
 """plot_like_like.py.  Plot log-likelihood of heart rate model against
 log-likelihood of ecg model.
 
+python plot_like_like.py --show --name c02
+
 """
 
 import sys

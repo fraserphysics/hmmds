@@ -194,7 +194,9 @@ def window(F: numpy.ndarray,
     n_center = len(F) * (center / omega_max).to('').magnitude
     n_width = len(F) * (width / omega_max).to('').magnitude
     delta_n = numpy.arange(len(F)) - n_center
-    result = F * numpy.exp(-(delta_n * delta_n) / (2 * n_width * n_width))
+    denominator = (2 * n_width * n_width)
+    assert denominator > 0
+    result = F * numpy.exp(-(delta_n * delta_n) / denominator)
     if shift:
         return result * 1j
     return result
@@ -204,7 +206,8 @@ def filter_hr(raw_hr: numpy.ndarray,
               sample_period: float,
               low_pass_width,
               bandpass_center,
-              skip=1) -> dict:
+              skip=1,
+              custom=None) -> dict:
     """ Calculate filtered heart rate
  
     Args:
@@ -229,11 +232,17 @@ def filter_hr(raw_hr: numpy.ndarray,
     respiration = numpy.fft.irfft(
         window(TEMP, sample_period, 0 / sample_period, low_pass_width / 2))
 
-    return {
+    result = {
         'slow': low_pass[:n:skip],
         'fast': band_pass[:n:skip],
         'respiration': respiration[:n:skip]
     }
+    if not isinstance(custom, tuple):
+        return result
+    C = window(HR, sample_period, custom[0], custom[1])
+    c = numpy.fft.irfft(C)
+    result[custom[2]] = (C,c)
+    return result
 
 
 def read_slow_fast_respiration(args, name='a03'):
