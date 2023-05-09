@@ -125,9 +125,9 @@ and 0.375:
 
 Two ideas come from the review of those records: 1. Use the power in
 very low frequencies as an additional statistic; 2. Use negative
-spikes in the log likelihood of the ecg signal to reduce the weight
+spikes in the log likelihood of the ECG signal to reduce the weight
 given to heart rate estimates.  I've been thinking of using the log
-likelihood of the ecg signal to influence the variance of the output
+likelihood of the ECG signal to influence the variance of the output
 models for the HMMs I use for minute by minute apnea classification.
 After I figure that out, I may be able to the technique implement item
 2 above.
@@ -137,17 +137,34 @@ After I figure that out, I may be able to the technique implement item
 \label{sec:todo}
 
 \begin{description}
-\item[Likelihood -> Variance] Make the variance of heart rate output
-  models depend on the the likelihood of ecg models.  Start by using
-  simple AR-HMM models of the heart rate time series and plotting
-  likelihood of heart rate data against likelihood of the ecg data.
-\item[move] apnea/models to heart\_rate/models in build dir
+\item[Pass-1] Use statistic_plots.py.  Continue using three classes
+  like the book.  Look at \textbf{b} and \emph{x} files when drawing
+  the boundaries.  Explore changes in PSD estimation.  I think using
+  longer FFTs improves classification.  Perhaps using more overlap
+  would help too.
+\item[move] apnea/models to heart\_rate/models in build directory
 \item[c records have bad starts] 1,2,4,9 and 10 have several minutes
   with disconnected leads.
 \item[Tied Observations] Multiple states with the same observation
   model
 \item[Old Code] Consider removing or rewriting pass1.py, pass2.py, and
   score.py 
+\end{description}
+
+\section{Unlucky Thoughts}
+\label{sec:unlucky}
+
+Here are some ideas that didn't work out\footnote{He's not stupid.
+  He's just unlucky when he thinks.}:
+\begin{description}
+\item[Cumulative distribution of respiration] I looked at the CDF of
+  the respiration signal.  I hoped to use it to resolve records in
+  pass-1 that the low frequency PSD left on the border.
+\item[Use ECG Likelihood] My idea was to use the likelihood of the ECG
+  model to modify the variances of the heart rate models.  I didn't
+  see any structure to exploit when I looked at plots of the log
+  likelihood, $\log\left(P(y[t]|y[:t]) \right)$, of the heart rate
+  model against the log likelihood of the ECG model.
 \end{description}
 
 \section{Miscellaneous}

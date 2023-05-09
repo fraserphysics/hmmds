@@ -75,7 +75,9 @@ def join_common(args: argparse.Namespace):
 
     # Add derived_data prefix to paths in that directory
     args.derived_apnea_data = os.path.join(args.root, args.derived_apnea_data)
+
     args.heart_rate_sample_frequency *= PINT('1/minutes')
+    args.trim_start *= PINT('minutes')
 
     args.rtimes = os.path.join(args.root, args.rtimes)
     args.expert = os.path.join(args.root, args.expert)
@@ -241,7 +243,7 @@ def filter_hr(raw_hr: numpy.ndarray,
         return result
     C = window(HR, sample_period, custom[0], custom[1])
     c = numpy.fft.irfft(C)
-    result[custom[2]] = (C,c)
+    result[custom[2]] = (C, c)
     return result
 
 
@@ -255,15 +257,17 @@ def read_slow_fast_respiration(args, name='a03'):
         _dict = pickle.load(_file)
     f_in = _dict['sample_frequency'].to('1/minute').magnitude
     f_out = args.heart_rate_sample_frequency.to('1/minute').magnitude
+    trim_samples = int(
+        (args.heart_rate_sample_frequency * args.trim_start).to(''))
     skip = int(f_in / f_out)
-    assert f_in == f_out * skip,f'{f_in=} {f_out=} {skip=}'
+    assert f_in == f_out * skip, f'{f_in=} {f_out=} {skip=}'
     raw_hr = _dict['hr'].to('1/minute').magnitude
     result = filter_hr(raw_hr,
                        0.5 * PINT('seconds'),
                        low_pass_width=2 * numpy.pi / (15 * PINT('seconds')),
                        bandpass_center=2 * numpy.pi * 14 / PINT('minutes'),
                        skip=skip)
-    result['trim_samples'] = int(args.trim_start * f_out)
+    result['trim_samples'] = trim_samples
     result['sample_frequency'] = f_out * PINT('1/minute')
     return result
 
@@ -272,7 +276,11 @@ def read_slow_respiration(args, name='a03'):
     input_ = read_slow_fast_respiration(args, name)
     result = {}
     for key in 'slow respiration'.split():
-        result[key] = input_[key][input_['trim_samples']:]
+        trim_samples = input_['trim_samples']
+        if trim_samples == 0:
+            result[key] = input_[key]
+        else:
+            result[key] = input_[key][trim_samples:-trim_samples]
     return result
 
 

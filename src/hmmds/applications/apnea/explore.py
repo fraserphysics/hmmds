@@ -246,7 +246,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         if self.record_box.text()[0] != 'x':
             path = os.path.join(self.root_box.text(),
                                 'raw_data/apnea/summary_of_training')
-            self.expert_class = utilities.read_expert(path, self.record_box.text())
+            self.expert_class = utilities.read_expert(path,
+                                                      self.record_box.text())
             self.expert_times = numpy.arange(len(
                 self.expert_class)) * PINT('minutes')
 
