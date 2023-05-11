@@ -58,6 +58,13 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         record_ok = PyQt5.QtWidgets.QPushButton('Record', self)
         record_ok.clicked.connect(self.new_record)
 
+        self.model_box = PyQt5.QtWidgets.QLineEdit(self)
+        self.model_box.setText(
+            f'{self.root_box.text()}/build/derived_data/apnea/models/a01_masked'
+        )
+        model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
+        model_ok.clicked.connect(self.new_model)
+
         read_button = PyQt5.QtWidgets.QPushButton(r'Read and Calculate', self)
         read_button.clicked.connect(self.read_calculate_plot)
 
@@ -73,6 +80,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         record_layout.addWidget(record_ok)
         record_layout.addWidget(self.record_box)
         buttons_layout.addLayout(record_layout)
+
+        model_layout = PyQt5.QtWidgets.QHBoxLayout()
+        model_layout.addWidget(model_ok)
+        model_layout.addWidget(self.model_box)
+        buttons_layout.addLayout(model_layout)
 
         buttons_layout.addWidget(read_button)
 
@@ -171,6 +183,19 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
     def new_record(self):
         pass  # No action
 
+    def read_model(self):
+        file_name = self.model_box.text()
+        with open(file_name, 'rb') as _file:
+            self.model = pickle.load(_file)[1]
+
+    def new_model(self):
+        path_list = [self.root_box.text()
+                    ] + 'build derived_data apnea models'.split()
+        path = os.path.join(*path_list)
+        file_name = self.open_file_dialog(path)
+        self.model_box.setText(file_name)
+        self.read_model()
+
     def plot_window(self, curves=None, signals=None):
         """ Display T to T + Delta T in a plot
 
@@ -259,23 +284,17 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.y_data = [hmm.base.JointSegment(temp)[::3]]
 
         # Read apnea model.
-        name = self.record_box.text()
-        if name[0] == 'a':
-            path = f'{self.root_box.text()}/build/derived_data/apnea/models/{name}_masked'
-            with open(path, 'rb') as _file:
-                self.model = pickle.load(_file)[1]
-        else:
-            print(f'No masked file for {name}')
-            self.hmm_class = []
-            self.states = []
-            return
+        self.read_model()
 
         # Calculate hmm classification
         fudge = 50  # larger for more estimates of normal
         self.hmm_class = self.model.class_estimate(self.y_data, fudge)
 
         # Viterbi decode states
+        class_model = self.model.y_mod['class']
+        del self.model.y_mod['class']
         self.states = self.model.decode(self.y_data)
+        self.model.y_mod['class'] = class_model
         self.time_states = self.hr_times[::3]
 
     def plot_ecg(self):
