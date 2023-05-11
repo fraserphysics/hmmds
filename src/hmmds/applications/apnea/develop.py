@@ -124,6 +124,7 @@ class HMM(hmm.C.HMM):
         weights_normal = weights_per_minute(class_model.class2state[0])
         weights_apnea = weights_per_minute(class_model.class2state[1])
         result = weights_apnea > weights_normal * fudge
+        self.y_mod['class'] = class_model  # Restore for future use
         return result
 
     # Dead code
