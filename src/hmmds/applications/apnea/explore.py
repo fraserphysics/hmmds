@@ -95,6 +95,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             ('fine T', -50, 50, 0),
                 # From .1 second to 9 hours in minutes
             ('Delta T', numpy.log(.1 / 60), numpy.log(540), numpy.log(540)),
+            ('Specific', numpy.log(.001), numpy.log(1000), numpy.log(1)),
+            ('Balance', numpy.log(.01), numpy.log(100), numpy.log(1)),
         ):
             self.variable[name] = Variable(name, minimum, maximum, initial,
                                            self)
@@ -162,7 +164,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         widget.setLayout(layout0)
         self.setCentralWidget(widget)
 
-    def update_plots(self):
+    def update_plots(self  # MainWindow
+                    ):
         for _dict in (self.ecg_dict, self.hr_dict, self.filter_dict,
                       self.viterbi_dict, self.class_dict):
             self.plot_window(**_dict)
@@ -287,8 +290,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.read_model()
 
         # Calculate hmm classification
-        fudge = 50  # larger for more estimates of normal
-        self.hmm_class = self.model.class_estimate(self.y_data, fudge)
+        self.new_classification()
 
         # Viterbi decode states
         class_model = self.model.y_mod['class']
@@ -318,12 +320,20 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.viterbi_dict['signals'] = [(self.time_states, self.states)]
         self.plot_window(**self.viterbi_dict)
 
-    def plot_classification(self):
+    def plot_classification(self  # MainWindow
+                           ):
         if self.record_box.text()[0] == 'x':
             return
         self.class_dict['signals'] = [(self.expert_times, self.expert_class),
                                       (self.expert_times, self.hmm_class)]
         self.plot_window(**self.class_dict)
+
+    def new_classification(
+            self,  # MainWindow
+    ):
+        more_specific = numpy.exp(self.variable['Specific']())
+        self.hmm_class = self.model.class_estimate(self.y_data, more_specific)
+        self.plot_classification()
 
     def plot_filter(self):
         """plot spectral filters
@@ -417,6 +427,8 @@ class Variable(PyQt5.QtWidgets.QWidget):
         self.spin.disconnect()  # Avoid loop with setValue
         self.spin.setValue(self.x)
         self.spin.valueChanged.connect(self.spin_changed)
+        if self.label.text() in 'Specific Balance.split()':
+            self.main_window.new_classification()
         self.main_window.update_plots()
 
 
