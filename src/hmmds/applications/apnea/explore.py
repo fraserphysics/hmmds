@@ -19,6 +19,7 @@ import pint
 
 import hmm.C
 import utilities
+import develop
 
 PINT = pint.UnitRegistry()
 
@@ -96,7 +97,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                 # From .1 second to 9 hours in minutes
             ('Delta T', numpy.log(.1 / 60), numpy.log(540), numpy.log(540)),
             ('Specific', numpy.log(.001), numpy.log(1000), numpy.log(1)),
-            ('Balance', numpy.log(.01), numpy.log(100), numpy.log(1)),
+            ('Balance', numpy.log(.1), numpy.log(10), numpy.log(1)),
         ):
             self.variable[name] = Variable(name, minimum, maximum, initial,
                                            self)
@@ -190,6 +191,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         file_name = self.model_box.text()
         with open(file_name, 'rb') as _file:
             self.model = pickle.load(_file)[1]
+        old_y_mod = self.model.y_mod
+        # new_y_mod supports balance
+        new_y_mod = develop.JointObservation(old_y_mod)
+        self.model.y_mod = new_y_mod
 
     def new_model(self):
         path_list = [self.root_box.text()
@@ -332,7 +337,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             self,  # MainWindow
     ):
         more_specific = numpy.exp(self.variable['Specific']())
-        self.hmm_class = self.model.class_estimate(self.y_data, more_specific)
+        temp = numpy.exp(self.variable['Balance']())
+        balance = numpy.array([temp, 1 / temp])
+        self.hmm_class = self.model.class_estimate(self.y_data, more_specific,
+                                                   balance)
         self.plot_classification()
 
     def plot_filter(self):
