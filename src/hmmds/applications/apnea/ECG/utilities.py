@@ -27,6 +27,10 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=str,
                         default='../../../../../',
                         help='parent directory of src and build')
+    parser.add_argument('--ecg_models',
+                        type=str,
+                        default='build/derived_data/ECG',
+                        help='path from root')
     parser.add_argument('--derived_apnea_data',
                         type=str,
                         default='build/derived_data/apnea',
@@ -98,6 +102,8 @@ def join_common(args: argparse.Namespace):
     for name in 'heart_rate_dir respiration_dir pass1 models_dir'.split():
         setattr(args, name,
                 os.path.join(args.derived_apnea_data, getattr(args, name)))
+    for name in 'ecg_models'.split():
+        setattr(args, name, os.path.join(args.root, getattr(args, name)))
 
     # Add models_dir prefix to paths in that directory
     for name in 'Amodel   BCmodel  modelLow  modelMedium  modelHigh'.split():
@@ -164,6 +170,27 @@ def read_train_log(path: str) -> numpy.ndarray:
     return column_dict
 
 
+def read_rtimes(args, name):
+    """Read rtimes calculated by Elgendi
+    """
+
+    path = os.path.join(args.rtimes, name + '.rtimes')
+    with open(path, mode='r', encoding='utf-8') as _file:
+        lines = _file.readlines()
+    n_ecg = int(lines[0].split()[-1])
+    rtimes = numpy.empty(len(lines) - 1)
+    for i, line in enumerate(lines[1:]):
+        rtimes[i] = float(line)
+    return rtimes, n_ecg  # rtimes are seconds
+
+
+def read_states(args, name):
+    path = os.path.join(args.ecg_models, f'{name}_self_AR3/states')
+    with open(path, "rb") as _file:
+        states = pickle.load(_file)
+    return states
+
+
 def read_ecgs(args):
     ecgs = []
     for name in args.records:
@@ -201,7 +228,8 @@ def main(argv=None):
     for key, value in args.__dict__.items():
         print(f'{key}: {value}')
 
-    print(f"{args.root=} {args.rtimes=}")
+    rtimes, n_ecg = read_rtimes(args, 'a03')
+    print(f"{args.root=} {args.rtimes=} {n_ecg=} {rtimes[:5]=}")
     return 0
 
 

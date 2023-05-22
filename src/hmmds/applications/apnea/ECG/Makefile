@@ -2,16 +2,30 @@
 # Several paths and parameters are shared in instances of utilities.Common.
 
 ROOT = ../../../../..
+ABSROOT = $(abspath $(ROOT))
 HMMDS = $(ROOT)/src/hmmds
 BUILD = $(ROOT)/build
 
 # Default target
+ds23.pdf:
 ecg.pdf:
 
 include Rules.mk
 
+elgendi.pdf: elgendi.py
+	python $< $@
+
+constant_a03.pdf: constant_a03.py  $(RTIMES)a03.ecg
+	python $^ $@
+
+a03_states_56.pdf:  ecg_states_fig.py $(ECG)/a03_self_AR3/states
+	python ecg_states_fig.py $(RTIMES)/a03.ecg $(ECG)/a03_self_AR3/states 56.25 56.4 $@
+
+a01c02_states.pdf:  a01c02_states.py $(ECG)/a01_trained_AR3/states/a01 $(ECG)/a01_trained_AR3/states/c02
+	python $< $(RTIMES)  $(ECG)/a01_trained_AR3/states/a01 $(ECG)/a01_trained_AR3/states/c02 300.0 300.05 $@
+
 a01a19c02.pdf:  a01a19c02.py $(ECG)/a01_trained_AR3/states/a01 $(ECG)/a01_trained_AR3/states/c02
-	python a01a19c02.py $(RTIMES) $(ECG)/a01_trained_AR3/states/c02 300.0 300.05 $@
+	python $< $(RTIMES) $(ECG)/a01_trained_AR3/states/c02 300.0 300.05 $@
 
 %_states_71.pdf: ecg_states_fig.py $(ECG)/%/states/a01
 	python ecg_states_fig.py $(RTIMES)/a01.ecg $(ECG)/$*/states/a01 71.1 71.14 $@
@@ -34,7 +48,17 @@ like_a14_x07.pdf: plot_like.py $(ECG)/a01_trained_AR3/all_states_likelihood_hear
 simulated.pdf: plot_simulation.py $(ECG)/a01_trained_AR3/unmasked_trained
 	python $^ 1000 $@
 
+%.pdf : %.fig
+	fig2dev -L pdftex -F $< $@
+%.pdf_t: %.fig %.pdf
+	fig2dev -L pdftex_t -p $*.pdf $< $@
+
 ECG_FIGS = a01_trained_AR3_states_70.pdf a01_trained_AR3_states_71.pdf a01a19c02.pdf train_log.pdf like_a14_x07.pdf simulated.pdf
+
+DS23FIGS = elgendi.pdf constant_a03.pdf a03_states_56.pdf a01c02_states.pdf ecg_hmm.pdf ecg_hmm.pdf_t simulated.pdf
+
+ds23.pdf: ds23.tex $(DS23FIGS)
+	export TEXINPUTS=$(ABSROOT)//:; pdflatex ds23.tex; pdflatex ds23.tex
 
 ecg.pdf: ecg.tex $(ECG_FIGS) table.tex self_table.tex
 	pdflatex $< ; pdflatex $<

@@ -18,7 +18,6 @@ import anytree
 import hmm.base
 import hmm.C
 
-import observation
 
 
 class HMM(hmm.C.HMM):

@@ -72,6 +72,9 @@ def main(argv=None):
 
     # Drop tick labels
     ecg_axes.set_xticklabels([])
+    ecg_axes.set_ylabel('ECG mV')
+    states_axes.set_ylabel('state')
+    states_axes.set_xlabel(r'$t$/minutes')
 
     if args.show:
         pyplot.show()

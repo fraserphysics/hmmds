@@ -16,7 +16,6 @@ import numpy
 import hmm.base
 
 import hmmds.applications.apnea.ECG.utilities
-import hmmds.applications.apnea.observation
 import develop
 import utilities
 
