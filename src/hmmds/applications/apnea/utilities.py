@@ -299,6 +299,28 @@ def read_slow_respiration_class(args, name='a03'):
     return raw_dict
 
 
+def read_slow(args, name='a03'):
+    input_ = read_slow_fast_respiration(args, name)
+    trim_samples = input_['trim_samples']
+    if trim_samples == 0:
+        return {'slow': input_['slow']}
+    return {'slow': input_['slow'][trim_samples:-trim_samples]}
+
+
+def read_slow_class(args, name='a03'):
+    """Add class to dict from read_slow
+    """
+
+    samples_per_minute = 40
+    raw_dict = read_slow(args, name)
+    path = os.path.join(args.root, 'raw_data/apnea/summary_of_training')
+    raw_dict['class'] = read_expert(path, name).repeat(samples_per_minute)
+    length = min(*[len(x) for x in raw_dict.values()])
+    for key, value in raw_dict.items():
+        raw_dict[key] = value[:length]
+    return raw_dict
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]

@@ -202,15 +202,8 @@ def initial_model_dict(n_states, args, rng):
         rng,
         alpha=numpy.ones(n_states) * args.alpha_beta[0],
         beta=numpy.ones(n_states) * args.alpha_beta[1])
-    respiration_model = hmm.C.AutoRegressive(
-        ar_coefficients.copy(),
-        offset.copy(),
-        variances.copy(),
-        rng,
-        alpha=numpy.ones(n_states) * args.alpha_beta[0],
-        beta=numpy.ones(n_states) * args.alpha_beta[1])
 
-    return {'slow': slow_model, 'respiration': respiration_model}
+    return {'slow': slow_model}
 
 
 MODELS = {}  # Is populated by @register decorated functions.  The keys
@@ -309,8 +302,7 @@ def apnea_dict(args, rng):
                          truncate=args.AR_order)
 
     result.y_mod.observe([
-        hmm.base.JointSegment(
-            utilities.read_slow_respiration_class(args, record))
+        hmm.base.JointSegment(utilities.read_slow_class(args, record))
         for record in args.records
     ])
     result.y_mod.reestimate(

@@ -4,7 +4,7 @@ Example:
 python like_table.py model_dir output.tex
 
 This version uses the models that are trained on only one record.  The
-modeles are in files with names like a01_self_AR3/unmasked_trained.
+models are in files with names like a01_self_AR3/unmasked_trained.
 
 """
 import sys

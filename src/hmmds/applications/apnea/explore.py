@@ -282,7 +282,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Get observations for apnea model
         temp = {
             'slow': self.filters['slow'],
-            'respiration': self.filters['respiration']
         }
         self.y_data = [hmm.base.JointSegment(temp)[::3]]
 

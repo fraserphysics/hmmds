@@ -45,8 +45,8 @@ def register(func):
 def masked(args):
     return [
         hmm.base.JointSegment(
-            hmmds.applications.apnea.utilities.read_slow_respiration_class(
-                args, record)) for record in args.records
+            hmmds.applications.apnea.utilities.read_slow_class(args, record))
+        for record in args.records
     ]
 
 
@@ -54,8 +54,8 @@ def masked(args):
 def unmasked(args):
     return [
         hmm.base.JointSegment(
-            hmmds.applications.apnea.utilities.read_slow_respiration(
-                args, record)) for record in args.records
+            hmmds.applications.apnea.utilities.read_slow(args, record))
+        for record in args.records
     ]
 
 

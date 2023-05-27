@@ -84,8 +84,7 @@ def read_records(names, args) -> dict:
     for name in names:
         y_data = [
             hmm.base.JointSegment(
-                hmmds.applications.apnea.utilities.read_slow_respiration(
-                    args, name))
+                hmmds.applications.apnea.utilities.read_slow(args, name))
         ]
         path = os.path.join(args.root, 'raw_data/apnea/summary_of_training')
         expert = hmmds.applications.apnea.utilities.read_expert(path, name)
