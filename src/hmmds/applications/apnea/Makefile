@@ -42,6 +42,9 @@ $(MODELS)/%_unmasked: apnea_train.py $(MODELS)/%_small
 $(MODELS)/unmasked_all_ac: $(addprefix $(MODELS)/, $(addsuffix _unmasked, $(ANAMES) $(CNAMES)))
 	touch $@
 
+$(MODELS)/masked_all_a: $(addprefix $(MODELS)/, $(addsuffix _masked, $(ANAMES)))
+	touch $@
+
 ## yapf                           : Force google format on all python code
 .PHONY : yapf
 yapf :

@@ -19,7 +19,6 @@ import hmm.base
 import hmm.C
 
 
-
 class HMM(hmm.C.HMM):
     """Holds state transition probabilities constant
 

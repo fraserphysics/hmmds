@@ -80,12 +80,7 @@ class HMM(hmm.C.HMM):
         return result
 
     # Also want relative weighting of slow and fast data
-    def class_estimate(
-        self: HMM,
-        y: list,
-        more_specific: float = 1,
-        balance=[1, 1],
-    ) -> list:
+    def class_estimate(self: HMM, y: list, more_specific: float = 1) -> list:
         """ Estimate a sequence of classes
         Args:
             y: List with single element that is time series of measurements
@@ -104,7 +99,7 @@ class HMM(hmm.C.HMM):
         self.alpha = numpy.empty((self.n_times, self.n_states))
         self.beta = numpy.empty((self.n_times, self.n_states))
         self.gamma_inv = numpy.empty((self.n_times,))
-        self.state_likelihood = self.y_mod.calculate(balance)
+        self.state_likelihood = self.y_mod.calculate()
         assert self.state_likelihood[0, :].sum() > 0.0
         log_likelihood = self.forward()
         self.backward()
@@ -127,24 +122,6 @@ class HMM(hmm.C.HMM):
         result = weights_apnea > weights_normal * more_specific
         self.y_mod['class'] = class_model  # Restore for future use
         return result
-
-
-class JointObservation(hmm.base.JointObservation):
-    """Variant with variable weighting of components in calculating likelihood
-
-    """
-
-    # pylint: disable = attribute-defined-outside-init
-    def calculate(self: JointObservation, balance=None) -> numpy.ndarray:
-        if balance is None:
-            return hmm.base.JointObservation.calculate(self)
-        for i, model in enumerate(self.values()):
-            if i == 0:
-                self._likelihood = model.calculate()**balance[0]
-            else:
-                self._likelihood *= model.calculate()**balance[i]
-
-        return self._likelihood
 
 
 class ItemScoreT:

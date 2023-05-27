@@ -1,6 +1,8 @@
 """cross_score.py Evaluate apnea classification performance of models
 trained on single a records.
 
+python cross_score.py > report.txt
+
 Arguments: Path to models, path to data, and path to result.
 
 Data structure of result:
