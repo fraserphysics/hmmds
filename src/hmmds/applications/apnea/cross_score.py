@@ -19,7 +19,6 @@ trained on a03 to the b02 record.  Its keys are:
 import sys
 import os
 import argparse
-import glob
 import pickle
 
 import numpy
@@ -43,14 +42,17 @@ def parse_args(argv):
                         type=str,
                         default='../../../../build/derived_data/apnea/models',
                         help='Path to trained models')
-    parser.add_argument(
-        '--data_names',
-        type=str,
-        nargs='+',
-        default=[f'a{x:02d}' for x in range(1, 21)] +
-        [f'b{x:02d}' for x in range(1, 5)] +
-        [f'c{x:02d}' for x in range(1, 11)],
-    )
+    parser.add_argument('--specific',
+                        type=float,
+                        default=1.0,
+                        help='Larger value -> fewer apnea detections')
+    parser.add_argument('--data_names',
+                        type=str,
+                        nargs='+',
+                        default=[f'a{x:02d}' for x in range(1, 21)] +
+                        [f'b{x:02d}' for x in range(1, 5)]
+                        # + [f'c{x:02d}' for x in range(1, 11)],
+                       )
     parser.add_argument(
         '--model_names',
         type=str,
@@ -92,7 +94,7 @@ def read_records(names, args) -> dict:
     return result
 
 
-def analyze(models: dict, records: dict, fudge: float) -> dict:
+def analyze(models: dict, records: dict, specific: float) -> dict:
     """Compare expert and hmm classifications
 
     Args:
@@ -109,7 +111,7 @@ def analyze(models: dict, records: dict, fudge: float) -> dict:
             y_data = value['y_data']
             class_model = model.y_mod['class']
             try:  # Exception if model finds data impossible
-                hmm_class = model.class_estimate(y_data, fudge)
+                hmm_class = model.class_estimate(y_data, specific)
                 length = min(len(hmm_class), len(expert))
                 assert 1000 > length > 200, f'{length=}.  Expected about 480 for 8 hours'
 
@@ -152,7 +154,9 @@ def print_result(models, records, analysis):
                 percent = int(100 * (1 - fraction))
                 print(f"{percent:4d}", end='')
         print()
-    print(f'{false_alarm=} {missed_detection=}')
+    print(
+        f'{false_alarm=} {missed_detection=} total={false_alarm + missed_detection}'
+    )
     return 0
 
 
@@ -166,8 +170,7 @@ def main(argv=None):
 
     models = read_models(args.model_names, args)
     records = read_records(args.data_names, args)
-    specific = 0.05
-    analysis = analyze(models, records, specific)
+    analysis = analyze(models, records, args.specific)
     print_result(models, records, analysis)
     return 0
 

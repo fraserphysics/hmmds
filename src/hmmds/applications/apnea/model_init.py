@@ -188,11 +188,12 @@ def dict2hmm(state_dict, model_dict, rng, truncate=0):
                            untrainable_values)), state_name2state_index
 
 
-def initial_model_dict(n_states, args, rng):
-    """Return model for observations
+def random_observation_model_dict(n_states, args, rng):
+    """Return model for observations with random coefficients
 
     """
-    ar_coefficients = numpy.ones((n_states, args.AR_order)) / args.AR_order
+    # Number of data points for each state is going to be about 500
+    ar_coefficients = rng.random((n_states, args.AR_order)) / args.AR_order
     offset = numpy.zeros(n_states)
     variances = numpy.ones(n_states) * 1e3
     slow_model = hmm.C.AutoRegressive(
@@ -243,7 +244,8 @@ def c_model(args, rng):
     p_state_initial /= p_state_initial.sum()
     p_state2state.normalize()
 
-    y_model = hmm.base.JointObservation(initial_model_dict(n_states, args, rng),
+    y_model = hmm.base.JointObservation(random_observation_model_dict(
+        n_states, args, rng),
                                         truncate=args.AR_order)
 
     # Create and return the hmm
@@ -291,13 +293,171 @@ def apnea_dict(args, rng):
 
     n_states = len(state_dict)
 
-    # Number of data points for each state is going to be about 500
-    ar_coefficients = numpy.ones((n_states, args.AR_order)) / args.AR_order
-    offset = numpy.zeros(n_states)
-    variances = numpy.ones(n_states) * 1e3
+    result, _ = dict2hmm(state_dict,
+                         random_observation_model_dict(n_states, args, rng),
+                         rng,
+                         truncate=args.AR_order)
+
+    result.y_mod.observe([
+        hmm.base.JointSegment(utilities.read_slow_class(args, record))
+        for record in args.records
+    ])
+    result.y_mod.reestimate(
+        hmm.simple.Prob(result.y_mod.calculate()).normalize())
+
+    return result
+
+
+@register  # Alternative models for "a" records
+def template_dict(args, rng):
+    """An hmm with fixed duration templates and slow states for apnea
+
+    Each template is in a loop with a slow state.  Transitions between
+    templates and transitions to the normal state are through the
+    "switch" state which is supressed
+    
+    There is a single "normal" state that has transitions to itself.
+
+    """
+
+    n_normal_states = 3
+    n_templates = 6
+    template_length = 20
+
+    normal_class = 0
+    apnea_class = 1
+
+    # State keys are intgers
+    switch_state = 0
+    first_normal_state = 1
+    small = 1.0e-8
+
+    # First normal state connects to switch_state
+    state_dict = {}
+    transition_probability = (numpy.ones(n_normal_states + 1) -
+                              small) / n_normal_states
+    transition_probability[0] = small
+    state_dict[first_normal_state] = State(numpy.arange(n_normal_states + 1),
+                                           transition_probability,
+                                           normal_class,
+                                           trainable=[False] +
+                                           [True] * n_normal_states)
+    transitions_from_switch = [first_normal_state]
+
+    # Other normal states all connect with eachother
+    normal_state_list = numpy.arange(1, n_normal_states + 1)
+    transition_probability = numpy.ones(n_normal_states) / n_normal_states
+    for key in range(2, n_normal_states + 1):
+        state_dict[key] = State(normal_state_list, transition_probability,
+                                normal_class)
+
+    state_dict[switch_state] = None  # Hold place in dict
+
+    state_count = n_normal_states + 1
+    for _ in range(n_templates):
+        # First state in the template loop
+        start_state = state_count
+        state_dict[state_count] = State(
+            [state_count, state_count + 1, switch_state],
+            [1 - 2 * small, 1 - 2 * small, small],
+            apnea_class,
+            trainable=[True, True, False])
+        transitions_from_switch.append(state_count)
+        state_count += 1
+        # Middle states in the template loop
+        for _ in range(1, template_length - 1):
+            state_dict[state_count] = State([state_count + 1], [1], apnea_class)
+            state_count += 1
+        # Last state in the template loop
+        state_dict[state_count] = State([start_state], [1], apnea_class)
+        state_count += 1
+
+    n_switch = len(transitions_from_switch)
+    assert n_switch == n_templates + 1
+    state_dict[switch_state] = State(transitions_from_switch,
+                                     numpy.ones(n_switch) / n_switch,
+                                     apnea_class)
+    n_states = len(state_dict)
 
     result, _ = dict2hmm(state_dict,
-                         initial_model_dict(n_states, args, rng),
+                         random_observation_model_dict(n_states, args, rng),
+                         rng,
+                         truncate=args.AR_order)
+
+    result.y_mod.observe([
+        hmm.base.JointSegment(utilities.read_slow_class(args, record))
+        for record in args.records
+    ])
+    result.y_mod.reestimate(
+        hmm.simple.Prob(result.y_mod.calculate()).normalize())
+
+    return result
+
+
+@register  # Alternative models for "a" records
+def fast(args, rng):
+    """Return an hmm with multiple fixed duration templates for apnea
+
+    Each template is in a loop with a slow state.  Transitions between
+    templates and transitions to the normal state are through the
+    "switch" state which is supressed
+    
+    There is a single "normal" state that has transitions to itself.
+
+    """
+
+    n_normal_states = 3
+    template_lengths = [20, 24, 28, 32, 36, 40]
+    #template_lengths = [2, 3]
+    template_lengths = numpy.arange(20, 40, 2)
+
+    normal_class = 0
+    apnea_class = 1
+
+    # State keys are intgers
+    apnea_switch_state = n_normal_states
+    first_normal_state = 0
+    small = 1.0e-8
+
+    # First normal state connects to apnea_switch_state
+    state_dict = {}
+    transition_probability = (numpy.ones(n_normal_states + 1) -
+                              small) / n_normal_states
+    transition_probability[apnea_switch_state] = small
+    state_dict[first_normal_state] = State(numpy.arange(n_normal_states + 1),
+                                           transition_probability,
+                                           normal_class,
+                                           trainable=[True] * n_normal_states +
+                                           [False])
+    transitions_from_switch = [first_normal_state]
+
+    # Other normal states all connect with each other
+    normal_state_list = numpy.arange(0, n_normal_states)
+    transition_probability = numpy.ones(n_normal_states) / n_normal_states
+    for key in range(1, n_normal_states):
+        state_dict[key] = State(normal_state_list, transition_probability,
+                                normal_class)
+
+    state_dict[apnea_switch_state] = None  # Hold place in dict
+
+    state_count = n_normal_states + 1
+    for template_length in template_lengths:
+        transitions_from_switch.append(state_count)
+        for _ in range(template_length - 1):
+            state_dict[state_count] = State([state_count + 1], [1], apnea_class)
+            state_count += 1
+        state_dict[state_count] = State([apnea_switch_state], [1], apnea_class)
+        state_count += 1
+
+    n_switch = len(transitions_from_switch)
+    p_switch = (numpy.ones(n_switch) - small) / (n_switch - 1)
+    p_switch[first_normal_state] = small
+    state_dict[apnea_switch_state] = State(transitions_from_switch, p_switch,
+                                           apnea_class)
+    n_states = len(state_dict)
+
+    result, _ = dict2hmm(state_dict,
+                         random_observation_model_dict(n_states, args, rng),
                          rng,
                          truncate=args.AR_order)
 

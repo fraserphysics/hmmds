@@ -61,7 +61,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         self.model_box = PyQt5.QtWidgets.QLineEdit(self)
         self.model_box.setText(
-            f'{self.root_box.text()}/build/derived_data/apnea/models/a01_masked'
+            f'{self.root_box.text()}/build/derived_data/apnea/models/a_template_masked'
         )
         model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
         model_ok.clicked.connect(self.new_model)
@@ -149,9 +149,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.class_dict = {
             'curves': [
                 class_plot.plot(pen='w', name='expert'),
-                class_plot.plot(pen=pyqtgraph.mkPen(
-                    color=(255, 0, 0), width=1, style=PyQt5.QtCore.Qt.DotLine),
-                                name='hmm')
+                class_plot.plot(
+                    pen=pyqtgraph.mkPen(color=(0, 255, 255),
+                                        width=2,
+                                        style=PyQt5.QtCore.Qt.DotLine),
+                    name='hmm')
             ]
         }
 
