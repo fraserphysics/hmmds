@@ -321,6 +321,40 @@ def read_slow_class(args, name='a03'):
     return raw_dict
 
 
+# I put this in utilities enable apnea_train.py to run.
+class State:
+    """For defining HMM graph
+
+    Args:
+        successors: List of names (dict keys) of successor states
+        probabilities: List of float probabilities for successors
+        class_index: Integer class
+        trainable: List of True/False for transitions described above
+    """
+
+    def __init__(self, successors, probabilities, class_index, trainable=None):
+        self.successors = successors
+        self.probabilities = probabilities
+        self.class_index = class_index
+        if trainable:
+            self.trainable = trainable
+        else:
+            self.trainable = [True] * len(successors)
+        # Each class_index must be an int because the model will be a
+        # subclass of hmm.base.IntegerObservation
+
+    def __str__(self):
+        result = [f'{self.__class__} instance\n']
+        result.append(f'class: {self.class_index}\n')
+        result.append(
+            f'{"successor":9s} {"probability":11s} {"trainable":9s}\n')
+        for successor, probability, trainable in zip(self.successors,
+                                                     self.probabilities,
+                                                     self.trainable):
+            result.append(f'{successor:9d} {probability:9.7f} {trainable:9b}\n')
+        return ''.join(result)
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]

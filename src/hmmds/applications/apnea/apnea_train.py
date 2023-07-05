@@ -10,7 +10,9 @@ import argparse
 import numpy.random
 
 import hmmds.applications.apnea.utilities
+import hmmds.applications.apnea.model_init
 import hmm.base
+from hmmds.applications.apnea.utilities import State
 
 
 def parse_args(argv):
@@ -74,6 +76,7 @@ def main(argv=None):
 
     model.multi_train(y_data, args.iterations)
 
+    model.strip()
     with open(args.write_path, 'wb') as _file:
         pickle.dump((old_args, model), _file)
 

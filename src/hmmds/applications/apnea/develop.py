@@ -21,9 +21,10 @@ import hmm.C
 import hmmds.applications.apnea.utilities
 
 
-# FixMe: Not using hmm.C.HMM because its forward() doesn't take python
-# numpy array
-class HMM(hmm.C.HMM):
+# FixMe: Not using hmm.C.HMM_SPARSE because: 1. It's not much faster
+# in training for ~600 state apnea models 2. It's method forward
+# crashes.  3. It doesn't have a decode method
+class HMM(hmm.C.HMM):  #HMM_SPARSE or HMM
     """Holds state transition probabilities constant
 
     """

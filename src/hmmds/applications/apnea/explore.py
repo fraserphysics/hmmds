@@ -148,7 +148,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         class_plot.addLegend()
         self.class_dict = {
             'curves': [
-                class_plot.plot(pen='w', name='expert'),
+                class_plot.plot(pen='r', name='expert'),
                 class_plot.plot(
                     pen=pyqtgraph.mkPen(color=(0, 255, 255),
                                         width=2,
