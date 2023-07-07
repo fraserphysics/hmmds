@@ -16,6 +16,7 @@ import hmmds.applications.apnea.utilities
 import hmmds.applications.apnea.model_init
 import hmm.base
 from hmmds.applications.apnea.utilities import State
+from hmmds.applications.apnea.model_init import dict2hmm
 
 
 def parse_args(argv):
@@ -24,7 +25,6 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Delete little used fast chains")
     hmmds.applications.apnea.utilities.common_arguments(parser)
-    parser.add_argument('--exercise', action='store_true', help='debug')
     parser.add_argument('initial_path', type=str, help="path to initial model")
     parser.add_argument('write_path', type=str, help='path of file to write')
     args = parser.parse_args(argv)
@@ -39,30 +39,32 @@ class Chain:
         model: A trained hmm
         state_dict: Definition of initial hmm
         switch_key: Points to state that has link to start of chain
-        chain_key: Points to first state in chain
+        start_key: Points to first state in chain
         switch_keys: list of pointers to all switch states
+        key2index:
 
     """
 
-    def __init__(self, model, state_dict, switch_key, chain_key, switch_keys):
-        # _key is an index of a state, eg model.p_state_initial[_key]
-        # _index is an index for state arrays successor or probabilities
+    def __init__(self, model, state_dict, switch_key, start_key, switch_keys,
+                 key2index: dict):
         self.switch_key = switch_key
-        self.start_key = chain_key
-        p_time_average = model.p_state_time_average[switch_key]
-        self.probability = p_time_average * model.p_state2state[switch_key,
-                                                                chain_key]
+        self.start_key = start_key
+        switch_index = key2index[switch_key]
+        start_index = key2index[start_key]
+        p_time_average = model.p_state_time_average[switch_index]
+        self.probability = p_time_average * model.p_state2state[switch_index,
+                                                                start_index]
 
         # Identify all states in the chain
         self.chain_keys = []
-        successor_key = chain_key
-        old_p = model.p_state_time_average[chain_key]
+        successor_key = start_key
+        old_p = model.p_state_time_average[start_index]
 
         while not successor_key in switch_keys:
             self.chain_keys.append(successor_key)
             state = state_dict[successor_key]
             assert len(state.successors) == 1
-            state_p = model.p_state_time_average[successor_key]
+            state_p = model.p_state_time_average[key2index[successor_key]]
             r_diff = abs(old_p - state_p) / state_p
             assert r_diff < 1e-2
             # These probabilities depend on state likelihoods which
@@ -74,104 +76,89 @@ class Chain:
         return self.probability
 
 
-def sort_chains(model, state_dict, switch_keys):
+def sort_chains(model, state_dict, switch_keys, key2index):
     """
     Args:
         model:
         state_dict:
         switch_keys:
+        key2index:
     """
     chains = []
     for switch_key in switch_keys:
-        for start_index in state_dict[switch_key].successors:
-            if start_index in switch_keys:
+        for start_key in state_dict[switch_key].successors:
+            if start_key in switch_keys:
                 continue
             chains.append(
-                Chain(model, state_dict, switch_key, start_index, switch_keys))
+                Chain(model, state_dict, switch_key, start_key, switch_keys,
+                      key2index))
     chains.sort(key=lambda x: x())
     return chains
 
 
-def view(model, state_dict, state_key):
-    """Print successors of a state and the transition probabilities
+def prune_observation(model, chain_indices):
+    """Create a new observation model from model.y_mod with states
+    specified by chain_indices deleted
 
-    Args:
-        model: A trained hmm
-        state_dict: From model_init.py
-        state_key: Index of state in model and key of state in state_dict
     """
-    p_time_average = model.p_state_time_average[state_key]
-    print(f'{p_time_average=}')
-    state = state_dict[state_key]
-    for successor in state.successors:
-        print(
-            f'{successor:3d} {p_time_average*model.p_state2state[state_key, successor]}'
-        )
+
+    slow = model.y_mod['slow']
+    coefficients = numpy.delete(slow.coefficients, chain_indices, axis=0)
+    variances = numpy.delete(slow.variance, chain_indices, axis=0)
+    alpha = numpy.delete(slow.alpha, chain_indices, axis=0)
+    beta = numpy.delete(slow.beta, chain_indices, axis=0)
+
+    slow_model = hmm.C.AutoRegressive(coefficients[:, :-1], coefficients[:, -1],
+                                      variances, model.rng, alpha, beta)
+    return {'slow': slow_model}
 
 
-def prune_chain(chain, old_model, old_state_dict):
+def prune_chain(chain: Chain, model, state_dict: dict, key2index: dict, args):
     """Delete a chain from a model and state_dict
 
     Args:
-        chain: Chain instance
-        old_model: HMM instance
-        old_state_dict: Dictionary that defines an hmm
+        chain: Function removes this chain
+        model: Old HMM instance
+        state_dict: Definition of old hmm
+        key2index: Map for old hmm
 
-    Return: (new_model, new_state_dict)
+    Return: (new_model, new_state_dict, new_key2index)
     """
-    model = copy.deepcopy(old_model)
-    state_dict = old_state_dict.copy()
+    # Strategy: Build new_state_dict with values from old_model.  Then
+    # call model_init.dict2hmm to make a new model.
 
-    # Delete chain from new_state_dict
-    for state_key in chain.chain_keys:
-        del state_dict[state_key]
+    new_state_dict = {}
+    for state_key, state in state_dict.items():
+        if state_key in chain.chain_keys:
+            continue
+        # Create new state for new model]
+        state_index = key2index[state_key]
+        successors = []
+        probabilities = []
+        trainable = []
+        for successor_key, trainable_ in zip(state.successors, state.trainable):
+            if successor_key in chain.chain_keys:
+                continue
+            successors.append(successor_key)
+            trainable.append(trainable_)
+            successor_index = key2index[successor_key]
+            probability = model.p_state2state[state_index, successor_index]
+            probabilities.append(probability)
+        new_state_dict[state_key] = State(successors, probabilities,
+                                          state.class_index, trainable)
 
-    switch_state = state_dict[chain.switch_key]
-    start_index = switch_state.successors.index(chain.start_key)
-    switch_state.successors.pop(start_index)
-    switch_state.probabilities = numpy.delete(switch_state.probabilities,
-                                              [start_index])
-
-    # Delete chain from model
-    model.p_state_initial[chain.start_key] = 0.0
-    norm = model.p_state_initial.sum()
-    model.p_state_initial /= norm
-
-    model.p_state_time_average[chain.start_key] = 0.0
-    norm = model.p_state_time_average.sum()
-    model.p_state_time_average /= norm
-
-    model.p_state2state[chain.switch_key, chain.start_key] = 0.0
-    model.p_state2state.normalize()
-
-    return model, state_dict
-
-
-def exercise(model, state_dict, switch_keys):
-    """Print results to support debugging.
-
-    """
-
-    chains = sort_chains(model, state_dict, switch_keys)
-    iterations = len(chains)
-    for _ in range(iterations):
-        print(f"{'switch':6s} {'start':5s} {'length':6s} {'probability':11s}")
-        for chain in chains:
-            print(
-                f'{chain.switch_key:6d} {chain.start_key:5d} {len(chain.chain_keys):6d} {chain.probability:11.8f}'
-            )
-
-        model, state_dict = prune_chain(chains[0], model, state_dict)
-        a = chains[0].switch_key
-        b = chains[0].start_key
-        print(
-            f'model.p_state2state[{a},{b}]={model.p_state2state[a,b]} {model.p_state2state[a,:].sum()=}'
-        )
-        chains = sort_chains(model, state_dict, switch_keys)
+    chain_indices = [key2index[key] for key in chain.chain_keys]
+    new_model, new_key2index = dict2hmm(new_state_dict,
+                                        prune_observation(model, chain_indices),
+                                        model.rng,
+                                        truncate=args.AR_order)
+    return new_model, new_state_dict, new_key2index
 
 
 def main(argv=None):
-    """ Analyze chains.
+    """Analyze chains in a model and write the model after removing
+    one chain.
+
     """
     if argv is None:  # Usual case
         argv = sys.argv[1:]
@@ -181,17 +168,17 @@ def main(argv=None):
     with open(args.initial_path, 'rb') as _file:
         old_args, model = pickle.load(_file)
     state_dict = old_args.state_dict
-    normal_switch = 290
-    apnea_switch = 291
-    switch_keys = [normal_switch, apnea_switch]
+    key2index = old_args.state_key2state_index
 
-    if args.exercise:  # For testing
-        exercise(model, state_dict, switch_keys)
-        return 0
+    switch_keys = set(())
+    for key in state_dict.keys():
+        if key.find('switch') >= 0:
+            switch_keys.add(key)
+    assert switch_keys == set('normal_switch apnea_switch'.split())
 
-    chains = sort_chains(model, state_dict, switch_keys)
-    new_model, new_state_dict = prune_chain(chains[0], model, state_dict)
-    old_args.state_dict = new_state_dict
+    chains = sort_chains(model, state_dict, switch_keys, key2index)
+    new_model, old_args.state_dict, old_args.state_key2state_index = prune_chain(
+        chains[0], model, state_dict, key2index, old_args)
 
     with open(args.write_path, 'wb') as _file:
         pickle.dump((old_args, new_model), _file)

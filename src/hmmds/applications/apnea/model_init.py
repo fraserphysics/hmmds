@@ -113,13 +113,13 @@ def dict2hmm(state_dict, model_dict, rng, truncate=0):
     """Create an HMM based on state_dict for supervised training
 
     Args:
-        state_dict: state_dict[state_name] is a State instance
+        state_dict: state_dict[state_key] is a State instance
         model_dict: Components of joint observation model
         rng: A random number generator
         truncate: Number of elements to drop from the beginning of each segment
                   of class observations.
 
-    Return: hmm
+    Return: hmm, state_key2state_index
 
     """
 
@@ -128,24 +128,24 @@ def dict2hmm(state_dict, model_dict, rng, truncate=0):
     p_state_initial = numpy.ones(n_states) / n_states
     p_state_time_average = numpy.ones(n_states) / n_states
     p_state2state = hmm.simple.Prob(numpy.zeros((n_states, n_states)))
-    state_name2state_index = {}
+    state_key2state_index = {}
     untrainable_indices = []
     untrainable_values = []
 
-    # Build state_name2state_index and class_index2state_indices
-    for state_index, (state_name, state) in enumerate(state_dict.items()):
-        state_name2state_index[state_name] = state_index
+    # Build state_key2state_index and class_index2state_indices
+    for state_index, (state_key, state) in enumerate(state_dict.items()):
+        state_key2state_index[state_key] = state_index
         if state.class_index in class_index2state_indices:
             class_index2state_indices[state.class_index].append(state_index)
         else:
             class_index2state_indices[state.class_index] = [state_index]
 
     # Build p_state2state
-    for state_name, state in state_dict.items():
-        state_index = state_name2state_index[state_name]
-        for successor_name, probability, trainable in zip(
+    for state_key, state in state_dict.items():
+        state_index = state_key2state_index[state_key]
+        for successor_key, probability, trainable in zip(
                 state.successors, state.probabilities, state.trainable):
-            successor_index = state_name2state_index[successor_name]
+            successor_index = state_key2state_index[successor_key]
             p_state2state[state_index, successor_index] = probability
             if not trainable:
                 untrainable_indices.append((state_index, successor_index))
@@ -164,7 +164,8 @@ def dict2hmm(state_dict, model_dict, rng, truncate=0):
                        rng,
                        untrainable_indices=tuple(
                            numpy.array(untrainable_indices).T),
-                       untrainable_values=numpy.array(untrainable_values))
+                       untrainable_values=numpy.array(
+                           untrainable_values)), state_key2state_index
 
 
 def random_observation_model_dict(n_states, args, rng):
@@ -272,10 +273,10 @@ def apnea_dict(args, rng):
 
     n_states = len(state_dict)
 
-    result = dict2hmm(state_dict,
-                      random_observation_model_dict(n_states, args, rng),
-                      rng,
-                      truncate=args.AR_order)
+    result, _ = dict2hmm(state_dict,
+                         random_observation_model_dict(n_states, args, rng),
+                         rng,
+                         truncate=args.AR_order)
 
     result.y_mod.observe([
         hmm.base.JointSegment(
@@ -359,10 +360,10 @@ def template_dict(args, rng):
                                      apnea_class)
     n_states = len(state_dict)
 
-    result = dict2hmm(state_dict,
-                      random_observation_model_dict(n_states, args, rng),
-                      rng,
-                      truncate=args.AR_order)
+    result, _ = dict2hmm(state_dict,
+                         random_observation_model_dict(n_states, args, rng),
+                         rng,
+                         truncate=args.AR_order)
 
     result.y_mod.observe([
         hmm.base.JointSegment(
@@ -439,10 +440,10 @@ def fast(args, rng):
                                            apnea_class)
     n_states = len(state_dict)
 
-    result = dict2hmm(state_dict,
-                      random_observation_model_dict(n_states, args, rng),
-                      rng,
-                      truncate=args.AR_order)
+    result, _ = dict2hmm(state_dict,
+                         random_observation_model_dict(n_states, args, rng),
+                         rng,
+                         truncate=args.AR_order)
 
     result.y_mod.observe([
         hmm.base.JointSegment(
@@ -455,32 +456,36 @@ def fast(args, rng):
     return result
 
 
-def make_chains(chain_lengths, state_count, switch_key, other_key, _class,
+def make_chains(chain_lengths, switch_key: str, other_key: str, int_class: int,
                 state_dict):
     """Add a sequence of states to state_dict
 
     Args:
         chain_lengths:  Length of each fast sequence
-        state_count: Key of first state to add
-        switch_key: Key of state that links chains
-        other_key:
-        _class:
+        switch_key: Key of state that links these chains
+        other_key: Key of state that links other class
+        int_class:
         state_dict:
 
     """
 
+    if int_class == 0:
+        letter_class = 'N'
+    else:
+        letter_class = 'A'
     switch_transitions = [other_key]
     for chain_length in chain_lengths:
-        switch_transitions.append(state_count)
-        for _ in range(chain_length - 1):
-            state_dict[state_count] = State([state_count + 1], [1], _class)
-            state_count += 1
-        state_dict[state_count] = State([switch_key], [1], _class)
-        state_count += 1
+        state_key = f'{letter_class}_{chain_length}_0'
+        switch_transitions.append(state_key)
+        for i in range(1, chain_length):
+            next_state_key = f'{letter_class}_{chain_length}_{i}'
+            state_dict[state_key] = State([next_state_key], [1], int_class)
+            state_key = next_state_key
+        state_dict[state_key] = State([switch_key], [1], int_class)
     state_dict[switch_key] = State(
         switch_transitions,
-        numpy.ones(len(switch_transitions)) / len(switch_transitions), _class)
-    return state_count
+        numpy.ones(len(switch_transitions)) / len(switch_transitions),
+        int_class)
 
 
 @register  # Alternative models for "a" records
@@ -499,8 +504,6 @@ def balanced(args, rng):
     #               /--------  -------\
     #              /                   \
     # *************                     ************
-    #
-    # 0:n_block      n_block  n_block+1  n_block+2:2*(n_block+1)
 
     chain_lengths = numpy.arange(20, 40, 2)
     n_block = chain_lengths.sum()
@@ -508,28 +511,20 @@ def balanced(args, rng):
     normal_class = 0
     apnea_class = 1
 
-    # Put place holders in dict to establish order
-    state_dict = dict((i, None) for i in range(2 * (n_block + 1)))
+    state_dict = {}
 
-    normal_switch = n_block
-    apnea_switch = n_block + 1
-    state_count = 0
-    state_count = make_chains(chain_lengths, state_count, normal_switch,
-                              apnea_switch, normal_class, state_dict)
-    assert state_count == n_block, f'{n_block=} {state_count=} {apnea_switch=}'
-    state_count = make_chains(chain_lengths, apnea_switch + 1, apnea_switch,
-                              normal_switch, apnea_class, state_dict)
-    assert state_count == 2 * apnea_switch, f'{n_block=} {state_count=} {apnea_switch=}'
+    make_chains(chain_lengths, 'normal_switch', 'apnea_switch', normal_class,
+                state_dict)
 
-    n_states = len(state_dict)
+    make_chains(chain_lengths, 'apnea_switch', 'normal_switch', apnea_class,
+                state_dict)
 
-    result_hmm = dict2hmm(state_dict,
-                          random_observation_model_dict(n_states, args, rng),
-                          rng,
-                          truncate=args.AR_order)
-    print(f'{normal_switch=}, {apnea_switch=}')
-    print('state_dict[normal_switch]=', state_dict[normal_switch])
-    print('state_dict[apnea_switch]=', state_dict[apnea_switch])
+    result_hmm, state_key2state_index = dict2hmm(state_dict,
+                                                 random_observation_model_dict(
+                                                     len(state_dict), args,
+                                                     rng),
+                                                 rng,
+                                                 truncate=args.AR_order)
 
     result_hmm.y_mod.observe([
         hmm.base.JointSegment(
@@ -539,7 +534,7 @@ def balanced(args, rng):
     result_hmm.y_mod.reestimate(
         hmm.simple.Prob(result_hmm.y_mod.calculate()).normalize())
 
-    return result_hmm, state_dict
+    return result_hmm, state_dict, state_key2state_index
 
 
 def main(argv=None):
@@ -552,11 +547,12 @@ def main(argv=None):
     rng = numpy.random.default_rng(3)
 
     # Run the function specified by args.key
-    model, state_dict = MODELS[args.key](args, rng)
+    model, state_dict, state_key2state_index = MODELS[args.key](args, rng)
     assert model.p_state_initial.min() > 0
 
     model.strip()
     args.state_dict = state_dict
+    args.state_key2state_index = state_key2state_index
     with open(args.write_path, 'wb') as _file:
         pickle.dump((args, model), _file)
 
