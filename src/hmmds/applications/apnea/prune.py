@@ -25,8 +25,16 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Delete little used fast chains")
     hmmds.applications.apnea.utilities.common_arguments(parser)
-    parser.add_argument('initial_path', type=str, help="path to initial model")
-    parser.add_argument('write_path', type=str, help='path of file to write')
+    parser.add_argument('paths',
+                        type=str,
+                        nargs='+',
+                        help="path to initial model and result")
+    parser.add_argument('--debug',
+                        action='store_true',
+                        help='Run debugging code')
+    parser.add_argument('--print',
+                        action='store_true',
+                        help='print summary of input model')
     args = parser.parse_args(argv)
     hmmds.applications.apnea.utilities.join_common(args)
     return args
@@ -63,12 +71,13 @@ class Chain:
         while not successor_key in switch_keys:
             self.chain_keys.append(successor_key)
             state = state_dict[successor_key]
-            assert len(state.successors) == 1
+            assert len(state.successors
+                      ) == 1, f'{start_key=} {successor_key=} {str(state)}'
             state_p = model.p_state_time_average[key2index[successor_key]]
             r_diff = abs(old_p - state_p) / state_p
-            assert r_diff < 1e-2
+            assert r_diff < 1.5e-2, f'{r_diff=}'
             # These probabilities depend on state likelihoods which
-            # are similar bunt not exactly uniform along chains.
+            # are similar but not exactly uniform along chains.
             old_p = state_p
             successor_key = state.successors[0]
 
@@ -87,7 +96,7 @@ def sort_chains(model, state_dict, switch_keys, key2index):
     chains = []
     for switch_key in switch_keys:
         for start_key in state_dict[switch_key].successors:
-            if start_key in switch_keys:
+            if start_key in switch_keys or start_key.find('noise') > 0:
                 continue
             chains.append(
                 Chain(model, state_dict, switch_key, start_key, switch_keys,
@@ -144,8 +153,11 @@ def prune_chain(chain: Chain, model, state_dict: dict, key2index: dict, args):
             successor_index = key2index[successor_key]
             probability = model.p_state2state[state_index, successor_index]
             probabilities.append(probability)
-        new_state_dict[state_key] = State(successors, probabilities,
-                                          state.class_index, trainable)
+        new_state_dict[state_key] = State(successors,
+                                          probabilities,
+                                          state.class_index,
+                                          trainable,
+                                          prior=state.prior)
 
     chain_indices = [key2index[key] for key in chain.chain_keys]
     new_model, new_key2index = dict2hmm(new_state_dict,
@@ -153,6 +165,31 @@ def prune_chain(chain: Chain, model, state_dict: dict, key2index: dict, args):
                                         model.rng,
                                         truncate=args.AR_order)
     return new_model, new_state_dict, new_key2index
+
+
+def print_summary(state_dict):
+    for key, value in state_dict.items():
+        chain_position = key[key.rfind('_') + 1:]
+        if chain_position.isdigit() and int(chain_position) > 0:
+            continue
+        print(f'{key}:  {value}')
+
+
+def debug(old_args, model, state_dict, key2index):
+    """Exercise sort_chains and prune_chain and print result
+    """
+    while len(state_dict) > 100:
+
+        switch_keys = set(())
+        for key in state_dict.keys():
+            if key.find('switch') >= 0:
+                switch_keys.add(key)
+        assert switch_keys == set('normal_switch apnea_switch'.split())
+
+        chains = sort_chains(model, state_dict, switch_keys, key2index)
+        model, state_dict, key2index = prune_chain(chains[0], model, state_dict,
+                                                   key2index, old_args)
+    print_summary(state_dict)
 
 
 def main(argv=None):
@@ -165,7 +202,7 @@ def main(argv=None):
 
     args = parse_args(argv)
 
-    with open(args.initial_path, 'rb') as _file:
+    with open(args.paths[0], 'rb') as _file:
         old_args, model = pickle.load(_file)
     state_dict = old_args.state_dict
     key2index = old_args.state_key2state_index
@@ -176,11 +213,19 @@ def main(argv=None):
             switch_keys.add(key)
     assert switch_keys == set('normal_switch apnea_switch'.split())
 
+    if args.debug:
+        debug(old_args, model, state_dict, key2index)
+        return 0
+
+    if args.print:
+        print_summary(state_dict)
+        return 0
+
     chains = sort_chains(model, state_dict, switch_keys, key2index)
     new_model, old_args.state_dict, old_args.state_key2state_index = prune_chain(
         chains[0], model, state_dict, key2index, old_args)
 
-    with open(args.write_path, 'wb') as _file:
+    with open(args.paths[1], 'wb') as _file:
         pickle.dump((old_args, new_model), _file)
 
     return 0

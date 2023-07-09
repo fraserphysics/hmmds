@@ -473,7 +473,8 @@ def make_chains(chain_lengths, switch_key: str, other_key: str, int_class: int,
         letter_class = 'N'
     else:
         letter_class = 'A'
-    switch_transitions = [other_key]
+    noise_key = f'{letter_class}_noise'
+    switch_transitions = [other_key, switch_key, noise_key]
     for chain_length in chain_lengths:
         state_key = f'{letter_class}_{chain_length}_0'
         switch_transitions.append(state_key)
@@ -482,10 +483,21 @@ def make_chains(chain_lengths, switch_key: str, other_key: str, int_class: int,
             state_dict[state_key] = State([next_state_key], [1], int_class)
             state_key = next_state_key
         state_dict[state_key] = State([switch_key], [1], int_class)
-    state_dict[switch_key] = State(
-        switch_transitions,
-        numpy.ones(len(switch_transitions)) / len(switch_transitions),
-        int_class)
+    weight = 4.8e5  # = Number of data, 40 samples/ minute * 25 records * 480 minutes
+    variance = 50.0**2
+    prior = (weight, weight * variance)  # alpha and beta of inverse gamma
+    state_dict[noise_key] = State([noise_key, switch_key], [.5, .5],
+                                  int_class,
+                                  prior=prior)
+    p_switch = numpy.ones(
+        len(switch_transitions)) / (len(switch_transitions) - 1)
+    p_switch[0] = 1.0e-6  # Suppress transitions between Apnea and Normal
+    trainable = [True] * len(switch_transitions)
+    trainable[0] = False
+    state_dict[switch_key] = State(switch_transitions,
+                                   p_switch,
+                                   int_class,
+                                   trainable=trainable)
 
 
 @register  # Alternative models for "a" records
@@ -519,12 +531,19 @@ def balanced(args, rng):
     make_chains(chain_lengths, 'apnea_switch', 'normal_switch', apnea_class,
                 state_dict)
 
+    observation_model = random_observation_model_dict(len(state_dict), args,
+                                                      rng)
+
     result_hmm, state_key2state_index = dict2hmm(state_dict,
-                                                 random_observation_model_dict(
-                                                     len(state_dict), args,
-                                                     rng),
+                                                 observation_model,
                                                  rng,
                                                  truncate=args.AR_order)
+
+    for key, index in state_key2state_index.items():
+        if state_dict[key].prior is None:
+            continue
+        observation_model['slow'].alpha[index] = state_dict[key].prior[0]
+        observation_model['slow'].beta[index] = state_dict[key].prior[1]
 
     result_hmm.y_mod.observe([
         hmm.base.JointSegment(

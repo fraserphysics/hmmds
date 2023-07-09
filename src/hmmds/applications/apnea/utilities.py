@@ -330,28 +330,36 @@ class State:
         probabilities: List of float probabilities for successors
         class_index: Integer class
         trainable: List of True/False for transitions described above
+        prior: Optional parameters for observation model
     """
 
-    def __init__(self, successors, probabilities, class_index, trainable=None):
+    def __init__(self,
+                 successors,
+                 probabilities,
+                 class_index,
+                 trainable=None,
+                 prior=None):
         self.successors = successors
         self.probabilities = probabilities
         self.class_index = class_index
+        # Each class_index must be an int because the model will be a
+        # subclass of hmm.base.IntegerObservation
         if trainable:
             self.trainable = trainable
         else:
             self.trainable = [True] * len(successors)
-        # Each class_index must be an int because the model will be a
-        # subclass of hmm.base.IntegerObservation
+        self.prior = prior
 
     def __str__(self):
         result = [f'{self.__class__} instance\n']
-        result.append(f'class: {self.class_index}\n')
+        result.append(f'class: {self.class_index}, prior: {self.prior}\n')
         result.append(
-            f'{"successor":9s} {"probability":11s} {"trainable":9s}\n')
+            f'{"successor":15s} {"probability":11s} {"trainable":9s}\n')
         for successor, probability, trainable in zip(self.successors,
                                                      self.probabilities,
                                                      self.trainable):
-            result.append(f'{successor:9d} {probability:9.7f} {trainable:9b}\n')
+            result.append(
+                f'{successor:15s} {probability:11.3g} {trainable:9b}\n')
         return ''.join(result)
 
 
