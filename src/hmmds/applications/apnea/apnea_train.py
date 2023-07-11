@@ -25,6 +25,10 @@ def parse_args(argv):
                         type=str,
                         default="masked",
                         help='Type of data, eg, "masked" or "unmasked"')
+    parser.add_argument('--AR_order',
+                        type=int,
+                        default=-1,
+                        help='Change AR order after estimating state probabilities')
     parser.add_argument('initial_path', type=str, help="path to initial model")
     parser.add_argument('write_path', type=str, help='path of file to write')
     args = parser.parse_args(argv)
@@ -61,6 +65,41 @@ def unmasked(args):
     ]
 
 
+def new_ar_order(model, ar_order, y_data):
+    """Set parameters for new AR order using weights from orignal model.
+
+    Args:
+        model: Original HMM
+        ar_order: For new observation model
+        y_data: Calculate weights for this data
+
+    Return: y_mod
+
+    """
+    old_slow = model.y_mod['slow']
+    n_states, old_ar_order_plus_1 = old_slow.coefficients.shape
+    if ar_order + 1 > old_ar_order_plus_1:
+        model.y_mod.truncate = ar_order
+
+    # Call multi_train to get weights for fitting observation model
+    # parameters
+    model.multi_train(y_data, 1)
+    weights = model.alpha
+
+    model.y_mod['slow'] = hmm.C.AutoRegressive(
+        numpy.empty((n_states, ar_order)),
+        numpy.empty(n_states),  # offset
+        numpy.ones(n_states),  # variance
+        old_slow._rng,
+        alpha=old_slow.alpha,
+        beta=old_slow.beta)
+    model.y_mod.observe(y_data)
+
+    # Result will be nonsense if fit is rank deficient
+    model.y_mod.reestimate(weights)
+    return model.y_mod
+
+
 def main(argv=None):
     """
     """
@@ -74,7 +113,15 @@ def main(argv=None):
 
     y_data = TYPES[args.type](args)
 
+    if args.AR_order >= 0:
+        y_mod = new_ar_order(model, args.AR_order, y_data)
+        with open(args.initial_path, 'rb') as _file:
+            old_args, model = pickle.load(_file)
+        model.y_mod = y_mod
     model.multi_train(y_data, args.iterations)
+    sum_ = model.alpha.sum(axis=0)
+    for w, var in zip(sum_, model.y_mod['slow'].variance):
+        print(f'{w:8.5f} {var:8.5f}')
 
     model.strip()
     with open(args.write_path, 'wb') as _file:

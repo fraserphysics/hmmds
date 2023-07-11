@@ -167,12 +167,13 @@ def prune_chain(chain: Chain, model, state_dict: dict, key2index: dict, args):
     return new_model, new_state_dict, new_key2index
 
 
-def print_summary(state_dict):
+def print_summary(state_dict, key2index, model):
     for key, value in state_dict.items():
         chain_position = key[key.rfind('_') + 1:]
         if chain_position.isdigit() and int(chain_position) > 0:
             continue
-        print(f'{key}:  {value}')
+        variance = model.y_mod['slow'].variance[key2index[key]]
+        print(f'{key}: {variance=} {value}')
 
 
 def debug(old_args, model, state_dict, key2index):
@@ -189,7 +190,7 @@ def debug(old_args, model, state_dict, key2index):
         chains = sort_chains(model, state_dict, switch_keys, key2index)
         model, state_dict, key2index = prune_chain(chains[0], model, state_dict,
                                                    key2index, old_args)
-    print_summary(state_dict)
+    print_summary(state_dict, key2index, model)
 
 
 def main(argv=None):
@@ -218,7 +219,7 @@ def main(argv=None):
         return 0
 
     if args.print:
-        print_summary(state_dict)
+        print_summary(state_dict, key2index, model)
         return 0
 
     chains = sort_chains(model, state_dict, switch_keys, key2index)

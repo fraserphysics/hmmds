@@ -137,7 +137,7 @@ After I figure that out, I may be able to the technique implement item
 \label{sec:todo}
 
 \begin{description}
-\item[Pass-1] Use statistic_plots.py.  Continue using three classes
+\item[Pass-1] Use statistic\_plots.py.  Continue using three classes
   like the book.  Look at \textbf{b} and \emph{x} files when drawing
   the boundaries.  Explore changes in PSD estimation.  I think using
   longer FFTs improves classification.  Perhaps using more overlap
@@ -165,6 +165,32 @@ Here are some ideas that didn't work out\footnote{He's not stupid.
   see any structure to exploit when I looked at plots of the log
   likelihood, $\log\left(P(y[t]|y[:t]) \right)$, of the heart rate
   model against the log likelihood of the ECG model.
+\item[Multiple Chains] In model\_init.py I made chains with lengths
+  numpy.arange(20, 40, 2) for both normal and apnea.  Initially the
+  models had AR order 1.  After writing code to change the AR order, I
+  found the log likelihood per time step varied radically between
+  records.  Here is the last line from training an AR-4 model for 20
+  iterations:
+\begin{verbatim}
+19 L0 -5.875e+03 L1  6.323e+03 L2  1.646e+03 L3  5.682e+03 L4  4.964e+03
+L5 -1.093e+04 L6  3.797e+03 L7  1.924e+03 L8 -4.514e+03 L9  4.667e+03
+L10 -1.755e+03 L11  5.678e+03 L prior -9.081e+06 U/n -4.1274e+01
+\end{verbatim}
+  I found that the weights for states in the chains were low and the
+  variances were high, from (3.32607 0.99734) to (731.01504 0.79096).
+  On the other hand, for the apnea with a transition to itself, the
+  weight and variance was (130965.95661 0.04808).  The classification
+  performance was bad.
+
+  I think the sampling rate is too high.  Since the width of the
+  low-pass filter for the heart rate data in utilities.py is
+  \emph{low\_pass\_width=2 * numpy.pi / (15 * PINT('seconds'))},
+  samples that are less than 15/2 seconds apart are redundant.  Forty
+  samples per minute is 1.5 seconds per sample or 5 times 15/2.
+
+  I will try changing the sample rate to 8 samples per minute and the
+  chain lengths to (4, 8, 1).
+
 \end{description}
 
 \section{Miscellaneous}

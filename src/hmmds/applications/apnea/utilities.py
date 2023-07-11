@@ -288,7 +288,7 @@ def read_slow_respiration_class(args, name='a03'):
     """Add class to dict from read_slow_respiration
     """
 
-    samples_per_minute = 40
+    samples_per_minute = args.heart_rate_sample_frequency
     raw_dict = read_slow_respiration(args, name)
     path = os.path.join(args.root, 'raw_data/apnea/summary_of_training')
     raw_dict['class'] = read_expert(path, name).repeat(samples_per_minute)
@@ -311,7 +311,7 @@ def read_slow_class(args, name='a03'):
     """Add class to dict from read_slow
     """
 
-    samples_per_minute = 40
+    samples_per_minute = args.heart_rate_sample_frequency
     raw_dict = read_slow(args, name)
     path = os.path.join(args.root, 'raw_data/apnea/summary_of_training')
     raw_dict['class'] = read_expert(path, name).repeat(samples_per_minute)
