@@ -25,10 +25,11 @@ def parse_args(argv):
                         type=str,
                         default="masked",
                         help='Type of data, eg, "masked" or "unmasked"')
-    parser.add_argument('--AR_order',
-                        type=int,
-                        default=-1,
-                        help='Change AR order after estimating state probabilities')
+    parser.add_argument(
+        '--AR_order',
+        type=int,
+        default=-1,
+        help='Change AR order after estimating state probabilities')
     parser.add_argument('initial_path', type=str, help="path to initial model")
     parser.add_argument('write_path', type=str, help='path of file to write')
     args = parser.parse_args(argv)

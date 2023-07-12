@@ -484,7 +484,7 @@ def make_chains(chain_lengths, switch_key: str, other_key: str, int_class: int,
             state_key = next_state_key
         state_dict[state_key] = State([switch_key], [1], int_class)
     weight = 4.8e5  # = Number of data, 40 samples/ minute * 25 records * 480 minutes
-    variance = 50.0**2
+    variance = 2.0**2
     prior = (weight, weight * variance)  # alpha and beta of inverse gamma
     state_dict[noise_key] = State([noise_key, switch_key], [.5, .5],
                                   int_class,
@@ -517,7 +517,8 @@ def balanced(args, rng):
     #              /                   \
     # *************                     ************
 
-    chain_lengths = numpy.arange(20, 40, 2)
+    normal_lengths = [5, 7]
+    apnea_lengths = [4, 6, 7]
     n_block = chain_lengths.sum()
 
     normal_class = 0
@@ -525,10 +526,10 @@ def balanced(args, rng):
 
     state_dict = {}
 
-    make_chains(chain_lengths, 'normal_switch', 'apnea_switch', normal_class,
+    make_chains(normal_lengths, 'normal_switch', 'apnea_switch', normal_class,
                 state_dict)
 
-    make_chains(chain_lengths, 'apnea_switch', 'normal_switch', apnea_class,
+    make_chains(apnea_lengths, 'apnea_switch', 'normal_switch', apnea_class,
                 state_dict)
 
     observation_model = random_observation_model_dict(len(state_dict), args,

@@ -96,7 +96,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             ('fine T', -50, 50, 0),
                 # From .1 second to 9 hours in minutes
             ('Delta T', numpy.log(.1 / 60), numpy.log(540), numpy.log(540)),
-            ('Specific', numpy.log(.001), numpy.log(1000), numpy.log(1)),
+            ('Specific', numpy.log(1.0e-20), numpy.log(1.0e20), numpy.log(1)),
         ):
             self.variable[name] = Variable(name, minimum, maximum, initial,
                                            self)
@@ -191,7 +191,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
     def read_model(self):
         file_name = self.model_box.text()
         with open(file_name, 'rb') as _file:
-            self.model = pickle.load(_file)[1]
+            self.model_args, self.model = pickle.load(_file)
 
     def new_model(self):
         path_list = [self.root_box.text()
@@ -263,14 +263,14 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.hr_times = numpy.arange(len(
             self.hr_signal)) / pickle_dict['sample_frequency']
 
+        # Read apnea model.
+        self.read_model()
+
         # Calculate spectral filters using fft method in utilities
-        skip = 1
-        self.filters = utilities.filter_hr(
-            self.hr_signal,
-            0.5 * PINT('seconds'),
-            low_pass_width=2 * numpy.pi / (15 * PINT('seconds')),
-            bandpass_center=2 * numpy.pi * 14 / PINT('minutes'),
-            skip=skip)
+        self.filters = utilities.read_slow_fast_respiration(
+            self.model_args, self.record_box.text())
+        self.filters['times'] = numpy.arange(len(
+            self.filters['slow'])) / self.filters['sample_frequency']
 
         # Read expert
         if self.record_box.text()[0] != 'x':
@@ -282,13 +282,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                 self.expert_class)) * PINT('minutes')
 
         # Get observations for apnea model
-        temp = {
-            'slow': self.filters['slow'],
-        }
-        self.y_data = [hmm.base.JointSegment(temp)[::3]]
-
-        # Read apnea model.
-        self.read_model()
+        self.y_data = [hmm.base.JointSegment({'slow': self.filters['slow']})]
 
         # Calculate hmm classification
         self.new_classification()
@@ -298,7 +292,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         del self.model.y_mod['class']
         self.states = self.model.decode(self.y_data)
         self.model.y_mod['class'] = class_model
-        self.time_states = self.hr_times[::3]
+        self.time_states = numpy.arange(len(
+            self.states)) / self.model_args.heart_rate_sample_frequency
 
     def plot_ecg(self):
         """"""
@@ -333,18 +328,22 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             self,  # MainWindow
     ):
         more_specific = numpy.exp(self.variable['Specific']())
-        self.hmm_class = self.model.class_estimate(self.y_data, more_specific)
+        samples_per_minute = int(
+            self.model_args.heart_rate_sample_frequency.to(
+                '1/minute').magnitude)
+        self.hmm_class = self.model.class_estimate(self.y_data,
+                                                   samples_per_minute,
+                                                   more_specific)
         self.plot_classification()
 
     def plot_filter(self):
         """plot spectral filters
 
         """
-        skip = 1
         self.filter_dict['signals'] = [
-            (self.hr_times[::skip], self.filters['slow']),
-            (self.hr_times[::skip], 2 * self.filters['fast']),
-            (self.hr_times[::skip], 2 * self.filters['respiration']),
+            (self.filters['times'], self.filters['slow']),
+            (self.filters['times'], 2 * self.filters['fast']),
+            (self.filters['times'], 2 * self.filters['respiration']),
         ]
         self.plot_window(**self.filter_dict)
 

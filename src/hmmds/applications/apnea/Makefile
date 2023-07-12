@@ -38,10 +38,13 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 .PRECIOUS: $(MODELS)/a%_initial $(MODELS)/a%_masked
 
 $(MODELS)/a_ar4_masked: apnea_train.py $(MODELS)/a_template_masked
-	python $< --AR_order 4 --iterations 2 --records $(EasySlow) --type masked --trim_start 25 $(MODELS)/a_template_masked $@
+	python $< --AR_order 4 --iterations 20 --records $(EasySlow) --type masked --trim_start 25 $(MODELS)/a_template_masked $@
+
+$(MODELS)/a_ar2_masked: apnea_train.py $(MODELS)/a_template_masked
+	python $< --AR_order 2 --iterations 20 --records $(EasySlow) --type masked --trim_start 25 $(MODELS)/a_template_masked $@
 
 $(MODELS)/a_template_initial: model_init.py
-	python $< --records $(EasySlow) --alpha_beta 1.0e3 1.0e3  --trim_start 25 balanced $@
+	python $< --heart_rate_sample_frequency 8 --records $(EasySlow) --alpha_beta 1.0e3 1.0e3  --trim_start 25 balanced $@
 
 $(MODELS)/a_template_masked: apnea_train.py $(MODELS)/a_template_initial
 	python $< --iterations 30 --records $(EasySlow) --type masked --trim_start 25 $(MODELS)/a_template_initial $@

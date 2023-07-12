@@ -111,7 +111,8 @@ def analyze(models: dict, records: dict, specific: float) -> dict:
             y_data = value['y_data']
             class_model = model.y_mod['class']
             try:  # Exception if model finds data impossible
-                hmm_class = model.class_estimate(y_data, specific)
+                hmm_class = model.class_estimate(y_data, samples_per_minute,
+                                                 specific)
                 length = min(len(hmm_class), len(expert))
                 assert 1000 > length > 200, f'{length=}.  Expected about 480 for 8 hours'
 

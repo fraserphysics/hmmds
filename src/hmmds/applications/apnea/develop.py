@@ -81,10 +81,14 @@ class HMM(hmm.C.HMM):  #HMM_SPARSE or HMM
         return result
 
     # Also want relative weighting of slow and fast data
-    def class_estimate(self: HMM, y: list, more_specific: float = 1) -> list:
+    def class_estimate(self: HMM,
+                       y: list,
+                       samples_per_minute: int,
+                       more_specific: float = 1) -> list:
         """ Estimate a sequence of classes
         Args:
             y: List with single element that is time series of measurements
+            samples_per_minute: Sample frequency
             more_specific: >1 increase the number of normal minutes
 
         Returns:
@@ -106,7 +110,7 @@ class HMM(hmm.C.HMM):  #HMM_SPARSE or HMM
         self.backward()
         weights = self.alpha * self.beta
 
-        def weights_per_minute(state_list, samples_per_minute=40):
+        def weights_per_minute(state_list):
             minutes = self.n_times // samples_per_minute
             remainder = self.n_times % samples_per_minute
             if remainder == 0:
