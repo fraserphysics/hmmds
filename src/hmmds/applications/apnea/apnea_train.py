@@ -120,9 +120,9 @@ def main(argv=None):
             old_args, model = pickle.load(_file)
         model.y_mod = y_mod
     model.multi_train(y_data, args.iterations)
-    sum_ = model.alpha.sum(axis=0)
-    for w, var in zip(sum_, model.y_mod['slow'].variance):
-        print(f'{w:8.5f} {var:8.5f}')
+    hmmds.applications.apnea.utilities.print_chain_model(
+        model.y_mod['slow'], model.alpha.sum(axis=0),
+        old_args.state_key2state_index)
 
     model.strip()
     with open(args.write_path, 'wb') as _file:

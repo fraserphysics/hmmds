@@ -474,7 +474,7 @@ def make_chains(chain_lengths, switch_key: str, other_key: str, int_class: int,
     else:
         letter_class = 'A'
     noise_key = f'{letter_class}_noise'
-    switch_transitions = [other_key, switch_key, noise_key]
+    switch_transitions = [other_key, noise_key]
     for chain_length in chain_lengths:
         state_key = f'{letter_class}_{chain_length}_0'
         switch_transitions.append(state_key)
@@ -483,8 +483,9 @@ def make_chains(chain_lengths, switch_key: str, other_key: str, int_class: int,
             state_dict[state_key] = State([next_state_key], [1], int_class)
             state_key = next_state_key
         state_dict[state_key] = State([switch_key], [1], int_class)
-    weight = 4.8e5  # = Number of data, 40 samples/ minute * 25 records * 480 minutes
-    variance = 2.0**2
+    weight = 9.6e4  # Number of data = , 8 samples/ minute * 25
+    # records * 480 minutes = 96,000
+    variance = 10.0**2
     prior = (weight, weight * variance)  # alpha and beta of inverse gamma
     state_dict[noise_key] = State([noise_key, switch_key], [.5, .5],
                                   int_class,
@@ -518,8 +519,7 @@ def balanced(args, rng):
     # *************                     ************
 
     normal_lengths = [5, 7]
-    apnea_lengths = [4, 6, 7]
-    n_block = chain_lengths.sum()
+    apnea_lengths = [4, 5, 6, 7]
 
     normal_class = 0
     apnea_class = 1

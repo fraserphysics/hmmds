@@ -238,16 +238,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_states()
         self.plot_classification()
         # Print diagnostic information.
-        slow = self.model.y_mod['slow']
-        print(
-            f'\nindex {"name":14s} {"weight":9s} {"variance":9s}  {"a/b":4s} {"alpha":9s}'
-        )
-        for key, index in self.model_args.state_key2state_index.items():
-            if key[-1] == '0' or key in 'N_noise normal_switch A_noise apnea_switch'.split(
-            ):
-                print(
-                    f'{index:3d}   {key:14s} {self.weight[index]:<9.3g} {slow.variance[index]:<9.3g} {slow.beta[index]/slow.alpha[index]:4.1f} {slow.alpha[index]:9.2e}'
-                )
+        utilities.print_chain_model(self.model.y_mod['slow'], self.weight,
+                                    self.model_args.state_key2state_index)
 
     def signal_path(self, signal):
         """ Return path to signal

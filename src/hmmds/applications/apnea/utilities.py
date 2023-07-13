@@ -367,6 +367,25 @@ class State:
         return ''.join(result)
 
 
+def print_chain_model(slow, weight, key2index):
+    """Print information to understand heart rate model performance.
+
+    Args:
+        slow: An AutoRegressive observation model from hmm.C or hmm.observe_float
+        weight: An array of weights for each state
+        key2index: Maps state keys to state indices for hmm
+    """
+    print(
+        f'\nindex {"name":14s} {"weight":9s} {"variance":9s} {"a/b":6s} {"alpha":9s}'
+    )
+    for key, index in key2index.items():
+        if key[-1] == '0' or key in 'N_noise normal_switch A_noise apnea_switch'.split(
+        ):
+            print(
+                f'{index:3d}   {key:14s} {weight[index]:<9.3g} {slow.variance[index]:9.3g} {slow.beta[index]/slow.alpha[index]:6.1f} {slow.alpha[index]:9.2e}'
+            )
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
