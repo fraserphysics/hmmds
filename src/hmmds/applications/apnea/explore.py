@@ -136,6 +136,13 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             ]
         }
 
+        like = pyqtgraph.GraphicsLayoutWidget(title="Likelihood")
+        like_plot = like.addPlot()
+        like_plot.addLegend()
+        self.like_dict = {
+            'curves': [like_plot.plot(pen='g', name='likelihood')]
+        }
+
         viterbi = pyqtgraph.GraphicsLayoutWidget(title="Decoded States")
         viterbi_plot = viterbi.addPlot()
         viterbi_plot.addLegend()
@@ -158,7 +165,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         }
 
         # Layout plot section
-        for widget in (ecg, hr, filter, viterbi, class_):
+        for widget in (ecg, hr, filter, like, viterbi, class_):
             plot_layout.addWidget(widget)
 
         # Make self the central widget
@@ -169,7 +176,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
     def update_plots(self  # MainWindow
                     ):
         for _dict in (self.ecg_dict, self.hr_dict, self.filter_dict,
-                      self.viterbi_dict, self.class_dict):
+                      self.like_dict, self.viterbi_dict, self.class_dict):
             self.plot_window(**_dict)
 
     def open_file_dialog(self, directory=None):
@@ -227,8 +234,20 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_ecg()
         self.plot_hr()
         self.plot_filter()
+        self.plot_like()
         self.plot_states()
         self.plot_classification()
+        # Print diagnostic information.
+        slow = self.model.y_mod['slow']
+        print(
+            f'\nindex {"name":14s} {"weight":9s} {"variance":9s}  {"a/b":4s} {"alpha":9s}'
+        )
+        for key, index in self.model_args.state_key2state_index.items():
+            if key[-1] == '0' or key in 'N_noise normal_switch A_noise apnea_switch'.split(
+            ):
+                print(
+                    f'{index:3d}   {key:14s} {self.weight[index]:<9.3g} {slow.variance[index]:<9.3g} {slow.beta[index]/slow.alpha[index]:4.1f} {slow.alpha[index]:9.2e}'
+                )
 
     def signal_path(self, signal):
         """ Return path to signal
@@ -287,13 +306,29 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Calculate hmm classification
         self.new_classification()
 
-        # Viterbi decode states
+        # Viterbi decode states and calculate likelihood
         class_model = self.model.y_mod['class']
         del self.model.y_mod['class']
         self.states = self.model.decode(self.y_data)
-        self.model.y_mod['class'] = class_model
         self.time_states = numpy.arange(len(
             self.states)) / self.model_args.heart_rate_sample_frequency
+
+        # Imitate first part of train
+        self.model.y_mod.observe(self.y_data)
+        n_times = self.model.y_mod.n_times
+        n_states = self.model.n_states
+        self.model.alpha = numpy.empty((n_times, n_states))
+        self.model.beta = numpy.empty((n_times, n_states))
+        self.model.gamma_inv = numpy.empty((n_times,))
+        self.model.y_mod.calculate()
+        self.model.forward()
+        self.like = -numpy.log(self.model.gamma_inv)
+        self.model.backward()
+        self.weight = (self.model.alpha * self.model.beta).sum(axis=0)
+        self.time_like = numpy.arange(len(
+            self.like)) / self.model_args.heart_rate_sample_frequency
+
+        self.model.y_mod['class'] = class_model
 
     def plot_ecg(self):
         """"""
@@ -309,6 +344,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             (self.hr_times, self.hr_signal),
         ]
         self.plot_window(**self.hr_dict)
+
+    def plot_like(self):
+        if not hasattr(self, 'time_like'):
+            return
+        self.like_dict['signals'] = [(self.time_like, self.like)]
+        self.plot_window(**self.like_dict)
 
     def plot_states(self):
         if not hasattr(self, 'time_states'):
