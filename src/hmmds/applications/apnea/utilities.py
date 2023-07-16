@@ -379,8 +379,7 @@ def print_chain_model(slow, weight, key2index):
         f'\nindex {"name":14s} {"weight":9s} {"variance":9s} {"a/b":6s} {"alpha":9s}'
     )
     for key, index in key2index.items():
-        if key[-1] == '0' or key in 'N_noise normal_switch A_noise apnea_switch'.split(
-        ):
+        if key[-1] == '0' or key in 'N_noise N_switch A_noise A_switch'.split():
             print(
                 f'{index:3d}   {key:14s} {weight[index]:<9.3g} {slow.variance[index]:9.3g} {slow.beta[index]/slow.alpha[index]:6.1f} {slow.alpha[index]:9.2e}'
             )

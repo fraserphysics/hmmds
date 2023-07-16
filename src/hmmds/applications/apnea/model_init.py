@@ -456,12 +456,12 @@ def fast(args, rng):
     return result
 
 
-def make_chains(chain_lengths, switch_key: str, other_key: str, int_class: int,
+def make_chains(lengths_names, switch_key: str, other_key: str, int_class: int,
                 state_dict):
     """Add a sequence of states to state_dict
 
     Args:
-        chain_lengths:  Length of each fast sequence
+        lengths_names:  Length and name of each fast sequence
         switch_key: Key of state that links these chains
         other_key: Key of state that links other class
         int_class:
@@ -474,12 +474,13 @@ def make_chains(chain_lengths, switch_key: str, other_key: str, int_class: int,
     else:
         letter_class = 'A'
     noise_key = f'{letter_class}_noise'
+    noise_p = 1.0e-30  # Suppress noise state
     switch_transitions = [other_key, noise_key]
-    for chain_length in chain_lengths:
-        state_key = f'{letter_class}_{chain_length}_0'
+    for (length, name) in lengths_names:
+        state_key = f'{letter_class}_{name}_0'
         switch_transitions.append(state_key)
-        for i in range(1, chain_length):
-            next_state_key = f'{letter_class}_{chain_length}_{i}'
+        for i in range(1, length):
+            next_state_key = f'{letter_class}_{name}_{i}'
             state_dict[state_key] = State([next_state_key], [1], int_class)
             state_key = next_state_key
         state_dict[state_key] = State([switch_key], [1], int_class)
@@ -487,14 +488,16 @@ def make_chains(chain_lengths, switch_key: str, other_key: str, int_class: int,
     # records * 480 minutes = 96,000
     variance = 10.0**2
     prior = (weight, weight * variance)  # alpha and beta of inverse gamma
-    state_dict[noise_key] = State([noise_key, switch_key], [.5, .5],
+    state_dict[noise_key] = State([noise_key, switch_key], [noise_p, 1.0],
                                   int_class,
+                                  trainable=(False, False),
                                   prior=prior)
     p_switch = numpy.ones(
-        len(switch_transitions)) / (len(switch_transitions) - 1)
+        len(switch_transitions)) / (len(switch_transitions) - 2)
     p_switch[0] = 1.0e-6  # Suppress transitions between Apnea and Normal
+    p_switch[1] = noise_p
     trainable = [True] * len(switch_transitions)
-    trainable[0] = False
+    trainable[0:2] = (False, False)
     state_dict[switch_key] = State(switch_transitions,
                                    p_switch,
                                    int_class,
@@ -518,19 +521,19 @@ def balanced(args, rng):
     #              /                   \
     # *************                     ************
 
-    normal_lengths = [5, 7]
-    apnea_lengths = [4, 5, 6, 7]
+    normal_chains = ((2, '2'), (3, '3'), (4, '4'), (5, '5'), (6, '6'), (7, '7'),
+                     (8, '8'))
+    apnea_chains = ((2, '2'), (3, '3'), (4, '4'), (5, '5'), (6, '6'), (7, '7'),
+                    (8, '8'))
 
     normal_class = 0
     apnea_class = 1
 
     state_dict = {}
 
-    make_chains(normal_lengths, 'normal_switch', 'apnea_switch', normal_class,
-                state_dict)
+    make_chains(normal_chains, 'N_switch', 'A_switch', normal_class, state_dict)
 
-    make_chains(apnea_lengths, 'apnea_switch', 'normal_switch', apnea_class,
-                state_dict)
+    make_chains(apnea_chains, 'A_switch', 'N_switch', apnea_class, state_dict)
 
     observation_model = random_observation_model_dict(len(state_dict), args,
                                                       rng)
