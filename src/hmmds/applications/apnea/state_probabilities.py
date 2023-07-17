@@ -56,16 +56,14 @@ def main(argv=None):
 
     args = parse_args(argv)
 
+    # Calculate weights with class
     y_data = [
         hmm.base.JointSegment(
             hmmds.applications.apnea.utilities.read_slow_class(args, record))
         for record in args.records
     ]
-
     with open(args.model, 'rb') as _file:
         old_args, model = pickle.load(_file)
-    original_slow = copy.deepcopy(model.y_mod['slow'])
-
     weights = model.weights(y_data).sum(axis=0)
 
     # Calculate weights without class
@@ -74,16 +72,12 @@ def main(argv=None):
             hmmds.applications.apnea.utilities.read_slow(args, record))
         for record in args.records
     ]
-
-    with open(args.model, 'rb') as _file:
-        old_args, model = pickle.load(_file)
     del model.y_mod['class']
-
     classless = model.weights(y_data).sum(axis=0)
 
-    result = latex_table(original_slow, weights, classless,
+    # Format results and write them to a file
+    result = latex_table(model.y_mod['slow'], weights, classless,
                          old_args.state_key2state_index)
-
     with open(args.output, encoding='utf-8', mode='w') as _file:
         _file.write(''.join(result))
 

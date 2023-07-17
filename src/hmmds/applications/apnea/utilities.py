@@ -54,7 +54,7 @@ def common_arguments(parser: argparse.ArgumentParser):
                         help='Training iterations')
     parser.add_argument('--heart_rate_sample_frequency',
                         type=int,
-                        default=40,
+                        default=8,
                         help='In samples per minute')
     parser.add_argument(
         '--trim_start',
