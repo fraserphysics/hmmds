@@ -61,6 +61,14 @@ def common_arguments(parser: argparse.ArgumentParser):
         type=int,
         default=0,
         help='Number of minutes to drop from the beginning of each record')
+    parser.add_argument('--low_pass_period',
+                        type=float,
+                        default=15.0,
+                        help='Period in seconds of low pass filter for heart rate')
+    parser.add_argument('--band_pass_center',
+                        type=float,
+                        default=14.0,
+                        help='Frequency in cycles per minute for heart rate -> respiration')
 
 
 def join_common(args: argparse.Namespace):
@@ -78,6 +86,8 @@ def join_common(args: argparse.Namespace):
 
     args.heart_rate_sample_frequency *= PINT('1/minutes')
     args.trim_start *= PINT('minutes')
+    args.low_pass_period *= PINT('seconds')
+    args.band_pass_center /= PINT('minutes')
 
     args.rtimes = os.path.join(args.root, args.rtimes)
     args.expert = os.path.join(args.root, args.expert)
@@ -192,9 +202,10 @@ def window(F: numpy.ndarray,
         shift: Shift phase pi/2
     """
     # FixMe: Is this right?
-    omega_max = numpy.pi / t_sample
-    n_center = len(F) * (center / omega_max).to('').magnitude
-    n_width = len(F) * (width / omega_max).to('').magnitude
+    # *.to('Hz').magnitude enables different registries.
+    omega_max = (numpy.pi / t_sample).to('Hz').magnitude
+    n_center = len(F) * (center / omega_max).to('Hz').magnitude
+    n_width = len(F) * (width / omega_max).to('Hz').magnitude
     delta_n = numpy.arange(len(F)) - n_center
     denominator = (2 * n_width * n_width)
     assert denominator > 0
@@ -257,15 +268,16 @@ def read_slow_fast_respiration(args, name='a03'):
         _dict = pickle.load(_file)
     f_in = _dict['sample_frequency'].to('1/minute').magnitude
     f_out = args.heart_rate_sample_frequency.to('1/minute').magnitude
+    sample_period = (1.0/f_in)*PINT('minutes')
     trim_samples = int(
         (args.heart_rate_sample_frequency * args.trim_start).to(''))
     skip = int(f_in / f_out)
     assert f_in == f_out * skip, f'{f_in=} {f_out=} {skip=}'
     raw_hr = _dict['hr'].to('1/minute').magnitude
     result = filter_hr(raw_hr,
-                       0.5 * PINT('seconds'),
-                       low_pass_width=2 * numpy.pi / (15 * PINT('seconds')),
-                       bandpass_center=2 * numpy.pi * 14 / PINT('minutes'),
+                       sample_period,
+                       low_pass_width=2 * numpy.pi / args.low_pass_period,
+                       bandpass_center=2 * numpy.pi * args.band_pass_center,
                        skip=skip)
     result['trim_samples'] = trim_samples
     result['sample_frequency'] = f_out * PINT('1/minute')
