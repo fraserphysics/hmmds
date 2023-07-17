@@ -24,6 +24,18 @@ import develop
 PINT = pint.UnitRegistry()
 
 
+def parse_args(argv):
+    """ This is for debugging
+    """
+    import argparse
+    parser = argparse.ArgumentParser("Only for debugging")
+    utilities.common_arguments(parser)
+    args = parser.parse_args(argv)
+    args.trim_start = 25
+    utilities.join_common(args)
+    return args
+
+
 class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
     def __init__(self):
@@ -305,18 +317,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.time_states = numpy.arange(len(
             self.states)) / self.model_args.heart_rate_sample_frequency
 
-        # Imitate first part of train
-        self.model.y_mod.observe(self.y_data)
-        n_times = self.model.y_mod.n_times
-        n_states = self.model.n_states
-        self.model.alpha = numpy.empty((n_times, n_states))
-        self.model.beta = numpy.empty((n_times, n_states))
-        self.model.gamma_inv = numpy.empty((n_times,))
-        self.model.y_mod.calculate()
-        self.model.forward()
+        self.weight = self.model.weights(self.y_data).sum(axis=0)
         self.like = -numpy.log(self.model.gamma_inv)
-        self.model.backward()
-        self.weight = (self.model.alpha * self.model.beta).sum(axis=0)
         self.time_like = numpy.arange(len(
             self.like)) / self.model_args.heart_rate_sample_frequency
 
