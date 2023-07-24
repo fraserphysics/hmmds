@@ -37,11 +37,17 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # Save the initial files for debugging
 .PRECIOUS: $(MODELS)/a%_initial $(MODELS)/a%_masked
 
-$(MODELS)/a_ar%_masked: apnea_train.py $(MODELS)/a_ar%_initial
-	python $< --AR_order $* --iterations 50 --records $(EasySlow) --type masked --trim_start 25 $(MODELS)/a_ar$*_initial $@
+$(MODELS)/balanced_ar%_masked: apnea_train.py $(MODELS)/balanced_ar%_initial
+	python $< --AR_order $* --iterations 50 --records $(EasySlow) --type masked --trim_start 25 $(MODELS)/balanced_ar$*_initial $@
 
-$(MODELS)/a_ar%_initial: model_init.py
-	python $< --heart_rate_sample_frequency 10 --low_pass_period 30 --records $(EasySlow) --alpha_beta 50.0 10.0  --trim_start 25 --AR_order $* balanced $@
+$(MODELS)/balanced_ar%_initial: model_init.py
+	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 --records $(EasySlow) --alpha_beta 50.0 10.0  --trim_start 25 --AR_order $* balanced $@
+
+$(MODELS)/simple_ar%_masked: apnea_train.py $(MODELS)/simple_ar%_initial
+	python $< --AR_order $* --iterations 50 --records $(EasySlow) --type masked --trim_start 25 $(MODELS)/simple_ar$*_initial $@
+
+$(MODELS)/simple_ar%_initial: model_init.py
+	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 --records $(EasySlow) --alpha_beta 50.0 10.0  --trim_start 25 --AR_order $* simple $@
 
 $(MODELS)/%_small: model_init.py
 	python $< --records $* --alpha_beta 1.0e3 1.0e3 --trim_start 25 c_model $@

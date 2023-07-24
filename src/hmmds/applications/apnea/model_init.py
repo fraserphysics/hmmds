@@ -469,23 +469,153 @@ def make_chains(lengths_names, switch_key: str, other_key: str, int_class: int,
 
     """
 
+    # Magic numbers
+    noise_p = 1.0e-30  # Probability of transition to noise state
+    switch_p = 1.0e-6  # Probability of transition between classes
+    # There are about 12,000 minutes of data, 25 records * 480 minutes
+    prior_weight = 9.6e4
+    prior_variance = 10.0**2
+    noise_prior = (prior_weight, prior_weight * prior_variance
+                  )  # alpha and beta of inverse gamma
     if int_class == 0:
         letter_class = 'N'
     else:
         letter_class = 'A'
     noise_key = f'{letter_class}_noise'
-    noise_p = 1.0e-30  # Suppress noise state
+    state_dict[noise_key] = State([noise_key, switch_key],
+                                  [noise_p, 1.0 - noise_p],
+                                  int_class,
+                                  trainable=(False, False),
+                                  prior=noise_prior)
+
     switch_transitions = [other_key, noise_key]
     for (length, name) in lengths_names:
-        state_key = f'{letter_class}_{name}_0'
-        switch_transitions.append(state_key)
-        for i in range(1, length):
+        slow_key = f'{letter_class}_{name}_0'
+        state_key = f'{letter_class}_{name}_1'
+        state_dict[slow_key] = State([switch_key, slow_key, state_key],
+                                     [.1, .8, .1], int_class)
+        switch_transitions.append(slow_key)
+
+        # Create states in the chain
+        for i in range(2, length):
             next_state_key = f'{letter_class}_{name}_{i}'
             state_dict[state_key] = State([next_state_key], [1], int_class)
             state_key = next_state_key
-        state_dict[state_key] = State([switch_key], [1], int_class)
-    weight = 9.6e4  # Number of data = , 8 samples/ minute * 25
-    # records * 480 minutes = 96,000
+        state_dict[state_key] = State([slow_key], [1], int_class)
+    p_switch = numpy.ones(
+        len(switch_transitions)) / (len(switch_transitions) - 2)
+    p_switch[0] = switch_p
+    p_switch[1] = noise_p
+    trainable = [True] * len(switch_transitions)
+    trainable[0:2] = (False, False)
+    state_dict[switch_key] = State(switch_transitions,
+                                   p_switch,
+                                   int_class,
+                                   trainable=trainable)
+
+
+@register  # Alternative models for "a" records
+def balanced(args, rng):
+    """Return an hmm with multiple fixed duration chains for both
+    normal and apnea.
+
+    2023-07-21: Make chains short to model positive pulse rate peaks.
+    Here are the durations of peaks that I saw some records:
+
+    Record   Duration     Samples
+             in minutes   at 24 cpm
+
+    a01      .3
+    a02      .3
+    a03      .35          8.40
+    a04      .22          5.28
+    a05      .3
+
+    After looking at plots of the filtered heart rate, I chose
+    arguments --heart_rate_sample_frequency 24 --low_pass_period 8
+
+    """
+
+    #  Normal Chains  N Switch A Switch  Apnea Chains
+    #
+    # *************                     ************
+    #              \                   /
+    #               \________  _______/
+    #                |      |--|     |
+    #               /--------  -------\
+    #              /                   \
+    # *************                     ************
+
+    normal_chains = (
+        (1, '1'),
+        (6, '6'),
+    )
+    apnea_chains = (
+        (6, '6'),
+        (7, '7'),
+    )
+
+    normal_class = 0
+    apnea_class = 1
+
+    state_dict = {}
+
+    make_chains(normal_chains, 'N_switch', 'A_switch', normal_class, state_dict)
+
+    make_chains(apnea_chains, 'A_switch', 'N_switch', apnea_class, state_dict)
+
+    observation_model = random_observation_model_dict(len(state_dict), args,
+                                                      rng)
+
+    result_hmm, state_key2state_index = dict2hmm(state_dict,
+                                                 observation_model,
+                                                 rng,
+                                                 truncate=args.AR_order)
+
+    for key, index in state_key2state_index.items():
+        if state_dict[key].prior is None:
+            continue
+        observation_model['slow'].alpha[index] = state_dict[key].prior[0]
+        observation_model['slow'].beta[index] = state_dict[key].prior[1]
+
+    result_hmm.y_mod.observe([
+        hmm.base.JointSegment(
+            hmmds.applications.apnea.utilities.read_slow_class(args, record))
+        for record in args.records
+    ])
+    result_hmm.y_mod.reestimate(
+        hmm.simple.Prob(result_hmm.y_mod.calculate()).normalize())
+
+    return result_hmm, state_dict, state_key2state_index
+
+
+def make_nodes(names, switch_key: str, other_key: str, int_class: int,
+               state_dict):
+    """Add states to state_dict
+
+    Args:
+        names:  Names of states
+        switch_key: Key of state that links these chains
+        other_key: Key of state that links other class
+        int_class:
+        state_dict:
+
+    """
+
+    if int_class == 0:
+        letter_class = 'N'
+    else:
+        letter_class = 'A'
+    noise_key = f'{letter_class}_noise'
+    noise_p = 1.0e-10  # Suppress noise state
+    switch_transitions = [other_key, noise_key]
+    for name in names:
+        state_key = f'{letter_class}_{name}'
+        switch_transitions.append(state_key)
+        state_dict[state_key] = State([state_key, switch_key], [.9, .1],
+                                      int_class)
+    weight = 7.2e4  # Number of data = , 6 samples/ minute * 25
+    # records * 480 minutes = 72,000
     variance = 10.0**2
     prior = (weight, weight * variance)  # alpha and beta of inverse gamma
     state_dict[noise_key] = State([noise_key, switch_key], [noise_p, 1.0],
@@ -505,13 +635,13 @@ def make_chains(lengths_names, switch_key: str, other_key: str, int_class: int,
 
 
 @register  # Alternative models for "a" records
-def balanced(args, rng):
-    """Return an hmm with multiple fixed duration chains for both
+def simple(args, rng):
+    """Return an hmm with multiple single state nodes for both
     normal and apnea.
 
     """
 
-    #  Normal Chains  N Switch A Switch  Apnea Chains
+    #  Normal Nodes  N Switch A Switch  Apnea nodes
     #
     # *************                     ************
     #              \                   /
@@ -521,17 +651,17 @@ def balanced(args, rng):
     #              /                   \
     # *************                     ************
 
-    normal_chains = ((6, '6'), (7, '7'))
-    apnea_chains = ((5, '5'), (6, '6'), (7, '7'), (8, '8'))
+    normal_nodes = 'a0 b0 c0 d0 e0'.split()
+    apnea_nodes = 'a0 b0'.split()
 
     normal_class = 0
     apnea_class = 1
 
     state_dict = {}
 
-    make_chains(normal_chains, 'N_switch', 'A_switch', normal_class, state_dict)
+    make_nodes(normal_nodes, 'N_switch', 'A_switch', normal_class, state_dict)
 
-    make_chains(apnea_chains, 'A_switch', 'N_switch', apnea_class, state_dict)
+    make_nodes(apnea_nodes, 'A_switch', 'N_switch', apnea_class, state_dict)
 
     observation_model = random_observation_model_dict(len(state_dict), args,
                                                       rng)

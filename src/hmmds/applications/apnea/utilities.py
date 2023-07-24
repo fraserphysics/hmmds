@@ -61,14 +61,16 @@ def common_arguments(parser: argparse.ArgumentParser):
         type=int,
         default=0,
         help='Number of minutes to drop from the beginning of each record')
-    parser.add_argument('--low_pass_period',
-                        type=float,
-                        default=15.0,
-                        help='Period in seconds of low pass filter for heart rate')
-    parser.add_argument('--band_pass_center',
-                        type=float,
-                        default=14.0,
-                        help='Frequency in cycles per minute for heart rate -> respiration')
+    parser.add_argument(
+        '--low_pass_period',
+        type=float,
+        default=15.0,
+        help='Period in seconds of low pass filter for heart rate')
+    parser.add_argument(
+        '--band_pass_center',
+        type=float,
+        default=14.0,
+        help='Frequency in cycles per minute for heart rate -> respiration')
 
 
 def join_common(args: argparse.Namespace):
@@ -215,6 +217,42 @@ def window(F: numpy.ndarray,
     return result
 
 
+def notch_hr(
+    raw_hr: numpy.ndarray,
+    sample_period=.5 * PINT('seconds'),
+    notch=(50 * PINT('1/minutes'), 175 * PINT('1/minutes')),
+    top=-1 * PINT('1/minutes')
+) -> numpy.ndarray:
+    """Calculate filtered heart rate
+ 
+    Args:
+        raw_hr:
+        sample_period: Time with pint
+        notch: (low, high) frequencies with pint
+        top: Max frequency with pint
+
+    Return: filtered_hr Same shape as raw_hr
+
+    This function removes frequencies in the range defined by notch
+    and frequencies above top.  The default values for notch
+    correspond to the range for normal respiration.
+
+    """
+
+    n_t = len(raw_hr)
+    HR = numpy.fft.rfft(raw_hr, 131072)
+
+    omega_max = (numpy.pi / sample_period).to('Hz').magnitude
+    n_low, n_high, n_top = (int(len(HR) * (x / omega_max).to('Hz').magnitude)
+                            for x in notch + (top,))
+
+    HR[n_low:n_high] = 0.0
+    if n_top > 0:
+        HR[n_top:] = 0.0
+
+    return numpy.fft.irfft(HR)[:n_t]
+
+
 def filter_hr(raw_hr: numpy.ndarray,
               sample_period: float,
               low_pass_width,
@@ -268,7 +306,7 @@ def read_slow_fast_respiration(args, name='a03'):
         _dict = pickle.load(_file)
     f_in = _dict['sample_frequency'].to('1/minute').magnitude
     f_out = args.heart_rate_sample_frequency.to('1/minute').magnitude
-    sample_period = (1.0/f_in)*PINT('minutes')
+    sample_period = (1.0 / f_in) * PINT('minutes')
     trim_samples = int(
         (args.heart_rate_sample_frequency * args.trim_start).to(''))
     skip = int(f_in / f_out)
@@ -391,7 +429,9 @@ def print_chain_model(slow, weight, key2index):
         f'\nindex {"name":14s} {"weight":9s} {"variance":9s} {"a/b":6s} {"alpha":9s}'
     )
     for key, index in key2index.items():
-        if key[-1] == '0' or key in 'N_noise N_switch A_noise A_switch'.split():
+        if key[-1] == '0' or key[
+                -1] == '1' or key in 'N_noise N_switch A_noise A_switch'.split(
+                ):
             print(
                 f'{index:3d}   {key:14s} {weight[index]:<9.3g} {slow.variance[index]:9.3g} {slow.beta[index]/slow.alpha[index]:6.1f} {slow.alpha[index]:9.2e}'
             )

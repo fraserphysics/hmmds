@@ -67,13 +67,13 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         root_ok.clicked.connect(self.new_root)
 
         self.record_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.record_box.setText('a03')
+        self.record_box.setText('a04')
         record_ok = PyQt5.QtWidgets.QPushButton('Record', self)
         record_ok.clicked.connect(self.new_record)
 
         self.model_box = PyQt5.QtWidgets.QLineEdit(self)
         self.model_box.setText(
-            f'{self.root_box.text()}/build/derived_data/apnea/models/a_ar3_masked'
+            f'{self.root_box.text()}/build/derived_data/apnea/models/simple_ar3_masked'
         )
         model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
         model_ok.clicked.connect(self.new_model)
@@ -135,7 +135,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         hr = pyqtgraph.GraphicsLayoutWidget(title="Heart Rate")
         hr_plot = hr.addPlot()
         hr_plot.addLegend()
-        self.hr_dict = {'curves': [hr_plot.plot(pen='g', name='hr')]}
+        self.hr_dict = {
+            'curves': [
+                hr_plot.plot(pen='g', name='hr'),
+                hr_plot.plot(pen='r', name='filtered'),
+            ]
+        }
 
         filter = pyqtgraph.GraphicsLayoutWidget(title="Filtered HR")
         filter_plot = filter.addPlot()
@@ -283,6 +288,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         with open(self.signal_path('heart_rate'), 'rb') as _file:
             pickle_dict = pickle.load(_file)
         self.hr_signal = pickle_dict['hr'].to('1/minute').magnitude
+        self.hr_notch = utilities.notch_hr(self.hr_signal)
         self.hr_times = numpy.arange(len(
             self.hr_signal)) / pickle_dict['sample_frequency']
 
@@ -334,9 +340,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_window(**self.ecg_dict)
 
     def plot_hr(self):
-        self.hr_dict['signals'] = [
-            (self.hr_times, self.hr_signal),
-        ]
+        self.hr_dict['signals'] = [(self.hr_times, self.hr_signal),
+                                   (self.hr_times, self.hr_notch)]
         self.plot_window(**self.hr_dict)
 
     def plot_like(self):
