@@ -73,7 +73,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         self.model_box = PyQt5.QtWidgets.QLineEdit(self)
         self.model_box.setText(
-            f'{self.root_box.text()}/build/derived_data/apnea/models/simple_ar3_masked'
+            f'{self.root_box.text()}/build/derived_data/apnea/models/balanced_ar3_masked'
         )
         model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
         model_ok.clicked.connect(self.new_model)
@@ -150,6 +150,13 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                 filter_plot.plot(pen='g', name='slow'),
                 filter_plot.plot(pen='r', name='fast'),
                 filter_plot.plot(pen='y', name='resp'),
+                filter_plot.plot(
+                    pen=None,
+                    symbol='+',
+                    symbolSize=15,
+                    symbolBrush=('b'),
+                    name='peaks',
+                )
             ]
         }
 
@@ -300,6 +307,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             self.model_args, self.record_box.text())
         self.filters['times'] = numpy.arange(len(
             self.filters['slow'])) / self.filters['sample_frequency']
+        peaks, _ = utilities.peaks(
+            self.filters['slow'], self.filters['sample_frequency'])
+        self.hr_peaks = self.filters['slow'][peaks]
+        self.hr_peak_times = peaks/self.filters['sample_frequency']
 
         # Read expert
         if self.record_box.text()[0] != 'x':
@@ -384,6 +395,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             (self.filters['times'], self.filters['slow']),
             (self.filters['times'], 2 * self.filters['fast']),
             (self.filters['times'], 2 * self.filters['respiration']),
+            (self.hr_peak_times, self.hr_peaks),
         ]
         self.plot_window(**self.filter_dict)
 

@@ -253,6 +253,36 @@ def notch_hr(
     return numpy.fft.irfft(HR)[:n_t]
 
 
+def peaks(
+        filtered: numpy.ndarray, # Heart rate in beats per minute
+        sample_frequency, # A pint frequency
+        distance=0.3*PINT('minutes'),
+        prominence=5.0, # In beats per minute
+        wlen=2.0*PINT('minutes'),
+):
+    """Find peaks in the low pass filtered heart rate signal
+    
+    Args:
+        filtered: Heart rate time series as array of floats
+        sample_frequency: A pint frequency
+        distance: Minimum time between peaks
+        prominance:
+        wlen: Window length
+
+    Return: peaks, properties
+
+    """
+    s_f_hz = sample_frequency.to('Hz').magnitude
+    distance_samples = distance.to('seconds').magnitude*s_f_hz
+    wlen_samples = wlen.to('seconds').magnitude*s_f_hz
+
+    peaks, properties = scipy.signal.find_peaks(
+        filtered,
+        distance=distance_samples,
+        prominence=prominence,
+        wlen=wlen_samples)
+    return peaks, properties
+
 def filter_hr(raw_hr: numpy.ndarray,
               sample_period: float,
               low_pass_width,
