@@ -254,11 +254,11 @@ def notch_hr(
 
 
 def peaks(
-        filtered: numpy.ndarray, # Heart rate in beats per minute
-        sample_frequency, # A pint frequency
-        distance=0.3*PINT('minutes'),
-        prominence=5.0, # In beats per minute
-        wlen=2.0*PINT('minutes'),
+        filtered: numpy.ndarray,  # Heart rate in beats per minute
+        sample_frequency,  # A pint frequency
+        distance=0.3 * PINT('minutes'),
+        prominence=5.0,  # In beats per minute
+        wlen=2.0 * PINT('minutes'),
 ):
     """Find peaks in the low pass filtered heart rate signal
     
@@ -273,15 +273,15 @@ def peaks(
 
     """
     s_f_hz = sample_frequency.to('Hz').magnitude
-    distance_samples = distance.to('seconds').magnitude*s_f_hz
-    wlen_samples = wlen.to('seconds').magnitude*s_f_hz
+    distance_samples = distance.to('seconds').magnitude * s_f_hz
+    wlen_samples = wlen.to('seconds').magnitude * s_f_hz
 
-    peaks, properties = scipy.signal.find_peaks(
-        filtered,
-        distance=distance_samples,
-        prominence=prominence,
-        wlen=wlen_samples)
+    peaks, properties = scipy.signal.find_peaks(filtered,
+                                                distance=distance_samples,
+                                                prominence=prominence,
+                                                wlen=wlen_samples)
     return peaks, properties
+
 
 def filter_hr(raw_hr: numpy.ndarray,
               sample_period: float,
@@ -391,6 +391,16 @@ def read_slow(args, name='a03'):
 
 def read_slow_class(args, name='a03'):
     """Add class to dict from read_slow
+
+    Args:
+        args:
+        name:  Record name, eg, 'a03'
+
+    Return: raw_dict
+
+    Keys of raw_dict are 'slow' and 'class' and values are time series
+    sampled at rate args.heart_rate_sample_frequency
+
     """
 
     f_s_float = args.heart_rate_sample_frequency.to('1/minute').magnitude

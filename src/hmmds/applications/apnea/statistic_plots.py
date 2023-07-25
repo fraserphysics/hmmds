@@ -81,7 +81,7 @@ def parse_args(argv):
 class Record:
 
     def __init__(self, name, args, psd_normalization=10):
-        """Set the following attributs:
+        """Set the following attributes:
 
         name: EG "a01"
 

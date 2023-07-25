@@ -307,10 +307,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             self.model_args, self.record_box.text())
         self.filters['times'] = numpy.arange(len(
             self.filters['slow'])) / self.filters['sample_frequency']
-        peaks, _ = utilities.peaks(
-            self.filters['slow'], self.filters['sample_frequency'])
+        peaks, _ = utilities.peaks(self.filters['slow'],
+                                   self.filters['sample_frequency'])
         self.hr_peaks = self.filters['slow'][peaks]
-        self.hr_peak_times = peaks/self.filters['sample_frequency']
+        self.hr_peak_times = peaks / self.filters['sample_frequency']
 
         # Read expert
         if self.record_box.text()[0] != 'x':
