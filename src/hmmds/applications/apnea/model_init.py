@@ -38,6 +38,10 @@ def parse_args(argv):
                         type=int,
                         default=1,
                         help="Number of previous values for prediction.")
+    parser.add_argument('--boundaries',
+                        type=str,
+                        default='boundaries',
+                        help="Path to levels for key peaks")
 
     parser.add_argument(
         'key',
@@ -132,13 +136,14 @@ def dict2hmm(state_dict, model_dict, rng, truncate=0):
     untrainable_indices = []
     untrainable_values = []
 
+    # FixMe: Write general code for observation models
     # Build state_key2state_index and class_index2state_indices
     for state_index, (state_key, state) in enumerate(state_dict.items()):
         state_key2state_index[state_key] = state_index
-        if state.class_index in class_index2state_indices:
-            class_index2state_indices[state.class_index].append(state_index)
+        if state.observation in class_index2state_indices:
+            class_index2state_indices[state.observation].append(state_index)
         else:
-            class_index2state_indices[state.class_index] = [state_index]
+            class_index2state_indices[state.observation] = [state_index]
 
     # Build p_state2state
     for state_key, state in state_dict.items():
@@ -456,6 +461,18 @@ def fast(args, rng):
     return result
 
 
+# Need state_dict and observation_dict
+class Peak:
+    """A slow state and a deterministic sequence of states
+
+    Args:
+        switch_key
+        length
+
+    """
+    def __init__(self, switch_key, length):
+        pass
+    
 def make_chains(lengths_names, switch_key: str, other_key: str, int_class: int,
                 state_dict):
     """Add a sequence of states to state_dict
@@ -686,6 +703,31 @@ def simple(args, rng):
         hmm.simple.Prob(result_hmm.y_mod.calculate()).normalize())
 
     return result_hmm, state_dict, state_key2state_index
+
+
+@register  # Joint observation includes values for peaks
+def peaks(args, rng):
+    """Return an hmm with multiple single state nodes for both
+    normal and apnea.
+
+    """
+
+    #  Normal Nodes  N Switch A Switch  Apnea nodes
+    #
+    # *************                     ************
+    #              \                   /
+    #               \________  _______/
+    #                |      |--|     |
+    #               /--------  -------\
+    #              /                   \
+    # *************                     ************
+
+    
+    with open(args.boundaries, 'rb') as _file:
+        boundaries = pickle.load(_file)
+    print(f'{boundaries=}')
+    sys.exit(0)
+    #return result_hmm, state_dict, state_key2state_index
 
 
 def main(argv=None):

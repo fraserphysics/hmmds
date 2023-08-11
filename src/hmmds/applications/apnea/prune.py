@@ -155,7 +155,7 @@ def prune_chain(chain: Chain, model, state_dict: dict, key2index: dict, args):
             probabilities.append(probability)
         new_state_dict[state_key] = State(successors,
                                           probabilities,
-                                          state.class_index,
+                                          state.observation,
                                           trainable,
                                           prior=state.prior)
 
