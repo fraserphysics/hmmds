@@ -415,6 +415,32 @@ def read_slow_class(args, name='a03'):
     return raw_dict
 
 
+def read_slow_class_peak(args, boundaries, name='a03'):
+    """Add peak to dict from read_slow_class
+
+    Args:
+        args:
+        boundaries:
+        name:  Record name, eg, 'a03'
+
+    Return: raw_dict
+
+    Keys of raw_dict are 'slow', 'class', and 'peak' and values are
+    time series sampled at rate args.heart_rate_sample_frequency
+
+    """
+
+    raw_dict = read_slow_class(args, name)
+    slow_signal = raw_dict['slow']
+
+    locations, properties = peaks(slow_signal, args.heart_rate_sample_frequency)
+    digits = numpy.digitize(properties['prominences'], boundaries[1])
+    peak_signal = numpy.zeros(len(slow_signal), dtype=numpy.int32)
+    peak_signal[locations] = digits
+    raw_dict['peak'] = peak_signal
+    return raw_dict
+
+
 # I put this in utilities enable apnea_train.py to run.
 class State:
     """For defining HMM graph

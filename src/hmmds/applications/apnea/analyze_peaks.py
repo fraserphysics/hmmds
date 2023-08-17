@@ -25,10 +25,19 @@ def parse_args(argv):
                         help="display figure using Qt5")
     utilities.common_arguments(parser)
     parser.add_argument('figure_path', type=str, help='path of file to write')
-    parser.add_argument('boundaries_path', type=str, help='path of file to write')
+    parser.add_argument('boundaries_path',
+                        type=str,
+                        help='path of file to write')
     args = parser.parse_args(argv)
     utilities.join_common(args)
     return args
+
+
+def plot_record(args, record_name, boundaries, axes):
+    raw_dict = utilities.read_slow_class_peak(args, boundaries, record_name)
+    axes.plot(raw_dict['slow'] / 10, label='slow')
+    axes.plot(raw_dict['peak'], label='bin')
+    axes.plot(raw_dict['class'], label='class')
 
 
 def analyze_record(args, record_name, peak_dict):
@@ -61,7 +70,7 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
-    fig, axeses = pyplot.subplots(nrows=2, figsize=(6, 8))
+    fig, axeses = pyplot.subplots(nrows=3, figsize=(6, 8))
     axeses[0].sharex(axeses[1])
 
     # Find peaks
@@ -94,6 +103,8 @@ def main(argv=None):
     plot_n(peak_dict[1], boundaries, axeses[1], label='Apnea')
     axeses[1].set_ylabel('Number')
     axeses[1].set_xlabel('peak prominences')
+
+    plot_record(args, 'a03', boundaries, axeses[2])
     for axes in axeses:
         axes.legend()
     if args.show:
