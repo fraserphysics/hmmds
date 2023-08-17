@@ -113,12 +113,65 @@ def _make_hmm(y_model,
     return _hmm
 
 
-def dict2hmm(state_dict, model_dict, rng, truncate=0):
+def make_joint_peak_class_slow(state_dict):
+    """Return a JointObservation instance with components "peak",
+    "class" and "slow"
+
+    """
+    pass
+
+
+def make_joint_class_slow(state_dict, keys, rng, truncate=0):
+    """Return a JointObservation instance with components "class" and
+    "slow"
+
+    Args:
+        state_dict:
+        keys: Establishes order for state_dict
+        rng:
+
+    """
+    class_index2state_indices = {}
+    n_states = len(keys)
+    assert n_states == len(state_dict)
+    ar_order = len(state_dict[keys[0]].observation['slow']['coefficients'])
+    ar_coefficients = numpy.empty((n_states, ar_order))
+    offsets = numpy.empty(n_states)
+    variances = numpy.empty(n_states)
+    alphas = numpy.empty(n_states)
+    betas = numpy.empty(n_states)
+    for state_index, key in enumerate(keys):
+        observation = state_dict[key].observation
+        slow = observation['slow']
+        _class = observation['class']
+
+        if _class in class_index2state_indices:
+            class_index2state_indices[_class].append(state_index)
+        else:
+            class_index2state_indices[_class] = [state_index]
+
+        ar_coefficients[state_index] = slow['coefficients']
+        offsets[state_index] = slow['offset']
+        variances[state_index] = slow['variance']
+        alphas[state_index] = slow['alpha']
+        betas[state_index] = slow['beta']
+
+    slow_model = hmm.C.AutoRegressive(ar_coefficients, offsets, variances, rng,
+                                      alphas, betas)
+    return hmm.base.JointObservation(
+        {
+            'slow': slow_model,
+            'class': hmm.base.ClassObservation(class_index2state_indices)
+        },
+        truncate=truncate)
+
+
+def dict2hmm(state_dict, make_observation_model, rng, truncate=0):
     """Create an HMM based on state_dict for supervised training
 
     Args:
         state_dict: state_dict[state_key] is a State instance
-        model_dict: Components of joint observation model
+        make_observation_model: Function
         rng: A random number generator
         truncate: Number of elements to drop from the beginning of each segment
                   of class observations.
@@ -128,25 +181,20 @@ def dict2hmm(state_dict, model_dict, rng, truncate=0):
     """
 
     n_states = len(state_dict)
-    class_index2state_indices = {}
     p_state_initial = numpy.ones(n_states) / n_states
     p_state_time_average = numpy.ones(n_states) / n_states
     p_state2state = hmm.simple.Prob(numpy.zeros((n_states, n_states)))
     state_key2state_index = {}
+    state_keys = []
     untrainable_indices = []
     untrainable_values = []
 
-    # FixMe: Write general code for observation models
-    # Build state_key2state_index and class_index2state_indices
-    for state_index, (state_key, state) in enumerate(state_dict.items()):
+    # Build state_key2state_index, p_state2state and state_keys
+    for state_index, state_key in enumerate(state_dict.keys()):
         state_key2state_index[state_key] = state_index
-        if state.observation in class_index2state_indices:
-            class_index2state_indices[state.observation].append(state_index)
-        else:
-            class_index2state_indices[state.observation] = [state_index]
-
-    # Build p_state2state
-    for state_key, state in state_dict.items():
+        state_keys.append(state_key)
+    for state_key in state_keys:
+        state = state_dict[state_key]
         state_index = state_key2state_index[state_key]
         for successor_key, probability, trainable in zip(
                 state.successors, state.probabilities, state.trainable):
@@ -157,15 +205,14 @@ def dict2hmm(state_dict, model_dict, rng, truncate=0):
                 untrainable_values.append(probability)
     p_state2state.normalize()
 
-    model_dict['class'] = hmm.base.ClassObservation(class_index2state_indices)
-
-    y_model = hmm.base.JointObservation(model_dict, truncate=truncate)
-
     # Create and return the hmm
     return develop.HMM(p_state_initial,
                        p_state_time_average,
                        p_state2state,
-                       y_model,
+                       make_observation_model(state_dict,
+                                              state_keys,
+                                              rng,
+                                              truncate=truncate),
                        rng,
                        untrainable_indices=tuple(
                            numpy.array(untrainable_indices).T),
@@ -238,229 +285,6 @@ def c_model(args, rng):
                        y_model, rng)
 
 
-@register  # Models for "a" records
-def apnea_dict(args, rng):
-    """Return an hmm based on a dict specified in this function.
-
-    The apnea loop has 44 states, a chain of 11 groups of 4.  There is
-    a single observation model for all states in each group of 4.  The
-    loop starts at "occluded_0" and ends at "last_gasp".
-
-    There is a single "normal" state that has transitions to itself and
-    occluded_0.  "last_gasp" has a transition to "occluded_0" and a
-    transition to "normal".
-
-    """
-
-    normal_class = 0
-    apnea_class = 1
-
-    state_count = 0
-    normal = 0
-    occluded_0 = 1
-    small = 1.0e-10
-    state_dict = {
-        normal:
-            State([normal, occluded_0], [1.0 - 1.0e-3, 1.0e-3], normal_class)
-    }
-    state_count += 1
-    for group in range(11):  # These states are the apnea loop
-        if group == 10:
-            group_end = occluded_0
-        else:
-            group_end = state_count + 4
-        for _ in range(4):
-            state_dict[state_count] = State([state_count + 1, group_end],
-                                            [1 - small, small], apnea_class)
-            state_count += 1
-    last_gasp = state_count - 1
-    state_dict[last_gasp] = State([occluded_0, normal], [.99, .01], apnea_class)
-
-    n_states = len(state_dict)
-
-    result, _ = dict2hmm(state_dict,
-                         random_observation_model_dict(n_states, args, rng),
-                         rng,
-                         truncate=args.AR_order)
-
-    result.y_mod.observe([
-        hmm.base.JointSegment(
-            hmmds.applications.apnea.utilities.read_slow_class(args, record))
-        for record in args.records
-    ])
-    result.y_mod.reestimate(
-        hmm.simple.Prob(result.y_mod.calculate()).normalize())
-
-    return result
-
-
-@register  # Alternative models for "a" records
-def template_dict(args, rng):
-    """An hmm with fixed duration templates and slow states for apnea
-
-    Each template is in a loop with a slow state.  Transitions between
-    templates and transitions to the normal state are through the
-    "switch" state which is supressed
-    
-    There is a single "normal" state that has transitions to itself.
-
-    """
-
-    n_normal_states = 3
-    n_templates = 6
-    template_length = 20
-
-    normal_class = 0
-    apnea_class = 1
-
-    # State keys are integers
-    switch_state = 0
-    first_normal_state = 1
-    small = 1.0e-8
-
-    # First normal state connects to switch_state
-    state_dict = {}
-    transition_probability = (numpy.ones(n_normal_states + 1) -
-                              small) / n_normal_states
-    transition_probability[0] = small
-    state_dict[first_normal_state] = State(numpy.arange(n_normal_states + 1),
-                                           transition_probability,
-                                           normal_class,
-                                           trainable=[False] +
-                                           [True] * n_normal_states)
-    transitions_from_switch = [first_normal_state]
-
-    # Other normal states all connect with eachother
-    normal_state_list = numpy.arange(1, n_normal_states + 1)
-    transition_probability = numpy.ones(n_normal_states) / n_normal_states
-    for key in range(2, n_normal_states + 1):
-        state_dict[key] = State(normal_state_list, transition_probability,
-                                normal_class)
-
-    state_dict[switch_state] = None  # Hold place in dict
-
-    state_count = n_normal_states + 1
-    for _ in range(n_templates):
-        # First state in the template loop
-        start_state = state_count
-        state_dict[state_count] = State(
-            [state_count, state_count + 1, switch_state],
-            [1 - 2 * small, 1 - 2 * small, small],
-            apnea_class,
-            trainable=[True, True, False])
-        transitions_from_switch.append(state_count)
-        state_count += 1
-        # Middle states in the template loop
-        for _ in range(1, template_length - 1):
-            state_dict[state_count] = State([state_count + 1], [1], apnea_class)
-            state_count += 1
-        # Last state in the template loop
-        state_dict[state_count] = State([start_state], [1], apnea_class)
-        state_count += 1
-
-    n_switch = len(transitions_from_switch)
-    assert n_switch == n_templates + 1
-    state_dict[switch_state] = State(transitions_from_switch,
-                                     numpy.ones(n_switch) / n_switch,
-                                     apnea_class)
-    n_states = len(state_dict)
-
-    result, _ = dict2hmm(state_dict,
-                         random_observation_model_dict(n_states, args, rng),
-                         rng,
-                         truncate=args.AR_order)
-
-    result.y_mod.observe([
-        hmm.base.JointSegment(
-            hmmds.applications.apnea.utilities.read_slow_class(args, record))
-        for record in args.records
-    ])
-    result.y_mod.reestimate(
-        hmm.simple.Prob(result.y_mod.calculate()).normalize())
-
-    return result
-
-
-@register  # Alternative models for "a" records
-def fast(args, rng):
-    """Return an hmm with multiple fixed duration templates for apnea.
-
-    
-
-
-    """
-
-    n_normal_states = 3
-    template_lengths = numpy.arange(20, 40, 2)
-
-    normal_class = 0
-    apnea_class = 1
-
-    # State keys are integers
-    apnea_switch_state = n_normal_states
-    first_normal_state = 0
-    small = 1.0e-8
-
-    # First normal state, state=0, connects to apnea_switch_state
-    state_dict = {}
-    transition_probability = (numpy.ones(n_normal_states + 1) -
-                              small) / n_normal_states
-    transition_probability[apnea_switch_state] = small
-    state_dict[first_normal_state] = State(numpy.arange(n_normal_states + 1),
-                                           transition_probability,
-                                           normal_class,
-                                           trainable=[True] * n_normal_states +
-                                           [False])
-    transitions_from_switch = [first_normal_state]
-
-    # Other normal states, [1 : (n_normal_states-1)], all connect with
-    # each other
-    normal_state_list = numpy.arange(0, n_normal_states)
-    transition_probability = numpy.ones(n_normal_states) / n_normal_states
-    for key in range(1, n_normal_states):
-        state_dict[key] = State(normal_state_list, transition_probability,
-                                normal_class)
-
-    state_dict[apnea_switch_state] = None  # Hold place in dict
-
-    # Sets of fast template states.  For each chain,
-    # apnea_switch_state connects to the first state and the last
-    # state connects back to apnea_switch_state.
-    state_count = n_normal_states + 1
-    for template_length in template_lengths:
-        transitions_from_switch.append(state_count)
-        for _ in range(template_length - 1):
-            state_dict[state_count] = State([state_count + 1], [1], apnea_class)
-            state_count += 1
-        state_dict[state_count] = State([apnea_switch_state], [1], apnea_class)
-        state_count += 1
-
-    # transitions_from_switch[0] links to the first normal state.
-    # Each of the subsequent elements links to the first state of a
-    # fast chain.
-    n_switch = len(transitions_from_switch)
-    p_switch = (numpy.ones(n_switch) - small) / (n_switch - 1)
-    p_switch[first_normal_state] = small
-    state_dict[apnea_switch_state] = State(transitions_from_switch, p_switch,
-                                           apnea_class)
-    n_states = len(state_dict)
-
-    result, _ = dict2hmm(state_dict,
-                         random_observation_model_dict(n_states, args, rng),
-                         rng,
-                         truncate=args.AR_order)
-
-    result.y_mod.observe([
-        hmm.base.JointSegment(
-            hmmds.applications.apnea.utilities.read_slow_class(args, record))
-        for record in args.records
-    ])
-    result.y_mod.reestimate(
-        hmm.simple.Prob(result.y_mod.calculate()).normalize())
-
-    return result
-
-
 # Need state_dict and observation_dict
 class Peak:
     """A slow state and a deterministic sequence of states
@@ -470,11 +294,13 @@ class Peak:
         length
 
     """
+
     def __init__(self, switch_key, length):
         pass
-    
+
+
 def make_chains(lengths_names, switch_key: str, other_key: str, int_class: int,
-                state_dict):
+                args, rng, state_dict):
     """Add a sequence of states to state_dict
 
     Args:
@@ -482,6 +308,8 @@ def make_chains(lengths_names, switch_key: str, other_key: str, int_class: int,
         switch_key: Key of state that links these chains
         other_key: Key of state that links other class
         int_class:
+        args:
+        rng:
         state_dict:
 
     """
@@ -489,36 +317,59 @@ def make_chains(lengths_names, switch_key: str, other_key: str, int_class: int,
     # Magic numbers
     noise_p = 1.0e-30  # Probability of transition to noise state
     switch_p = 1.0e-6  # Probability of transition between classes
+
+    # Define alpha and beta of inverse gamma for noise states.
     # There are about 12,000 minutes of data, 25 records * 480 minutes
-    prior_weight = 9.6e4
-    prior_variance = 10.0**2
-    noise_prior = (prior_weight, prior_weight * prior_variance
-                  )  # alpha and beta of inverse gamma
+    noise_alpha = 9.6e4
+    noise_prior_variance = 10.0**2
+    noise_beta = noise_alpha * noise_prior_variance
+
+    args_alpha, args_beta = args.alpha_beta
+
+    variance = 1.0e3
     if int_class == 0:
         letter_class = 'N'
     else:
         letter_class = 'A'
     noise_key = f'{letter_class}_noise'
+
+    def make_observation(alpha, beta):
+        """Return an argument for State.__init__()
+        """
+        return {
+            'class': int_class,
+            'slow': {
+                'coefficients': rng.random(args.AR_order) / args.AR_order,
+                'alpha': alpha,
+                'beta': beta,
+                'offset': 0.0,
+                'variance': variance
+            }
+        }
+
     state_dict[noise_key] = State([noise_key, switch_key],
                                   [noise_p, 1.0 - noise_p],
-                                  int_class,
-                                  trainable=(False, False),
-                                  prior=noise_prior)
+                                  make_observation(noise_alpha, noise_beta),
+                                  trainable=(False, False))
 
     switch_transitions = [other_key, noise_key]
     for (length, name) in lengths_names:
         slow_key = f'{letter_class}_{name}_0'
         state_key = f'{letter_class}_{name}_1'
         state_dict[slow_key] = State([switch_key, slow_key, state_key],
-                                     [.1, .8, .1], int_class)
+                                     [.1, .8, .1],
+                                     make_observation(args_alpha, args_beta))
         switch_transitions.append(slow_key)
 
         # Create states in the chain
         for i in range(2, length):
             next_state_key = f'{letter_class}_{name}_{i}'
-            state_dict[state_key] = State([next_state_key], [1], int_class)
+            state_dict[state_key] = State([next_state_key], [1],
+                                          make_observation(
+                                              args_alpha, args_beta))
             state_key = next_state_key
-        state_dict[state_key] = State([slow_key], [1], int_class)
+        state_dict[state_key] = State([slow_key], [1],
+                                      make_observation(args_alpha, args_beta))
     p_switch = numpy.ones(
         len(switch_transitions)) / (len(switch_transitions) - 2)
     p_switch[0] = switch_p
@@ -527,7 +378,7 @@ def make_chains(lengths_names, switch_key: str, other_key: str, int_class: int,
     trainable[0:2] = (False, False)
     state_dict[switch_key] = State(switch_transitions,
                                    p_switch,
-                                   int_class,
+                                   make_observation(args_alpha, args_beta),
                                    trainable=trainable)
 
 
@@ -577,114 +428,17 @@ def balanced(args, rng):
 
     state_dict = {}
 
-    make_chains(normal_chains, 'N_switch', 'A_switch', normal_class, state_dict)
+    make_chains(normal_chains, 'N_switch', 'A_switch', normal_class, args, rng,
+                state_dict)
 
-    make_chains(apnea_chains, 'A_switch', 'N_switch', apnea_class, state_dict)
-
-    observation_model = random_observation_model_dict(len(state_dict), args,
-                                                      rng)
-
-    result_hmm, state_key2state_index = dict2hmm(state_dict,
-                                                 observation_model,
-                                                 rng,
-                                                 truncate=args.AR_order)
-
-    for key, index in state_key2state_index.items():
-        if state_dict[key].prior is None:
-            continue
-        observation_model['slow'].alpha[index] = state_dict[key].prior[0]
-        observation_model['slow'].beta[index] = state_dict[key].prior[1]
-
-    result_hmm.y_mod.observe([
-        hmm.base.JointSegment(
-            hmmds.applications.apnea.utilities.read_slow_class(args, record))
-        for record in args.records
-    ])
-    result_hmm.y_mod.reestimate(
-        hmm.simple.Prob(result_hmm.y_mod.calculate()).normalize())
-
-    return result_hmm, state_dict, state_key2state_index
-
-
-def make_nodes(names, switch_key: str, other_key: str, int_class: int,
-               state_dict):
-    """Add states to state_dict
-
-    Args:
-        names:  Names of states
-        switch_key: Key of state that links these chains
-        other_key: Key of state that links other class
-        int_class:
-        state_dict:
-
-    """
-
-    if int_class == 0:
-        letter_class = 'N'
-    else:
-        letter_class = 'A'
-    noise_key = f'{letter_class}_noise'
-    noise_p = 1.0e-10  # Suppress noise state
-    switch_transitions = [other_key, noise_key]
-    for name in names:
-        state_key = f'{letter_class}_{name}'
-        switch_transitions.append(state_key)
-        state_dict[state_key] = State([state_key, switch_key], [.9, .1],
-                                      int_class)
-    weight = 7.2e4  # Number of data = , 6 samples/ minute * 25
-    # records * 480 minutes = 72,000
-    variance = 10.0**2
-    prior = (weight, weight * variance)  # alpha and beta of inverse gamma
-    state_dict[noise_key] = State([noise_key, switch_key], [noise_p, 1.0],
-                                  int_class,
-                                  trainable=(False, False),
-                                  prior=prior)
-    p_switch = numpy.ones(
-        len(switch_transitions)) / (len(switch_transitions) - 2)
-    p_switch[0] = 1.0e-6  # Suppress transitions between Apnea and Normal
-    p_switch[1] = noise_p
-    trainable = [True] * len(switch_transitions)
-    trainable[0:2] = (False, False)
-    state_dict[switch_key] = State(switch_transitions,
-                                   p_switch,
-                                   int_class,
-                                   trainable=trainable)
-
-
-@register  # Alternative models for "a" records
-def simple(args, rng):
-    """Return an hmm with multiple single state nodes for both
-    normal and apnea.
-
-    """
-
-    #  Normal Nodes  N Switch A Switch  Apnea nodes
-    #
-    # *************                     ************
-    #              \                   /
-    #               \________  _______/
-    #                |      |--|     |
-    #               /--------  -------\
-    #              /                   \
-    # *************                     ************
-
-    normal_nodes = 'a0 b0 c0 d0 e0'.split()
-    apnea_nodes = 'a0 b0'.split()
-
-    normal_class = 0
-    apnea_class = 1
-
-    state_dict = {}
-
-    make_nodes(normal_nodes, 'N_switch', 'A_switch', normal_class, state_dict)
-
-    make_nodes(apnea_nodes, 'A_switch', 'N_switch', apnea_class, state_dict)
+    make_chains(apnea_chains, 'A_switch', 'N_switch', apnea_class, args, rng,
+                state_dict)
 
     observation_model = random_observation_model_dict(len(state_dict), args,
                                                       rng)
 
     result_hmm, state_key2state_index = dict2hmm(state_dict,
-                                                 observation_model,
+                                                 make_joint_class_slow,
                                                  rng,
                                                  truncate=args.AR_order)
 
@@ -722,7 +476,6 @@ def peaks(args, rng):
     #              /                   \
     # *************                     ************
 
-    
     with open(args.boundaries, 'rb') as _file:
         boundaries = pickle.load(_file)
     print(f'{boundaries=}')
