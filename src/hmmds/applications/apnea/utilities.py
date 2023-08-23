@@ -468,6 +468,10 @@ class State:
             self.trainable = [True] * len(successors)
         self.prior = prior
 
+    def set_transitions(self, successors, probabilities):
+        self.successors = successors
+        self.probabilities = probabilities
+
     def __str__(self):
         result = [f'{self.__class__} instance\n']
         result.append(f'observation: {self.observation}, prior: {self.prior}\n')

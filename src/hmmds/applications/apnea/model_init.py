@@ -13,6 +13,7 @@ import pickle
 import argparse
 
 import numpy
+import scipy.linalg
 
 import hmm.base
 import hmm.simple
@@ -53,72 +54,28 @@ def parse_args(argv):
     return args
 
 
-def random_1d_prob(rng: numpy.random.Generator, length: int) -> numpy.ndarray:
-    """Draw a probability vector from a uniform distribution
-    Args:
-       rng: Random number generator
-       length: Dimension of returned vector
-
-    Returns:
-        A normalized probability mass function
-    """
-    vector = rng.random(length)
-    return vector / vector.sum()
-
-
-def random_conditional_prob(rng: numpy.random.Generator,
-                            shape: tuple) -> hmm.simple.Prob:
-    """Draw a random conditional distribution P_{a|b}
-    Args:
-       rng: Random number generator
-       shape: (|A|,|B|) where |A| is the number of possible values of a
-
-    Returns:
-        A normalized conditional distribution
-    """
-    return hmm.simple.Prob(rng.random(shape)).normalize()
-
-
-def _make_hmm(y_model,
-              p_state_initial,
-              p_state_time_average,
-              p_state2state,
-              names,
-              args,
-              rng,
-              Class=develop.hmm):
-    """Create a hmm using parameters defined in the caller
-
-    Args:
-        y_model: P(y[t]|s[t]) and functions to support reestimation
-        p_state_initial:
-        p_state_time_average:
-        p_state2state: p[t=1] = numpy.dot(p[t=0], p_state2state)
-        names: List of record names, eg, 'c01 a05 x35'.split()
-        rng: Random number generator
-
-    Return: hmm initialized with data specified by names
-
-    Unsupervised, ie, no class information. AR-4 for heart rate. 3-d
-    multivariate Gaussian for respiration.
-
-    """
-
-    _hmm = Class.HMM(p_state_initial, p_state_time_average, p_state2state,
-                     y_model, rng)
-
-    y_data = hmmds.applications.apnea.utilities.list_heart_rate_respiration_data(
-        names, args)
-    _hmm.initialize_y_model(y_data)
-    return _hmm
-
-
-def make_joint_peak_class_slow(state_dict):
+def make_joint_peak_class_slow(state_dict, keys, rng, truncate=0):
     """Return a JointObservation instance with components "peak",
     "class" and "slow"
 
+    Args:
+        state_dict:
+        keys: Establishes order for state_dict
+        rng:
+        truncate:
+
+    result["peak"] is an IntegerObservation instance
     """
-    pass
+    result = make_joint_class_slow(state_dict, keys, rng, truncate)
+    n_states = len(keys)
+    assert n_states == len(state_dict)
+    peak_dimension = len(state_dict[keys[0]].observation['peak'])
+    py_state = numpy.empty((n_states,peak_dimension))
+    for state_index, key in enumerate(keys):
+        py_state[state_index,:] = state_dict[key].observation['peak']
+
+    result['peak'] = hmm.C.IntegerObservation(py_state, rng)
+    return hmm.base.JointObservation(result, truncate=truncate)
 
 
 def make_joint_class_slow(state_dict, keys, rng, truncate=0):
@@ -129,6 +86,7 @@ def make_joint_class_slow(state_dict, keys, rng, truncate=0):
         state_dict:
         keys: Establishes order for state_dict
         rng:
+        truncate:
 
     """
     class_index2state_indices = {}
@@ -285,19 +243,6 @@ def c_model(args, rng):
                        y_model, rng)
 
 
-# Need state_dict and observation_dict
-class Peak:
-    """A slow state and a deterministic sequence of states
-
-    Args:
-        switch_key
-        length
-
-    """
-
-    def __init__(self, switch_key, length):
-        pass
-
 
 def make_chains(lengths_names, switch_key: str, other_key: str, int_class: int,
                 args, rng, state_dict):
@@ -381,6 +326,62 @@ def make_chains(lengths_names, switch_key: str, other_key: str, int_class: int,
                                    make_observation(args_alpha, args_beta),
                                    trainable=trainable)
 
+def peak_chain(switch_key: str, prefix: str, int_class: int,
+                args, rng, state_dict, peak_prob: numpy.ndarray, length=7):
+    """Add a sequence of states to state_dict
+
+    Args:
+        switch_key: Key of state that links these chains
+        prefix: For state keys
+        int_class:
+        args:
+        rng:
+        state_dict:
+        peak_prob: Output distribution at peak
+        length: Number of 2.5 second samples in peak pattern
+
+    """
+
+    # Magic numbers
+
+    args_alpha, args_beta = args.alpha_beta
+
+    variance = 1.0e3
+    non_peak = numpy.zeros(len(peak_prob))
+    non_peak[0] = 1.0
+
+    def make_observation(alpha, beta, prob):
+        """Return an argument for State.__init__()
+        """
+        return {
+            'class': int_class,
+            'peak': prob,
+            'slow': {
+                'coefficients': rng.random(args.AR_order) / args.AR_order,
+                'alpha': alpha,
+                'beta': beta,
+                'offset': 0.0,
+                'variance': variance
+            }
+        }
+
+    for index in range(length+1):
+        state_key = f'{prefix}_{index}'
+        next_key = f'{prefix}_{index+1}'
+        if index == int(length/2):
+            prob = peak_prob
+        else:
+            prob = non_peak
+        state_dict[state_key] = State(
+            [next_key], [1.0], make_observation(args_alpha, args_beta, prob))
+
+    # Repair transitions in slow and last states
+    slow_key = f'{prefix}_0'
+    first_key = f'{prefix}_1'
+    last_key = f'{prefix}_{length}'
+    state_dict[slow_key].set_transitions([switch_key, slow_key, first_key], [.1, .8, .1])
+    state_dict[last_key].set_transitions([slow_key], [1.0])
+
 
 @register  # Alternative models for "a" records
 def balanced(args, rng):
@@ -460,9 +461,8 @@ def balanced(args, rng):
 
 
 @register  # Joint observation includes values for peaks
-def peaks(args, rng):
-    """Return an hmm with multiple single state nodes for both
-    normal and apnea.
+def hmm_peaks(args, rng):
+    """Return an hmm for joint observations that include "peaks"
 
     """
 
@@ -478,9 +478,91 @@ def peaks(args, rng):
 
     with open(args.boundaries, 'rb') as _file:
         boundaries = pickle.load(_file)
-    print(f'{boundaries=}')
-    sys.exit(0)
-    #return result_hmm, state_dict, state_key2state_index
+    peak_dimension = len(boundaries) + 1 # Dimension of output for peaks
+
+    normal_class = 0
+    apnea_class = 1
+
+    state_dict = {}
+
+    def make_switch_noise(prefix, other_key, int_class, chain_keys, state_dict):
+        """Make states for switching and for noise
+
+        Args:
+            prefix: Either "N" or "A"
+            other_key: Name of other switch state
+            int_class: Either 0 or 1
+            chain_keys: Names of states that switch links to
+            state_dict:
+        """
+        # Magic numbers
+        noise_p = 1.0e-30  # Probability of transition to noise state
+        switch_p = 1.0e-6  # Probability of transition between classes
+
+        # Define alpha and beta of inverse gamma for noise states.
+        # There are about 12,000 minutes of data, 25 records * 480 minutes
+        noise_alpha = 9.6e4
+        noise_prior_variance = 10.0**2
+        noise_beta = noise_alpha * noise_prior_variance
+
+        args_alpha, args_beta = args.alpha_beta
+
+        variance = 1.0e3
+
+        def make_observation(alpha, beta):
+            p_y = numpy.zeros(peak_dimension)
+            p_y[0] = 1.0
+            return {
+                'class': int_class,
+                'peak': p_y,
+                'slow':{
+                    'coefficients': rng.random(args.AR_order) / args.AR_order,
+                    'alpha': alpha,
+                    'beta': beta,
+                    'offset': 0.0,
+                    'variance': variance
+                    }
+                }
+        switch_key = f'{prefix}_switch'
+        noise_key = f'{prefix}_noise'
+        state_dict[noise_key] = State([noise_key, switch_key],
+                                      [noise_p, 1.0-noise_p],
+                                      make_observation(noise_alpha, noise_beta),
+                                      trainable=(False, False))
+        successors = [other_key, switch_key, noise_key] + chain_keys
+        probabilities = numpy.ones(len(successors))/len(chain_keys)
+        probabilities[0] = switch_p
+        probabilities[1] = noise_p
+        probabilities /= probabilities.sum()
+        trainable = [True] * len(successors)
+        trainable[0:2] = (False, False)
+        state_dict[switch_key] = State(successors, probabilities, make_observation(args_alpha, args_beta), trainable=trainable)
+
+    # Make the one chain for modeling normal peaks
+    peak_prob = numpy.ones(peak_dimension)/peak_dimension
+    peak_chain('N_switch', 'N_chain', 0, args, rng, state_dict, peak_prob)
+
+    make_switch_noise('N', 'A_switch', 0, ['N_chain_0'], state_dict)
+
+    # Set up discrete p_y for apnea peaks
+    peak_probs = numpy.zeros((len(boundaries), len(boundaries)+1))
+    temp = numpy.zeros(len(boundaries))
+    temp[:2] = [2,1]
+    toeplitz = scipy.linalg.toeplitz(temp, temp)
+    peak_probs[:,1:] =  (toeplitz / toeplitz.sum(axis=1)).T
+
+    # Make chains for apnea peaks
+    a_chain_links = []
+    for number, peak_prob in enumerate(peak_probs):
+        chain_key = f'A{number}'
+        a_chain_links.append(f'{chain_key}_0')
+        peak_chain('A_switch', chain_key, 1, args, rng, state_dict, peak_prob)
+
+    make_switch_noise('A', 'N_switch', 1, a_chain_links, state_dict)
+
+    result_hmm, state_key2state_index = dict2hmm(state_dict, make_joint_peak_class_slow,
+                                                 rng, truncate=args.AR_order)
+    return result_hmm, state_dict, state_key2state_index
 
 
 def main(argv=None):
