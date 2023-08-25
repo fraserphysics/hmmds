@@ -39,10 +39,6 @@ def parse_args(argv):
                         type=int,
                         default=1,
                         help="Number of previous values for prediction.")
-    parser.add_argument('--boundaries',
-                        type=str,
-                        default='boundaries',
-                        help="Path to levels for key peaks")
 
     parser.add_argument(
         'key',

@@ -71,6 +71,10 @@ def common_arguments(parser: argparse.ArgumentParser):
         type=float,
         default=14.0,
         help='Frequency in cycles per minute for heart rate -> respiration')
+    parser.add_argument('--boundaries',
+                        type=str,
+                        default='boundaries',
+                        help="Path to levels for key peaks")
 
 
 def join_common(args: argparse.Namespace):
@@ -434,7 +438,7 @@ def read_slow_class_peak(args, boundaries, name='a03'):
     slow_signal = raw_dict['slow']
 
     locations, properties = peaks(slow_signal, args.heart_rate_sample_frequency)
-    digits = numpy.digitize(properties['prominences'], boundaries[1])
+    digits = numpy.digitize(properties['prominences'], boundaries)
     peak_signal = numpy.zeros(len(slow_signal), dtype=numpy.int32)
     peak_signal[locations] = digits
     raw_dict['peak'] = peak_signal
@@ -468,7 +472,11 @@ class State:
             self.trainable = [True] * len(successors)
         self.prior = prior
 
-    def set_transitions(self, successors, probabilities):
+    def set_transitions(self, successors, probabilities, trainable=None):
+        if trainable is None:
+            self.trainable = [True] * len(successors)
+        else:
+            self.trainable = trainable
         self.successors = successors
         self.probabilities = probabilities
 

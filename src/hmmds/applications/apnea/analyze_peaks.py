@@ -104,7 +104,7 @@ def main(argv=None):
     axeses[1].set_ylabel('Number')
     axeses[1].set_xlabel('peak prominences')
 
-    plot_record(args, 'a03', boundaries, axeses[2])
+    plot_record(args, 'a03', boundaries[1], axeses[2])
     for axes in axeses:
         axes.legend()
     if args.show:
