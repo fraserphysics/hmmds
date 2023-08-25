@@ -506,8 +506,7 @@ def hmm_peaks(args, rng):
         variance = 1.0e3
 
         def make_observation(alpha, beta):
-            p_y = numpy.zeros(peak_dimension)
-            p_y[0] = 1.0
+            p_y = numpy.ones(peak_dimension)/peak_dimension
             return {
                 'class': int_class,
                 'peak': p_y,
