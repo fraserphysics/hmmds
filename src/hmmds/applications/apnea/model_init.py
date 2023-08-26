@@ -66,9 +66,9 @@ def make_joint_peak_class_slow(state_dict, keys, rng, truncate=0):
     n_states = len(keys)
     assert n_states == len(state_dict)
     peak_dimension = len(state_dict[keys[0]].observation['peak'])
-    py_state = numpy.empty((n_states,peak_dimension))
+    py_state = numpy.empty((n_states, peak_dimension))
     for state_index, key in enumerate(keys):
-        py_state[state_index,:] = state_dict[key].observation['peak']
+        py_state[state_index, :] = state_dict[key].observation['peak']
 
     result['peak'] = hmm.C.IntegerObservation(py_state, rng)
     return hmm.base.JointObservation(result, truncate=truncate)
@@ -239,7 +239,6 @@ def c_model(args, rng):
                        y_model, rng)
 
 
-
 def make_chains(lengths_names, switch_key: str, other_key: str, int_class: int,
                 args, rng, state_dict):
     """Add a sequence of states to state_dict
@@ -322,8 +321,15 @@ def make_chains(lengths_names, switch_key: str, other_key: str, int_class: int,
                                    make_observation(args_alpha, args_beta),
                                    trainable=trainable)
 
-def peak_chain(switch_key: str, prefix: str, int_class: int,
-                args, rng, state_dict, peak_prob: numpy.ndarray, length=7):
+
+def peak_chain(switch_key: str,
+               prefix: str,
+               int_class: int,
+               args,
+               rng,
+               state_dict,
+               peak_prob: numpy.ndarray,
+               length=7):
     """Add a sequence of states to state_dict
 
     Args:
@@ -361,21 +367,23 @@ def peak_chain(switch_key: str, prefix: str, int_class: int,
             }
         }
 
-    for index in range(length+1):
+    for index in range(length + 1):
         state_key = f'{prefix}_{index}'
         next_key = f'{prefix}_{index+1}'
-        if index == int(length/2):
+        if index == int(length / 2):
             prob = peak_prob
         else:
             prob = non_peak
-        state_dict[state_key] = State(
-            [next_key], [1.0], make_observation(args_alpha, args_beta, prob))
+        state_dict[state_key] = State([next_key], [1.0],
+                                      make_observation(args_alpha, args_beta,
+                                                       prob))
 
     # Repair transitions in slow and last states
     slow_key = f'{prefix}_0'
     first_key = f'{prefix}_1'
     last_key = f'{prefix}_{length}'
-    state_dict[slow_key].set_transitions([switch_key, slow_key, first_key], [.1, .8, .1])
+    state_dict[slow_key].set_transitions([switch_key, slow_key, first_key],
+                                         [.1, .8, .1])
     state_dict[last_key].set_transitions([slow_key], [1.0])
 
 
@@ -474,7 +482,7 @@ def hmm_peaks(args, rng):
 
     with open(args.boundaries, 'rb') as _file:
         boundaries = pickle.load(_file)
-    peak_dimension = len(boundaries) + 1 # Dimension of output for peaks
+    peak_dimension = len(boundaries) + 1  # Dimension of output for peaks
 
     normal_class = 0
     apnea_class = 1
@@ -506,45 +514,49 @@ def hmm_peaks(args, rng):
         variance = 1.0e3
 
         def make_observation(alpha, beta):
-            p_y = numpy.ones(peak_dimension)/peak_dimension
+            p_y = numpy.ones(peak_dimension) / peak_dimension
             return {
                 'class': int_class,
                 'peak': p_y,
-                'slow':{
+                'slow': {
                     'coefficients': rng.random(args.AR_order) / args.AR_order,
                     'alpha': alpha,
                     'beta': beta,
                     'offset': 0.0,
                     'variance': variance
-                    }
                 }
+            }
+
         switch_key = f'{prefix}_switch'
         noise_key = f'{prefix}_noise'
         state_dict[noise_key] = State([noise_key, switch_key],
-                                      [noise_p, 1.0-noise_p],
+                                      [noise_p, 1.0 - noise_p],
                                       make_observation(noise_alpha, noise_beta),
                                       trainable=(False, False))
         successors = [other_key, switch_key, noise_key] + chain_keys
-        probabilities = numpy.ones(len(successors))/len(chain_keys)
+        probabilities = numpy.ones(len(successors)) / len(chain_keys)
         probabilities[0] = switch_p
         probabilities[1] = noise_p
         probabilities /= probabilities.sum()
         trainable = [True] * len(successors)
         trainable[0:2] = (False, False)
-        state_dict[switch_key] = State(successors, probabilities, make_observation(args_alpha, args_beta), trainable=trainable)
+        state_dict[switch_key] = State(successors,
+                                       probabilities,
+                                       make_observation(args_alpha, args_beta),
+                                       trainable=trainable)
 
     # Make the one chain for modeling normal peaks
-    peak_prob = numpy.ones(peak_dimension)/peak_dimension
+    peak_prob = numpy.ones(peak_dimension) / peak_dimension
     peak_chain('N_switch', 'N_chain', 0, args, rng, state_dict, peak_prob)
 
     make_switch_noise('N', 'A_switch', 0, ['N_chain_0'], state_dict)
 
     # Set up discrete p_y for apnea peaks
-    peak_probs = numpy.zeros((len(boundaries), len(boundaries)+1))
+    peak_probs = numpy.zeros((len(boundaries), len(boundaries) + 1))
     temp = numpy.zeros(len(boundaries))
-    temp[:2] = [2,1]
+    temp[:2] = [2, 1]
     toeplitz = scipy.linalg.toeplitz(temp, temp)
-    peak_probs[:,1:] =  (toeplitz / toeplitz.sum(axis=1)).T
+    peak_probs[:, 1:] = (toeplitz / toeplitz.sum(axis=1)).T
 
     # Make chains for apnea peaks
     a_chain_links = []
@@ -555,8 +567,10 @@ def hmm_peaks(args, rng):
 
     make_switch_noise('A', 'N_switch', 1, a_chain_links, state_dict)
 
-    result_hmm, state_key2state_index = dict2hmm(state_dict, make_joint_peak_class_slow,
-                                                 rng, truncate=args.AR_order)
+    result_hmm, state_key2state_index = dict2hmm(state_dict,
+                                                 make_joint_peak_class_slow,
+                                                 rng,
+                                                 truncate=args.AR_order)
     return result_hmm, state_dict, state_key2state_index
 
 

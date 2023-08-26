@@ -322,7 +322,18 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                 self.expert_class)) * PINT('minutes')
 
         # Get observations for apnea model
-        self.y_data = [hmm.base.JointSegment({'slow': self.filters['slow']})]
+        if 'peak' in self.model.y_mod:
+            with open(self.model_args.boundaries, 'rb') as _file:
+                boundaries = pickle.load(_file)
+            self.y_data = [
+                hmm.base.JointSegment(
+                    utilities.read_slow_peak(self.model_args, boundaries,
+                                             self.record_box.text()))
+            ]
+        else:
+            self.y_data = [
+                hmm.base.JointSegment({'slow': self.filters['slow']})
+            ]
 
         # Calculate hmm classification
         self.new_classification()
