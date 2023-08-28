@@ -47,7 +47,7 @@ $(MODELS)/peaks_ar%_initial: model_init.py $(BOUNDARIES)
 --boundaries $(BOUNDARIES) hmm_peaks $@
 
 $(MODELS)/peaks_ar%_masked: apnea_train.py $(MODELS)/peaks_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --iterations 100 --records $(EasySlow) --type class_peak --boundaries boundaries $(MODELS)/peaks_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --iterations 50 --records $(EasySlow) --type class_peak --boundaries boundaries $(MODELS)/peaks_ar$*_initial $@
 
 $(MODELS)/balanced_ar%_masked: apnea_train.py $(MODELS)/balanced_ar%_initial
 	python $< --AR_order $* --iterations 50 --records $(EasySlow) --type masked --trim_start 25 $(MODELS)/balanced_ar$*_initial $@

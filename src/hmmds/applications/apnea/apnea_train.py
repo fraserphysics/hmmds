@@ -72,7 +72,6 @@ def class_peak(args):
     with open(args.boundaries, 'rb') as _file:
         boundaries = pickle.load(_file)
 
-    print(f'In apnea_train.class_peak, {args.heart_rate_sample_frequency=}')
     return [
         hmm.base.JointSegment(
             hmmds.applications.apnea.utilities.read_slow_class_peak(
