@@ -86,7 +86,7 @@ def main(argv=None):
 
     # Set boundaries so that each apnea bin has 1,000 peaks
     boundaries = []
-    for i, index in enumerate(range(0, len(peak_dict[1]), 1000)):
+    for i, index in enumerate(range(0, len(peak_dict[1]), 1300)):
         boundaries.append((index / len(peak_dict[1]), peak_dict[1][index]))
     boundaries = numpy.array(boundaries).T
 

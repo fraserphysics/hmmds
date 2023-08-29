@@ -79,6 +79,19 @@ def class_peak(args):
     ]
 
 
+@register
+def class_peak_interval(args):
+
+    with open(args.boundaries, 'rb') as _file:
+        boundaries = pickle.load(_file)
+
+    return [
+        hmm.base.JointSegment(
+            hmmds.applications.apnea.utilities.read_slow_class_peak_interval(
+                args, boundaries, record)) for record in args.records
+    ]
+
+
 def new_ar_order(model, ar_order, y_data):
     """Set parameters for new AR order using weights from orignal model.
 
@@ -134,8 +147,7 @@ def main(argv=None):
         model.y_mod = y_mod
     model.multi_train(y_data, args.iterations)
     hmmds.applications.apnea.utilities.print_chain_model(
-        model.y_mod['slow'], model.alpha.sum(axis=0),
-        old_args.state_key2state_index)
+        model.y_mod, model.alpha.sum(axis=0), old_args.state_key2state_index)
 
     model.strip()
     with open(args.write_path, 'wb') as _file:

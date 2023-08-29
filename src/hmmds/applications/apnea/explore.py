@@ -67,13 +67,13 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         root_ok.clicked.connect(self.new_root)
 
         self.record_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.record_box.setText('a04')
+        self.record_box.setText('a03')
         record_ok = PyQt5.QtWidgets.QPushButton('Record', self)
         record_ok.clicked.connect(self.new_record)
 
         self.model_box = PyQt5.QtWidgets.QLineEdit(self)
         self.model_box.setText(
-            f'{self.root_box.text()}/build/derived_data/apnea/models/balanced_ar3_masked'
+            f'{self.root_box.text()}/build/derived_data/apnea/models/intervals_ar3_masked'
         )
         model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
         model_ok.clicked.connect(self.new_model)
@@ -262,7 +262,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_states()
         self.plot_classification()
         # Print diagnostic information.
-        utilities.print_chain_model(self.model.y_mod['slow'], self.weight,
+        utilities.print_chain_model(self.model.y_mod, self.weight,
                                     self.model_args.state_key2state_index)
 
     def signal_path(self, signal):
@@ -327,8 +327,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                 boundaries = pickle.load(_file)
             self.y_data = [
                 hmm.base.JointSegment(
-                    utilities.read_slow_peak(self.model_args, boundaries,
-                                             self.record_box.text()))
+                    utilities.read_slow_peak_interval(self.model_args,
+                                                      boundaries,
+                                                      self.record_box.text()))
             ]
         else:
             self.y_data = [

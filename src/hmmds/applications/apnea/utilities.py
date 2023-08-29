@@ -260,9 +260,9 @@ def notch_hr(
 def peaks(
         filtered: numpy.ndarray,  # Heart rate in beats per minute
         sample_frequency,  # A pint frequency
-        distance=0.3 * PINT('minutes'),
-        prominence=5.0,  # In beats per minute
-        wlen=2.0 * PINT('minutes'),
+        distance=0.417 * PINT('minutes'),
+        prominence=6.0,  # In beats per minute
+        wlen=1.42 * PINT('minutes'),
 ):
     """Find peaks in the low pass filtered heart rate signal
     
@@ -270,7 +270,7 @@ def peaks(
         filtered: Heart rate time series as array of floats
         sample_frequency: A pint frequency
         distance: Minimum time between peaks
-        prominance:
+        prominance: Minimum prominence for detection
         wlen: Window length
 
     Return: peaks, properties
@@ -419,6 +419,38 @@ def read_slow_class(args, name='a03'):
     return raw_dict
 
 
+def add_peaks(args, raw_dict, boundaries):
+    """Add key item 'peak':values to raw_dict
+
+    """
+    slow_signal = raw_dict['slow']
+
+    locations, properties = peaks(slow_signal, args.heart_rate_sample_frequency)
+    digits = numpy.digitize(properties['prominences'], boundaries)
+    peak_signal = numpy.zeros(len(slow_signal), dtype=numpy.int32)
+    peak_signal[locations] = digits
+    raw_dict['peak'] = peak_signal
+    return raw_dict
+
+
+def add_intervals(raw_dict):
+    """Add key item 'interval':values to raw_dict
+
+    """
+    peak_signal = raw_dict['peak']
+
+    interval_signal = numpy.zeros(n_times := len(peak_signal))
+    locations = numpy.nonzero(peak_signal)[0]
+
+    for t_start, t_stop in zip(locations[:-1], locations[1:]):
+        interval_signal[t_start:t_stop] = t_stop - t_start
+    interval_signal[:locations[0]] = locations[0]
+    interval_signal[locations[-1]:] = n_times - locations[-1]
+
+    raw_dict['interval'] = interval_signal
+    return raw_dict
+
+
 def read_slow_class_peak(args, boundaries, name='a03'):
     """Add peak to dict from read_slow_class
 
@@ -434,15 +466,7 @@ def read_slow_class_peak(args, boundaries, name='a03'):
 
     """
 
-    raw_dict = read_slow_class(args, name)
-    slow_signal = raw_dict['slow']
-
-    locations, properties = peaks(slow_signal, args.heart_rate_sample_frequency)
-    digits = numpy.digitize(properties['prominences'], boundaries)
-    peak_signal = numpy.zeros(len(slow_signal), dtype=numpy.int32)
-    peak_signal[locations] = digits
-    raw_dict['peak'] = peak_signal
-    return raw_dict
+    return add_peaks(args, read_slow_class(args, name), boundaries)
 
 
 def read_slow_peak(args, boundaries, name='a03'):
@@ -460,15 +484,44 @@ def read_slow_peak(args, boundaries, name='a03'):
 
     """
 
-    raw_dict = read_slow(args, name)
-    slow_signal = raw_dict['slow']
+    return add_peaks(args, read_slow(args, name), boundaries)
 
-    locations, properties = peaks(slow_signal, args.heart_rate_sample_frequency)
-    digits = numpy.digitize(properties['prominences'], boundaries)
-    peak_signal = numpy.zeros(len(slow_signal), dtype=numpy.int32)
-    peak_signal[locations] = digits
-    raw_dict['peak'] = peak_signal
-    return raw_dict
+
+def read_slow_class_peak_interval(args, boundaries, name='a03'):
+    """Add peak to dict from read_slow_class
+
+    Args:
+        args:
+        boundaries:
+        name:  Record name, eg, 'a03'
+
+    Return: raw_dict
+
+    Keys of raw_dict are 'slow', 'class', and 'peak' and values are
+    time series sampled at rate args.heart_rate_sample_frequency
+
+    """
+
+    return add_intervals(
+        add_peaks(args, read_slow_class(args, name), boundaries))
+
+
+def read_slow_peak_interval(args, boundaries, name='a03'):
+    """Add peak to dict from read_slow
+
+    Args:
+        args:
+        boundaries:
+        name:  Record name, eg, 'a03'
+
+    Return: raw_dict
+
+    Keys of raw_dict are 'slow', 'class', and 'peak' and values are
+    time series sampled at rate args.heart_rate_sample_frequency
+
+    """
+
+    return add_intervals(add_peaks(args, read_slow(args, name), boundaries))
 
 
 # I put this in utilities enable apnea_train.py to run.
@@ -519,23 +572,25 @@ class State:
         return ''.join(result)
 
 
-def print_chain_model(slow, weight, key2index):
+def print_chain_model(y_mod, weight, key2index):
     """Print information to understand heart rate model performance.
 
     Args:
-        slow: An AutoRegressive observation model from hmm.C or hmm.observe_float
+        y_mod: A joint observation model
         weight: An array of weights for each state
         key2index: Maps state keys to state indices for hmm
     """
-    print(
-        f'\nindex {"name":14s} {"weight":9s} {"variance":9s} {"a/b":6s} {"alpha":9s}'
-    )
+    interval = y_mod['interval']
+    print(f'\nindex {"name":14s} {"weight":9s} {"mu":>9s} {"sigma":>9s}')
     for key, index in key2index.items():
         if key[-1] == '0' or key[
                 -1] == '1' or key in 'N_noise N_switch A_noise A_switch'.split(
                 ):
+            sigma = numpy.sqrt(interval.variance[index]) * (60 / 24
+                                                           )  # in seconds
+            mu = interval.mu[index] * (60 / 24)
             print(
-                f'{index:3d}   {key:14s} {weight[index]:<9.3g} {slow.variance[index]:9.3g} {slow.beta[index]/slow.alpha[index]:6.1f} {slow.alpha[index]:9.2e}'
+                f'{index:3d}   {key:14s} {weight[index]:<9.4g} {mu:9.3g} {sigma:9.3g}'
             )
 
 
