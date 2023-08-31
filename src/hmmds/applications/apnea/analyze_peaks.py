@@ -84,9 +84,9 @@ def main(argv=None):
         data.sort()
         peak_dict[class_] = data
 
-    # Set boundaries so that each apnea bin has 1,000 peaks
+    # Set boundaries so that each apnea bin has 1,300 peaks
     boundaries = []
-    for i, index in enumerate(range(0, len(peak_dict[1]), 1300)):
+    for index in range(0, len(peak_dict[1]), 1300):
         boundaries.append((index / len(peak_dict[1]), peak_dict[1][index]))
     boundaries = numpy.array(boundaries).T
 
