@@ -93,27 +93,35 @@ def plot_scatter(axes, peak_dict):
     axes.legend()
 
 
-def plot_histograms(axes, peak_dict, boundaries):
+def plot_histograms(axes, peak_dict, boundaries, bin=3):
     """Plot x=interval y=frequency
+
+    Args:
+        axes: Matplotlib axes
+        peak_dict: (prominence, interval) = peak_dict[0][i] for normal
+        boundaries: For prominence from apnea data
+        bin: Plot histogram of intervals for data with prominence in this bin.  Min = 1 Max = 6
 
     """
     n_key, a_key = (0, 1)
     prom_key, interval_key = (0, 1)
-    bin_key = 3  # min = 1 max = 6
+
     # Get intervals for all normal and apnea data
     intervals = [
         numpy.array(peak_dict[key])[:, interval_key] for key in (n_key, a_key)
     ]
 
-    foo = numpy.array(peak_dict[a_key])
-    digits = numpy.digitize(foo[:, prom_key], boundaries)
-    locations = numpy.nonzero(digits == bin_key)[0]  # max = 6
-    intervals.append(foo[:, interval_key][locations])
+    # Get intervals for data with prominence in bin
+    a_prominence, a_interval = (numpy.array(peak_dict[a_key])[:, key]
+                                for key in (prom_key, interval_key))
+    locations = numpy.nonzero(
+        numpy.digitize(a_prominence, boundaries) == bin)[0]
+    intervals.append(a_interval[locations])
     #values = [peak_dict[key][:,1][numpy.nonzero(peak_dict[key][:,0]-1)] for key in (0,1)]
 
     axes.hist(intervals,
               bins=numpy.linspace(.4, 3, 20),
-              label=f'N A A_{bin_key}'.split(),
+              label=f'N A A_{bin}'.split(),
               log=False,
               density=True)
 
