@@ -1,0 +1,174 @@
+"""apnea_ratio.py Estimates the ratio of probability densities of
+intervals between peaks for normal and apnea.  r(x) =
+p_normal(x)/p_apnea(x).
+
+I selected these values by experimenting and looking at plots:
+
+limit = 2.2 The data is sparse for lengths > 2.  There is a peak in
+            the estimated ratio of 5.0 at length = 1.7.  I belive
+            these numbers are +/- 5%.  The cut-off value 2.2 is far
+            enough away from the peak to not have much effect.  I
+            avoid a large cut-off because it would increase the
+            optimal sigma.
+
+sigma = 0.1 Smaller values yield wiggles at the sampling frequency
+            24/minute -> intervals are quantized with a step of
+            0.041666...
+
+lambda = 0.06 The densratio code says this is optimal
+
+kernel_num = 800 Perhaps larger than necessary, but still fast.
+
+I used apnea.plot_pp.py to create the file pickled_peak_dict.
+
+See Density Ratio Estimation: A Comprehensive Review at
+http://www.ms.k.u-tokyo.ac.jp/sugi/2010/RIMS2010.pdf
+
+"""
+import sys
+import pickle
+import argparse
+
+import numpy
+
+import utilities
+import plotscripts.utilities
+import density_ratio
+
+
+def parse_args(argv):
+    """ Combine command line arguments with defaults from utilities
+    """
+
+    parser = argparse.ArgumentParser(
+        "Estimate and plot p_normal()/p_apnea() for intervals between peaks of heart rate."
+    )
+    parser.add_argument('--pickle',
+                        type=str,
+                        help='',
+                        default='pickled_peak_dict')
+    parser.add_argument('--show',
+                        action='store_true',
+                        help="display figure using Qt5")
+    utilities.common_arguments(parser)
+    parser.add_argument('figure_path', type=str, help='path of file to write')
+    args = parser.parse_args(argv)
+    utilities.join_common(args)
+    return args
+
+
+def analyze_records(args, record_names):
+    """Calculate (prominence, period) pairs.  Also find boundaries for
+    digitizing prominence.
+
+    """
+
+    f_sample = args.heart_rate_sample_frequency.to('1/minute').magnitude
+    apnea_key = 1
+
+    # Calculate (prominence, period) pairs
+    peak_dict = {0: [], 1: []}
+    for record_name in record_names:
+        raw_dict = utilities.read_slow_class(args, record_name)
+        slow = raw_dict['slow']
+        _class = raw_dict['class']
+        peaks, properties = utilities.peaks(slow,
+                                            args.heart_rate_sample_frequency)
+        for index in range(len(peaks) - 1):
+            t_peak = peaks[index]
+            prominence_t = properties['prominences'][index]
+            period_t = (peaks[index + 1] - t_peak) / f_sample
+            class_t = _class[t_peak]
+            peak_dict[class_t].append((prominence_t, period_t))
+
+    # Calculate boundaries for prominence based on peaks during apnea
+    pp_array = numpy.array(peak_dict[apnea_key]).T
+    apnea_peaks = pp_array[0]
+    apnea_peaks.sort()
+    boundaries = []
+    for index in range(0, len(apnea_peaks), 1300):
+        boundaries.append(apnea_peaks[index])
+    boundaries = numpy.array(boundaries).T
+
+    return peak_dict, boundaries
+
+
+def make_density_ratio(peak_dict, limit, sigma, _lambda):
+    """  Estimate the function p_normal(x)/p_apnea(x)
+
+    Args:
+        peak_dict: Arrays of peak heights and lengths of intervals between peaks
+        limit: Drop samples with length > limit
+        sigma: Width of kernel function
+        _lambda: Regularizes optimization
+
+    Returns: density_ratio.DensityRatio instance
+
+    """
+
+    key_n = 0
+    key_a = 1
+    i_interval = 1
+
+    def drop_big(x_in):
+        """Return x_i after dropping values larger than limit
+        """
+        return x_in[numpy.nonzero(x_in < limit)]
+
+    normal, apnea = (drop_big(numpy.array(peak_dict[key])[:,
+                                                          i_interval]).reshape(
+                                                              -1, 1)
+                     for key in (key_n, key_a))
+
+    result = density_ratio.uLSIF(normal,
+                                 apnea,
+                                 kernel_num=800,
+                                 sigma=sigma,
+                                 _lambda=_lambda)
+    return result
+
+
+def plot(axes, density_ratio: density_ratio.DensityRatio, max_interval: float):
+    """The minimum value for interval is .4583333
+
+    """
+    z = numpy.linspace(0.45, max_interval, 1000).reshape(-1, 1)
+    density_ratio = density_ratio(z)
+    axes.plot(z, density_ratio)
+    axes.set_xlabel('length')
+    axes.set_ylabel('p_normal/p_apnea')
+
+
+def main(argv=None):
+    """Estimate and plot ratio of probability densities for intervals
+    between peaks.
+
+    """
+    if argv is None:  # Usual case
+        argv = sys.argv[1:]
+
+    limit = 2.2
+    sigma = 0.1
+    _lambda = 0.06
+
+    args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
+    fig, axes = pyplot.subplots(nrows=1, figsize=(6, 8))
+
+    # Find peaks
+    peak_dict, boundaries = analyze_records(args, args.a_names)
+    with open(args.pickle, 'wb') as _file:
+        pickle.dump(peak_dict, _file)
+
+    _ratio = make_density_ratio(peak_dict, limit, sigma, _lambda)
+
+    plot(axes, _ratio, limit + 5 * sigma)
+
+    if args.show:
+        pyplot.show()
+    fig.savefig(args.figure_path)
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

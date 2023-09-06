@@ -5,13 +5,20 @@ python plot_pp.py --records a01 a02 --heart_rate_sample_frequency 24 --show pp_p
 Make a scatter plot of prominence and period (time between peaks)
 
 """
+# An earlier version of this code used scipy.stats.gamma to estimate
+# pdfs of the intervals between peaks of the heart rate for normal and
+# apnea minutes.  Because fits were not satisfactory, I wrote
+# density_ratio.py which uses Gaussian kernels to estimate the ratio
+# of the pdfs.
 import sys
 import argparse
+import pickle
 
 import numpy
 
 import utilities
 import plotscripts.utilities
+import apnea_ratio
 
 
 def parse_args(argv):
@@ -27,42 +34,6 @@ def parse_args(argv):
     args = parser.parse_args(argv)
     utilities.join_common(args)
     return args
-
-
-def analyze_records(args):
-    """Calculate (prominence, period) pairs.  Also find boundaries for
-    digitizing prominence.
-
-    """
-
-    f_sample = args.heart_rate_sample_frequency.to('1/minute').magnitude
-    apnea_key = 1
-
-    # Calculate (prominence, period) pairs
-    peak_dict = {0: [], 1: []}
-    for record_name in args.a_names:  # FixMe: Could be args.records
-        raw_dict = utilities.read_slow_class(args, record_name)
-        slow = raw_dict['slow']
-        _class = raw_dict['class']
-        peaks, properties = utilities.peaks(slow,
-                                            args.heart_rate_sample_frequency)
-        for index in range(len(peaks) - 1):
-            t_peak = peaks[index]
-            prominence_t = properties['prominences'][index]
-            period_t = (peaks[index + 1] - t_peak) / f_sample
-            class_t = _class[t_peak]
-            peak_dict[class_t].append((prominence_t, period_t))
-
-    # Calculate boundaries for prominence based on peaks during apnea
-    pp_array = numpy.array(peak_dict[apnea_key]).T
-    apnea_peaks = pp_array[0]
-    apnea_peaks.sort()
-    boundaries = []
-    for index in range(0, len(apnea_peaks), 1300):
-        boundaries.append(apnea_peaks[index])
-    boundaries = numpy.array(boundaries).T
-
-    return peak_dict, boundaries
 
 
 def plot_record(args, record_name, axes):
@@ -93,35 +64,35 @@ def plot_scatter(axes, peak_dict):
     axes.legend()
 
 
-def plot_histograms(axes, peak_dict, boundaries, bin=3):
+def plot_histograms(axes, peak_dict, boundaries, plot_bin=3):
     """Plot x=interval y=frequency
 
     Args:
         axes: Matplotlib axes
         peak_dict: (prominence, interval) = peak_dict[0][i] for normal
         boundaries: For prominence from apnea data
-        bin: Plot histogram of intervals for data with prominence in this bin.  Min = 1 Max = 6
+        plot_bin: Plot histogram of intervals for data with prominence in this bin.  Min = 1 Max = 6
 
     """
     n_key, a_key = (0, 1)
     prom_key, interval_key = (0, 1)
+    intervals = []
 
-    # Get intervals for all normal and apnea data
-    intervals = [
-        numpy.array(peak_dict[key])[:, interval_key] for key in (n_key, a_key)
-    ]
-
-    # Get intervals for data with prominence in bin
+    # Get intervals for data with prominence in each bin
     a_prominence, a_interval = (numpy.array(peak_dict[a_key])[:, key]
                                 for key in (prom_key, interval_key))
-    locations = numpy.nonzero(
-        numpy.digitize(a_prominence, boundaries) == bin)[0]
-    intervals.append(a_interval[locations])
-    #values = [peak_dict[key][:,1][numpy.nonzero(peak_dict[key][:,0]-1)] for key in (0,1)]
+    digits = numpy.digitize(a_prominence, boundaries)
+    for _bin in range(len(boundaries) + 1):
+        locations = numpy.nonzero(digits == _bin)[0]
+        intervals.append(a_interval[locations])
 
-    axes.hist(intervals,
-              bins=numpy.linspace(.4, 3, 20),
-              label=f'N A A_{bin}'.split(),
+    # Get intervals for all normal and apnea data
+    for key in (a_key, n_key):
+        intervals.append(numpy.array(peak_dict[key])[:, interval_key])
+
+    axes.hist(intervals[-2:] + [intervals[plot_bin]],
+              bins=numpy.linspace(.4, 6, 40),
+              label=f'N A A_{plot_bin}'.split(),
               log=False,
               density=True)
 
@@ -138,7 +109,7 @@ def main(argv=None):
     fig, (ax_scatter, ax_histogram) = pyplot.subplots(nrows=2, figsize=(6, 8))
 
     # Find peaks
-    peak_dict, boundaries = analyze_records(args)
+    peak_dict, boundaries = apnea_ratio.analyze_records(args, args.a_names)
 
     plot_scatter(ax_scatter, peak_dict)
     plot_histograms(ax_histogram, peak_dict, boundaries)
