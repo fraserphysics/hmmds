@@ -571,6 +571,35 @@ class State:
                 f'{successor:15s} {probability:11.3g} {trainable:9b}\n')
         return ''.join(result)
 
+class IntervalObservation(hmm.base.BaseObservation):
+    _parameter_keys = 'density_functions n_states'.split()
+
+    def __init__(self: IntervalObservation, density_functions: tuple):
+        r"""Output of state is a float.  The density is 1.0 if the
+        state is an apnea state, and if the state is normal the
+        density is given by a density ratio."
+
+        Args:
+            density_functions: density_functions[s] is a callable: float -> float
+
+        """
+        self.n_states = len(density_functions)
+        self.density_functions = density_functions
+
+    def reestimate(self: IntervalObservation, w: numpy.ndarray):
+        pass
+
+    def calculate(self: IntervalObservation) -> numpy.ndarray:
+        """Return likelihoods of states given self._y, a sequence of
+        classes.
+
+        """
+        self._likelihood *= 0.0
+        for t, interval in enumerate(self._y):
+            for i_state in range(self.n_states):
+                self._likelihood[t, i_state] = self.density_functions[i_state](interval)
+        return self._likelihood
+
 
 def print_chain_model(y_mod, weight, key2index):
     """Print information to understand heart rate model performance.
@@ -593,7 +622,47 @@ def print_chain_model(y_mod, weight, key2index):
                 f'{index:3d}   {key:14s} {weight[index]:<9.4g} {mu:9.3g} {sigma:9.3g}'
             )
 
+def peaks_intervals(args, record_names, peaks_per_bin=1300):
+    """Calculate (prominence, period) pairs.  Also find boundaries for
+    digitizing prominence.
 
+    Args:
+        args: command line arguments
+        record_names: Specifies data to analyze
+        peaks_per_bin: Number of apnea peaks between bounary levels
+
+    """
+
+    f_sample = args.heart_rate_sample_frequency.to('1/minute').magnitude
+    apnea_key = 1
+
+    # Calculate (prominence, period) pairs
+    peak_dict = {0: [], 1: []}
+    for record_name in record_names:
+        raw_dict = read_slow_class(args, record_name)
+        slow = raw_dict['slow']
+        _class = raw_dict['class']
+        peak_ts, properties = peaks(slow,
+                                            args.heart_rate_sample_frequency)
+        for index in range(len(peak_ts) - 1):
+            t_peak = peak_ts[index]
+            prominence_t = properties['prominences'][index]
+            period_t = (peak_ts[index + 1] - t_peak) / f_sample
+            class_t = _class[t_peak]
+            peak_dict[class_t].append((prominence_t, period_t))
+
+    # Calculate boundaries for prominence based on peaks during apnea
+    pp_array = numpy.array(peak_dict[apnea_key]).T
+    apnea_peaks = pp_array[0]
+    apnea_peaks.sort()
+    boundaries = []
+    for index in range(0, len(apnea_peaks), 1300):
+        boundaries.append(apnea_peaks[index])
+    boundaries = numpy.array(boundaries).T
+
+    return peak_dict, boundaries
+
+    
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]

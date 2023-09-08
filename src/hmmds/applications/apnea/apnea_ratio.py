@@ -2,6 +2,8 @@
 intervals between peaks for normal and apnea.  r(x) =
 p_normal(x)/p_apnea(x).
 
+python apnea_ratio.py --show pdf_ratio.pdf
+
 I selected these values by experimenting and looking at plots:
 
 limit = 2.2 The data is sparse for lengths > 2.  There is a peak in
@@ -55,42 +57,6 @@ def parse_args(argv):
     args = parser.parse_args(argv)
     utilities.join_common(args)
     return args
-
-
-def analyze_records(args, record_names):
-    """Calculate (prominence, period) pairs.  Also find boundaries for
-    digitizing prominence.
-
-    """
-
-    f_sample = args.heart_rate_sample_frequency.to('1/minute').magnitude
-    apnea_key = 1
-
-    # Calculate (prominence, period) pairs
-    peak_dict = {0: [], 1: []}
-    for record_name in record_names:
-        raw_dict = utilities.read_slow_class(args, record_name)
-        slow = raw_dict['slow']
-        _class = raw_dict['class']
-        peaks, properties = utilities.peaks(slow,
-                                            args.heart_rate_sample_frequency)
-        for index in range(len(peaks) - 1):
-            t_peak = peaks[index]
-            prominence_t = properties['prominences'][index]
-            period_t = (peaks[index + 1] - t_peak) / f_sample
-            class_t = _class[t_peak]
-            peak_dict[class_t].append((prominence_t, period_t))
-
-    # Calculate boundaries for prominence based on peaks during apnea
-    pp_array = numpy.array(peak_dict[apnea_key]).T
-    apnea_peaks = pp_array[0]
-    apnea_peaks.sort()
-    boundaries = []
-    for index in range(0, len(apnea_peaks), 1300):
-        boundaries.append(apnea_peaks[index])
-    boundaries = numpy.array(boundaries).T
-
-    return peak_dict, boundaries
 
 
 def make_density_ratio(peak_dict, limit, sigma, _lambda):
@@ -155,7 +121,7 @@ def main(argv=None):
     fig, axes = pyplot.subplots(nrows=1, figsize=(6, 8))
 
     # Find peaks
-    peak_dict, boundaries = analyze_records(args, args.a_names)
+    peak_dict, boundaries = utilities.peaks_intervals(args, args.a_names)
     with open(args.pickle, 'wb') as _file:
         pickle.dump(peak_dict, _file)
 

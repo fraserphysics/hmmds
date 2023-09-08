@@ -1,6 +1,7 @@
-"""plot_pp.py Characterize distribution of peaks in the heart rate signal
+"""plot_pp.py Characterize distribution of peak prominence and
+the time intervals between them for the heart rate signal
 
-python plot_pp.py --records a01 a02 --heart_rate_sample_frequency 24 --show pp_plot.pdf
+python plot_pp.py --heart_rate_sample_frequency 24 --show pp_plot.pdf
 
 Make a scatter plot of prominence and period (time between peaks)
 
@@ -12,13 +13,11 @@ Make a scatter plot of prominence and period (time between peaks)
 # of the pdfs.
 import sys
 import argparse
-import pickle
 
 import numpy
 
 import utilities
 import plotscripts.utilities
-import apnea_ratio
 
 
 def parse_args(argv):
@@ -87,7 +86,7 @@ def plot_histograms(axes, peak_dict, boundaries, plot_bin=3):
         intervals.append(a_interval[locations])
 
     # Get intervals for all normal and apnea data
-    for key in (a_key, n_key):
+    for key in (n_key, a_key):
         intervals.append(numpy.array(peak_dict[key])[:, interval_key])
 
     axes.hist(intervals[-2:] + [intervals[plot_bin]],
@@ -109,7 +108,7 @@ def main(argv=None):
     fig, (ax_scatter, ax_histogram) = pyplot.subplots(nrows=2, figsize=(6, 8))
 
     # Find peaks
-    peak_dict, boundaries = apnea_ratio.analyze_records(args, args.a_names)
+    peak_dict, boundaries = utilities.peaks_intervals(args, args.a_names)
 
     plot_scatter(ax_scatter, peak_dict)
     plot_histograms(ax_histogram, peak_dict, boundaries)

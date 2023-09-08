@@ -1,4 +1,7 @@
-"""analyze_peaks.py Characterize distribution of peaks in the heart rate signal
+"""analyze_peaks.py Characterize distribution of peak prominences in
+the heart rate signal
+
+python analyze_peaks.py --show foo bar
 
 """
 import sys
