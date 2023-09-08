@@ -12,6 +12,7 @@ import scipy.signal
 import pint
 
 import hmm.base
+import density_ratio
 
 PINT = pint.UnitRegistry()
 
@@ -571,6 +572,7 @@ class State:
                 f'{successor:15s} {probability:11.3g} {trainable:9b}\n')
         return ''.join(result)
 
+
 class IntervalObservation(hmm.base.BaseObservation):
     _parameter_keys = 'density_functions n_states'.split()
 
@@ -597,7 +599,8 @@ class IntervalObservation(hmm.base.BaseObservation):
         self._likelihood *= 0.0
         for t, interval in enumerate(self._y):
             for i_state in range(self.n_states):
-                self._likelihood[t, i_state] = self.density_functions[i_state](interval)
+                self._likelihood[t, i_state] = self.density_functions[i_state](
+                    interval)
         return self._likelihood
 
 
@@ -622,6 +625,7 @@ def print_chain_model(y_mod, weight, key2index):
                 f'{index:3d}   {key:14s} {weight[index]:<9.4g} {mu:9.3g} {sigma:9.3g}'
             )
 
+
 def peaks_intervals(args, record_names, peaks_per_bin=1300):
     """Calculate (prominence, period) pairs.  Also find boundaries for
     digitizing prominence.
@@ -631,6 +635,7 @@ def peaks_intervals(args, record_names, peaks_per_bin=1300):
         record_names: Specifies data to analyze
         peaks_per_bin: Number of apnea peaks between bounary levels
 
+    The returned intervals are in minutes
     """
 
     f_sample = args.heart_rate_sample_frequency.to('1/minute').magnitude
@@ -642,8 +647,7 @@ def peaks_intervals(args, record_names, peaks_per_bin=1300):
         raw_dict = read_slow_class(args, record_name)
         slow = raw_dict['slow']
         _class = raw_dict['class']
-        peak_ts, properties = peaks(slow,
-                                            args.heart_rate_sample_frequency)
+        peak_ts, properties = peaks(slow, args.heart_rate_sample_frequency)
         for index in range(len(peak_ts) - 1):
             t_peak = peak_ts[index]
             prominence_t = properties['prominences'][index]
@@ -662,7 +666,84 @@ def peaks_intervals(args, record_names, peaks_per_bin=1300):
 
     return peak_dict, boundaries
 
-    
+
+def make_density_ratio(peak_dict, limit, sigma, _lambda):
+    """  Estimate the function p_normal(x)/p_apnea(x)
+
+    Args:
+        peak_dict: Arrays of peak heights and lengths of intervals between peaks
+        limit: Drop samples with length > limit
+        sigma: Width of kernel function
+        _lambda: Regularizes optimization
+
+    Returns: density_ratio.DensityRatio instance
+
+    """
+
+    key_n = 0
+    key_a = 1
+    i_interval = 1
+
+    def drop_big(x_in):
+        """Return x_i after dropping values larger than limit
+        """
+        return x_in[numpy.nonzero(x_in < limit)]
+
+    normal, apnea = (drop_big(numpy.array(peak_dict[key])[:,
+                                                          i_interval]).reshape(
+                                                              -1, 1)
+                     for key in (key_n, key_a))
+
+    # FixMe: The result is a random function.  I should study the
+    # variability.
+    result = density_ratio.uLSIF(normal,
+                                 apnea,
+                                 kernel_num=800,
+                                 sigma=sigma,
+                                 _lambda=_lambda)
+    return result
+
+
+def make_interval_pdfs(args):
+    """Extrapolate result of estimating the pdf ratio to range [0, \infty)
+
+    """
+
+    upper_length = 2.12
+    lower_length = 0.5
+
+    # Find peaks
+    peak_dict, boundaries = peaks_intervals(args, args.a_names)
+
+    limit = 2.2  # No intervals longer than this for pdf ratio fit
+    sigma = 0.1  # Kernel width
+    _lambda = 0.06  # Regularize pdf ratio fit
+    pdf_ratio = make_density_ratio(peak_dict, limit, sigma, _lambda)
+
+    def apnea_pdf(lengths: numpy.ndarray) -> numpy.ndarray:
+        """Return unnormalized uniform probabilty densities
+
+        """
+        assert lengths.min() > 0.0
+        return numpy.ones(len(lengths))
+
+    def normal_pdf(lengths):
+        """Return probability density of length between peaks for
+        normal times
+
+        """
+        assert lengths.min() > 0.0
+        temp = lengths.copy()
+        for i, length in enumerate(lengths[:, 0]):
+            if length < lower_length:
+                temp[i, 0] = lower_length
+            elif length > upper_length:
+                temp[i, 0] = upper_length
+        return pdf_ratio(temp)
+
+    return pdf_ratio, normal_pdf, apnea_pdf
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]

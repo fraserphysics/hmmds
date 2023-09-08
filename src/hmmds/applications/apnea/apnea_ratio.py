@@ -59,50 +59,18 @@ def parse_args(argv):
     return args
 
 
-def make_density_ratio(peak_dict, limit, sigma, _lambda):
-    """  Estimate the function p_normal(x)/p_apnea(x)
-
-    Args:
-        peak_dict: Arrays of peak heights and lengths of intervals between peaks
-        limit: Drop samples with length > limit
-        sigma: Width of kernel function
-        _lambda: Regularizes optimization
-
-    Returns: density_ratio.DensityRatio instance
-
-    """
-
-    key_n = 0
-    key_a = 1
-    i_interval = 1
-
-    def drop_big(x_in):
-        """Return x_i after dropping values larger than limit
-        """
-        return x_in[numpy.nonzero(x_in < limit)]
-
-    normal, apnea = (drop_big(numpy.array(peak_dict[key])[:,
-                                                          i_interval]).reshape(
-                                                              -1, 1)
-                     for key in (key_n, key_a))
-
-    result = density_ratio.uLSIF(normal,
-                                 apnea,
-                                 kernel_num=800,
-                                 sigma=sigma,
-                                 _lambda=_lambda)
-    return result
-
-
-def plot(axes, density_ratio: density_ratio.DensityRatio, max_interval: float):
+def plot(axes, pdf_ratio: density_ratio.DensityRatio, normal_pdf, apnea_pdf,
+         max_interval: float):
     """The minimum value for interval is .4583333
 
     """
     z = numpy.linspace(0.45, max_interval, 1000).reshape(-1, 1)
-    density_ratio = density_ratio(z)
-    axes.plot(z, density_ratio)
-    axes.set_xlabel('length')
+    axes.plot(z, pdf_ratio(z), label='ratio')
+    axes.plot(z, normal_pdf(z), label='normal')
+    axes.plot(z, apnea_pdf(z), label='apnea')
+    axes.set_xlabel('length/minute')
     axes.set_ylabel('p_normal/p_apnea')
+    axes.legend()
 
 
 def main(argv=None):
@@ -125,9 +93,8 @@ def main(argv=None):
     with open(args.pickle, 'wb') as _file:
         pickle.dump(peak_dict, _file)
 
-    _ratio = make_density_ratio(peak_dict, limit, sigma, _lambda)
-
-    plot(axes, _ratio, limit + 5 * sigma)
+    pdf_ratio, normal_pdf, apnea_pdf = utilities.make_interval_pdfs(args)
+    plot(axes, pdf_ratio, normal_pdf, apnea_pdf, limit + 5 * sigma)
 
     if args.show:
         pyplot.show()
