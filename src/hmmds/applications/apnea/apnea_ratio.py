@@ -93,8 +93,9 @@ def main(argv=None):
     with open(args.pickle, 'wb') as _file:
         pickle.dump(peak_dict, _file)
 
-    pdf_ratio, normal_pdf, apnea_pdf = utilities.make_interval_pdfs(args)
-    plot(axes, pdf_ratio, normal_pdf, apnea_pdf, limit + 5 * sigma)
+    interval_pdfs = utilities.make_interval_pdfs(args)
+    plot(axes, interval_pdfs, interval_pdfs.normal_pdf, interval_pdfs.apnea_pdf,
+         limit + 5 * sigma)
 
     if args.show:
         pyplot.show()

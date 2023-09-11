@@ -37,17 +37,13 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # Save the initial files for debugging
 .PRECIOUS: $(MODELS)/a%_initial $(MODELS)/a%_masked
 
-BOUNDARIES = $(MODELS)/boundaries
-$(BOUNDARIES): analyze_peaks.py utilities.py
-	python $< peak_cdf.pdf $@
-
-$(MODELS)/intervals_ar%_initial: model_init.py $(BOUNDARIES)
+$(MODELS)/intervals_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
 --records $(EasySlow) --alpha_beta 50.0 10.0  --AR_order $* \
---boundaries $(BOUNDARIES) hmm_intervals $@
+hmm_intervals $@
 
 $(MODELS)/intervals_ar%_masked: apnea_train.py $(MODELS)/intervals_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --iterations 50 --records $(EasySlow) --type class_peak_interval --boundaries $(BOUNDARIES) $(MODELS)/intervals_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(EasySlow) --type class_peak_interval $(MODELS)/intervals_ar$*_initial $@
 
 $(MODELS)/balanced_ar%_masked: apnea_train.py $(MODELS)/balanced_ar%_initial
 	python $< --AR_order $* --iterations 50 --records $(EasySlow) --type masked --trim_start 25 $(MODELS)/balanced_ar$*_initial $@

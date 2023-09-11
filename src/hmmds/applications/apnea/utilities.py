@@ -72,10 +72,6 @@ def common_arguments(parser: argparse.ArgumentParser):
         type=float,
         default=14.0,
         help='Frequency in cycles per minute for heart rate -> respiration')
-    parser.add_argument('--boundaries',
-                        type=str,
-                        default='boundaries',
-                        help="Path to levels for key peaks")
 
 
 def join_common(args: argparse.Namespace):
@@ -597,10 +593,9 @@ class IntervalObservation(hmm.base.BaseObservation):
 
         """
         self._likelihood *= 0.0
-        for t, interval in enumerate(self._y):
-            for i_state in range(self.n_states):
-                self._likelihood[t, i_state] = self.density_functions[i_state](
-                    interval)
+        for i_state in range(self.n_states):
+            self._likelihood[:, i_state] = self.density_functions[i_state](
+                self._y.reshape(-1, 1))
         return self._likelihood
 
 
@@ -613,17 +608,12 @@ def print_chain_model(y_mod, weight, key2index):
         key2index: Maps state keys to state indices for hmm
     """
     interval = y_mod['interval']
-    print(f'\nindex {"name":14s} {"weight":9s} {"mu":>9s} {"sigma":>9s}')
+    print(f'\nindex {"name":14s} {"weight":9s}')
     for key, index in key2index.items():
         if key[-1] == '0' or key[
                 -1] == '1' or key in 'N_noise N_switch A_noise A_switch'.split(
                 ):
-            sigma = numpy.sqrt(interval.variance[index]) * (60 / 24
-                                                           )  # in seconds
-            mu = interval.mu[index] * (60 / 24)
-            print(
-                f'{index:3d}   {key:14s} {weight[index]:<9.4g} {mu:9.3g} {sigma:9.3g}'
-            )
+            print(f'{index:3d}   {key:14s} {weight[index]:<9.4g}')
 
 
 def peaks_intervals(args, record_names, peaks_per_bin=1300):
@@ -741,7 +731,7 @@ def make_interval_pdfs(args):
                 temp[i, 0] = upper_length
         return pdf_ratio(temp)
 
-    return pdf_ratio, normal_pdf, apnea_pdf
+    return pdf_ratio
 
 
 def main(argv=None):

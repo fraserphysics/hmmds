@@ -80,10 +80,7 @@ def class_peak(args):
 
 
 @register
-def class_peak_interval(args):
-
-    with open(args.boundaries, 'rb') as _file:
-        boundaries = pickle.load(_file)
+def class_peak_interval(args, boundaries):
 
     return [
         hmm.base.JointSegment(
@@ -138,7 +135,7 @@ def main(argv=None):
     with open(args.initial_path, 'rb') as _file:
         old_args, model = pickle.load(_file)
 
-    y_data = TYPES[args.type](args)
+    y_data = TYPES[args.type](args, old_args.boundaries)
 
     if args.AR_order >= 0:
         y_mod = new_ar_order(model, args.AR_order, y_data)

@@ -27,6 +27,29 @@ class DensityRatio:
     def __call__(self, x):
         return compute_kernel(x, self.centers, self.sigma) @ self.theta
 
+    def apnea_pdf(self, lengths: numpy.ndarray) -> numpy.ndarray:
+        """Return unnormalized uniform probabilty densities
+
+        """
+        assert lengths.min() > 0.0
+        return numpy.ones(len(lengths))
+
+    def normal_pdf(self, lengths):
+        """Return probability density of length between peaks for
+        normal times
+
+        """
+        lower_length = 0.5
+        upper_length = 1.657
+        assert lengths.min() > 0.0
+        temp = lengths.copy()
+        for i, length in enumerate(lengths[:, 0]):
+            if length < lower_length:
+                temp[i, 0] = lower_length
+            elif length > upper_length:
+                temp[i, 0] = upper_length
+        return self(temp)
+
 
 def uLSIF(x, y, sigma, _lambda, kernel_num=100):
     """

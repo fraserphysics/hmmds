@@ -323,8 +323,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Get observations for apnea model
         if 'peak' in self.model.y_mod:
-            with open(self.model_args.boundaries, 'rb') as _file:
-                boundaries = pickle.load(_file)
+            boundaries = self.model_args.boundaries
             self.y_data = [
                 hmm.base.JointSegment(
                     utilities.read_slow_peak_interval(self.model_args,
