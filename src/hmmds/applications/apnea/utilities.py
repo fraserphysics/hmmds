@@ -430,7 +430,7 @@ def add_peaks(args, raw_dict, boundaries):
     return raw_dict
 
 
-def add_intervals(raw_dict):
+def add_intervals(args, raw_dict):
     """Add key item 'interval':values to raw_dict
 
     """
@@ -444,7 +444,9 @@ def add_intervals(raw_dict):
     interval_signal[:locations[0]] = locations[0]
     interval_signal[locations[-1]:] = n_times - locations[-1]
 
-    raw_dict['interval'] = interval_signal
+    raw_dict[
+        'interval'] = interval_signal / args.heart_rate_sample_frequency.to(
+            '1/minute').magnitude
     return raw_dict
 
 
@@ -500,7 +502,7 @@ def read_slow_class_peak_interval(args, boundaries, name='a03'):
     """
 
     return add_intervals(
-        add_peaks(args, read_slow_class(args, name), boundaries))
+        args, add_peaks(args, read_slow_class(args, name), boundaries))
 
 
 def read_slow_peak_interval(args, boundaries, name='a03'):
@@ -518,7 +520,8 @@ def read_slow_peak_interval(args, boundaries, name='a03'):
 
     """
 
-    return add_intervals(add_peaks(args, read_slow(args, name), boundaries))
+    return add_intervals(args, add_peaks(args, read_slow(args, name),
+                                         boundaries))
 
 
 # I put this in utilities enable apnea_train.py to run.
@@ -570,19 +573,21 @@ class State:
 
 
 class IntervalObservation(hmm.base.BaseObservation):
-    _parameter_keys = 'density_functions n_states'.split()
+    _parameter_keys = 'density_functions n_states power'.split()
 
-    def __init__(self: IntervalObservation, density_functions: tuple):
+    def __init__(self: IntervalObservation, density_functions: tuple, power=5):
         r"""Output of state is a float.  The density is 1.0 if the
         state is an apnea state, and if the state is normal the
         density is given by a density ratio."
 
         Args:
             density_functions: density_functions[s] is a callable: float -> float
+        power: Exponent of likelihood, for weighting wrt other components of joint observation.
 
         """
         self.n_states = len(density_functions)
         self.density_functions = density_functions
+        self.power = power
 
     def reestimate(self: IntervalObservation, w: numpy.ndarray):
         pass
@@ -595,7 +600,7 @@ class IntervalObservation(hmm.base.BaseObservation):
         self._likelihood *= 0.0
         for i_state in range(self.n_states):
             self._likelihood[:, i_state] = self.density_functions[i_state](
-                self._y.reshape(-1, 1))
+                self._y.reshape(-1, 1))**self.power
         return self._likelihood
 
 

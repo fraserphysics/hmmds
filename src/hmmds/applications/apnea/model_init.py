@@ -356,7 +356,6 @@ def hmm_intervals(args, rng):
     peak_dict, boundaries = hmmds.applications.apnea.utilities.peaks_intervals(
         args, args.a_names)
     args.boundaries = boundaries  # FixMe:  Passes boundaries to training code
-    print(f'model_init, {len(boundaries)=}')
     peak_dimension = len(boundaries) + 1  # Dimension of output for peaks
 
     normal_class = 0
@@ -387,6 +386,60 @@ def hmm_intervals(args, rng):
 
     make_switch_noise(args, apnea_class, a_chain_links, state_dict,
                       interval_pdfs.apnea_pdf, peak_dimension, rng)
+
+    result_hmm, state_key2state_index = dict2hmm(
+        state_dict,
+        make_joint_slow_peak_interval_class,
+        rng,
+        truncate=args.AR_order)
+    return result_hmm, state_dict, state_key2state_index
+
+
+@register  # For debugging effect of intervals on classification
+def two_intervals(args, rng):
+    """Return an hmm for joint observations that include "peaks"
+
+    """
+
+    #  Normal Nodes  N Switch A Switch  Apnea nodes
+    #
+    # *************                     ************
+    #              \                   /
+    #               \________  _______/
+    #                |      |--|     |
+    #               /--------  -------\
+    #              /                   \
+    # *************                     ************
+
+    peak_dict, boundaries = hmmds.applications.apnea.utilities.peaks_intervals(
+        args, args.a_names)
+    args.boundaries = boundaries  # FixMe:  Passes boundaries to training code
+    peak_dimension = len(boundaries) + 1  # Dimension of output for peaks
+
+    normal_class = 0
+    apnea_class = 1
+
+    state_dict = {}
+    interval_pdfs = hmmds.applications.apnea.utilities.make_interval_pdfs(args)
+
+    def make_one_chain(char_class, int_class, pdf_class):
+        """
+        """
+        switch_key = f'{char_class}_switch'
+        chain_key = f'{char_class}_chain'
+        chain_0 = f'{char_class}_chain_0'
+        peak_prob = numpy.ones(peak_dimension) / (peak_dimension - 1)
+        peak_prob[0] = 0
+        peak_chain(switch_key, chain_key, int_class, pdf_class, args, rng,
+                   state_dict, peak_prob)
+
+        make_switch_noise(args, int_class, [chain_0], state_dict, pdf_class,
+                          peak_dimension, rng)
+
+    make_one_chain('N', 0, interval_pdfs.normal_pdf)
+    make_one_chain('A', 1, interval_pdfs.apnea_pdf)
+    #for key, value in state_dict.items():
+    #    print(f'{key} {value}')
 
     result_hmm, state_key2state_index = dict2hmm(
         state_dict,

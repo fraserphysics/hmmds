@@ -37,6 +37,14 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # Save the initial files for debugging
 .PRECIOUS: $(MODELS)/a%_initial $(MODELS)/a%_masked
 
+$(MODELS)/two_ar%_initial: model_init.py
+	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
+--records $(EasySlow) --alpha_beta 50.0 10.0  --AR_order $* \
+two_intervals $@
+
+$(MODELS)/two_ar%_masked: apnea_train.py $(MODELS)/two_ar%_initial
+	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(EasySlow) --type class_peak_interval $(MODELS)/two_ar$*_initial $@
+
 $(MODELS)/intervals_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
 --records $(EasySlow) --alpha_beta 50.0 10.0  --AR_order $* \
