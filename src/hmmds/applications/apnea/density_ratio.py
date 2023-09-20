@@ -15,6 +15,7 @@ import numpy
 
 import numpy.random
 import numpy.linalg
+import scipy.interpolate
 
 
 class DensityRatio:
@@ -23,9 +24,28 @@ class DensityRatio:
         self.sigma = sigma
         self.centers = centers
         self.theta = theta
+        # For faster evaluation, fit a cubic spline
+        end = 2.0
+        x = numpy.linspace(.1, end, int(end / .1))
+        y = self(x.reshape(-1, 1))
+        self._cubic_spline = scipy.interpolate.CubicSpline(x,
+                                                           y,
+                                                           bc_type='natural',
+                                                           extrapolate=True)
 
     def __call__(self, x):
         return compute_kernel(x, self.centers, self.sigma) @ self.theta
+
+    def normal_pdf(self, lengths):
+        lower_length = 0.5
+        upper_length = 1.657
+        # Map values outside the interval [lower_length:upper_length]
+        # to the endpoints.  Note that in most applications most
+        # values will fall in the interval.
+        temp = numpy.choose(
+            (lengths < lower_length) + 2 * (lengths > upper_length),
+            (lengths, lower_length, upper_length))
+        return self._cubic_spline(temp)
 
     def apnea_pdf(self, lengths: numpy.ndarray) -> numpy.ndarray:
         """Return unnormalized uniform probabilty densities
@@ -33,22 +53,6 @@ class DensityRatio:
         """
         assert lengths.min() > 0.0
         return numpy.ones(len(lengths))
-
-    def normal_pdf(self, lengths):
-        """Return probability density of length between peaks for
-        normal times
-
-        """
-        lower_length = 0.5
-        upper_length = 1.657
-        assert lengths.min() > 0.0
-        temp = lengths.copy()
-        for i, length in enumerate(lengths[:, 0]):
-            if length < lower_length:
-                temp[i, 0] = lower_length
-            elif length > upper_length:
-                temp[i, 0] = upper_length
-        return self(temp)
 
 
 def uLSIF(x, y, sigma, _lambda, kernel_num=100):

@@ -64,7 +64,7 @@ def plot(axes, pdf_ratio: density_ratio.DensityRatio, normal_pdf, apnea_pdf,
     """The minimum value for interval is .4583333
 
     """
-    z = numpy.linspace(0.45, max_interval, 1000).reshape(-1, 1)
+    z = numpy.linspace(0.1, max_interval, 1000).reshape(-1, 1)
     axes.plot(z, pdf_ratio(z), label='ratio')
     axes.plot(z, normal_pdf(z), label='normal')
     axes.plot(z, apnea_pdf(z), label='apnea')
@@ -81,7 +81,7 @@ def main(argv=None):
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    limit = 2.2
+    limit = 3.0
     sigma = 0.1
     _lambda = 0.06
 

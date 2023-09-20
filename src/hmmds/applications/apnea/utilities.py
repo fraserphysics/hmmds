@@ -715,27 +715,6 @@ def make_interval_pdfs(args):
     _lambda = 0.06  # Regularize pdf ratio fit
     pdf_ratio = make_density_ratio(peak_dict, limit, sigma, _lambda)
 
-    def apnea_pdf(lengths: numpy.ndarray) -> numpy.ndarray:
-        """Return unnormalized uniform probabilty densities
-
-        """
-        assert lengths.min() > 0.0
-        return numpy.ones(len(lengths))
-
-    def normal_pdf(lengths):
-        """Return probability density of length between peaks for
-        normal times
-
-        """
-        assert lengths.min() > 0.0
-        temp = lengths.copy()
-        for i, length in enumerate(lengths[:, 0]):
-            if length < lower_length:
-                temp[i, 0] = lower_length
-            elif length > upper_length:
-                temp[i, 0] = upper_length
-        return pdf_ratio(temp)
-
     return pdf_ratio
 
 
