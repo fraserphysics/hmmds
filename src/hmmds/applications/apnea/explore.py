@@ -312,15 +312,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.hr_peaks = self.filters['slow'][peaks]
         self.hr_peak_times = peaks / self.filters['sample_frequency']
 
-        # Read expert
-        if self.record_box.text()[0] != 'x':
-            path = os.path.join(self.root_box.text(),
-                                'raw_data/apnea/summary_of_training')
-            self.expert_class = utilities.read_expert(path,
-                                                      self.record_box.text())
-            self.expert_times = numpy.arange(len(
-                self.expert_class)) * PINT('minutes')
-
         # Get observations for apnea model
         if 'peak' in self.model.y_mod:
             boundaries = self.model_args.boundaries
@@ -382,20 +373,19 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                            ):
         if self.record_box.text()[0] == 'x':
             return
-        self.class_dict['signals'] = [(self.expert_times, self.expert_class),
-                                      (self.expert_times, self.hmm_class)]
+        expert_class = self.score2.expert_class
+        hmm_class = self.score2.class_from_model
+        expert_times = numpy.arange(len(expert_class)) * PINT('minutes')
+        self.class_dict['signals'] = [(expert_times, expert_class),
+                                      (expert_times, hmm_class)]
         self.plot_window(**self.class_dict)
 
     def new_classification(
             self,  # MainWindow
     ):
-        more_specific = numpy.exp(self.variable['Specific']())
-        samples_per_minute = int(
-            self.model_args.heart_rate_sample_frequency.to(
-                '1/minute').magnitude)
-        self.hmm_class = self.model.class_estimate(self.y_data,
-                                                   samples_per_minute,
-                                                   more_specific)
+        self.score2 = utilities.Score2(self.model_args, self.model_box.text(),
+                                       self.record_box.text())
+        self.score2.score(numpy.exp(self.variable['Specific']()))
         self.plot_classification()
 
     def plot_filter(self):

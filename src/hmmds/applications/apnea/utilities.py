@@ -599,9 +599,76 @@ class IntervalObservation(hmm.base.BaseObservation):
         """
         self._likelihood *= 0.0
         for i_state in range(self.n_states):
-            self._likelihood[:, i_state] = self.density_functions[i_state](
-                self._y.reshape(-1, 1))**self.power
+            self._likelihood[:, i_state] = (self.density_functions[i_state](
+                self._y.reshape(-1, 1))).reshape(-1)**self.power
         return self._likelihood
+
+
+class Score2:
+
+    def __init__(self, args: argparse.Namespace, model_path: str,
+                 record_name: str):
+        """Holds model and observations for scoring classification
+
+        Args:
+            args: Default and command line arguments with paths, etc.
+            model: Path to pickled HMM and its args
+            record: The name, eg, 'a01' of the record to analyze and score
+        """
+        self.args = args
+        self.record_name = record_name
+        with open(model_path, 'rb') as _file:
+            self.model_args, self.model = pickle.load(_file)
+
+        self.y_data = [
+            hmm.base.JointSegment(
+                read_slow_peak_interval(args, self.model_args.boundaries,
+                                        record_name))
+        ]
+
+        self.expert_class = read_expert(args.expert, record_name)
+        self.counts = numpy.zeros(4, dtype=int)
+        self.n2n = self.counts[0]
+        self.n2a = self.counts[1]
+        self.a2n = self.counts[2]
+        self.a2a = self.counts[3]
+
+    def score(self, more_specific: float):
+        """Estimate apnea or normal for each minute of data
+        Args:
+            more_specific:  Higher value -> less Normal -> Apnea errors
+
+        """
+        samples_per_minute = int(
+            self.model_args.heart_rate_sample_frequency.to(
+                '1/minute').magnitude)
+        self.class_from_model = self.model.class_estimate(
+            self.y_data, samples_per_minute, more_specific)
+        n_minutes = min(len(self.class_from_model), len(self.expert_class))
+        self.counts *= 0
+        for i in range(n_minutes):
+            self.counts[2 * self.expert_class[i] +
+                        self.class_from_model[i]] += 1
+
+    def formatted_result(self, report: typing.TextIO):
+        """Write result to open file in format that matches expert
+        """
+        minutes_per_hour = 60
+        n_minutes = self.counts.sum()
+        # -(- ...) to round up instead of down
+        n_hours = -(-n_minutes // minutes_per_hour)
+        print('{0}\n'.format(self.record_name), end='', file=report)
+        for hour in range(n_hours):
+            print(' {0:1d} '.format(hour), end='', file=report)
+            minute_start = hour * minutes_per_hour
+            minute_stop = min((hour + 1) * minutes_per_hour, n_minutes)
+            for minute in range(minute_start, minute_stop):
+                bit = self.expert_class[minute]
+                if bit:
+                    print('A', end='', file=report)
+                else:
+                    print('N', end='', file=report)
+            print('\n', end='', file=report)
 
 
 def print_chain_model(y_mod, weight, key2index):
