@@ -58,6 +58,11 @@ def common_arguments(parser: argparse.ArgumentParser):
                         default=8,
                         help='In samples per minute')
     parser.add_argument(
+        '--min_prominence',
+        type=float,
+        default=6.0,
+        help='Threshold for detecting heart rate peaks in beats per minute')
+    parser.add_argument(
         '--trim_start',
         type=int,
         default=0,
@@ -257,8 +262,8 @@ def notch_hr(
 def peaks(
         filtered: numpy.ndarray,  # Heart rate in beats per minute
         sample_frequency,  # A pint frequency
+        prominence,  # In beats per minute
         distance=0.417 * PINT('minutes'),
-        prominence=6.0,  # In beats per minute
         wlen=1.42 * PINT('minutes'),
 ):
     """Find peaks in the low pass filtered heart rate signal
@@ -422,7 +427,8 @@ def add_peaks(args, raw_dict, boundaries):
     """
     slow_signal = raw_dict['slow']
 
-    locations, properties = peaks(slow_signal, args.heart_rate_sample_frequency)
+    locations, properties = peaks(slow_signal, args.heart_rate_sample_frequency,
+                                  args.min_prominence)
     digits = numpy.digitize(properties['prominences'], boundaries)
     peak_signal = numpy.zeros(len(slow_signal), dtype=numpy.int32)
     peak_signal[locations] = digits
@@ -713,7 +719,8 @@ def peaks_intervals(args, record_names, peaks_per_bin=1300):
         raw_dict = read_slow_class(args, record_name)
         slow = raw_dict['slow']
         _class = raw_dict['class']
-        peak_ts, properties = peaks(slow, args.heart_rate_sample_frequency)
+        peak_ts, properties = peaks(slow, args.heart_rate_sample_frequency,
+                                    args.min_prominence)
         for index in range(len(peak_ts) - 1):
             t_peak = peak_ts[index]
             prominence_t = properties['prominences'][index]

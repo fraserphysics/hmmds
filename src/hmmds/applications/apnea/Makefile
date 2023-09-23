@@ -37,6 +37,21 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # Save the initial files for debugging
 .PRECIOUS: $(MODELS)/a%_initial $(MODELS)/a%_masked
 
+PROMINENCES = 3 3.5 4 4.5 5 5.5 5.7 5.8 5.9 5.95 6 6.05 6.1 6.2 6.3 6.4 6.5 7 7.5 8
+PROMINENCE_MODELS = $(addprefix $(MODELS)/two_ar3_masked, $(PROMINENCES))
+prominence_models: $(PROMINENCE_MODELS)
+	touch $@
+prominence_study.pdf: prominence_study.py
+	python $< --prominences $(PROMINENCES) --template $(MODELS)/two_ar3_masked% $@
+
+$(MODELS)/two_ar3_initial%: model_init.py
+	python $< --heart_rate_sample_frequency 24 --low_pass_period 8  --min_prominence $* \
+--records $(EasySlow) --alpha_beta 50.0 10.0  --AR_order 3 \
+two_intervals $@
+
+$(MODELS)/two_ar3_masked%: apnea_train.py $(MODELS)/two_ar3_initial%
+	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(EasySlow)  --min_prominence $* --type class_peak_interval $(MODELS)/two_ar3_initial$* $@
+
 $(MODELS)/two_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
 --records $(EasySlow) --alpha_beta 50.0 10.0  --AR_order $* \
@@ -90,6 +105,8 @@ clean:
 .PHONY : variables
 variables:
 	@echo MODELS: $(MODELS)
+	@echo PROMINENCES: $(PROMINENCES)
+	@echo PROMINENCE_MODELS: $(PROMINENCE_MODELS)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help
