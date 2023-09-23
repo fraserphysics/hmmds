@@ -606,8 +606,7 @@ class IntervalObservation(hmm.base.BaseObservation):
 
 class Score2:
 
-    def __init__(self, args: argparse.Namespace, model_path: str,
-                 record_name: str):
+    def __init__(self, model_path: str, record_name: str):
         """Holds model and observations for scoring classification
 
         Args:
@@ -615,44 +614,50 @@ class Score2:
             model: Path to pickled HMM and its args
             record: The name, eg, 'a01' of the record to analyze and score
         """
-        self.args = args
         self.record_name = record_name
         with open(model_path, 'rb') as _file:
             self.model_args, self.model = pickle.load(_file)
-
+        self.samples_per_minute = int(
+            self.model_args.heart_rate_sample_frequency.to(
+                '1/minute').magnitude)
         self.y_data = [
             hmm.base.JointSegment(
-                read_slow_peak_interval(args, self.model_args.boundaries,
+                read_slow_peak_interval(self.model_args,
+                                        self.model_args.boundaries,
                                         record_name))
         ]
 
-        self.expert_class = read_expert(args.expert, record_name)
+        self.expert_class = read_expert(self.model_args.expert, record_name)
         self.counts = numpy.zeros(4, dtype=int)
         self.n2n = self.counts[0]
         self.n2a = self.counts[1]
         self.a2n = self.counts[2]
         self.a2a = self.counts[3]
 
-    def score(self, more_specific: float):
+    def score(self, more_specific: float, interval_exponent=None):
         """Estimate apnea or normal for each minute of data
         Args:
             more_specific:  Higher value -> less Normal -> Apnea errors
+            interval_exponent: Exponent to adjust weight of interval component of likelihood
 
         """
-        samples_per_minute = int(
-            self.model_args.heart_rate_sample_frequency.to(
-                '1/minute').magnitude)
+        if interval_exponent is not None:
+            self.model.y_mod['interval'].power = interval_exponent
         self.class_from_model = self.model.class_estimate(
-            self.y_data, samples_per_minute, more_specific)
+            self.y_data, self.samples_per_minute, more_specific)
         n_minutes = min(len(self.class_from_model), len(self.expert_class))
         self.counts *= 0
         for i in range(n_minutes):
             self.counts[2 * self.expert_class[i] +
                         self.class_from_model[i]] += 1
 
-    def formatted_result(self, report: typing.TextIO):
+    def formatted_result(self, report: typing.TextIO, expert=False):
         """Write result to open file in format that matches expert
         """
+        if expert:
+            authority = self.expert_class
+        else:
+            authority = self.class_from_model
         minutes_per_hour = 60
         n_minutes = self.counts.sum()
         # -(- ...) to round up instead of down
@@ -663,8 +668,7 @@ class Score2:
             minute_start = hour * minutes_per_hour
             minute_stop = min((hour + 1) * minutes_per_hour, n_minutes)
             for minute in range(minute_start, minute_stop):
-                bit = self.expert_class[minute]
-                if bit:
+                if authority[minute]:
                     print('A', end='', file=report)
                 else:
                     print('N', end='', file=report)

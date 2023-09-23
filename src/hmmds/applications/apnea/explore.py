@@ -383,7 +383,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
     def new_classification(
             self,  # MainWindow
     ):
-        self.score2 = utilities.Score2(self.model_args, self.model_box.text(),
+        self.score2 = utilities.Score2(self.model_box.text(),
                                        self.record_box.text())
         self.score2.score(numpy.exp(self.variable['Specific']()))
         self.plot_classification()
