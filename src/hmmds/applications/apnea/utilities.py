@@ -635,17 +635,18 @@ class Score2:
 
         self.expert_class = read_expert(self.model_args.expert, record_name)
         self.counts = numpy.zeros(4, dtype=int)
-        self.n2n = self.counts[0]
-        self.n2a = self.counts[1]
-        self.a2n = self.counts[2]
-        self.a2a = self.counts[3]
+        # n2n = counts[0]
+        # n2a = counts[1]
+        # a2n = counts[2]
+        # a2a = counts[3]
 
     def score(self, more_specific: float, interval_exponent=None):
-        """Estimate apnea or normal for each minute of data
+        """Assign to self.class_from_model estimates apnea or normal for each minute of data
         Args:
             more_specific:  Higher value -> less Normal -> Apnea errors
             interval_exponent: Exponent to adjust weight of interval component of likelihood
 
+        Return: Log likelihood of model for self.y_data
         """
         if interval_exponent is not None:
             self.model.y_mod['interval'].power = interval_exponent
@@ -656,6 +657,7 @@ class Score2:
         for i in range(n_minutes):
             self.counts[2 * self.expert_class[i] +
                         self.class_from_model[i]] += 1
+        return self.model.forward()
 
     def formatted_result(self, report: typing.TextIO, expert=False):
         """Write result to open file in format that matches expert

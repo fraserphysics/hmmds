@@ -46,19 +46,19 @@ prominence_study.pdf: prominence_study.py
 
 $(MODELS)/two_ar3_initial%: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8  --min_prominence $* \
---records $(EasySlow) --alpha_beta 50.0 10.0  --AR_order 3 \
+--records $(ANAMES) --alpha_beta 50.0 10.0  --AR_order 3 \
 two_intervals $@
 
 $(MODELS)/two_ar3_masked%: apnea_train.py $(MODELS)/two_ar3_initial%
-	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(EasySlow)  --min_prominence $* --type class_peak_interval $(MODELS)/two_ar3_initial$* $@
+	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(ANAMES)  --min_prominence $* --type class_peak_interval $(MODELS)/two_ar3_initial$* $@
 
 $(MODELS)/two_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
---records $(EasySlow) --alpha_beta 50.0 10.0  --AR_order $* \
+--records $(ANAMES) --alpha_beta 50.0 10.0  --AR_order $* \
 two_intervals $@
 
 $(MODELS)/two_ar%_masked: apnea_train.py $(MODELS)/two_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(EasySlow) --type class_peak_interval $(MODELS)/two_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(ANAMES) --type class_peak_interval $(MODELS)/two_ar$*_initial $@
 
 $(MODELS)/intervals_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
