@@ -4,6 +4,7 @@ minimum peak prominence
 """
 import sys
 import argparse
+import typing
 
 import numpy
 
@@ -28,15 +29,19 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
-    parser.add_argument('fig_path', type=str, help="path to result")
+    parser.add_argument('--fig_path', type=str, help="path to result")
+    parser.add_argument('--latex', type=str, help="resulting latex table")
     args = parser.parse_args(argv)
     utilities.join_common(args)
     return args
 
 
-def _print(results):
+def print_summary(results):
+    print(
+        f'{"peak threshold":14s} {"false alarm":11s} {"missed detection":16s} {"error rate":10s}'
+    )
     for threshold, result in results.items():
-        print(f"{threshold:8.4g} \
+        print(f"{threshold:14.4g} \
 {result['false alarm']:11.4g} \
 {result['missed detection']:16.4g} \
 {result['error rate']:10.5f}")
@@ -87,13 +92,21 @@ def calculate(scores, best_threshold, best_power):
     return result
 
 
-def print_by_record(scores, results):
+def print_by_record(scores, results, report: typing.TextIO, latex=False):
     for prominence, scores_prominence in scores.items():
         results_p = results[prominence]
-        print(f'{prominence=} error rate: {results_p["error rate"]}')
-        print(
-            f'{"record":6s} {"false alarm":11s} {"missed detection":16s} {"error rate":10s} {"likelihood":11s}'
-        )
+        if latex:
+            print(r'''\begin{tabular}{|r|rr|rr|rr|}
+\hline''', file=report)
+            print(
+                r'record & $N_N$ & $P_{FA}$ & $N_A$ &$P_{MD}$ & $P_{E}$ & $\log(p(y|\theta))$ \\',
+                file=report)
+        else:
+            print(f'{prominence=} error rate: {results_p["error rate"]}',
+                  file=report)
+            print(
+                f'{"record":6s} {"false alarm":11s} {"missed detection":16s} {"error rate":10s} {"likelihood":11s}',
+                file=report)
 
         names = list(scores_prominence.keys())
 
@@ -104,13 +117,21 @@ def print_by_record(scores, results):
         names.sort(key=lambda x: -error_rate(x))
         for record_name in names:
             score = scores_prominence[record_name]
-            false_alarm = score.counts[1] / (score.counts[0] + score.counts[1])
-            missed_detection = score.counts[2] / (score.counts[2] +
-                                                  score.counts[3])
+            n_normal = score.counts[0] + score.counts[1]
+            false_alarm = score.counts[1] / n_normal
+            n_apnea = score.counts[2] + score.counts[3]
+            missed_detection = score.counts[2] / n_apnea
             likelihood = results_p['likelihoods'][record_name]
-            print(
-                f'{record_name:>6s} {false_alarm:11.3f} {missed_detection:16.3f} {error_rate(record_name):10.3f} {likelihood:11.3g}'
-            )
+            if latex:
+                print(
+                    f'{record_name} & {n_normal:} & {false_alarm:5.3f} & {n_apnea} & {missed_detection:5.3f} & {error_rate(record_name):5.3f} & {likelihood:7.3g} \\\\',
+                    file=report)
+            else:
+                print(
+                    f'{record_name:>6s} {false_alarm:11.3f} {missed_detection:16.3f} {error_rate(record_name):10.3f} {likelihood:11.3g}',
+                    file=report)
+        if latex:
+            print(r'\hline \end{tabular}', file=report)
 
 
 def main(argv=None):
@@ -143,13 +164,16 @@ def main(argv=None):
                 model_path, record_name)
     results = calculate(scores, best_threshold, best_power)
     if args.report_by_record:
-        print_by_record(scores, results)
-    print(
-        f'{"peak threshold":14s} {"false alarm":11s} {"missed detection":16s} {"error rate":10s}'
-    )
-    _print(results)
+        print_by_record(scores, results, sys.stdout)
+    if args.latex is not None:
+        with open(args.latex, encoding='utf-8', mode='w') as _file:
+            print_by_record(scores, results, _file, latex=True)
+    print_summary(results)
+
+    # Cheap to plot.  Make it even if not used
     _plot(axeses[0], results, 'threshold prominence')
-    fig.savefig(args.fig_path)
+    if args.fig_path is not None:
+        fig.savefig(args.fig_path)
 
     if args.show:
         pyplot.show()

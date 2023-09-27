@@ -27,13 +27,12 @@
 Here I document ideas for redoing the last chapter of my book
 \emph{Hidden Markov Models and Dynamical Systems} in which I address
 the CINC-2000 challenge.  I want to map the products of the ECG
-analysis described in my document \emph{HMMs for ECGs} to to the two
+analysis described in my document \emph{HMMs for ECGs} to the two
 classification challenges.  The inputs are time series of heart rate
-estimates and likelihoods sampled at 2 Hz and the outputs are
-two stages of classification.  First: For each record determine
-whether or not the patient experienced apnea; and Second: for each
-minute of each record determine whether or not the patient was
-experiencing apnea.
+estimates and likelihoods sampled at 2 Hz and the outputs are two
+stages of classification.  First: For each record determine whether or
+not the patient experienced apnea; and Second: for each minute of each
+record determine whether or not the patient was experiencing apnea.
 
 \section{A Model for Record a03}
 \label{sec:a03}
@@ -132,6 +131,17 @@ models for the HMMs I use for minute by minute apnea classification.
 After I figure that out, I may be able to the technique implement item
 2 above.
 
+\section{Work on Pass2}
+\label{sec:pass2}
+
+\begin{table*}
+  \centering
+  \input{two.tex}
+  \caption[Performance]{Performance of model
+    \emph{two\_ar3\_masked6.1}.  Records a09 and a18 are marked all
+    apnea based on their high likelihood.}
+  \label{tab:pass2performance}
+\end{table*}
 
 \section{To Do}
 \label{sec:todo}
@@ -190,6 +200,54 @@ L10 -1.755e+03 L11  5.678e+03 L prior -9.081e+06 U/n -4.1274e+01
 
   I will try changing the sample rate to 8 samples per minute and the
   chain lengths to (4, 8, 1).
+\item[Disparate Likelihoods:] The command and last iteration of
+  training ar3 are
+\begin{verbatim}
+python apnea_train.py --AR_order 3 --iterations 20 --records a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19 --type masked --trim_start 25 ../../../../build/derived_data/apnea/models/a_ar1_masked ../../../../build/derived_data/apnea/models/a_ar3_masked
+
+19 L0 -6.009e+03 L1  5.868e+03 L2  7.069e+02 L3  4.772e+03 L4  4.285e+03 L5 -1.360e+04 L6  1.951e+03 L7 -2.085e+02 L8 -4.664e+03 L9  3.691e+03 L10 -2.632e+03 L11  7.025e+03 L prior -1.084e+06 U/n -4.9251e+00
+\end{verbatim}
+  which implies the following likelihoods for individual records:
+  
+  \begin{tabular*}{1.0\linewidth}{rr} 
+    a01 & -6.009e+03 \\
+    a02 & 5.868e+03 \\
+    a03 & 7.069e+02 \\
+    a04 & 4.772e+03 \\
+    a05 & 4.285e+03 \\
+    a07 & -1.360e+04 \\
+    a12 & 1.951e+03 \\
+    a13 & -2.085e+02 \\
+    a14 & -4.664e+03 \\
+    a15 & 3.691e+03 \\
+    a17 & -2.632e+03 \\
+    a19 & 7.025e+03
+  \end{tabular*}
+  Also from that training here is a summary of the probability of
+  occupying key states averaged over all of the training data:
+  
+  \begin{tabular*}{1.0\linewidth}[c]{rrllll}
+    index & name & weight &  variance & a/b &    alpha \\ \hline
+  0 & N\_2\_0     &    2.74e+03  &  0.0449 &  0.2& 5.00e+01 \\
+  2 & N\_3\_0     &    1.38e+03  &  0.0847 &  0.2& 5.00e+01 \\
+  5 & N\_4\_0     &    1.55e+03  &   0.076 &  0.2& 5.00e+01 \\
+  9 & N\_5\_0     &    481       &   0.572 &  0.2& 5.00e+01 \\
+ 14 & N\_6\_0     &    568       &   0.158 &  0.2& 5.00e+01 \\
+ 20 & N\_7\_0     &    967       &  0.0665 &  0.2& 5.00e+01 \\
+ 27 & N\_8\_0     &    3.91e+03  &  0.0272 &  0.2& 5.00e+01 \\
+ 35 & N\_noise   &    1.31e-18  &     100 &100.0& 9.60e+04 \\
+ 36 & N\_switch  &    1.17e+04  &  0.0635 &  0.2& 5.00e+01 \\
+ 37 & A\_2\_0     &    3.92e+03  &  0.0775 &  0.2& 5.00e+01 \\
+ 39 & A\_3\_0     &    4.11e+03  &  0.0319 &  0.2& 5.00e+01 \\
+ 42 & A\_4\_0     &    4.4e+03   &  0.0205 &  0.2& 5.00e+01 \\
+ 46 & A\_5\_0     &    2.71e+03  &  0.0605 &  0.2& 5.00e+01 \\
+ 51 & A\_6\_0     &    7.86e+03  &  0.0196 &  0.2& 5.00e+01 \\
+ 57 & A\_7\_0     &    1.9e+03   &  0.0973 &  0.2& 5.00e+01 \\
+ 64 & A\_8\_0     &    1.28e+03  &   0.585 &  0.2& 5.00e+01 \\
+ 72 & A\_noise   &    2.28e-17  &     100 &100.0& 9.60e+04 \\
+ 73 & A\_switch  &    2.63e+04  &   0.059 &  0.2& 5.00e+01
+  \end{tabular*}
+  I want code to make a similar table for isolated records.
 
 \end{description}
 
@@ -209,14 +267,6 @@ sys	0m13.803s
 
 \end{verbatim}
 
-\begin{table}
-  \centering
-  \input{like_table.tex} 
-  \caption[Log Likelihoods]{Log Likelihoods of models trained on one
-    data set and evaluated on another}
-  \label{tab:log_likelihoods}
-\end{table}
-
 \begin{figure}
   \centering
     \resizebox{1.0\textwidth}{!}{\includegraphics{statistics.pdf}}
@@ -225,3 +275,19 @@ sys	0m13.803s
 \end{figure}
 
 \end{document}
+http://www.ms.k.u-tokyo.ac.jp/sugi/2010/RIMS2010.pdf Density Ratio
+Estimation: A Comprehensive Review
+
+https://neuropsychology.github.io/NeuroKit/examples/ecg_delineate/ecg_delineate.html
+Locate P, Q, S and T waves in ECG
+
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.datasets.electrocardiogram.html#scipy.datasets.electrocardiogram
+
+http://compbio.fmph.uniba.sk/papers/04wabi.pdf The Most Probable
+Labeling Problem in HMMs and Its Application to Bioinformatics
+
+https://probml.github.io/pml-book/book2.html Probabilistic Machine
+Learning: Advanced Topics by Kevin Patrick Murphy.  MIT Press, 2023.
+
+https://archive.siam.org/books/textbooks/fr18_book.pdf Iterative
+Methods for Optimization C.T. Kelly  (Saved to cathcart)

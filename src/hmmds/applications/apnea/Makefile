@@ -10,8 +10,12 @@ include Rules.mk
 
 HR_FIGS = statistics.pdf
 
-heart_rate.pdf: heart_rate.tex like_table.tex $(HR_FIGS)
+heart_rate.pdf: heart_rate.tex two.tex $(HR_FIGS)
 	pdflatex $< ; pdflatex $<
+
+# A table of pass2 performance on each a-file.
+two.tex: prominence_study.py $(MODELS)/two_ar3_masked6.1
+	python $< --prominences 6.1 --template $(MODELS)/two_ar3_masked% --latex $@
 
 report.txt: cross_score.py $(MODELS)/masked_all_a
 	python $< --specific 1.0 > $@
