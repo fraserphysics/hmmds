@@ -373,8 +373,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
     def plot_classification(self  # MainWindow
                            ):
-        if self.record_box.text()[0] == 'x':
-            return
         expert_class = self.score2.expert_class
         hmm_class = self.score2.class_from_model
         expert_times = numpy.arange(len(expert_class)) * PINT('minutes')

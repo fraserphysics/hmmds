@@ -1,15 +1,8 @@
 """statistic_plots.py.  Make plots for choosing statistics for pass1.
 
-python statistic_plots.py --a_models a06 --c_models c10 --trim_start 25 --show foo.pdf
+python statistic_plots.py  --show foo.pdf
 
-Plot 1. Call the respiration signal r[t].  For the ith record,
-calculate M_i the median value of r and define R[t] = r[t]/M_i.  Then
-plot the cumulative distribution of all of the R[t] values for all of
-the records.
-
-Plot 2. Plot the PSD of the unfiltered heart rate using a window size
-of 1024 seconds.  Channel 25 will correspond to apnea osscilations of
-40.96 seconds.
+Plot 1. Plot the PSD of the unfiltered heart rate.
 
 """
 
@@ -63,6 +56,11 @@ def parse_args(argv):
                         type=str,
                         default='../../../../build/derived_data/ECG/',
                         help='Path to heart rate data for reading')
+    parser.add_argument(
+        '--model',
+        type=str,
+        default='../../../../build/derived_data/apnea/models/two_ar3_masked6.1',
+        help='Path to model')
     parser.add_argument('--format',
                         type=str,
                         default='{0}/{1}_self_AR3/heart_rate',
@@ -80,21 +78,25 @@ def parse_args(argv):
 
 class Record:
 
-    def __init__(self, name, args, psd_normalization=10):
+    def __init__(self, name, args, normalization=0.29):
         """Set the following attributes:
 
         name: EG "a01"
 
         heart_rate: Time series in cycles per minute
 
-        psd: Power spectral density estimate / sum of all but first
-             psd_normalization channels
+        psd: Power spectral density estimate / sum of frequencies above normalization
 
         cdf: Cumulative distribution of low pass heart rate estimate
 
         percents: Values at a few cdf points
 
         """
+        best_power = 1.757  # Raise likelihood of interval to this power
+
+        self.likelihood = utilities.interval_hmm_likelihood(
+            args.model, name, best_power)
+
         self.name = name
         self.y_data = hmm.base.JointSegment(
             utilities.read_slow_respiration(args, name))
@@ -112,8 +114,14 @@ class Record:
             trim = int(sample_frequency *
                        args.trim_start.to('minutes').magnitude)
         self.heart_rate = _dict['hr'].to('1/minute').magnitude[trim:]
-        _, raw_psd = scipy.signal.welch(self.heart_rate, nperseg=args.fft_width)
-        self.psd = raw_psd / raw_psd[psd_normalization:].sum()
+        self.frequencies, raw_psd = scipy.signal.welch(self.heart_rate,
+                                                       fs=sample_frequency,
+                                                       nperseg=args.fft_width)
+        channel = numpy.argmax(self.frequencies > normalization)
+        self.psd = raw_psd  / raw_psd[channel:].sum()
+
+    def statistic_3(self):
+        return self.likelihood
 
     def statistic_2(self):
         """Linear function of CDF of slow heart rate estimate.
@@ -126,12 +134,14 @@ class Record:
         v = numpy.array([self.percents[x] for x in (.01, .8, .995)])
         return numpy.dot(a, v)
 
-    def statistic_1(self):
+    def statistic_1(self, low=1.29, high=3.63):
         """Spectral power in the range of low frequency apnea
-        oscillations
+        oscillations.  Range in cpm
 
         """
-        return self.psd[44:124].sum()
+        channel_low = numpy.argmax(self.frequencies > low)
+        channel_high = numpy.argmax(self.frequencies > high)
+        return self.psd[channel_low:channel_high].sum()
 
 
 def main(argv=None):
@@ -140,29 +150,44 @@ def main(argv=None):
         argv = sys.argv[1:]
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
-    trouble = 'c02 c10 a06 x17'.split()
+    trouble = 'a10 c10'.split()
+    colors = ['r', 'b']
     fig, axeses = pyplot.subplots(nrows=3, figsize=(6, 8))
+    fig.tight_layout()
 
     records = dict(
         (name, Record(name, args))
         for name in args.A_names + args.C_names + args.X_names + args.B_names)
+    frequencies = records[args.A_names[0]].frequencies
 
     def plot_psd(names, label, color):
         psd_list = [records[name].psd for name in names]
+        for name in names:
+            assert numpy.array_equal(frequencies, records[name].frequencies)
         psd_average = sum(psd_list) / len(psd_list)
-        axeses[0].plot(numpy.log(psd_average),
-                       label=label,
-                       color=color,
-                       linewidth=4)
-        for psd in psd_list:
-            axeses[0].plot(numpy.log(psd), color=color, linestyle='dotted')
+        for axes in axeses[:2]:
+            axes.plot(frequencies,
+                      numpy.log(psd_average),
+                      label=label,
+                      color=color,
+                      linewidth=2,
+                      linestyle='solid')
+        #for psd in psd_list:
+        #    axeses[0].plot(frequencies, numpy.log(psd), color=color, linestyle='dotted')
 
-    plot_psd(args.A_names, 'a', 'r')
-    plot_psd(args.C_names, 'c', 'b')
-    for name in trouble:
-        axeses[0].plot(numpy.log(records[name].psd), label=name)
-    axeses[0].set_xlabel('frequency')
-    axeses[0].set_ylabel('log psd')
+    plot_psd(args.A_names, r'$\bar a$', 'r')
+    plot_psd(args.C_names, r'$\bar c$', 'b')
+    for axes in axeses[:2]:
+        for name, color in zip(trouble, colors):
+            axes.plot(frequencies,
+                      numpy.log(records[name].psd),
+                      color=color,
+                      label=name)
+        axes.set_xlabel('frequency')
+        axes.set_ylabel('log psd')
+
+    axeses[1].set_xlim(40, 125)
+    axeses[1].set_ylim(-7, -4)
 
     def plot_combined_cdf(names, color):
         combined = numpy.concatenate([records[name].cdf for name in names])
@@ -185,22 +210,25 @@ def main(argv=None):
             return
         axeses[1].plot(x, y, color=color, linestyle=linestyle, label=name)
 
-    plot_combined_cdf(args.A_names, 'r')
-    plot_combined_cdf(args.C_names, 'b')
-    for name in trouble:
-        plot_cdf(name, label=True)
-    axeses[1].set_xlabel('Heart Rate / median')
-    axeses[1].set_ylabel('CDF Low Pass HR')
+    # plot_combined_cdf(args.A_names, 'r')
+    # plot_combined_cdf(args.C_names, 'b')
+    # for name in trouble:
+    #     plot_cdf(name, label=True)
+    # axeses[1].set_xlabel('Heart Rate / median')
+    # axeses[1].set_ylabel('CDF Low Pass HR')
 
     def plot_stats(names, color):
         for name in names:
             axeses[2].plot(records[name].statistic_1(),
-                           records[name].statistic_2(),
+                           records[name].statistic_3(),
                            color=color,
                            marker=f'${name}$',
                            markersize=14,
                            linestyle='None')
 
+    y = numpy.linspace(1.0e4, -2.0e5, 2)
+    x = .228 - y * 0.045 / 1.0e5
+    axeses[2].plot(x, y)
     plot_stats(args.A_names, 'r')
     plot_stats(args.C_names, 'b')
     plot_stats(args.B_names, 'g')

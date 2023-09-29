@@ -610,6 +610,32 @@ class IntervalObservation(hmm.base.BaseObservation):
         return self._likelihood
 
 
+def interval_hmm_likelihood(model_path: str, record_name: str,
+                            interval_exponent):
+    """Calculate log likelihood of model wrt data for a record
+    """
+    with open(model_path, 'rb') as _file:
+        model_args, model = pickle.load(_file)
+    del model.y_mod['class']
+    model.y_mod['interval'].power = interval_exponent
+
+    y_data = [
+        hmm.base.JointSegment(
+            read_slow_peak_interval(model_args, model_args.boundaries,
+                                    record_name))
+    ]
+    t_seg = model.y_mod.observe(y_data)
+    n_times = model.y_mod.n_times
+    assert t_seg[-1] == n_times
+
+    model.alpha = numpy.empty((n_times, model.n_states))
+    model.gamma_inv = numpy.empty((n_times,))
+    model.state_likelihood = model.y_mod.calculate()
+    assert model.state_likelihood[0, :].sum() > 0.0
+    log_likelihood = model.forward()
+    return log_likelihood
+
+
 class Score2:
 
     def __init__(self, model_path: str, record_name: str):
@@ -633,13 +659,6 @@ class Score2:
                                         record_name))
         ]
 
-        self.expert_class = read_expert(self.model_args.expert, record_name)
-        self.counts = numpy.zeros(4, dtype=int)
-        # n2n = counts[0]
-        # n2a = counts[1]
-        # a2n = counts[2]
-        # a2a = counts[3]
-
     def score(self, more_specific: float, interval_exponent=None):
         """Assign to self.class_from_model estimates apnea or normal for each minute of data
         Args:
@@ -652,6 +671,17 @@ class Score2:
             self.model.y_mod['interval'].power = interval_exponent
         self.class_from_model = self.model.class_estimate(
             self.y_data, self.samples_per_minute, more_specific)
+        if self.record_name[0] == 'x':
+            self.expert_class = numpy.zeros(len(self.class_from_model),
+                                            dtype=int)
+        else:
+            self.expert_class = read_expert(self.model_args.expert,
+                                            self.record_name)
+        self.counts = numpy.zeros(4, dtype=int)
+        # n2n = counts[0]
+        # n2a = counts[1]
+        # a2n = counts[2]
+        # a2a = counts[3]
         n_minutes = min(len(self.class_from_model), len(self.expert_class))
         self.counts *= 0
         for i in range(n_minutes):
