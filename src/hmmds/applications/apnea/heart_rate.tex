@@ -39,15 +39,6 @@ record determine whether or not the patient was experiencing apnea.
 
 \textbf{To Do:}  Describe structure of the model and its performance.
 
-\subsection{Fit a Separate Models to Each Record}
-\label{sec:selves}
-
-\textbf{To Do:} Imitating the approach in \emph{HMMs for ECGs}, use
-the same structure to build an HMM for each of the labeled records.
-
-Then strip out the class portions of those models and see if it's
-possible to use the cross entropies to do pass-1 classification.
-
 \subsection{C records}
 \label{sec:c_records}
 
@@ -56,80 +47,130 @@ trying to create and train models with states for the apnea class
 fails.  I build models of C records that have a single state and that
 state is in the normal class.
 
-
-\section{Exploiting Likelihood from ECG Models}
-\label{sec:exploit_likelihood}
-
-The ECG models provide both estimates of the heart rate and at time
-series of the conditional probabilities $p(y[t]|y[:t])$.  I believe
-that when those probabilities are small the estimated heart rate is
-unreliable.  I intend to incorporate that belief into my models of
-heart rate.
-
-\textbf{To Do:} Using s
-
 \section{Pass1 Challenges}
 \label{sec:pass1}
 
+I built a model called \emph{two\_ar3\_masked6.1} with the following
+features:
+\begin{itemize}
+\item Models detected peaks and forces them to be on chains
+\item There are \emph{two} chains, one for normal and one for apnea
+\item The lengths of the \emph{intervals} between peaks are modeled
+\item The heart rate signal is fit to AR3 models
+\end{itemize}
+Here I will refer to that model as simply the \emph{HMM}.
+
+The HMM does pass2 classification for the \emph{a} records reasonably
+well except for \emph{a09} and \emph{a18}.  But those records are
+almost all apnea, and the HMM has very high likelihood for them.  I'd
+hoped that I could rely on high likelihood to identify problematic
+\emph{x} records and mark them as all apnea, but that didn't work.
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{statistics.pdf}}
+    \caption{Possible pass1 statistics.  The upper and middle plots
+      are normalized power spectral density estimates.  The sum of
+      channels from 1.0 to 3.6 cpm is $F(PSD)$ in the lower plot.
+      Note that records a11 and c10 are out of order for separating
+      \emph{a} records from \emph{c} records.  The y-axis in the lower
+      plot is the log likelihood of a particular HMM for data from
+      each record.  The vertical dotted line only differs from the
+      diagonal line in its classification of x06, x17 and x18.  The
+      HMM classifies most minutes of those records as normal, and they
+      look like c records visually.}
+  \label{fig:statistics}
+\end{figure}
+
+Figure~\ref{fig:statistics}\footnote{The PSDs are normalized to have
+  the same power for frequencies above 0.3 cpm)} illustrates pass1.
+  The following \emph{x} records fall close to the boundary:
 \begin{description}
-\item[Statistic 1] Spectral power in the range of low frequency apnea
-        oscillations.  Channels 22 to 62.
+\item[x06] Pass1 says A which seems \textbf{wrong}.  But HMM says this
+  is mostly normal, which seems correct.
+\item[x09] Pass1 says A which seems correct, but HMM says this is
+  mostly normal.
+\item[x10] Pass1 says A which seems correct.  HMM misses some of the
+  apnea
+\item[x13] Pass 1 says A which seems correct.  HMM misses some of the
+  apnea.
+\item[x15] Pass1 says A.  Maybe it's B.  HMM results seem plausible.
+\item[x17] Pass1 says A which seems \textbf{wrong}, but hmm says this
+  is mostly normal.
+\item[x23] Pass1 says A which seems correct.  HMM has trouble
+  detecting apnea.
+\item[x24] Pass1 says N which seems correct.  HMM says almost all
+  normal.
+\item[x33 \& x34] Pass1 says N.  I don't know if that's correct.
+  Visually I guess there might be a few episodes of apnea.  HMM
+  agrees.  I think \emph{x33} and \emph{x34} are different electrodes
+  measuring the same record.
 \end{description}
 
-Setting the threshold for statistic 1 between 0.34 and 0.355 classifies
-all of the \emph{a} and \emph{c} records records correctly except a06
-and c10.  These are the records for which statistic 1 is between 0.3
-and 0.375:
+Here is my guess at classification of the records:
 \begin{description}
+\item[C]
+  x03 (classified as A),
+  x04,
+  x06,
+  x11,
+  x17,
+  x18 (classified as A),
+  x22,
+  x24,
+  x29,
+  x35
+\item[B]
+  x13 (A),
+  x15 (A),
+  x26 (N),
+  x33 (N),
+  x34 (N)
+\item[A]
+  x01, x02, x05, x07, x08, x09, x10, x12, x14, x16, x19, x20,
+  x21, x23, x25, x27, x28, x30, x31, x32
+\end{description}
+
+x29 suffers alternans not apnea.
+
+Setting the threshold for statistic 1 between 0.34 and 0.36 classifies
+all of the \emph{a} and \emph{c} records records correctly except c10.  These are the records for which statistic 1 is between 0.28
+and 0.42:
+\begin{description}
+\item[x24]  Need to trim first 15 minutes.  Looks normal to me.
+\item[c09] Like c02.  Hour to hour heart rate changes.
+\item[c07] Low hour to hour heart rate variation.
+\item[c02] Hour to hour heart rate changes.
+\item[x33 x34] These are different measurements of the same thing.
+  I think it's a B record.
+\item[b04] HMM correctly says mostly normal.
+\item[c08] HMM says some apnea, but expert says none.
+\item[x06] First 5.2 minutes need to be trimmed.  I guess it's a B
+  record.
+\item[x17] Last 5 minutes need to be trimmed.  Apnea 126-150.
+\item[x18] Need to trim first 14.9 minutes.  206-230 looks like apnea
+  oscillations, but respiration look sort of OK.
+\item[x15] Apnea 120 - 140, 180 - 210, 350-390, 490-515.  More hour to
+  hour variation than c07.
+\item[a11] PMD for HMM is .64
 \item[a06] Amplitude of apnea related heart rate oscillations is
   small.  The hour to hour changes may be helpful.  Classifying the
-  minutes looks hard.  With a threshold of 0.34 in statistic 1, the
-  only records that get misclassified are a06 and c10.
+  minutes looks hard.
+\item[x10] Apnea 220 - 250, 360-390
+\item[x13] I guess it's B.
+\item[x07] I see apnea oscillations.
+\item[a09] Respiration signal is very weak.  Heart rate changes hour
+  to hour but not as much as a10.  The amplitude of the oscillations
+  in the heart rate during apnea is small.  It seems difficult to me.
 \item[c10] Heart rate has apnea like oscillations but returns to same
   baseline.  During those oscillations the respiration signal also
   oscillates, but perhaps not as deeply as a10.
 \item[a10] Heart rate changes hour to hour
-\item[a09] Respiration signal is very weak.  Heart rate changes hour
-  to hour but not as much as a10.  The amplitude of the oscillations
-  in the heart rate during apnea is small.  It seems difficult to me.
-\item[c02] Hour to hour heart rate changes.  But I bet that the
-  troubling value of statistic 1 is due to spikes in the heart rate
-  that could be masked by looking at negative spikes in the log
-  likelihood.
-\item[c09] Like c02.  Hour to hour heart rate changes.  But I bet that
-  the troubling value of statistic 1 is due to spikes in the heart
-  rate that could be masked by looking at negative spikes in the log
-  likelihood.
-\item[c07] Low hour to hour heart rate variation.
-\item[x24]  Need to trim first 15 minutes.  Looks normal to me.
-  Filter on log likelihood would help with statistic 1.
-\item[x33 x34] These are different measurements of the same thing.
-  It looks normal.  Perhaps filtering based on log likelihood would
-  help a little with statistic 1.
-\item[x13] I guess it's normal.  Filter on likelihood would help.
-\item[x15] Apnea 120 - 140, 180 - 210, 350-390, 490-515.  More hour to
-  hour variation than c07.
-\item[x07] I see apnea oscillations.  Filtering on likelihood might
-  lead to miss-classification.
-\item[x17] Last 5 minutes need to be trimmed.  Apnea 126-150.
-  Filtering by likelihood would not remove many heart rate spikes.
-  ???
-\item[x06] First 5.2 minutes need to be trimmed.  I guess normal.
-  Filtering on likelihood would help.
-\item[x10] Apnea 220 - 250, 360-390
-\item[x18] Need to trim first 14.9 minutes.  206-230 looks like apnea
-  oscillations, but respiration look sort of OK
+\item[x09] HMM misses clear apnea episodes
 \item[x23] Apnea 120-185 but respiration looks sort of OK
 \end{description}
 
-Two ideas come from the review of those records: 1. Use the power in
-very low frequencies as an additional statistic; 2. Use negative
-spikes in the log likelihood of the ECG signal to reduce the weight
-given to heart rate estimates.  I've been thinking of using the log
-likelihood of the ECG signal to influence the variance of the output
-models for the HMMs I use for minute by minute apnea classification.
-After I figure that out, I may be able to the technique implement item
-2 above.
+\textbf{Conclude:} Statistic 1 alone is adequate for pass1.
 
 \section{Work on Pass2}
 \label{sec:pass2}
@@ -147,18 +188,9 @@ After I figure that out, I may be able to the technique implement item
 \label{sec:todo}
 
 \begin{description}
-\item[Pass-1] Use statistic\_plots.py.  Continue using three classes
-  like the book.  Look at \textbf{b} and \emph{x} files when drawing
-  the boundaries.  Explore changes in PSD estimation.  I think using
-  longer FFTs improves classification.  Perhaps using more overlap
-  would help too.
-\item[move] apnea/models to heart\_rate/models in build directory
-\item[c records have bad starts] 1,2,4,9 and 10 have several minutes
-  with disconnected leads.
-\item[Tied Observations] Multiple states with the same observation
-  model
-\item[Old Code] Consider removing or rewriting pass1.py, pass2.py, and
-  score.py 
+\item[Support different observation models:] Identify the code for
+  reading data to each file with a pickled model
+\item[Multiple Chains:] Try HMM with more chains for apnea peaks.
 \end{description}
 
 \section{Unlucky Thoughts}
@@ -266,13 +298,6 @@ user	20m57.698s
 sys	0m13.803s
 
 \end{verbatim}
-
-\begin{figure}
-  \centering
-    \resizebox{1.0\textwidth}{!}{\includegraphics{statistics.pdf}}
-    \caption{Possible pass1 statistics.}
-  \label{fig:statistics}
-\end{figure}
 
 \end{document}
 http://www.ms.k.u-tokyo.ac.jp/sugi/2010/RIMS2010.pdf Density Ratio

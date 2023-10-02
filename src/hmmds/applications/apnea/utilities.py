@@ -610,8 +610,9 @@ class IntervalObservation(hmm.base.BaseObservation):
         return self._likelihood
 
 
-def interval_hmm_likelihood(model_path: str, record_name: str,
-                            interval_exponent):
+def interval_hmm_likelihood(model_path: str,
+                            record_name: str,
+                            interval_exponent=1.0):
     """Calculate log likelihood of model wrt data for a record
     """
     with open(model_path, 'rb') as _file:
@@ -634,6 +635,51 @@ def interval_hmm_likelihood(model_path: str, record_name: str,
     assert model.state_likelihood[0, :].sum() > 0.0
     log_likelihood = model.forward()
     return log_likelihood
+
+
+class Pass1:
+    """Holds statistics of a record for pass1 classification, ie, normal or apnea
+    """
+
+    def __init__(self, name, args, normalization=0.3):
+        """Read heart rate data and attach some analysis results to self
+
+        name: EG "a01"
+
+        args:
+
+        normalization: Divide PSD by sum of channels above this frequency (in cpm)
+
+        """
+
+        self.likelihood = interval_hmm_likelihood(args.model, name)
+
+        self.name = name
+        self.y_data = hmm.base.JointSegment(read_slow_respiration(args, name))
+        with open(args.format.format(args.data_dir, name), 'rb') as _file:
+            _dict = pickle.load(_file)
+            sample_frequency = _dict['sample_frequency'].to(
+                '1/minutes').magnitude
+            hr = _dict['hr']
+            trim = int(sample_frequency *
+                       args.trim_start.to('minutes').magnitude)
+        heart_rate = _dict['hr'].to('1/minute').magnitude[trim:]
+        self.frequencies, raw_psd = scipy.signal.welch(heart_rate,
+                                                       fs=sample_frequency,
+                                                       nperseg=args.fft_width)
+        channel = numpy.argmax(self.frequencies > normalization)
+        self.psd = raw_psd / raw_psd[channel:].sum()
+
+    def statistic_1(self, low=1.0, high=3.6):
+        """Spectral power in the range of low frequency apnea
+        oscillations.  Range in cpm
+
+        """
+
+        # argmax finds first place inequality is true
+        channel_low = numpy.argmax(self.frequencies > low)
+        channel_high = numpy.argmax(self.frequencies > high)
+        return self.psd[channel_low:channel_high].sum()
 
 
 class Score2:

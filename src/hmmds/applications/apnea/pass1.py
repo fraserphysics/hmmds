@@ -1,14 +1,11 @@
 """For every record calculate two statistics for classifying the record
 
-All paths are derived from root via utilities.Common
-
 The result is written both as a pickle file and a text file with lines
 like
 
-
-b04 # Medium stat=  2.178 llr= -0.140 R=  2.248
-a09 # High   stat=  4.263 llr=  4.162 R=  2.182
-x33 # Medium stat=  1.847 llr= -0.322 R=  2.008
+c04 N 0.0399
+x29 N 0.0471
+x11 N 0.1840
 
 """
 import sys
@@ -19,8 +16,11 @@ import pickle
 import typing
 
 import numpy
+import pint
 
 import hmmds.applications.apnea.utilities
+
+PINT = pint.UnitRegistry()
 
 
 def parse_args(argv):
@@ -28,88 +28,38 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser("Create and write/pickle pass1_report")
+    parser.add_argument('--sample_rate_in',
+                        type=int,
+                        default=2,
+                        help='Samples per second of input')
+    parser.add_argument('--fft_width',
+                        type=int,
+                        default=4096,
+                        help='Number of samples for each fft')
+    parser.add_argument('--data_dir',
+                        type=str,
+                        default='../../../../build/derived_data/ECG/',
+                        help='Path to heart rate data for reading')
+    parser.add_argument(
+        '--threshold',
+        type=float,
+        default=0.357,
+        help='Border between normal and apnea for whole records')
+    parser.add_argument(
+        '--model',
+        type=str,
+        default='../../../../build/derived_data/apnea/models/two_ar3_masked6.1',
+        help='Path to model')
+    parser.add_argument('--format',
+                        type=str,
+                        default='{0}/{1}_self_AR3/heart_rate',
+                        help='Map from (data_dir,name) to file of heart_rates')
+    parser.add_argument('pickle', type=str, help='Path to pickled result')
     hmmds.applications.apnea.utilities.common_arguments(parser)
     args = parser.parse_args(argv)
+    args.sample_rate_in *= PINT('Hz')
     hmmds.applications.apnea.utilities.join_common(args)
     return args
-
-
-def r_stat(data: numpy.ndarray) -> float:
-    """ Calculate the statistic R to help classify records
-
-    Args:
-        data: The scalar time series of filtered heart rate data
-
-    Returns:
-        The height of peak at the 74% level / the average peak height
-    """
-    n_times = len(data)
-    peaks = []
-    window_size = 5  # Window is =/- window_size
-    for t in range(window_size, n_times - window_size):
-        argmax_window = data[t - window_size:t + window_size].argmax()
-        # Look for positive peak centered in the window
-        if argmax_window == window_size and data[t] > 0:
-            peaks.append(data[t])
-    peaks.sort()
-    # return 74% level / average L1 norm of data per sample
-    return peaks[int(.74 * len(peaks))] / (numpy.abs(data).sum() / n_times)
-
-
-def log_likelihood_ratio(data, normal_model,
-                         apnea_model) -> typing.Tuple[float, float, int]:
-    """Calculate the ratio of the likelihoods for two models
-
-    Args:
-        data: Combination of heart rate and respiration data
-        normal_model: HMM trained on normal data
-        apnea_model: HMM trained on apnea data
-
-    Returns:
-        (log_likelihood(apnea_model) - log_likelihood(normal_model) /
-            (length of data)
-
-    """
-
-    def log_likelihood(hmm):
-        t_seg = hmm.y_mod.observe([data])
-        assert len(t_seg) == 2
-        hmm.calculate()
-        return hmm.forward(), t_seg[-1]
-
-    a_ll, a_times = log_likelihood(apnea_model)
-    n_ll, n_times = log_likelihood(normal_model)
-    assert a_times == n_times
-    return a_ll, n_ll, n_times
-
-
-def make_reports(args, names: list):
-    """Make a list of reports for pass1
-
-    Args:
-
-        args: paths and parameters from command line and utilities.py
-
-        names: Eg, 'a01 a02 x34'.split()
-
-    """
-    with open(args.Amodel, 'rb') as _file:
-        _, apnea_model = pickle.load(_file)
-    with open(args.BCmodel, 'rb') as _file:
-        _, normal_model = pickle.load(_file)
-    reports = {}
-    for name in names:
-        y_data = hmmds.applications.apnea.utilities.heart_rate_respiration_data(
-            name, args)
-        # y_data is a dict
-        a_ll, n_ll, n_times = log_likelihood_ratio(y_data, normal_model,
-                                                   apnea_model)
-        reports[name] = {
-            'a_ll': a_ll,
-            'n_ll': n_ll,
-            'n_times': n_times,
-        }
-    return reports
 
 
 def main(argv=None):
@@ -120,16 +70,18 @@ def main(argv=None):
 
     args = parse_args(argv)
 
-    reports = make_reports(args, args.all_names)
-    with open(args.pass1 + '.pickle', 'wb') as _file:
-        pickle.dump(reports, _file)
-    with open(args.pass1, 'w') as _file:
-        for name, report in reports.items():
-            a_per = report['a_ll'] / report['n_times']
-            n_per = report['n_ll'] / report['n_times']
-            _file.write(
-                f'{name} # a: {a_per:6.3f} n: {n_per:6.3f} a-n: {a_per-n_per:6.3f}'
-            )
+    records = dict((name, hmmds.applications.apnea.utilities.Pass1(name, args))
+                   for name in args.all_names)
+    all_names = args.all_names.copy()
+    all_names.sort(key=lambda x: records[x].statistic_1())
+    result = {}
+    for name in all_names:
+        statistic = records[name].statistic_1()
+        _class = ("N", "A")[statistic > args.threshold]
+        print(f'{name} {_class} {statistic:6.4f}')
+        result[name] = _class
+    with open(args.pickle, 'wb') as _file:
+        pickle.dump(result, _file)
     return 0
 
 

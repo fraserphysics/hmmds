@@ -76,87 +76,19 @@ def parse_args(argv):
     return args
 
 
-class Record:
-
-    def __init__(self, name, args, normalization=0.29):
-        """Set the following attributes:
-
-        name: EG "a01"
-
-        heart_rate: Time series in cycles per minute
-
-        psd: Power spectral density estimate / sum of frequencies above normalization
-
-        cdf: Cumulative distribution of low pass heart rate estimate
-
-        percents: Values at a few cdf points
-
-        """
-        best_power = 1.757  # Raise likelihood of interval to this power
-
-        self.likelihood = utilities.interval_hmm_likelihood(
-            args.model, name, best_power)
-
-        self.name = name
-        self.y_data = hmm.base.JointSegment(
-            utilities.read_slow_respiration(args, name))
-        self.cdf = self.y_data['slow'].copy()
-        self.cdf.sort()
-        self.cdf /= self.cdf[int(0.5 * len(self.cdf))]
-        self.percents = dict(
-            (frac, self.cdf[int(frac * len(self.cdf))])
-            for frac in (0.01, 0.05, 0.1, 0.2, 0.5, 0.8, 0.995))
-        with open(args.format.format(args.data_dir, name), 'rb') as _file:
-            _dict = pickle.load(_file)
-            sample_frequency = _dict['sample_frequency'].to(
-                '1/minutes').magnitude
-            hr = _dict['hr']
-            trim = int(sample_frequency *
-                       args.trim_start.to('minutes').magnitude)
-        self.heart_rate = _dict['hr'].to('1/minute').magnitude[trim:]
-        self.frequencies, raw_psd = scipy.signal.welch(self.heart_rate,
-                                                       fs=sample_frequency,
-                                                       nperseg=args.fft_width)
-        channel = numpy.argmax(self.frequencies > normalization)
-        self.psd = raw_psd  / raw_psd[channel:].sum()
-
-    def statistic_3(self):
-        return self.likelihood
-
-    def statistic_2(self):
-        """Linear function of CDF of slow heart rate estimate.
-
-        Try <D,CDF> where D is the difference between the combined a
-        records and the combined c records?
-
-        """
-        a = numpy.array([-1.0, 1.0, -1.0])
-        v = numpy.array([self.percents[x] for x in (.01, .8, .995)])
-        return numpy.dot(a, v)
-
-    def statistic_1(self, low=1.29, high=3.63):
-        """Spectral power in the range of low frequency apnea
-        oscillations.  Range in cpm
-
-        """
-        channel_low = numpy.argmax(self.frequencies > low)
-        channel_high = numpy.argmax(self.frequencies > high)
-        return self.psd[channel_low:channel_high].sum()
-
-
 def main(argv=None):
 
     if argv is None:
         argv = sys.argv[1:]
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
-    trouble = 'a10 c10'.split()
+    trouble = 'a11 c10'.split()
     colors = ['r', 'b']
     fig, axeses = pyplot.subplots(nrows=3, figsize=(6, 8))
     fig.tight_layout()
 
     records = dict(
-        (name, Record(name, args))
+        (name, utilities.Pass1(name, args))
         for name in args.A_names + args.C_names + args.X_names + args.B_names)
     frequencies = records[args.A_names[0]].frequencies
 
@@ -170,7 +102,7 @@ def main(argv=None):
                       numpy.log(psd_average),
                       label=label,
                       color=color,
-                      linewidth=2,
+                      linewidth=3,
                       linestyle='solid')
         #for psd in psd_list:
         #    axeses[0].plot(frequencies, numpy.log(psd), color=color, linestyle='dotted')
@@ -182,53 +114,28 @@ def main(argv=None):
             axes.plot(frequencies,
                       numpy.log(records[name].psd),
                       color=color,
+                      linestyle='dotted',
                       label=name)
-        axes.set_xlabel('frequency')
+        axes.set_xlabel('frequency/cpm')
         axes.set_ylabel('log psd')
 
-    axeses[1].set_xlim(40, 125)
+    axeses[1].set_xlim(0.5, 4.0)
     axeses[1].set_ylim(-7, -4)
-
-    def plot_combined_cdf(names, color):
-        combined = numpy.concatenate([records[name].cdf for name in names])
-        combined.sort()
-        y = numpy.linspace(0, 1, len(combined))
-        axeses[1].plot(combined,
-                       y,
-                       color=color,
-                       linewidth=2,
-                       linestyle='dashed')
-
-    def plot_cdf(name, color=None, linestyle='solid', label=False):
-        x = records[name].cdf
-        y = numpy.linspace(0, 1, len(x))
-        if color is None:
-            axeses[1].plot(x, y, label=name, linestyle=linestyle)
-            return
-        if not label:
-            axeses[1].plot(x, y, color=color, linestyle=linestyle)
-            return
-        axeses[1].plot(x, y, color=color, linestyle=linestyle, label=name)
-
-    # plot_combined_cdf(args.A_names, 'r')
-    # plot_combined_cdf(args.C_names, 'b')
-    # for name in trouble:
-    #     plot_cdf(name, label=True)
-    # axeses[1].set_xlabel('Heart Rate / median')
-    # axeses[1].set_ylabel('CDF Low Pass HR')
 
     def plot_stats(names, color):
         for name in names:
             axeses[2].plot(records[name].statistic_1(),
-                           records[name].statistic_3(),
+                           records[name].likelihood,
                            color=color,
                            marker=f'${name}$',
                            markersize=14,
                            linestyle='None')
 
     y = numpy.linspace(1.0e4, -2.0e5, 2)
-    x = .228 - y * 0.045 / 1.0e5
+    x = .32 - y * 0.045 / 1.0e5
     axeses[2].plot(x, y)
+    x = .357 - y * 0.
+    axeses[2].plot(x, y, linestyle='dotted')
     plot_stats(args.A_names, 'r')
     plot_stats(args.C_names, 'b')
     plot_stats(args.B_names, 'g')
