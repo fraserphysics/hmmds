@@ -319,13 +319,14 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             boundaries = self.model_args.boundaries
             self.y_data = [
                 hmm.base.JointSegment(
-                    utilities.read_slow_peak_interval(self.model_args,
-                                                      boundaries,
-                                                      self.record_box.text()))
+                    self.model_args.read_raw_y(self.model_args, boundaries,
+                                               self.record_box.text()))
             ]
         else:
             self.y_data = [
-                hmm.base.JointSegment({'slow': self.filters['slow']})
+                hmm.base.JointSegment(
+                    self.model_args.read_raw_y(self.model_args,
+                                               self.record_box.text()))
             ]
 
         # Calculate hmm classification

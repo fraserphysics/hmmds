@@ -37,58 +37,6 @@ def parse_args(argv):
     return args
 
 
-TYPES = {}  # Is populated by @register decorated functions.  The keys
-# are function names, and the values are functions for reading data.
-
-
-def register(func):
-    """Decorator that puts function in TYPES dictionary"""
-    #See https://realpython.com/primer-on-python-decorators/
-    TYPES[func.__name__] = func
-    return func
-
-
-@register
-def masked(args):
-    return [
-        hmm.base.JointSegment(
-            hmmds.applications.apnea.utilities.read_slow_class(args, record))
-        for record in args.records
-    ]
-
-
-@register
-def unmasked(args):
-    return [
-        hmm.base.JointSegment(
-            hmmds.applications.apnea.utilities.read_slow(args, record))
-        for record in args.records
-    ]
-
-
-@register
-def class_peak(args):
-
-    with open(args.boundaries, 'rb') as _file:
-        boundaries = pickle.load(_file)
-
-    return [
-        hmm.base.JointSegment(
-            hmmds.applications.apnea.utilities.read_slow_class_peak(
-                args, boundaries, record)) for record in args.records
-    ]
-
-
-@register
-def class_peak_interval(args, boundaries):
-
-    return [
-        hmm.base.JointSegment(
-            hmmds.applications.apnea.utilities.read_slow_class_peak_interval(
-                args, boundaries, record)) for record in args.records
-    ]
-
-
 def new_ar_order(model, ar_order, y_data):
     """Set parameters for new AR order using weights from orignal model.
 
@@ -135,7 +83,10 @@ def main(argv=None):
     with open(args.initial_path, 'rb') as _file:
         old_args, model = pickle.load(_file)
 
-    y_data = TYPES[args.type](args, old_args.boundaries)
+    y_data = list(
+        hmm.base.JointSegment(
+            old_args.read_y_class(args, old_args.boundaries, record))
+        for record in args.records)
 
     if args.AR_order >= 0:
         y_mod = new_ar_order(model, args.AR_order, y_data)

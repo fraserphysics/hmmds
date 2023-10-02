@@ -355,7 +355,11 @@ def hmm_intervals(args, rng):
 
     peak_dict, boundaries = hmmds.applications.apnea.utilities.peaks_intervals(
         args, args.a_names)
-    args.boundaries = boundaries  # FixMe:  Passes boundaries to training code
+    # Attach information to args for creating observation models and
+    # reading observations
+    args.boundaries = boundaries
+    args.read_y_class = hmmds.applications.apnea.utilities.read_slow_class_peak_interval
+    args.read_raw_y = hmmds.applications.apnea.utilities.read_slow_peak_interval
     peak_dimension = len(boundaries) + 1  # Dimension of output for peaks
 
     normal_class = 0
@@ -413,7 +417,11 @@ def two_intervals(args, rng):
 
     peak_dict, boundaries = hmmds.applications.apnea.utilities.peaks_intervals(
         args, args.a_names)
-    args.boundaries = boundaries  # FixMe:  Passes boundaries to training code
+    # Attach information to args for creating observation models and
+    # reading observations
+    args.boundaries = boundaries
+    args.read_y_class = hmmds.applications.apnea.utilities.read_slow_class_peak_interval
+    args.read_raw_y = hmmds.applications.apnea.utilities.read_slow_peak_interval
     peak_dimension = len(boundaries) + 1  # Dimension of output for peaks
 
     normal_class = 0

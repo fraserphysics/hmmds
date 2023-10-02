@@ -54,7 +54,7 @@ $(MODELS)/two_ar3_initial%: model_init.py
 two_intervals $@
 
 $(MODELS)/two_ar3_masked%: apnea_train.py $(MODELS)/two_ar3_initial%
-	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(ANAMES)  --min_prominence $* --type class_peak_interval $(MODELS)/two_ar3_initial$* $@
+	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(ANAMES) --min_prominence $* $(MODELS)/two_ar3_initial$* $@
 
 $(MODELS)/two_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
@@ -62,7 +62,7 @@ $(MODELS)/two_ar%_initial: model_init.py
 two_intervals $@
 
 $(MODELS)/two_ar%_masked: apnea_train.py $(MODELS)/two_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(ANAMES) --type class_peak_interval $(MODELS)/two_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(ANAMES)  $(MODELS)/two_ar$*_initial $@
 
 $(MODELS)/intervals_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
@@ -70,16 +70,16 @@ $(MODELS)/intervals_ar%_initial: model_init.py
 hmm_intervals $@
 
 $(MODELS)/intervals_ar%_masked: apnea_train.py $(MODELS)/intervals_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(EasySlow) --type class_peak_interval $(MODELS)/intervals_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(EasySlow)  $(MODELS)/intervals_ar$*_initial $@
 
 $(MODELS)/balanced_ar%_masked: apnea_train.py $(MODELS)/balanced_ar%_initial
-	python $< --AR_order $* --iterations 50 --records $(EasySlow) --type masked --trim_start 25 $(MODELS)/balanced_ar$*_initial $@
+	python $< --AR_order $* --iterations 50 --records $(EasySlow)  $(MODELS)/balanced_ar$*_initial $@
 
 $(MODELS)/balanced_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 --records $(EasySlow) --alpha_beta 50.0 10.0  --trim_start 25 --AR_order $* balanced $@
 
 $(MODELS)/simple_ar%_masked: apnea_train.py $(MODELS)/simple_ar%_initial
-	python $< --AR_order $* --iterations 50 --records $(EasySlow) --type masked --trim_start 25 $(MODELS)/simple_ar$*_initial $@
+	python $< --AR_order $* --iterations 50 --records $(EasySlow)  $(MODELS)/simple_ar$*_initial $@
 
 $(MODELS)/simple_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 --records $(EasySlow) --alpha_beta 50.0 10.0  --trim_start 25 --AR_order $* simple $@
@@ -88,7 +88,7 @@ $(MODELS)/%_small: model_init.py
 	python $< --records $* --alpha_beta 1.0e3 1.0e3 --trim_start 25 c_model $@
 
 $(MODELS)/%_unmasked: apnea_train.py $(MODELS)/%_small
-	python apnea_train.py --iterations 40 --records $* --type unmasked $(MODELS)/$*_small --trim_start 25  $@
+	python apnea_train.py --iterations 40 --records $*  $(MODELS)/$*_small --trim_start 25  $@
 
 $(MODELS)/unmasked_all_ac: $(addprefix $(MODELS)/, $(addsuffix _unmasked, $(ANAMES) $(CNAMES)))
 	touch $@
