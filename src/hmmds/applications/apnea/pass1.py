@@ -1,4 +1,4 @@
-"""For every record calculate two statistics for classifying the record
+"""For every record calculate a statistic for classifying the record
 
 The result is written both as a pickle file and a text file with lines
 like

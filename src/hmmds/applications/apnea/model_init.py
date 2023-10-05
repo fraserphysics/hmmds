@@ -196,26 +196,28 @@ def c_model(args, rng):
 
     """
 
-    n_states = 1
-    p_state_initial = numpy.ones(n_states)
-    p_state_time_average = numpy.ones(n_states) / n_states
-    p_state2state = hmm.simple.Prob(numpy.ones(
-        (n_states, n_states))) + numpy.eye(n_states) + numpy.roll(
-            numpy.eye(1), 1, axis=1)
+    n_states = 2
+    p_state_initial = numpy.array([1.0, 0])
+    p_state_time_average = numpy.array([1.0, 0])
+    p_state2state = hmm.simple.Prob(numpy.ones((n_states, n_states))) / 2
 
-    class_index2state_indices = {0: [0]}
-    state_key2state_index = {0: 0}
+    class_index2state_indices = {0: [0], 1: [1]}
+    state_key2state_index = {0: 0, 1: 1}
 
     y_model = hmm.base.JointObservation({
-        'slow': hmm.observe_float.Gauss(numpy.zeros(1), numpy.ones(1), rng),
-        'class': hmm.base.ClassObservation(class_index2state_indices),
+        'slow':
+            hmm.observe_float.Gauss(numpy.array([50, -1e6]),
+                                    numpy.ones(2) * 1.0e4, rng),
+        'class':
+            hmm.base.ClassObservation(class_index2state_indices),
     })
 
-    state_dict = {0: State([0], [1.0e6], y_model)}
+    state_dict = {0: State([0], [1.0], y_model), 1: State([0], [1.0], y_model)}
 
     # Create and return the hmm
     hmm_ = develop.HMM(p_state_initial, p_state_time_average, p_state2state,
                        y_model, args, rng)
+    args.read_y_class = hmmds.applications.apnea.utilities.read_slow_class
     args.read_raw_y = hmmds.applications.apnea.utilities.read_slow
     return hmm_, state_dict, state_key2state_index
 
@@ -501,7 +503,7 @@ def main(argv=None):
 
     # Run the function specified by args.key
     model, state_dict, state_key2state_index = MODELS[args.key](args, rng)
-    assert model.p_state_initial.min() > 0
+    assert model.p_state_initial.min() >= 0
 
     model.strip()
     args.state_dict = state_dict

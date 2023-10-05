@@ -13,6 +13,12 @@ HR_FIGS = statistics.pdf
 heart_rate.pdf: heart_rate.tex two.tex $(HR_FIGS)
 	pdflatex $< ; pdflatex $<
 
+pass1.out: pass1.py
+	python $^ $@
+
+pass2.out: pass2.py pass1.out  $(MODELS)/two_ar3_masked6.1  $(MODELS)/c_model
+	python $< pass1.out $@
+
 # A table of pass2 performance on each a-file.
 two.tex: prominence_study.py $(MODELS)/two_ar3_masked6.1
 	python $< --prominences 6.1 --template $(MODELS)/two_ar3_masked% --latex $@
@@ -47,6 +53,9 @@ prominence_models: $(PROMINENCE_MODELS)
 	touch $@
 prominence_study.pdf: prominence_study.py
 	python $< --prominences $(PROMINENCES) --template $(MODELS)/two_ar3_masked% $@
+
+$(MODELS)/c_model: model_init.py
+	python $< --heart_rate_sample_frequency 24 c_model $@
 
 $(MODELS)/two_ar3_initial%: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8  --min_prominence $* \

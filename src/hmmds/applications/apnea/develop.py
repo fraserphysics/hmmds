@@ -25,7 +25,7 @@ import hmmds.applications.apnea.utilities
 # FixMe: Not using hmm.C.HMM_SPARSE because: 1. It's not much faster
 # in training for ~600 state apnea models 2. It's method forward
 # crashes.  3. It doesn't have a decode method
-class HMM(hmm.C.HMM):  #HMM_SPARSE or hmm.base.HMM
+class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
     """Has class_estimate method and many other variant features
 
     Args:
