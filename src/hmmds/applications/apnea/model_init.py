@@ -118,7 +118,7 @@ def make_joint_slow_peak_interval_class(state_dict, keys, rng, truncate=0):
         truncate=truncate)
 
 
-def dict2hmm(state_dict, make_observation_model, rng, truncate=0):
+def dict2hmm(state_dict, make_observation_model, args, rng, truncate=0):
     """Create an HMM based on state_dict for supervised training
 
     Args:
@@ -165,6 +165,7 @@ def dict2hmm(state_dict, make_observation_model, rng, truncate=0):
                                               state_keys,
                                               rng,
                                               truncate=truncate),
+                       args,
                        rng,
                        untrainable_indices=tuple(
                            numpy.array(untrainable_indices).T),
@@ -187,6 +188,36 @@ def register(func):
 def test(args, rng):
     for key, value in args.__dict__.items():
         print(f'{key}: {value}')
+
+
+@register  # Model for "c" records
+def c_model(args, rng):
+    """Return an hmm that finds all minutes normal
+
+    """
+
+    n_states = 1
+    p_state_initial = numpy.ones(n_states)
+    p_state_time_average = numpy.ones(n_states) / n_states
+    p_state2state = hmm.simple.Prob(numpy.ones(
+        (n_states, n_states))) + numpy.eye(n_states) + numpy.roll(
+            numpy.eye(1), 1, axis=1)
+
+    class_index2state_indices = {0: [0]}
+    state_key2state_index = {0: 0}
+
+    y_model = hmm.base.JointObservation({
+        'slow': hmm.observe_float.Gauss(numpy.zeros(1), numpy.ones(1), rng),
+        'class': hmm.base.ClassObservation(class_index2state_indices),
+    })
+
+    state_dict = {0: State([0], [1.0e6], y_model)}
+
+    # Create and return the hmm
+    hmm_ = develop.HMM(p_state_initial, p_state_time_average, p_state2state,
+                       y_model, args, rng)
+    args.read_raw_y = hmmds.applications.apnea.utilities.read_slow
+    return hmm_, state_dict, state_key2state_index
 
 
 def peak_chain(switch_key: str,
@@ -394,6 +425,7 @@ def hmm_intervals(args, rng):
     result_hmm, state_key2state_index = dict2hmm(
         state_dict,
         make_joint_slow_peak_interval_class,
+        args,
         rng,
         truncate=args.AR_order)
     return result_hmm, state_dict, state_key2state_index
@@ -452,6 +484,7 @@ def two_intervals(args, rng):
     result_hmm, state_key2state_index = dict2hmm(
         state_dict,
         make_joint_slow_peak_interval_class,
+        args,
         rng,
         truncate=args.AR_order)
     return result_hmm, state_dict, state_key2state_index
@@ -474,7 +507,7 @@ def main(argv=None):
     args.state_dict = state_dict
     args.state_key2state_index = state_key2state_index
     with open(args.write_path, 'wb') as _file:
-        pickle.dump((args, model), _file)
+        pickle.dump(model, _file)
 
     return 0
 

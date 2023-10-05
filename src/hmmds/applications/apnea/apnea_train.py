@@ -81,25 +81,19 @@ def main(argv=None):
     args = parse_args(argv)
 
     with open(args.initial_path, 'rb') as _file:
-        old_args, model = pickle.load(_file)
+        model = pickle.load(_file)
 
     y_data = list(
-        hmm.base.JointSegment(
-            old_args.read_y_class(args, old_args.boundaries, record))
+        hmm.base.JointSegment(model.read_y_with_class(record))
         for record in args.records)
 
-    if args.AR_order >= 0:
-        y_mod = new_ar_order(model, args.AR_order, y_data)
-        with open(args.initial_path, 'rb') as _file:
-            old_args, model = pickle.load(_file)
-        model.y_mod = y_mod
     model.multi_train(y_data, args.iterations)
     hmmds.applications.apnea.utilities.print_chain_model(
-        model.y_mod, model.alpha.sum(axis=0), old_args.state_key2state_index)
+        model.y_mod, model.alpha.sum(axis=0), model.args.state_key2state_index)
 
     model.strip()
     with open(args.write_path, 'wb') as _file:
-        pickle.dump((old_args, model), _file)
+        pickle.dump(model, _file)
 
     return 0
 

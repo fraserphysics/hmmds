@@ -610,19 +610,20 @@ class IntervalObservation(hmm.base.BaseObservation):
         return self._likelihood
 
 
+# FixMe: Test this
 def interval_hmm_likelihood(model_path: str,
                             record_name: str,
                             interval_exponent=1.0):
     """Calculate log likelihood of model wrt data for a record
     """
     with open(model_path, 'rb') as _file:
-        model_args, model = pickle.load(_file)
+        model = pickle.load(_file)
     del model.y_mod['class']
     model.y_mod['interval'].power = interval_exponent
 
     y_data = [
         hmm.base.JointSegment(
-            read_slow_peak_interval(model_args, model_args.boundaries,
+            read_slow_peak_interval(model.args, model.args.boundaries,
                                     record_name))
     ]
     t_seg = model.y_mod.observe(y_data)
@@ -694,15 +695,14 @@ class Score2:
         """
         self.record_name = record_name
         with open(model_path, 'rb') as _file:
-            self.model_args, self.model = pickle.load(_file)
+            self.model = pickle.load(_file)
         self.samples_per_minute = int(
-            self.model_args.heart_rate_sample_frequency.to(
+            self.model.args.heart_rate_sample_frequency.to(
                 '1/minute').magnitude)
-        self.y_data = [
-            hmm.base.JointSegment(
-                read_slow_peak_interval(self.model_args,
-                                        self.model_args.boundaries,
-                                        record_name))
+        if record_name[0] != 'x':
+            self.y_class_data = [self.model.read_y_with_class(record_name)]
+        self.y_raw_data = [
+            hmm.base.JointSegment(self.model.read_y_no_class(record_name))
         ]
 
     def score(self, more_specific: float, interval_exponent=None):
@@ -716,12 +716,12 @@ class Score2:
         if interval_exponent is not None:
             self.model.y_mod['interval'].power = interval_exponent
         self.class_from_model = self.model.class_estimate(
-            self.y_data, self.samples_per_minute, more_specific)
+            self.y_raw_data, self.samples_per_minute, more_specific)
         if self.record_name[0] == 'x':
             self.expert_class = numpy.zeros(len(self.class_from_model),
                                             dtype=int)
         else:
-            self.expert_class = read_expert(self.model_args.expert,
+            self.expert_class = read_expert(self.model.args.expert,
                                             self.record_name)
         self.counts = numpy.zeros(4, dtype=int)
         # n2n = counts[0]

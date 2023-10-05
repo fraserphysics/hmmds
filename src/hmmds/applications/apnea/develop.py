@@ -10,6 +10,7 @@ import sys
 import os.path
 import pickle
 import argparse
+import typing
 
 import numpy
 import sortedcontainers
@@ -24,22 +25,68 @@ import hmmds.applications.apnea.utilities
 # FixMe: Not using hmm.C.HMM_SPARSE because: 1. It's not much faster
 # in training for ~600 state apnea models 2. It's method forward
 # crashes.  3. It doesn't have a decode method
-class HMM(hmm.C.HMM):  #HMM_SPARSE or HMM
-    """Holds state transition probabilities constant
+class HMM(hmm.C.HMM):  #HMM_SPARSE or hmm.base.HMM
+    """Has class_estimate method and many other variant features
+
+    Args:
+        p_state_initial : Initial distribution of states
+        p_state_time_average : Time average distribution of states
+        p_state2state : Probability of state given state:
+            p_state2state[a, b] = Prob(s[1]=b|s[0]=a)
+        y_mod : Instance of class for probabilities of observations
+        args: Holds command line args and other information
+        rng : Numpy generator with state
+
+    KWArgs:
+        untrainable_indices:
+        untrainable_values:
+
+    Other variant features:
+
+        * Untrainable state transition probabilities
+    
+        * likelihood method calculates probability of y[t]|y[:t] for
+          all t
+
+        * weights method calculates Prob (state[t]=i|y[:]) for all i
+          and t.  Called by class_estimate and explore.py
 
     """
 
     def __init__(self: HMM,
-                 *args,
+                 p_state_initial: numpy.ndarray,
+                 p_state_time_average: numpy.ndarray,
+                 p_state2state: numpy.ndarray,
+                 y_mod: hmm.simple.Observation,
+                 args: argparse.Namespace,
+                 rng: numpy.random.Generator,
                  untrainable_indices=None,
                  untrainable_values=None):
         """Option of holding some elements of p_state2state constant
         in reestimation.
 
         """
-        hmm.C.HMM.__init__(self, *args)
+        hmm.C.HMM.__init__(self,
+                           p_state_initial,
+                           p_state_time_average,
+                           p_state2state,
+                           y_mod,
+                           rng=rng)
+        self.args = args
         self.untrainable_indices = untrainable_indices
         self.untrainable_values = untrainable_values
+
+    def read_y_no_class(self, record_name):
+        if hasattr(self.args, 'boundaries'):
+            return self.args.read_raw_y(self.args, self.args.boundaries,
+                                        record_name)
+        return self.args.read_raw_y(self.args, record_name)
+
+    def read_y_with_class(self, record_name):
+        if hasattr(self.args, 'boundaries'):
+            return self.args.read_y_class(self.args, self.args.boundaries,
+                                          record_name)
+        return self.args.read_y_class(self.args, record_name)
 
     def reestimate(self: HMM):
         """Variant can hold some self.p_state2state values constant.
@@ -60,6 +107,8 @@ class HMM(hmm.C.HMM):  #HMM_SPARSE or HMM
 
         Args:
             y: A single segment appropriate for self.y_mod.observe([y])
+
+        Returns Prob y[t]|y[:t] for all t
 
         """
         self.y_mod.observe([y])
@@ -100,7 +149,6 @@ class HMM(hmm.C.HMM):  #HMM_SPARSE or HMM
         self.backward()
         return self.alpha * self.beta
 
-    # Also want relative weighting of slow and fast data
     def class_estimate(self: HMM,
                        y: list,
                        samples_per_minute: int,

@@ -73,7 +73,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         self.model_box = PyQt5.QtWidgets.QLineEdit(self)
         self.model_box.setText(
-            f'{self.root_box.text()}/build/derived_data/apnea/models/intervals_ar3_masked'
+            f'{self.root_box.text()}/build/derived_data/apnea/models/two_ar3_masked6.1'
         )
         model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
         model_ok.clicked.connect(self.new_model)
@@ -222,7 +222,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
     def read_model(self):
         file_name = self.model_box.text()
         with open(file_name, 'rb') as _file:
-            self.model_args, self.model = pickle.load(_file)
+            self.model = pickle.load(_file)
 
     def new_model(self):
         path_list = [self.root_box.text()
@@ -263,7 +263,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_classification()
         # Print diagnostic information.
         utilities.print_chain_model(self.model.y_mod, self.weight,
-                                    self.model_args.state_key2state_index)
+                                    self.model.args.state_key2state_index)
 
     def signal_path(self, signal):
         """ Return path to signal
@@ -304,7 +304,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Calculate spectral filters using fft method in utilities
         self.filters = utilities.read_slow_fast_respiration(
-            self.model_args, self.record_box.text())
+            self.model.args, self.record_box.text())
         self.filters['times'] = numpy.arange(len(
             self.filters['slow'])) / self.filters['sample_frequency']
         prominence_threshold = 6.0
@@ -315,19 +315,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.hr_peak_times = peaks / self.filters['sample_frequency']
 
         # Get observations for apnea model
-        if 'peak' in self.model.y_mod:
-            boundaries = self.model_args.boundaries
-            self.y_data = [
-                hmm.base.JointSegment(
-                    self.model_args.read_raw_y(self.model_args, boundaries,
-                                               self.record_box.text()))
-            ]
-        else:
-            self.y_data = [
-                hmm.base.JointSegment(
-                    self.model_args.read_raw_y(self.model_args,
-                                               self.record_box.text()))
-            ]
+        self.y_data = [
+            hmm.base.JointSegment(
+                self.model.read_y_no_class(self.record_box.text()))
+        ]
 
         # Calculate hmm classification
         self.new_classification()
@@ -337,12 +328,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         del self.model.y_mod['class']
         self.states = self.model.decode(self.y_data)
         self.time_states = numpy.arange(len(
-            self.states)) / self.model_args.heart_rate_sample_frequency
+            self.states)) / self.model.args.heart_rate_sample_frequency
 
         self.weight = self.model.weights(self.y_data).sum(axis=0)
         self.like = -numpy.log(self.model.gamma_inv)
         self.time_like = numpy.arange(len(
-            self.like)) / self.model_args.heart_rate_sample_frequency
+            self.like)) / self.model.args.heart_rate_sample_frequency
 
         self.model.y_mod['class'] = class_model
 
