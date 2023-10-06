@@ -2,7 +2,7 @@
 intervals between peaks for normal and apnea.  r(x) =
 p_normal(x)/p_apnea(x).
 
-python apnea_ratio.py --show pdf_ratio.pdf
+python apnea_ratio.py --show
 
 I selected these values by experimenting and looking at plots:
 
@@ -53,7 +53,10 @@ def parse_args(argv):
                         action='store_true',
                         help="display figure using Qt5")
     utilities.common_arguments(parser)
-    parser.add_argument('figure_path', type=str, help='path of file to write')
+    parser.add_argument('figure_path',
+                        type=str,
+                        nargs='?',
+                        help='path of file to write')
     args = parser.parse_args(argv)
     utilities.join_common(args)
     return args
@@ -99,7 +102,8 @@ def main(argv=None):
 
     if args.show:
         pyplot.show()
-    fig.savefig(args.figure_path)
+    if args.figure_path:
+        fig.savefig(args.figure_path)
 
     return 0
 

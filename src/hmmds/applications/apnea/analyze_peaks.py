@@ -44,9 +44,11 @@ def plot_record(args, record_name, boundaries, axes):
 
 
 def analyze_record(args, record_name, peak_dict):
+    min_prominence = 6.1
     raw_dict = utilities.read_slow_class(args, record_name)
     peaks, properties = utilities.peaks(raw_dict['slow'],
-                                        args.heart_rate_sample_frequency)
+                                        args.heart_rate_sample_frequency,
+                                        min_prominence)
     for peak, prominence in zip(peaks, properties['prominences']):
         peak_dict[raw_dict['class'][peak]].append(prominence)
 

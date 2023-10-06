@@ -1,4 +1,4 @@
-"""simple.py Estimates a ratio of probability densities as a function
+"""density_ratio.py Estimates a ratio of probability densities as a function
 
 References:
 

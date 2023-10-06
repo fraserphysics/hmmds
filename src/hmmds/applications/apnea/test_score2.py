@@ -1,4 +1,6 @@
-""" test_score2.py Test code that estimates class (normal vs apnea)
+"""test_score2.py Make study dependence of classification on
+parameters detection threshold and relative weight of interval
+component of observation
 
 """
 import sys
