@@ -10,7 +10,7 @@ include Rules.mk
 
 HR_FIGS = statistics.pdf
 
-heart_rate.pdf: heart_rate.tex two.tex $(HR_FIGS)
+heart_rate.pdf: heart_rate.tex two.tex score.tex $(HR_FIGS)
 	pdflatex $< ; pdflatex $<
 
 pass1.out: pass1.py
@@ -21,6 +21,9 @@ pass2.out: pass2.py pass1.out  $(MODELS)/two_ar3_masked6.1  $(MODELS)/c_model
 
 score.txt: score.py pass2.out
 	python score.py pass2.out $@
+
+score.tex: score.py pass2.out
+	python score.py --tex pass2.out $@
 
 # A table of pass2 performance on each a-file.
 two.tex: prominence_study.py $(MODELS)/two_ar3_masked6.1

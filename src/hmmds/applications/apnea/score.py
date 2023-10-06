@@ -21,11 +21,6 @@ import numpy
 
 import hmmds.applications.apnea.utilities
 
-HEAD = 'Name   Apnea   Normal  Apnea->Normal   Normal->Apnea   Total   Error'
-FORMAT = '{0:5s} {1:-6d}    {2:-5d} {3:-5d}     {4:-3.2f}   {5:-5d}    {6:-3.2f}'\
-    '{7:-5d}    {8:-3.2f}'
-
-
 def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
@@ -33,6 +28,9 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(
         "Compare classification of minutes by HMM and expert")
     hmmds.applications.apnea.utilities.common_arguments(parser)
+    parser.add_argument('--tex',
+                        action='store_true',
+                        help="result is LaTeX table")
     parser.add_argument('pass2',
                         type=str,
                         nargs='?',
@@ -53,7 +51,7 @@ def parse_args(argv):
 
 
 def analyze(name: str, _expert: numpy.ndarray, _pass2: numpy.ndarray,
-            report) -> tuple:
+            report, _format) -> tuple:
     """Compare expert and pass2 and write a single line to report
 
     Args:
@@ -91,7 +89,7 @@ def analyze(name: str, _expert: numpy.ndarray, _pass2: numpy.ndarray,
     error_fraction = (errors.sum() / n_min)
     values = (name, n_apnea, n_normal, n_apnea2normal, a2n_fraction,
               n_normal2apnea, n2a_fraction, n_min, error_fraction)
-    print(FORMAT.format(*values), file=report)
+    print(_format.format(*values), file=report)
     return values
 
 
@@ -112,12 +110,27 @@ def main(argv=None):
     n_n2a = 0
     n_total = 0
 
-    print(HEAD, file=args.result)
+    if args.tex:
+        _format = '{0:5s} & {1:-6d} & {2:-5d} & {3:-5d} & {4:-3.2f} & {5:-5d} & {6:-3.2f} & '\
+            ' {7:-6d} & {8:-3.2f} \\\\'
+
+        print(r'''\begin{tabular}{|r|r|r|rr|rr|rr|}
+\hline
+Name & $N_{\text{Apnea}}$ & $N_{\text{Normal}}$ &
+\multicolumn{2}{|c|}{Apnea$\rightarrow$Normal} &
+\multicolumn{2}{|c|}{Normal$\rightarrow$Apnea}
+        & $N_{\text{Total}}$ & $P_{\text{Error}}$ \\
+\hline''',
+            file=args.result)
+    else:
+        _format = '{0:5s} {1:-6d}    {2:-5d} {3:-5d}     {4:-3.2f}   {5:-5d}    {6:-3.2f}'\
+    '{7:-5d}    {8:-3.2f}'
+        print('Name   Apnea   Normal  Apnea->Normal   Normal->Apnea   Total   Error', file=args.result)
     for name in args.names:
         expert = hmmds.applications.apnea.utilities.read_expert(
             args.expert, name)
         pass2 = hmmds.applications.apnea.utilities.read_expert(args.pass2, name)
-        values = analyze(name, expert, pass2, args.result)
+        values = analyze(name, expert, pass2, args.result, _format)
         _, apnea, normal, a2n, _, n2a, _, total, _ = values
         n_apnea += apnea
         n_normal += normal
@@ -130,7 +143,13 @@ def main(argv=None):
     n2a_fraction = n_n2a / n_normal
     values = ('Total', n_apnea, n_normal, n_a2n, a2n_fraction, n_n2a,
               n2a_fraction, n_total, error_fraction)
-    print(FORMAT.format(*values), file=args.result)
+    if args.tex:
+        print(r'\hline', file=args.result)
+        print(_format.format(*values), file=args.result)
+        print(r'\hline \end{tabular}', file=args.result)
+    else:
+        print(_format.format(*values), file=args.result)
+
 
     return 0
 
