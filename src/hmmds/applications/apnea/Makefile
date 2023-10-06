@@ -19,6 +19,9 @@ pass1.out: pass1.py
 pass2.out: pass2.py pass1.out  $(MODELS)/two_ar3_masked6.1  $(MODELS)/c_model
 	python $< pass1.out $@
 
+score.txt: score.py pass2.out
+	python score.py pass2.out $@
+
 # A table of pass2 performance on each a-file.
 two.tex: prominence_study.py $(MODELS)/two_ar3_masked6.1
 	python $< --prominences 6.1 --template $(MODELS)/two_ar3_masked% --latex $@
