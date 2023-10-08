@@ -5,6 +5,7 @@
 \usepackage{graphicx,color}
 \usepackage{amsmath, amsfonts}
 \usepackage{placeins}
+\usepackage{verbatim}
 
 \newcommand{\field}[1]{\mathbb{#1}}
 \newcommand{\INTEGER}{\field{Z}}
@@ -195,6 +196,58 @@ and 0.42:
     \emph{two\_ar3\_masked6.1} for pass2.}
   \label{tab:score_initial}
 \end{table*}
+
+\section{Synchronization}
+\label{sec:sync}
+
+I use several time series in this project.  Now I will look at how to
+ensure that $t_0$ means the same thing for each of them.  I'm
+particularly worried about the alignment of the expert annotations
+and the annotations estimated using a model.  Here are the functions
+that calculate the estimated annotations:
+\begin{description}
+\item[pass2.analyze] Calls utilities.Score2(model\_path, name)
+\item[utilities.Score2.\_\_init\_\_] Reads a model (develop.HMM) and
+  uses the develop.HMM.read\_y\_no\_class method (which calls
+  args.read\_raw\_y(args, record\_name)) to read the data.
+\item[model\_init.two\_intervals] Assigns
+  utilities.read\_slow\_peak\_interval to args.read\_raw\_y
+\item[utilities.read\_slow\_peak\_interval] Calls functions to add
+  intervals and peaks to the result of calling
+  utilities.read\_slow(args, name)
+\item[utilities.add\_intervals] 
+\item[utilities.add\_peaks]
+\item[utilities.read\_slow] Calls
+  utilities.read\_slow\_fast\_respiration(args, name) and then returns
+\begin{verbatim}
+{'slow': input_['slow'][trim_samples:-trim_samples]}
+\end{verbatim}
+\item[utilities.read\_slow\_fast\_respiration] Assigns int(
+  (args.heart\_rate\_sample\_frequency * args.trim\_start)) to
+  result['trim\_samples']
+\item[utilities.common\_arguments] The default for trim\_start is 0
+\end{description}
+
+What about:
+\begin{description}
+\item[AR-order] 
+\item[The last minute] Look at the last time derived from the number of:
+  \begin{description}
+  \item[ECG samples] 
+  \item[Heart Rate samples] 
+  \item[Expert Annotations] 
+  \end{description}
+\end{description}
+
+Here are the lengths of some time series for each record in the
+training data:
+
+\verbatiminput{lengths.txt}
+
+After looking at a preliminary version of these lengths, I added
+padding to the beginning of the \emph{slow} time series to match the
+AR order of the \emph{slow} model.  Now they are 7.5 seconds longer
+than the \emph{ecg} time series.
 
 \section{To Do}
 \label{sec:todo}

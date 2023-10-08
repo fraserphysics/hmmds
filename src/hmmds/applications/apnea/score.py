@@ -21,6 +21,7 @@ import numpy
 
 import hmmds.applications.apnea.utilities
 
+
 def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
@@ -50,8 +51,8 @@ def parse_args(argv):
     return args
 
 
-def analyze(name: str, _expert: numpy.ndarray, _pass2: numpy.ndarray,
-            report, _format) -> tuple:
+def analyze(name: str, _expert: numpy.ndarray, _pass2: numpy.ndarray, report,
+            _format) -> tuple:
     """Compare expert and pass2 and write a single line to report
 
     Args:
@@ -121,11 +122,13 @@ Name & $N_{\text{Apnea}}$ & $N_{\text{Normal}}$ &
 \multicolumn{2}{|c|}{Normal$\rightarrow$Apnea}
         & $N_{\text{Total}}$ & $P_{\text{Error}}$ \\
 \hline''',
-            file=args.result)
+              file=args.result)
     else:
         _format = '{0:5s} {1:-6d}    {2:-5d} {3:-5d}     {4:-3.2f}   {5:-5d}    {6:-3.2f}'\
     '{7:-5d}    {8:-3.2f}'
-        print('Name   Apnea   Normal  Apnea->Normal   Normal->Apnea   Total   Error', file=args.result)
+        print(
+            'Name   Apnea   Normal  Apnea->Normal   Normal->Apnea   Total   Error',
+            file=args.result)
     for name in args.names:
         expert = hmmds.applications.apnea.utilities.read_expert(
             args.expert, name)
@@ -149,7 +152,6 @@ Name & $N_{\text{Apnea}}$ & $N_{\text{Normal}}$ &
         print(r'\hline \end{tabular}', file=args.result)
     else:
         print(_format.format(*values), file=args.result)
-
 
     return 0
 

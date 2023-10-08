@@ -10,7 +10,7 @@ include Rules.mk
 
 HR_FIGS = statistics.pdf
 
-heart_rate.pdf: heart_rate.tex two.tex score.tex $(HR_FIGS)
+heart_rate.pdf: heart_rate.tex two.tex score.tex lengths.txt $(HR_FIGS)
 	pdflatex $< ; pdflatex $<
 
 pass1.out: pass1.py
@@ -21,6 +21,10 @@ pass2.out: pass2.py pass1.out  $(MODELS)/two_ar3_masked6.1  $(MODELS)/c_model
 
 score.txt: score.py pass2.out
 	python score.py pass2.out $@
+
+# Lengths of time series for each training record
+lengths.txt: test_alignment.py $(MODELS)/two_ar3_masked6.1
+	python $< > $@
 
 score.tex: score.py pass2.out
 	python score.py --tex pass2.out $@
@@ -61,10 +65,10 @@ prominence_study.pdf: prominence_study.py
 	python $< --prominences $(PROMINENCES) --template $(MODELS)/two_ar3_masked% $@
 
 $(MODELS)/c_model: model_init.py
-	python $< --heart_rate_sample_frequency 24 c_model $@
+	python $< --trim_start 0 --heart_rate_sample_frequency 24 c_model $@
 
 $(MODELS)/two_ar3_initial%: model_init.py
-	python $< --heart_rate_sample_frequency 24 --low_pass_period 8  --min_prominence $* \
+	python $< --trim_start 0 --heart_rate_sample_frequency 24 --low_pass_period 8  --min_prominence $* \
 --records $(ANAMES) --alpha_beta 50.0 10.0  --AR_order 3 \
 two_intervals $@
 

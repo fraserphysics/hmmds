@@ -348,7 +348,12 @@ def read_slow_fast_respiration(args, name='a03'):
     skip = int(f_in / f_out)
     assert f_in == f_out * skip, f'{f_in=} {f_out=} {skip=}'
     raw_hr = _dict['hr'].to('1/minute').magnitude
-    result = filter_hr(raw_hr,
+    # Now pad front of raw_hr to compensate for AR-order
+    pad = skip * args.AR_order
+    padded = numpy.empty(len(raw_hr) + pad)
+    padded[:pad] = raw_hr[0]
+    padded[pad:] = raw_hr
+    result = filter_hr(padded,
                        sample_period,
                        low_pass_width=2 * numpy.pi / args.low_pass_period,
                        bandpass_center=2 * numpy.pi * args.band_pass_center,
