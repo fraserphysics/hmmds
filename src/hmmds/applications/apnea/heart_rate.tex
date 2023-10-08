@@ -246,8 +246,10 @@ training data:
 
 After looking at a preliminary version of these lengths, I added
 padding to the beginning of the \emph{slow} time series to match the
-AR order of the \emph{slow} model.  Now they are 7.5 seconds longer
-than the \emph{ecg} time series.
+AR order of the \emph{slow} model.  Now, for an AR-3 model, they are
+7.5 seconds longer than the \emph{ecg} time series.  I also estimate
+an extra minute for any record that has ecg data that doesn't end on
+an even minute.
 
 \section{To Do}
 \label{sec:todo}

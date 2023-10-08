@@ -155,7 +155,7 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
                        more_specific: float = 1) -> list:
         """ Estimate a sequence of classes
         Args:
-            y: List with single element that is time series of measurements
+            y: List with single element that is a time series of measurements
             samples_per_minute: Sample frequency
             more_specific: >1 increase the number of normal minutes
 
@@ -168,15 +168,28 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
         self.y_mod['class'] = class_model  # Restore for future use
 
         def weights_per_minute(state_list):
+            """ For each minute calculate total weight in listed states
+
+            Args:
+                state_list: States to sum over
+            """
             minutes = self.y_mod.n_times // samples_per_minute
             remainder = self.y_mod.n_times % samples_per_minute
             if remainder == 0:
+                # First sum is over states.  Second sum is over
+                # samples in each minute.
                 result = weights[:, state_list].sum(axis=1).reshape(
                     -1, samples_per_minute).sum(axis=1)
             else:
-                result = weights[:-remainder, state_list].sum(axis=1).reshape(
-                    -1, samples_per_minute).sum(axis=1)
-            assert result.shape == (minutes,), f'{result.shape=} {minutes=}'
+                # Both result[-2] and result[-1] are based on one
+                # minute of data.  The data they depend on overlap by
+                # (samples_per_minute - remainder).
+                result = numpy.empty(minutes + 1)
+                result[:minutes] = weights[:-remainder,
+                                           state_list].sum(axis=1).reshape(
+                                               -1,
+                                               samples_per_minute).sum(axis=1)
+                result[-1] = weights[-samples_per_minute:, state_list].sum()
             return result
 
         weights_normal = weights_per_minute(class_model.class2state[0])
