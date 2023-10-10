@@ -176,17 +176,46 @@ and 0.42:
 \section{Work on Pass2}
 \label{sec:pass2}
 
+Based on Tables~\ref{tab:pass2performance} and~\ref{tab:score_initial}
+These are the problematic records:
+\begin{description}
+\item[a02] Peaks of small oscillations not detected.  Error rate is
+  0.31.  Not sure it could be much better.
+\item[a05] Complex oscillations (period 2 ish, maybe multi-chain would
+  fix) Should be possible to detect apnea that starts at 159.
+  \textbf{fixable}
+\item[a06] 360-370 looks \textbf{hopeless}.  I just don't see apnea vs
+  normal in the heart rate signal.
+\item[a09] The apnea that starts at 131 has large (60 to 71 cpm in
+  0.15 minutes) slow (.8 cpm?) oscillations.  193 to 200 no peaks
+  detected in complex apnea oscillation.  \textbf{Maybe fixable}
+\item[a11] At minutes 100 to 110 the peaks are not detected.  The
+  oscillations are high frequency and don't look like apnea to me.
+\item[a18] Apnea starts at 33 and I don't see it in the heart rate
+  signal.  It looks \textbf{hopeless} to me.
+\item[a20] Apnea starts at 50 and seems visible in HR signal,  The
+  oscillations are slow (.9 cpm).  At 355 oscillations are complex
+  (multi period).  \textbf{Fixable}
+\end{description}
+\begin{itemize}
+\item Plot performance against both exponent for interval component of
+  observation and threshold for detection.  Use the set of records
+  that pass1 classifies as \emph{A} so that there is a penalty for
+  setting the threshold too low.
+\item Try scaling heart rate by high frequency power.
+\item Look at both performance on all records and fixable records.
+\end{itemize}
+
 \begin{table*}
   \centering
   \input{two.tex}
   \caption[Performance]{Performance of model
     \emph{two\_ar3\_masked6.1}.  Records a09 and a18 are marked all
-    apnea based on their high likelihood.}
+    apnea based on their high likelihood.  However it would be bad to
+    treat x09 and x23 which are near
+    a09 in Fig.~\ref{fig:statistics} the same way.}
   \label{tab:pass2performance}
 \end{table*}
-
-\section{Tune on Training Data}
-\label{sec:tune}
 
 \begin{table*}
   \centering
@@ -196,6 +225,24 @@ and 0.42:
     \emph{two\_ar3\_masked6.1} for pass2.}
   \label{tab:score_initial}
 \end{table*}
+
+\subsection{Choosing AR Order}
+\label{sec:ar_order}
+
+Figure~\ref{fig:errors_vs_ar_order} plots error rate against AR order for models
+with two chains for peaks.  AR order 4 achieves the best performance.  
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{errors_vs_ar_order.pdf}}
+    \caption{A plot of error rate vs.\ AR order for the training
+      records in group \emph{A}.  The models have two chains for
+      peaks; one chain for normal peaks and one chain for apnea
+      peaks.  The performance on records in group \emph{C} is worse.
+      Perhaps overall performance would be better if the threshold for
+      detection were higher.}
+  \label{fig:errors_vs_ar_order}
+\end{figure}
 
 \section{Synchronization}
 \label{sec:sync}
@@ -255,8 +302,6 @@ an even minute.
 \label{sec:todo}
 
 \begin{description}
-\item[Support different observation models:] Identify the code for
-  reading data to each file with a pickled model
 \item[Multiple Chains:] Try HMM with more chains for apnea peaks.
 \end{description}
 

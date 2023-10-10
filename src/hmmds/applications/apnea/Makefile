@@ -8,7 +8,7 @@ BUILD = $(ROOT)/build
 
 include Rules.mk
 
-HR_FIGS = statistics.pdf
+HR_FIGS = statistics.pdf errors_vs_ar_order.pdf
 
 heart_rate.pdf: heart_rate.tex two.tex score.tex lengths.txt $(HR_FIGS)
 	pdflatex $< ; pdflatex $<
@@ -41,8 +41,13 @@ report.ps: report.txt
 like_table.tex: like_table.py $(MODELS)/unmasked_all_ac
 	python like_table.py --trim_start 25 $@
 
+AR_ORDERS = 1 2 3 4 5 6 7 8 9
+AR_MODELS = $(addsuffix _masked, $(addprefix $(MODELS)/two_ar, $(AR_ORDERS)))
+errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
+	python compare_models.py --models $(AR_MODELS) --parameters $(AR_ORDERS) --parameter_name "AR order" $@
+
 statistics.pdf: statistic_plots.py
-	python  statistic_plots.py $@
+	python  statistic_plots.py --AR_order 3 $@
 
 ## test                           : Run tests defined in test.py
 .PHONY : test
@@ -78,24 +83,18 @@ $(MODELS)/two_ar3_masked%: apnea_train.py $(MODELS)/two_ar3_initial%
 $(MODELS)/two_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
 --records $(ANAMES) --alpha_beta 50.0 10.0  --AR_order $* \
-two_intervals $@
+ --min_prominence 6.1 two_intervals $@
 
 $(MODELS)/two_ar%_masked: apnea_train.py $(MODELS)/two_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(ANAMES)  $(MODELS)/two_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 10 --min_prominence 6.1 $(MODELS)/two_ar$*_initial $@
 
 $(MODELS)/intervals_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
---records $(EasySlow) --alpha_beta 50.0 10.0  --AR_order $* \
+--records $(EasySlow) --alpha_beta 50.0 10.0  --AR_order $* --min_prominence 6.1 \
 hmm_intervals $@
 
 $(MODELS)/intervals_ar%_masked: apnea_train.py $(MODELS)/intervals_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(EasySlow)  $(MODELS)/intervals_ar$*_initial $@
-
-$(MODELS)/balanced_ar%_masked: apnea_train.py $(MODELS)/balanced_ar%_initial
-	python $< --AR_order $* --iterations 50 --records $(EasySlow)  $(MODELS)/balanced_ar$*_initial $@
-
-$(MODELS)/balanced_ar%_initial: model_init.py
-	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 --records $(EasySlow) --alpha_beta 50.0 10.0  --trim_start 25 --AR_order $* balanced $@
+	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 10 --min_prominence 6.1 $(MODELS)/intervals_ar$*_initial $@
 
 $(MODELS)/simple_ar%_masked: apnea_train.py $(MODELS)/simple_ar%_initial
 	python $< --AR_order $* --iterations 50 --records $(EasySlow)  $(MODELS)/simple_ar$*_initial $@
@@ -127,6 +126,7 @@ clean:
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
+	@echo AR_MODELS: $(AR_MODELS)
 	@echo MODELS: $(MODELS)
 	@echo PROMINENCES: $(PROMINENCES)
 	@echo PROMINENCE_MODELS: $(PROMINENCE_MODELS)

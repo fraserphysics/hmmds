@@ -57,6 +57,9 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=int,
                         default=8,
                         help='In samples per minute')
+    parser.add_argument('--AR_order',
+                        type=int,
+                        help="Number of previous values for prediction.")
     parser.add_argument(
         '--min_prominence',
         type=float,
@@ -349,7 +352,10 @@ def read_slow_fast_respiration(args, name='a03'):
     assert f_in == f_out * skip, f'{f_in=} {f_out=} {skip=}'
     raw_hr = _dict['hr'].to('1/minute').magnitude
     # Now pad front of raw_hr to compensate for AR-order
-    pad = skip * args.AR_order
+    if args.AR_order is None:
+        pad = 0
+    else:
+        pad = skip * args.AR_order
     padded = numpy.empty(len(raw_hr) + pad)
     padded[:pad] = raw_hr[0]
     padded[pad:] = raw_hr

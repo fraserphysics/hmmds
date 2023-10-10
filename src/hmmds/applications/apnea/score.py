@@ -64,8 +64,6 @@ def analyze(name: str, _expert: numpy.ndarray, _pass2: numpy.ndarray, report,
     n_expert = len(_expert)
     n_pass2 = len(_pass2)
     n_min = min(n_expert, n_pass2)
-    # FixMe: Verify alignment.  Check on dropped initial parts of
-    # files.
     if n_expert != n_pass2:
         print(f'For {name} {n_expert=} {n_pass2=}')
 
@@ -87,9 +85,10 @@ def analyze(name: str, _expert: numpy.ndarray, _pass2: numpy.ndarray, report,
 
     a2n_fraction = safe(n_apnea2normal, n_apnea)
     n2a_fraction = safe(n_normal2apnea, n_normal)
-    error_fraction = (errors.sum() / n_min)
+    n_error = errors.sum()
+    error_fraction = (n_error / n_min)
     values = (name, n_apnea, n_normal, n_apnea2normal, a2n_fraction,
-              n_normal2apnea, n2a_fraction, n_min, error_fraction)
+              n_normal2apnea, n2a_fraction, n_error, error_fraction)
     print(_format.format(*values), file=report)
     return values
 
@@ -120,32 +119,32 @@ def main(argv=None):
 Name & $N_{\text{Apnea}}$ & $N_{\text{Normal}}$ &
 \multicolumn{2}{|c|}{Apnea$\rightarrow$Normal} &
 \multicolumn{2}{|c|}{Normal$\rightarrow$Apnea}
-        & $N_{\text{Total}}$ & $P_{\text{Error}}$ \\
+        & $N_{\text{Error}}$ & $P_{\text{Error}}$ \\
 \hline''',
               file=args.result)
     else:
         _format = '{0:5s} {1:-6d}    {2:-5d} {3:-5d}     {4:-3.2f}   {5:-5d}    {6:-3.2f}'\
     '{7:-5d}    {8:-3.2f}'
         print(
-            'Name   Apnea   Normal  Apnea->Normal   Normal->Apnea   Total   Error',
+            'Name   Apnea   Normal  Apnea->Normal   Normal->Apnea N_Error P_Error',
             file=args.result)
     for name in args.names:
         expert = hmmds.applications.apnea.utilities.read_expert(
             args.expert, name)
         pass2 = hmmds.applications.apnea.utilities.read_expert(args.pass2, name)
         values = analyze(name, expert, pass2, args.result, _format)
-        _, apnea, normal, a2n, _, n2a, _, total, _ = values
+        _, apnea, normal, a2n, _, n2a, _, _, _ = values
         n_apnea += apnea
         n_normal += normal
         n_a2n += a2n
         n_n2a += n2a
-        n_total += total
+        n_total += apnea + normal
 
     error_fraction = (n_a2n + n_n2a) / n_total
     a2n_fraction = n_a2n / n_apnea
     n2a_fraction = n_n2a / n_normal
     values = ('Total', n_apnea, n_normal, n_a2n, a2n_fraction, n_n2a,
-              n2a_fraction, n_total, error_fraction)
+              n2a_fraction, n_a2n + n_n2a, error_fraction)
     if args.tex:
         print(r'\hline', file=args.result)
         print(_format.format(*values), file=args.result)

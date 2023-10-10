@@ -1,6 +1,8 @@
-"""test_score2.py Make study dependence of classification on
+"""test_score2.py  Study dependence of classification on
 parameters detection threshold and relative weight of interval
 component of observation
+
+python test_score2.py --show ../../../../build/derived_data/apnea/models/two_ar3_masked6.1
 
 """
 import sys
@@ -35,9 +37,9 @@ def parse_args(argv):
 
 def _print(results):
     for threshold, result in results.items():
-        print(f"{threshold:8.4g} \
-{result['false alarm']:11.4g} \
-{result['missed detection']:16.4g} \
+        print(f"{threshold:9.4g} \
+{result['N false alarm']:8d} \
+{result['N false alarm'] + result['N missed detection']:8d} \
 {result['error rate']:10.5f}")
 
 
@@ -48,8 +50,8 @@ def log_plot(axes, results, xlabel=None):
     missed_detection = []
     for threshold, result in results.items():
         x.append(threshold)
-        false_alarm.append(result['false alarm'])
-        missed_detection.append(result['missed detection'])
+        false_alarm.append(result['P false alarm'])
+        missed_detection.append(result['P missed detection'])
         error_rate.append(result['error rate'])
     axes.semilogx(x, false_alarm, label="false alarm")
     axes.semilogx(x, missed_detection, label="missed detection")
@@ -66,8 +68,8 @@ def plot(axes, results, xlabel=None):
     missed_detection = []
     for threshold, result in results.items():
         x.append(threshold)
-        false_alarm.append(result['false alarm'])
-        missed_detection.append(result['missed detection'])
+        false_alarm.append(result['P false alarm'])
+        missed_detection.append(result['P missed detection'])
         error_rate.append(result['error rate'])
     axes.plot(x, false_alarm, label="false alarm")
     axes.plot(x, missed_detection, label="missed detection")
@@ -82,7 +84,7 @@ def threshold_study(scores, thresholds, power):
     """
     result = {}
     print(
-        f'{"threshold":8s} {"false alarm":11s} {"missed detection":16s} {"error rate":10s}'
+        f'{"threshold":9s} {"N_(N->A)":8s} {"N_(A->N)":8s} {"N_Error":8s} {"error rate":10s}'
     )
     for threshold in thresholds:
         counts = numpy.zeros(4, dtype=int)
@@ -90,8 +92,10 @@ def threshold_study(scores, thresholds, power):
             score.score(threshold, power)
             counts += score.counts
         result[threshold] = {
-            'false alarm': counts[1] / (counts[0] + counts[1]),
-            'missed detection': counts[2] / (counts[2] + counts[3]),
+            'N false alarm': counts[1],
+            'N missed detection': counts[2],
+            'P false alarm': counts[1] / (counts[0] + counts[1]),
+            'P missed detection': counts[2] / (counts[2] + counts[3]),
             'error rate': (counts[1] + counts[2]) / counts.sum(),
         }
     return result
@@ -103,17 +107,17 @@ def power_study(scores, powers, threshold):
 
     """
     result = {}
-    print(
-        f'{"power":8s} {"false alarm":11s} {"missed detection":16s} {"error rate":10s}'
-    )
+    print(f'{"power":9s} {"N_(N->A)":8s} {"N_(A->N)":8s} {"error rate":10s}')
     for power in powers:
         counts = numpy.zeros(4, dtype=int)
         for key, score in scores.items():
             score.score(threshold, power)
             counts += score.counts
         result[power] = {
-            'false alarm': counts[1] / (counts[0] + counts[1]),
-            'missed detection': counts[2] / (counts[2] + counts[3]),
+            'N false alarm': counts[1],
+            'N missed detection': counts[2],
+            'P false alarm': counts[1] / (counts[0] + counts[1]),
+            'P missed detection': counts[2] / (counts[2] + counts[3]),
             'error rate': (counts[1] + counts[2]) / counts.sum(),
         }
     return result
@@ -131,10 +135,13 @@ def main(argv=None):
     """
     """
 
-    min_power = 1.757
-    powers = numpy.linspace(0.5, 2.0, 21)
-    min_threshold = .73
-    thresholds = numpy.exp(numpy.linspace(-15.0, 1.0, 21) * numpy.log(10))
+    min_power = 4.8
+    powers = numpy.concatenate(
+        (numpy.linspace(3.0, 5.0, 21), numpy.linspace(5.5, 50.0, 21)))
+    min_threshold = 2.0e-43
+    exponents = numpy.concatenate(
+        (numpy.linspace(-44, -42, 21), numpy.linspace(-41.9, 10, 21)))
+    thresholds = numpy.exp(exponents * numpy.log(10))
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]

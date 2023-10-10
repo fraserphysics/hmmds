@@ -34,10 +34,6 @@ def parse_args(argv):
                         nargs=2,
                         default=(1.0e1, 2.0e1),
                         help="Paramters of inverse gamma prior for variance")
-    parser.add_argument('--AR_order',
-                        type=int,
-                        default=1,
-                        help="Number of previous values for prediction.")
 
     parser.add_argument(
         'key',
