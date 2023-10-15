@@ -73,7 +73,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         self.model_box = PyQt5.QtWidgets.QLineEdit(self)
         self.model_box.setText(
-            f'{self.root_box.text()}/build/derived_data/apnea/models/two_ar3_masked6.1'
+            f'{self.root_box.text()}/build/derived_data/apnea/models/two_ar3_masked6'
         )
         model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
         model_ok.clicked.connect(self.new_model)
@@ -302,23 +302,22 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Read apnea model.
         self.read_model()
 
+        # Get observations for apnea model
+        read_y = self.model.read_y_no_class(self.record_box.text())
+        self.slow = read_y['slow']
+        print(f'{read_y.keys()=}')
+        self.y_data = [hmm.base.JointSegment(read_y)]
+
         # Calculate spectral filters using fft method in utilities
         self.filters = utilities.read_slow_fast_respiration(
             self.model.args, self.record_box.text())
         self.filters['times'] = numpy.arange(len(
             self.filters['slow'])) / self.filters['sample_frequency']
         prominence_threshold = 6.0
-        peaks, _ = utilities.peaks(self.filters['slow'],
-                                   self.filters['sample_frequency'],
+        peaks, _ = utilities.peaks(self.slow, self.filters['sample_frequency'],
                                    prominence_threshold)
-        self.hr_peaks = self.filters['slow'][peaks]
+        self.hr_peaks = self.slow[peaks]
         self.hr_peak_times = peaks / self.filters['sample_frequency']
-
-        # Get observations for apnea model
-        self.y_data = [
-            hmm.base.JointSegment(
-                self.model.read_y_no_class(self.record_box.text()))
-        ]
 
         # Calculate hmm classification
         self.new_classification()
@@ -385,7 +384,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         """
         self.filter_dict['signals'] = [
-            (self.filters['times'], self.filters['slow']),
+            (self.filters['times'], self.slow),
             (self.filters['times'], 2 * self.filters['fast']),
             (self.filters['times'], 2 * self.filters['respiration']),
             (self.hr_peak_times, self.hr_peaks),

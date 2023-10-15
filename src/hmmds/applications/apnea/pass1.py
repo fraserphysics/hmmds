@@ -32,10 +32,6 @@ def parse_args(argv):
                         type=int,
                         default=2,
                         help='Samples per second of input')
-    parser.add_argument('--fft_width',
-                        type=int,
-                        default=4096,
-                        help='Number of samples for each fft')
     parser.add_argument('--data_dir',
                         type=str,
                         default='../../../../build/derived_data/ECG/',

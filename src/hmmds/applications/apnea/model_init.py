@@ -382,7 +382,7 @@ def hmm_intervals(args, rng):
     #              /                   \
     # *************                     ************
 
-    peak_dict, boundaries = hmmds.applications.apnea.utilities.peaks_intervals(
+    peak_dict, boundaries, norm_avg = hmmds.applications.apnea.utilities.peaks_intervals(
         args, args.a_names)
     # Attach information to args for creating observation models and
     # reading observations
@@ -429,9 +429,8 @@ def hmm_intervals(args, rng):
     return result_hmm, state_dict, state_key2state_index
 
 
-@register  # For debugging effect of intervals on classification
-def two_intervals(args, rng):
-    """Return an hmm for joint observations that include "peaks"
+def two_chain(args, rng, read_y_class, read_raw_y):
+    """Make an hmm with one chain for normal and one chain for apnea
 
     """
 
@@ -445,14 +444,9 @@ def two_intervals(args, rng):
     #              /                   \
     # *************                     ************
 
-    peak_dict, boundaries = hmmds.applications.apnea.utilities.peaks_intervals(
-        args, args.a_names)
-    # Attach information to args for creating observation models and
-    # reading observations
-    args.boundaries = boundaries
-    args.read_y_class = hmmds.applications.apnea.utilities.read_slow_class_peak_interval
-    args.read_raw_y = hmmds.applications.apnea.utilities.read_slow_peak_interval
-    peak_dimension = len(boundaries) + 1  # Dimension of output for peaks
+    args.read_y_class = read_y_class
+    args.read_raw_y = read_raw_y
+    peak_dimension = len(args.boundaries) + 1  # Dimension of output for peaks
 
     normal_class = 0
     apnea_class = 1
@@ -486,6 +480,38 @@ def two_intervals(args, rng):
         rng,
         truncate=args.AR_order)
     return result_hmm, state_dict, state_key2state_index
+
+
+@register
+def two_intervals(args, rng):
+    """Return an hmm for joint observations that include "peaks"
+
+    """
+    peak_dict, boundaries, norm_avg = hmmds.applications.apnea.utilities.peaks_intervals(
+        args, args.a_names)
+    # Attach information to args for creating observation models and
+    # reading observations
+    args.boundaries = boundaries
+    return two_chain(
+        args, rng,
+        hmmds.applications.apnea.utilities.read_slow_class_peak_interval,
+        hmmds.applications.apnea.utilities.read_slow_peak_interval)
+
+
+@register
+def two_normalized(args, rng):
+    """Return an hmm for joint observations with normalized heart rate
+
+    """
+    peak_dict, boundaries, norm_avg = hmmds.applications.apnea.utilities.peaks_intervals(
+        args, args.a_names)
+    # Attach information to args for creating observation models and
+    # reading observations
+    args.boundaries = boundaries
+    args.norm_avg = norm_avg
+    return two_chain(args, rng,
+                     hmmds.applications.apnea.utilities.read_normalized_class,
+                     hmmds.applications.apnea.utilities.read_normalized)
 
 
 def main(argv=None):

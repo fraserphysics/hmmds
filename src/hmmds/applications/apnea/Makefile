@@ -8,7 +8,32 @@ BUILD = $(ROOT)/build
 
 include Rules.mk
 
-HR_FIGS = statistics.pdf errors_vs_ar_order.pdf
+# Optimize pass2 parameters over files classified as A or near
+# boundary by pass1.  The relevant figures and modules are:
+# (errors_vs_ar_order.pdf compare_models.py) (exponent_threshold.pdf,
+# test_score2.py) (prominence_study.pdfprominence_study.py)
+APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
+
+BEST_MODEL = $(MODELS)/two_ar6_masked
+
+AR_ORDERS = 1 2 3 4 5 6 7 8 9
+AR_MODELS = $(addsuffix _masked, $(addprefix two_ar, $(AR_ORDERS)))
+errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
+	python compare_models.py --models $(AR_MODELS) --parameters $(AR_ORDERS) \
+--parameter_name "AR order" --records $(APLUSNAMES) -- $@ > errors_vs_ar_order.txt
+
+exponent_threshold.pdf: test_score2.py $(BEST_MODEL)
+	python $^ --records $(APLUSNAMES) -- $@ > exponent_threshold.txt
+
+PROMINENCES = 3 3.5 4 4.5 5 5.5 5.7 5.8 5.9 5.95 6 6.05 6.1 6.2 6.3 6.4 6.5 7 7.5 8
+PROMINENCE_MODELS = $(addprefix $(BEST_MODEL), $(PROMINENCES))
+prominence_models: $(PROMINENCE_MODELS)
+	touch $@
+prominence_study.pdf: prominence_study.py prominence_models
+	python $< --prominences $(PROMINENCES) --template $(BEST_MODEL)% --records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
+
+
+HR_FIGS = statistics.pdf errors_vs_ar_order.pdf exponent_threshold.pdf prominence_study.pdf
 
 heart_rate.pdf: heart_rate.tex two.tex score.tex lengths.txt $(HR_FIGS)
 	pdflatex $< ; pdflatex $<
@@ -16,22 +41,22 @@ heart_rate.pdf: heart_rate.tex two.tex score.tex lengths.txt $(HR_FIGS)
 pass1.out: pass1.py
 	python $^ $@
 
-pass2.out: pass2.py pass1.out  $(MODELS)/two_ar3_masked6.1  $(MODELS)/c_model
+pass2.out: pass2.py pass1.out  $(BEST_MODEL)  $(MODELS)/c_model
 	python $< pass1.out $@
 
 score.txt: score.py pass2.out
 	python score.py pass2.out $@
 
 # Lengths of time series for each training record
-lengths.txt: test_alignment.py $(MODELS)/two_ar3_masked6.1
+lengths.txt: test_alignment.py $(BEST_MODEL)
 	python $< > $@
 
 score.tex: score.py pass2.out
 	python score.py --tex pass2.out $@
 
 # A table of pass2 performance on each a-file.
-two.tex: prominence_study.py $(MODELS)/two_ar3_masked6.1
-	python $< --prominences 6.1 --template $(MODELS)/two_ar3_masked% --latex $@
+two.tex: prominence_study.py $(MODELS)/two_ar6_masked6
+	python $< --prominences 6 --template $(MODELS)/two_ar6_masked% --latex $@
 
 report.txt: cross_score.py $(MODELS)/masked_all_a
 	python $< --specific 1.0 > $@
@@ -41,10 +66,10 @@ report.ps: report.txt
 like_table.tex: like_table.py $(MODELS)/unmasked_all_ac
 	python like_table.py --trim_start 25 $@
 
-AR_ORDERS = 1 2 3 4 5 6 7 8 9
-AR_MODELS = $(addsuffix _masked, $(addprefix $(MODELS)/two_ar, $(AR_ORDERS)))
-errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
-	python compare_models.py --models $(AR_MODELS) --parameters $(AR_ORDERS) --parameter_name "AR order" $@
+NORM_MODELS = $(addsuffix _masked, $(addprefix norm_ar, $(AR_ORDERS)))
+
+norm_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NORM_MODELS))
+	python compare_models.py --models $(NORM_MODELS) --parameters $(AR_ORDERS) --parameter_name "AR order" --records b04 c08 a06 a11 a09 c10 a17 a05 b01 a18 a20 -- $@
 
 statistics.pdf: statistic_plots.py
 	python  statistic_plots.py --AR_order 3 $@
@@ -62,39 +87,40 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # Save the initial files for debugging
 .PRECIOUS: $(MODELS)/a%_initial $(MODELS)/a%_masked
 
-PROMINENCES = 3 3.5 4 4.5 5 5.5 5.7 5.8 5.9 5.95 6 6.05 6.1 6.2 6.3 6.4 6.5 7 7.5 8
-PROMINENCE_MODELS = $(addprefix $(MODELS)/two_ar3_masked, $(PROMINENCES))
-prominence_models: $(PROMINENCE_MODELS)
-	touch $@
-prominence_study.pdf: prominence_study.py
-	python $< --prominences $(PROMINENCES) --template $(MODELS)/two_ar3_masked% $@
-
 $(MODELS)/c_model: model_init.py
 	python $< --trim_start 0 --heart_rate_sample_frequency 24 c_model $@
 
-$(MODELS)/two_ar3_initial%: model_init.py
+$(MODELS)/two_ar6_initial%: model_init.py
 	python $< --trim_start 0 --heart_rate_sample_frequency 24 --low_pass_period 8  --min_prominence $* \
---records $(ANAMES) --alpha_beta 50.0 10.0  --AR_order 3 \
+--records $(ANAMES) --alpha_beta 50.0 10.0  --AR_order 6 \
 two_intervals $@
 
-$(MODELS)/two_ar3_masked%: apnea_train.py $(MODELS)/two_ar3_initial%
-	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(ANAMES) --min_prominence $* $(MODELS)/two_ar3_initial$* $@
+$(MODELS)/two_ar6_masked%: apnea_train.py $(MODELS)/two_ar6_initial%
+	python $< --heart_rate_sample_frequency 24 --iterations 20 --records $(ANAMES) --min_prominence $* $(MODELS)/two_ar6_initial$* $@
 
 $(MODELS)/two_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
 --records $(ANAMES) --alpha_beta 50.0 10.0  --AR_order $* \
- --min_prominence 6.1 two_intervals $@
+ --min_prominence 6 two_intervals $@
 
 $(MODELS)/two_ar%_masked: apnea_train.py $(MODELS)/two_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 10 --min_prominence 6.1 $(MODELS)/two_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 20 --min_prominence 6 $(MODELS)/two_ar$*_initial $@
+
+$(MODELS)/norm_ar%_initial: model_init.py
+	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
+--records $(ANAMES) --alpha_beta 50.0 10.0  --AR_order $* \
+ --min_prominence 6 two_normalized $@
+
+$(MODELS)/norm_ar%_masked: apnea_train.py $(MODELS)/norm_ar%_initial
+	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 10 --min_prominence 6 $(MODELS)/norm_ar$*_initial $@
 
 $(MODELS)/intervals_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
---records $(EasySlow) --alpha_beta 50.0 10.0  --AR_order $* --min_prominence 6.1 \
+--records $(EasySlow) --alpha_beta 50.0 10.0  --AR_order $* --min_prominence 6 \
 hmm_intervals $@
 
 $(MODELS)/intervals_ar%_masked: apnea_train.py $(MODELS)/intervals_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 10 --min_prominence 6.1 $(MODELS)/intervals_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 10 --min_prominence 6 $(MODELS)/intervals_ar$*_initial $@
 
 $(MODELS)/simple_ar%_masked: apnea_train.py $(MODELS)/simple_ar%_initial
 	python $< --AR_order $* --iterations 50 --records $(EasySlow)  $(MODELS)/simple_ar$*_initial $@

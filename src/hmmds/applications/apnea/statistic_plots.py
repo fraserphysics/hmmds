@@ -48,10 +48,6 @@ def parse_args(argv):
                         type=int,
                         default=2,
                         help='Samples per second of input')
-    parser.add_argument('--fft_width',
-                        type=int,
-                        default=4096,
-                        help='Number of samples for each fft')
     parser.add_argument('--data_dir',
                         type=str,
                         default='../../../../build/derived_data/ECG/',
@@ -131,7 +127,7 @@ def main(argv=None):
                            markersize=14,
                            linestyle='None')
 
-    y = numpy.linspace(1.0e4, -2.0e5, 2)
+    y = numpy.linspace(0, -5.0e4, 2)
     x = .32 - y * 0.045 / 1.0e5
     axeses[2].plot(x, y)
     x = .357 - y * 0.

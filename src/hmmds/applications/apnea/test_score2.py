@@ -20,7 +20,6 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Map (model,data):-> class sequence")
     utilities.common_arguments(parser)
-    # FixMe: Use --records from utilities
     parser.add_argument('--record_name',
                         type=str,
                         default='a03',
@@ -29,7 +28,7 @@ def parse_args(argv):
                         action='store_true',
                         help="display figure using Qt5")
     parser.add_argument('model_path', type=str, help="path to initial model")
-    #parser.add_argument('write_path', type=str, help='path of file to write')
+    parser.add_argument('fig_path', type=str, help='path of file to write')
     args = parser.parse_args(argv)
     utilities.join_common(args)
     return args
@@ -40,6 +39,7 @@ def _print(results):
         print(f"{threshold:9.4g} \
 {result['N false alarm']:8d} \
 {result['N false alarm'] + result['N missed detection']:8d} \
+{result['error count']:11d} \
 {result['error rate']:10.5f}")
 
 
@@ -84,7 +84,7 @@ def threshold_study(scores, thresholds, power):
     """
     result = {}
     print(
-        f'{"threshold":9s} {"N_(N->A)":8s} {"N_(A->N)":8s} {"N_Error":8s} {"error rate":10s}'
+        f'{"threshold":9s} {"N_(N->A)":8s} {"N_(A->N)":8s} {"N_Error":8s} {"error count":11s} {"error rate":10s}'
     )
     for threshold in thresholds:
         counts = numpy.zeros(4, dtype=int)
@@ -96,6 +96,7 @@ def threshold_study(scores, thresholds, power):
             'N missed detection': counts[2],
             'P false alarm': counts[1] / (counts[0] + counts[1]),
             'P missed detection': counts[2] / (counts[2] + counts[3]),
+            'error count': counts[1] + counts[2],
             'error rate': (counts[1] + counts[2]) / counts.sum(),
         }
     return result
@@ -118,6 +119,7 @@ def power_study(scores, powers, threshold):
             'N missed detection': counts[2],
             'P false alarm': counts[1] / (counts[0] + counts[1]),
             'P missed detection': counts[2] / (counts[2] + counts[3]),
+            'error count': counts[1] + counts[2],
             'error rate': (counts[1] + counts[2]) / counts.sum(),
         }
     return result
@@ -135,22 +137,23 @@ def main(argv=None):
     """
     """
 
-    min_power = 4.8
-    powers = numpy.concatenate(
-        (numpy.linspace(3.0, 5.0, 21), numpy.linspace(5.5, 50.0, 21)))
-    min_threshold = 2.0e-43
-    exponents = numpy.concatenate(
-        (numpy.linspace(-44, -42, 21), numpy.linspace(-41.9, 10, 21)))
-    thresholds = numpy.exp(exponents * numpy.log(10))
-
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     fig, axeses = pyplot.subplots(nrows=2, figsize=(6, 8))
 
+    min_power, min_threshold = args.power_and_threshold
+    powers = numpy.linspace(0.0, 7.0, 22)
+    exponents = numpy.linspace(-20.0, 20.0, 21)
+    thresholds = numpy.exp(exponents * numpy.log(10))
+
+    if args.records is None:
+        records = args.a_names
+    else:
+        records = args.records
     scores = {}
-    for record_name in args.a_names:
+    for record_name in records:
         scores[record_name] = utilities.Score2(args.model_path, record_name)
 
     power_results = power_study(scores, powers, min_threshold)
@@ -163,6 +166,7 @@ def main(argv=None):
 
     if args.show:
         pyplot.show()
+    fig.savefig(args.fig_path)
 
     return 0
 

@@ -92,7 +92,7 @@ def main(argv=None):
     fig, axes = pyplot.subplots(nrows=1, figsize=(6, 8))
 
     # Find peaks
-    peak_dict, boundaries = utilities.peaks_intervals(args, args.a_names)
+    peak_dict, _, _ = utilities.peaks_intervals(args, args.a_names)
     with open(args.pickle, 'wb') as _file:
         pickle.dump(peak_dict, _file)
 

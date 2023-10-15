@@ -1,4 +1,4 @@
-from __future__ import annotations  # Enables, eg, (self: Pass1Item,
+from __future__ import annotations  # Enables, eg, self: Pass1
 
 import sys
 import os
@@ -36,6 +36,15 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=str,
                         default='build/derived_data/apnea',
                         help='path from root to derived apnea data')
+    parser.add_argument('--model_dir',
+                        type=str,
+                        default='build/derived_data/apnea/models',
+                        help='path from root to hmms for heart rate')
+    parser.add_argument(
+        '--heart_rate_path_format',
+        type=str,
+        default='build/derived_data/ECG/{0}_self_AR3/heart_rate',
+        help='path from root to heart rate data')
     parser.add_argument('--records',
                         type=str,
                         nargs='+',
@@ -61,6 +70,14 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=int,
                         help="Number of previous values for prediction.")
     parser.add_argument(
+        '--power_and_threshold',
+        type=float,
+        nargs=2,
+        default=(2.0, 1.0),
+        help=
+        'Weight of observation component "interval" and apnea detection threshold'
+    )
+    parser.add_argument(
         '--min_prominence',
         type=float,
         default=6.0,
@@ -70,6 +87,11 @@ def common_arguments(parser: argparse.ArgumentParser):
         type=int,
         default=0,
         help='Number of minutes to drop from the beginning of each record')
+    parser.add_argument(
+        '--fft_width',
+        type=int,
+        default=4096,
+        help='Number of samples for each fft for pass1 statistic')
     parser.add_argument(
         '--low_pass_period',
         type=float,
@@ -92,16 +114,18 @@ def join_common(args: argparse.Namespace):
 
     """
 
-    # Add derived_data prefix to paths in that directory
+    # Add root prefix to paths in that directory
     args.derived_apnea_data = os.path.join(args.root, args.derived_apnea_data)
+    args.rtimes = os.path.join(args.root, args.rtimes)
+    args.expert = os.path.join(args.root, args.expert)
+    args.heart_rate_path_format = os.path.join(args.root,
+                                               args.heart_rate_path_format)
+    args.model_dir = os.path.join(args.root, args.model_dir)
 
     args.heart_rate_sample_frequency *= PINT('1/minutes')
     args.trim_start *= PINT('minutes')
     args.low_pass_period *= PINT('seconds')
     args.band_pass_center /= PINT('minutes')
-
-    args.rtimes = os.path.join(args.root, args.rtimes)
-    args.expert = os.path.join(args.root, args.expert)
 
     args.a_names = [f'a{i:02d}' for i in range(1, 21)]
     args.b_names = [f'b{i:02d}' for i in range(1, 5)]
@@ -351,6 +375,11 @@ def read_slow_fast_respiration(args, name='a03'):
     skip = int(f_in / f_out)
     assert f_in == f_out * skip, f'{f_in=} {f_out=} {skip=}'
     raw_hr = _dict['hr'].to('1/minute').magnitude
+    # Option to normalize
+    if hasattr(args, 'norm_avg'):
+        divisor = Pass1(name, args).divisor
+        norm = divisor / args.norm_avg
+        raw_hr /= norm
     # Now pad front of raw_hr to compensate for AR-order
     if args.AR_order is None:
         pad = 0
@@ -438,12 +467,21 @@ def add_peaks(args, raw_dict, boundaries):
     """
     slow_signal = raw_dict['slow']
 
-    locations, properties = peaks(slow_signal, args.heart_rate_sample_frequency,
-                                  args.min_prominence)
-    digits = numpy.digitize(properties['prominences'], boundaries)
+    if hasattr(args, 'divisor'):
+        locations, properties = peaks(slow_signal,
+                                      args.heart_rate_sample_frequency,
+                                      args.min_prominence / args.divisor)
+        digits = numpy.digitize(properties['prominences'],
+                                boundaries / args.divisor)
+    else:
+        locations, properties = peaks(slow_signal,
+                                      args.heart_rate_sample_frequency,
+                                      args.min_prominence)
+        digits = numpy.digitize(properties['prominences'], boundaries)
     peak_signal = numpy.zeros(len(slow_signal), dtype=numpy.int32)
     peak_signal[locations] = digits
     raw_dict['peak'] = peak_signal
+    assert peak_signal.max() > 0
     return raw_dict
 
 
@@ -539,6 +577,16 @@ def read_slow_peak_interval(args, boundaries, name='a03'):
 
     return add_intervals(args, add_peaks(args, read_slow(args, name),
                                          boundaries))
+
+
+def read_normalized_class(args, boundaries, name):
+    args.divisor = Pass1(name, args).divisor
+    return read_slow_class_peak_interval(args, boundaries, name)
+
+
+def read_normalized(args, boundaries, name):
+    args.divisor = Pass1(name, args).divisor
+    return read_slow_peak_interval(args, boundaries, name)
 
 
 # I put this in utilities enable apnea_train.py to run.
@@ -653,22 +701,21 @@ class Pass1:
     """Holds statistics of a record for pass1 classification, ie, normal or apnea
     """
 
-    def __init__(self, name, args, normalization=0.3):
+    def __init__(self, name, args, norm_frequency=0.3):
         """Read heart rate data and attach some analysis results to self
 
-        name: EG "a01"
-
-        args:
-
-        normalization: Divide PSD by sum of channels above this frequency (in cpm)
+        Args:
+            name: EG "a01"
+            args:
+            norm_frequency: Divide PSD by sum of channels above this frequency (in cpm)
 
         """
 
-        self.likelihood = interval_hmm_likelihood(args.model, name)
+        if hasattr(args, 'model'):
+            self.likelihood = interval_hmm_likelihood(args.model, name)
 
         self.name = name
-        self.y_data = hmm.base.JointSegment(read_slow_respiration(args, name))
-        with open(args.format.format(args.data_dir, name), 'rb') as _file:
+        with open(args.heart_rate_path_format.format(name), 'rb') as _file:
             _dict = pickle.load(_file)
             sample_frequency = _dict['sample_frequency'].to(
                 '1/minutes').magnitude
@@ -679,10 +726,11 @@ class Pass1:
         self.frequencies, raw_psd = scipy.signal.welch(heart_rate,
                                                        fs=sample_frequency,
                                                        nperseg=args.fft_width)
-        channel = numpy.argmax(self.frequencies > normalization)
-        self.psd = raw_psd / raw_psd[channel:].sum()
+        channel = numpy.argmax(self.frequencies > norm_frequency)
+        self.divisor = raw_psd[channel:].sum()
+        self.psd = raw_psd / self.divisor
 
-    def statistic_1(self, low=1.0, high=3.6):
+    def statistic_1(self: Pass1, low=1.0, high=3.6):
         """Spectral power in the range of low frequency apnea
         oscillations.  Range in cpm
 
@@ -804,7 +852,9 @@ def peaks_intervals(args, record_names, peaks_per_bin=1300):
 
     # Calculate (prominence, period) pairs
     peak_dict = {0: [], 1: []}
+    norm_sum = 0.0
     for record_name in record_names:
+        norm_sum += Pass1(record_name, args).divisor
         raw_dict = read_slow_class(args, record_name)
         slow = raw_dict['slow']
         _class = raw_dict['class']
@@ -826,7 +876,7 @@ def peaks_intervals(args, record_names, peaks_per_bin=1300):
         boundaries.append(apnea_peaks[index])
     boundaries = numpy.array(boundaries).T
 
-    return peak_dict, boundaries
+    return peak_dict, boundaries, norm_sum / len(record_names)
 
 
 def make_density_ratio(peak_dict, limit, sigma, _lambda):
@@ -875,7 +925,7 @@ def make_interval_pdfs(args):
     lower_length = 0.5
 
     # Find peaks
-    peak_dict, boundaries = peaks_intervals(args, args.a_names)
+    peak_dict, boundaries, _ = peaks_intervals(args, args.a_names)
 
     limit = 2.2  # No intervals longer than this for pdf ratio fit
     sigma = 0.1  # Kernel width

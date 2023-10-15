@@ -6,6 +6,7 @@
 \usepackage{amsmath, amsfonts}
 \usepackage{placeins}
 \usepackage{verbatim}
+\usepackage{showlabels}
 
 \newcommand{\field}[1]{\mathbb{#1}}
 \newcommand{\INTEGER}{\field{Z}}
@@ -176,6 +177,31 @@ and 0.42:
 \section{Work on Pass2}
 \label{sec:pass2}
 
+Chose minimum prominence based on Fig.~\ref{fig:prominence_study}.
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{prominence_study.pdf}}
+    \caption{Error rate on the \emph{a} records for models with
+      varying prominence threshold with form
+      \emph{two\_ar3\_intervals*} .}
+  \label{fig:prominence_study}
+\end{figure}
+
+Chose minimum the exponent for weighting components of the observation
+and the detection threshold based on the study illustrated in
+Fig.~\ref{fig:exponent_threshold}.
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{exponent_threshold.pdf}}
+    \caption{Error rate of model vs the weighting exponent and the
+      detection threshold with model \emph{two\_ar4\_masked} on the
+      \emph{a} records.}
+  \label{fig:exponent_threshold}
+\end{figure}
+
+
 Based on Tables~\ref{tab:pass2performance} and~\ref{tab:score_initial}
 These are the problematic records:
 \begin{description}
@@ -197,13 +223,19 @@ These are the problematic records:
   oscillations are slow (.9 cpm).  At 355 oscillations are complex
   (multi period).  \textbf{Fixable}
 \end{description}
+
+To do:
 \begin{itemize}
+\item Plot performance against threshold for peaks (prominence\_study.py)
 \item Plot performance against both exponent for interval component of
   observation and threshold for detection.  Use the set of records
   that pass1 classifies as \emph{A} so that there is a penalty for
-  setting the threshold too low.
+  setting the threshold too low. (test\_score2.py)
+\item Plot performance vs AR order (compare\_models.py)
 \item Try scaling heart rate by high frequency power.
 \item Look at both performance on all records and fixable records.
+\item Vary the number of peak sizes
+\item Vary the minimum peak prominence
 \end{itemize}
 
 \begin{table*}

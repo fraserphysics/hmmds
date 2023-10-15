@@ -38,12 +38,13 @@ def parse_args(argv):
 
 def print_summary(results):
     print(
-        f'{"peak threshold":14s} {"false alarm":11s} {"missed detection":16s} {"error rate":10s}'
+        f'{"peak threshold":14s} {"false alarm":11s} {"missed detection":16s} {"error count":11s}{"error rate":10s}'
     )
     for threshold, result in results.items():
         print(f"{threshold:14.4g} \
 {result['false alarm']:11.4g} \
 {result['missed detection']:16.4g} \
+{result['error count']:11d} \
 {result['error rate']:10.5f}")
 
 
@@ -75,18 +76,12 @@ def calculate(scores, best_threshold, best_power):
         likelihoods = {}
         for record_name, score in scores_prominence.items():
             likelihoods[record_name] = score.score(best_threshold, best_power)
-            if likelihoods[
-                    record_name] > 0:  # Force detection of apnea for every minute
-                score.counts[1] += score.counts[0]  # n2a += n2n
-                score.counts[0] = 0
-                score.counts[3] += score.counts[2]  # a2a += a2n
-                score.counts[2] = 0
-                score.class_from_model[:] = 1
             counts += score.counts
         result[prominence] = {
             'false alarm': counts[1] / (counts[0] + counts[1]),
             'missed detection': counts[2] / (counts[2] + counts[3]),
             'error rate': (counts[1] + counts[2]) / counts.sum(),
+            'error count': counts[1] + counts[2],
             'likelihoods': likelihoods,
         }
     return result
@@ -140,15 +135,13 @@ def main(argv=None):
 
     """
 
-    best_power = 1.757  # Raise likelihood of interval to this power
-    best_threshold = .73  # Threshold of apnea detector
-
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     fig, axeses = pyplot.subplots(nrows=2, figsize=(6, 8))
 
+    best_power, best_threshold = args.power_and_threshold
     if args.records is None:
         records = args.a_names
     else:

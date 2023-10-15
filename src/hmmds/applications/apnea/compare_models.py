@@ -30,9 +30,6 @@ def parse_args(argv):
                         type=float,
                         nargs='+',
                         help="eg, 3.0 4.0 5.0 6.0")
-    parser.add_argument('--model_dir',
-                        type=str,
-                        default='../../../../build/derived_data/apnea/models')
     parser.add_argument('--parameter_name', type=str, default='parameter')
     parser.add_argument('--show',
                         action='store_true',
@@ -88,14 +85,13 @@ def main(argv=None):
 
     """
 
-    best_power = 4.8  # Raise likelihood of interval to this power
-    best_threshold = 2.0e-43  # Threshold of apnea detector
-
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     fig, axes = pyplot.subplots(nrows=1, figsize=(6, 8))
+
+    best_power, best_threshold = args.power_and_threshold
 
     if args.records is None:
         records = args.a_names
