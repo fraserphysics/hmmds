@@ -34,13 +34,18 @@ def parse_args(argv):
     return args
 
 
-def _print(results):
-    for threshold, result in results.items():
-        print(f"{threshold:9.4g} \
-{result['N false alarm']:8d} \
-{result['N false alarm'] + result['N missed detection']:8d} \
-{result['error count']:11d} \
-{result['error rate']:10.5f}")
+def _print(text, results):
+    print(f'{text:>9s} \
+{"N_(N->A)":>8s} \
+{"N_(A->N)":>8s} \
+{"N_error":>8s} \
+{"P_error":>10s}')
+    for key, result in results.items():
+        print(f"{key:>9.4g} \
+{result['N false alarm']:>8d} \
+{result['N missed detection']:>8d} \
+{result['error count']:>8d} \
+{result['error rate']:>10.5f}")
 
 
 def log_plot(axes, results, xlabel=None):
@@ -83,9 +88,6 @@ def threshold_study(model_record_dict, thresholds, power):
     """Calculate errors as a function of thresholds
     """
     result = {}
-    print(
-        f'{"threshold":9s} {"N_(N->A)":8s} {"N_(A->N)":8s} {"N_Error":8s} {"error count":11s} {"error rate":10s}'
-    )
     for threshold in thresholds:
         counts = numpy.zeros(4, dtype=int)
         for _, model_record in model_record_dict.items():
@@ -108,7 +110,6 @@ def power_study(model_record_dict, powers, threshold):
 
     """
     result = {}
-    print(f'{"power":9s} {"N_(N->A)":8s} {"N_(A->N)":8s} {"error rate":10s}')
     for power in powers:
         counts = numpy.zeros(4, dtype=int)
         for _, model_record in model_record_dict.items():
@@ -144,19 +145,22 @@ def main(argv=None):
         records = args.a_names
     else:
         records = args.records
+
     model_record_dict = {}
     for record_name in records:
         model_record_dict[record_name] = utilities.ModelRecord(
             args.model_path, record_name)
 
     power_results = power_study(model_record_dict, powers, min_threshold)
-    _print(power_results)
-    plot(axeses[1], power_results, xlabel='power')
+    _print('power', power_results)
 
     threshold_results = threshold_study(model_record_dict, thresholds,
                                         min_power)
-    _print(threshold_results)
+    _print('threshold', threshold_results)
+
     log_plot(axeses[0], threshold_results, xlabel='threshold')
+
+    plot(axeses[1], power_results, xlabel='power')
 
     if args.show:
         pyplot.show()

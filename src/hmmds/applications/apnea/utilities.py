@@ -672,13 +672,13 @@ class IntervalObservation(hmm.base.BaseObservation):
 # FixMe: Test this
 def interval_hmm_likelihood(model_path: str,
                             record_name: str,
-                            interval_exponent=1.0):
+                            interval_power=1.0):
     """Calculate log likelihood of model wrt data for a record
     """
     with open(model_path, 'rb') as _file:
         model = pickle.load(_file)
     del model.y_mod['class']
-    model.y_mod['interval'].power = interval_exponent
+    model.y_mod['interval'].power = interval_power
 
     y_data = [
         hmm.base.JointSegment(
@@ -723,22 +723,33 @@ class Pass1:
             trim = int(sample_frequency *
                        args.trim_start.to('minutes').magnitude)
         heart_rate = _dict['hr'].to('1/minute').magnitude[trim:]
-        self.frequencies, raw_psd = scipy.signal.welch(heart_rate,
-                                                       fs=sample_frequency,
-                                                       nperseg=args.fft_width)
-        channel = numpy.argmax(self.frequencies > norm_frequency)
-        self.divisor = raw_psd[channel:].sum()
-        self.psd = raw_psd / self.divisor
+        self.frequencies, self.psd = scipy.signal.welch(heart_rate,
+                                                        fs=sample_frequency,
+                                                        nperseg=args.fft_width)
+        self.norm_channel = numpy.argmax(self.frequencies > norm_frequency)
 
-    def statistic_1(self: Pass1, low=1.0, high=3.6):
+    def statistic_1(self: Pass1, low=1.0, high=3.6) -> float:
         """Spectral power in the range of low frequency apnea
         oscillations.  Range in cpm
 
         """
 
+        return self.statistic_3(low, high) / self.statistic_2()
+
+    def statistic_2(self: Pass1):
+        """Power in frequencies higher than norm_channel
+
+        """
+        return self.psd[self.norm_channel:].sum()
+
+    def statistic_3(self: Pass1, low=1.0, high=3.6) -> float:
+        """Spectral power in band.  Range in cpm
+
+        """
         # argmax finds first place inequality is true
         channel_low = numpy.argmax(self.frequencies > low)
         channel_high = numpy.argmax(self.frequencies > high)
+
         return self.psd[channel_low:channel_high].sum()
 
 
@@ -784,7 +795,7 @@ class ModelRecord:
         if threshold is None:
             threshold = _threshold
 
-        if hasattr(self.model.y_mod, 'interval'):
+        if 'interval' in self.model.y_mod:
             self.model.y_mod['interval'].power = power
 
         self.class_from_model = self.model.class_estimate(
@@ -871,7 +882,7 @@ def peaks_intervals(args, record_names, peaks_per_bin=1300):
     peak_dict = {0: [], 1: []}
     norm_sum = 0.0
     for record_name in record_names:
-        norm_sum += Pass1(record_name, args).divisor
+        norm_sum += Pass1(record_name, args).statistic_2()
         raw_dict = read_slow_class(args, record_name)
         slow = raw_dict['slow']
         _class = raw_dict['class']

@@ -28,7 +28,7 @@ def parse_args(argv):
         '--model',
         nargs='?',
         type=argparse.FileType('rb'),
-        default='../../../../build/derived_data/apnea/models/two_ar3_masked6.1',
+        default='../../../../build/derived_data/apnea/models/two_ar6_masked6',
         help='Path to model')
     parser.add_argument(
         '--record_names',

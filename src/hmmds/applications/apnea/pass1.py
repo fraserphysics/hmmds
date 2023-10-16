@@ -39,7 +39,7 @@ def parse_args(argv):
     parser.add_argument(
         '--threshold',
         type=float,
-        default=0.357,
+        default=0.36,
         help='Border between normal and apnea for whole records')
     parser.add_argument(
         '--model',
@@ -73,7 +73,7 @@ def main(argv=None):
     result = {}
     for name in all_names:
         statistic = records[name].statistic_1()
-        _class = ("N", "A")[statistic > args.threshold]
+        _class = ("N", "A")[int(statistic > args.threshold)]
         print(f'{name} {_class} {statistic:6.4f}')
         result[name] = _class
     with open(args.pickle, 'wb') as _file:

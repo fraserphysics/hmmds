@@ -55,7 +55,7 @@ def parse_args(argv):
     parser.add_argument(
         '--model',
         type=str,
-        default='../../../../build/derived_data/apnea/models/two_ar3_masked6.1',
+        default='../../../../build/derived_data/apnea/models/two_ar6_masked6',
         help='Path to model')
     parser.add_argument('--format',
                         type=str,
@@ -80,7 +80,7 @@ def main(argv=None):
 
     trouble = 'a11 c10'.split()
     colors = ['r', 'b']
-    fig, axeses = pyplot.subplots(nrows=3, figsize=(6, 8))
+    fig, axeses = pyplot.subplots(nrows=2, ncols=2, figsize=(6, 8))
     fig.tight_layout()
 
     records = dict(
@@ -93,7 +93,7 @@ def main(argv=None):
         for name in names:
             assert numpy.array_equal(frequencies, records[name].frequencies)
         psd_average = sum(psd_list) / len(psd_list)
-        for axes in axeses[:2]:
+        for axes in axeses[0, :2]:
             axes.plot(frequencies,
                       numpy.log(psd_average),
                       label=label,
@@ -105,7 +105,7 @@ def main(argv=None):
 
     plot_psd(args.A_names, r'$\bar a$', 'r')
     plot_psd(args.C_names, r'$\bar c$', 'b')
-    for axes in axeses[:2]:
+    for axes in axeses[0, :2]:
         for name, color in zip(trouble, colors):
             axes.plot(frequencies,
                       numpy.log(records[name].psd),
@@ -115,31 +115,33 @@ def main(argv=None):
         axes.set_xlabel('frequency/cpm')
         axes.set_ylabel('log psd')
 
-    axeses[1].set_xlim(0.5, 4.0)
-    axeses[1].set_ylim(-7, -4)
-
-    def plot_stats(names, color):
-        for name in names:
-            axeses[2].plot(records[name].statistic_1(),
-                           records[name].likelihood,
-                           color=color,
-                           marker=f'${name}$',
-                           markersize=14,
-                           linestyle='None')
-
-    y = numpy.linspace(0, -5.0e4, 2)
-    x = .32 - y * 0.045 / 1.0e5
-    axeses[2].plot(x, y)
-    x = .357 - y * 0.
-    axeses[2].plot(x, y, linestyle='dotted')
-    plot_stats(args.A_names, 'r')
-    plot_stats(args.C_names, 'b')
-    plot_stats(args.B_names, 'g')
-    plot_stats(args.X_names, 'k')
-    axeses[2].set_xlabel(r'$F(PSD)$')
-    axeses[2].set_ylabel(r'$G(CDF)$')
-    for axes in axeses[:2]:
+    axeses[0, 1].set_xlim(0.5, 4.0)
+    axeses[0, 1].set_ylim(0, 3.5)
+    for axes in axeses[0, :]:
         axes.legend()
+
+    def plot_stats(axes, names, color):
+        for name in names:
+            record = records[name]
+            axes.plot(record.statistic_1(),
+                      record.statistic_2(),
+                      color=color,
+                      marker=f'${name}$',
+                      markersize=14,
+                      linestyle='None')
+
+    for axes in axeses[1, :]:
+        plot_stats(axes, args.A_names, 'r')
+        plot_stats(axes, args.C_names, 'b')
+        plot_stats(axes, args.B_names, 'g')
+        plot_stats(axes, args.X_names, 'k')
+        axes.set_xlabel(r'$F(PSD)$')
+        axes.set_ylabel(r'$G(PSD)$')
+        y = numpy.linspace(0, 5000, 2)
+        x = .36 - y * 0.
+        axes.plot(x, y, linestyle='dotted')
+    axeses[1, 1].set_xlim(0.307, 0.417)
+    axeses[1, 1].set_ylim(200, 1500)
     if args.show:
         pyplot.show()
     fig.savefig(args.fig_path)
