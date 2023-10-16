@@ -73,7 +73,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         self.model_box = PyQt5.QtWidgets.QLineEdit(self)
         self.model_box.setText(
-            f'{self.root_box.text()}/build/derived_data/apnea/models/two_ar3_masked6'
+            f'{self.root_box.text()}/build/derived_data/apnea/models/two_ar6_masked6'
         )
         model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
         model_ok.clicked.connect(self.new_model)
@@ -364,8 +364,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
     def plot_classification(self  # MainWindow
                            ):
-        expert_class = self.score2.expert_class
-        hmm_class = self.score2.class_from_model
+        expert_class = self.model_record.class_from_expert
+        hmm_class = self.model_record.class_from_model
         expert_times = numpy.arange(len(expert_class)) * PINT('minutes')
         self.class_dict['signals'] = [(expert_times, expert_class),
                                       (expert_times, hmm_class)]
@@ -374,9 +374,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
     def new_classification(
             self,  # MainWindow
     ):
-        self.score2 = utilities.Score2(self.model_box.text(),
-                                       self.record_box.text())
-        self.score2.score(numpy.exp(self.variable['Specific']()))
+        self.model_record = utilities.ModelRecord(self.model_box.text(),
+                                                  self.record_box.text())
+        self.model_record.classify(numpy.exp(self.variable['Specific']()))
+        self.model_record.score()
         self.plot_classification()
 
     def plot_filter(self):

@@ -66,17 +66,18 @@ def _plot(axes, results, xlabel=None):
         axes.set_xlabel(xlabel)
 
 
-def calculate(scores, best_threshold, best_power):
+def calculate(model_record_dict, best_threshold, best_power):
     """Calculate errors as a function of minimum prominence for peak detection
     """
 
     result = {}
-    for prominence, scores_prominence in scores.items():
+    for prominence, dict_record in model_record_dict.items():
         counts = numpy.zeros(4, dtype=int)
         likelihoods = {}
-        for record_name, score in scores_prominence.items():
-            likelihoods[record_name] = score.score(best_threshold, best_power)
-            counts += score.counts
+        for record_name, model_record in dict_record.items():
+            model_record.classify(best_threshold, best_power)
+            likelihoods[record_name] = model_record.model.forward()
+            counts += model_record.score()
         result[prominence] = {
             'false alarm': counts[1] / (counts[0] + counts[1]),
             'missed detection': counts[2] / (counts[2] + counts[3]),
@@ -87,8 +88,11 @@ def calculate(scores, best_threshold, best_power):
     return result
 
 
-def print_by_record(scores, results, report: typing.TextIO, latex=False):
-    for prominence, scores_prominence in scores.items():
+def print_by_record(model_record_dict,
+                    results,
+                    report: typing.TextIO,
+                    latex=False):
+    for prominence, dict_record in model_record_dict.items():
         results_p = results[prominence]
         if latex:
             print(r'''\begin{tabular}{|r|rr|rr|rr|}
@@ -103,19 +107,20 @@ def print_by_record(scores, results, report: typing.TextIO, latex=False):
                 f'{"record":6s} {"false alarm":11s} {"missed detection":16s} {"error rate":10s} {"likelihood":11s}',
                 file=report)
 
-        names = list(scores_prominence.keys())
+        names = list(dict_record.keys())
 
         def error_rate(name):
-            score = scores_prominence[name]
-            return (score.counts[1] + score.counts[2]) / score.counts.sum()
+            model_record = dict_record[name]
+            return (model_record.counts[1] +
+                    model_record.counts[2]) / model_record.counts.sum()
 
         names.sort(key=lambda x: -error_rate(x))
         for record_name in names:
-            score = scores_prominence[record_name]
-            n_normal = score.counts[0] + score.counts[1]
-            false_alarm = score.counts[1] / n_normal
-            n_apnea = score.counts[2] + score.counts[3]
-            missed_detection = score.counts[2] / n_apnea
+            model_record = dict_record[record_name]
+            n_normal = model_record.counts[0] + model_record.counts[1]
+            false_alarm = model_record.counts[1] / n_normal
+            n_apnea = model_record.counts[2] + model_record.counts[3]
+            missed_detection = model_record.counts[2] / n_apnea
             likelihood = results_p['likelihoods'][record_name]
             if latex:
                 print(
@@ -147,20 +152,20 @@ def main(argv=None):
     else:
         records = args.records
 
-    scores = {}
+    model_record_dict = {}
     for prominence in args.prominences:
         model_path = args.template.replace('%', prominence)
         float_key = float(prominence)
-        scores[float_key] = {}
+        model_record_dict[float_key] = {}
         for record_name in records:
-            scores[float_key][record_name] = utilities.Score2(
+            model_record_dict[float_key][record_name] = utilities.ModelRecord(
                 model_path, record_name)
-    results = calculate(scores, best_threshold, best_power)
+    results = calculate(model_record_dict, best_threshold, best_power)
     if args.report_by_record:
-        print_by_record(scores, results, sys.stdout)
+        print_by_record(model_record_dict, results, sys.stdout)
     if args.latex is not None:
         with open(args.latex, encoding='utf-8', mode='w') as _file:
-            print_by_record(scores, results, _file, latex=True)
+            print_by_record(model_record_dict, results, _file, latex=True)
     print_summary(results)
 
     # Cheap to plot.  Make it even if not used

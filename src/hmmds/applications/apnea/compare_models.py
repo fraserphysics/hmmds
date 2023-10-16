@@ -104,9 +104,9 @@ def main(argv=None):
         counts = numpy.zeros(4)
         model_path = os.path.join(args.model_dir, model_name)
         for record_name in records:
-            instance = utilities.Score2(model_path, record_name)
-            instance.score(best_threshold, best_power)
-            counts += instance.counts
+            instance = utilities.ModelRecord(model_path, record_name)
+            instance.classify(best_threshold, best_power)
+            counts += instance.score()
         error_rates.append((counts[1] + counts[2]) / counts.sum())
         print(
             f'{parameter} N->A: {int(counts[1])} A->N: {int(counts[2])} N_error: {int(counts[1] + counts[2])} P_error: {error_rates[-1]:5.3f}'

@@ -79,7 +79,7 @@ def plot(axes, results, xlabel=None):
         axes.set_xlabel(xlabel)
 
 
-def threshold_study(scores, thresholds, power):
+def threshold_study(model_record_dict, thresholds, power):
     """Calculate errors as a function of thresholds
     """
     result = {}
@@ -88,9 +88,9 @@ def threshold_study(scores, thresholds, power):
     )
     for threshold in thresholds:
         counts = numpy.zeros(4, dtype=int)
-        for key, score in scores.items():
-            score.score(threshold, power)
-            counts += score.counts
+        for _, model_record in model_record_dict.items():
+            model_record.classify(threshold, power)
+            counts += model_record.score()
         result[threshold] = {
             'N false alarm': counts[1],
             'N missed detection': counts[2],
@@ -102,7 +102,7 @@ def threshold_study(scores, thresholds, power):
     return result
 
 
-def power_study(scores, powers, threshold):
+def power_study(model_record_dict, powers, threshold):
     """Calculate errors as a function of power on likelihood of
     interval component of observation
 
@@ -111,9 +111,9 @@ def power_study(scores, powers, threshold):
     print(f'{"power":9s} {"N_(N->A)":8s} {"N_(A->N)":8s} {"error rate":10s}')
     for power in powers:
         counts = numpy.zeros(4, dtype=int)
-        for key, score in scores.items():
-            score.score(threshold, power)
-            counts += score.counts
+        for _, model_record in model_record_dict.items():
+            model_record.classify(threshold, power)
+            counts += model_record.score()
         result[power] = {
             'N false alarm': counts[1],
             'N missed detection': counts[2],
@@ -123,14 +123,6 @@ def power_study(scores, powers, threshold):
             'error rate': (counts[1] + counts[2]) / counts.sum(),
         }
     return result
-
-
-def print_expert_model(score):
-    score.score(1.0)
-    print('Expert')
-    score.formatted_result(sys.stdout, expert=True)
-    print('From Model')
-    score.formatted_result(sys.stdout, expert=False)
 
 
 def main(argv=None):
@@ -152,15 +144,17 @@ def main(argv=None):
         records = args.a_names
     else:
         records = args.records
-    scores = {}
+    model_record_dict = {}
     for record_name in records:
-        scores[record_name] = utilities.Score2(args.model_path, record_name)
+        model_record_dict[record_name] = utilities.ModelRecord(
+            args.model_path, record_name)
 
-    power_results = power_study(scores, powers, min_threshold)
+    power_results = power_study(model_record_dict, powers, min_threshold)
     _print(power_results)
     plot(axeses[1], power_results, xlabel='power')
 
-    threshold_results = threshold_study(scores, thresholds, min_power)
+    threshold_results = threshold_study(model_record_dict, thresholds,
+                                        min_power)
     _print(threshold_results)
     log_plot(axeses[0], threshold_results, xlabel='threshold')
 

@@ -742,15 +742,14 @@ class Pass1:
         return self.psd[channel_low:channel_high].sum()
 
 
-class Score2:
+class ModelRecord:
 
-    def __init__(self, model_path: str, record_name: str):
-        """Holds model and observations for scoring classification
+    def __init__(self: ModelRecord, model_path: str, record_name: str):
+        """Holds a model and observations for a single record
 
         Args:
-            args: Default and command line arguments with paths, etc.
             model: Path to pickled HMM and its args
-            record: The name, eg, 'a01' of the record to analyze and score
+            record: The name, eg, 'a01' of the record
         """
         self.record_name = record_name
         with open(model_path, 'rb') as _file:
@@ -758,47 +757,65 @@ class Score2:
         self.samples_per_minute = int(
             self.model.args.heart_rate_sample_frequency.to(
                 '1/minute').magnitude)
-        if record_name[0] != 'x':
+        if record_name[0] == 'x':
+            self.y_class_data = None
+            self.class_from_expert = None
+        else:
             self.y_class_data = [self.model.read_y_with_class(record_name)]
+            self.class_from_expert = read_expert(self.model.args.expert,
+                                                 self.record_name)
         self.y_raw_data = [
             hmm.base.JointSegment(self.model.read_y_no_class(record_name))
         ]
+        self.class_from_model = None
+        self.counts = numpy.empty(4, dtype=int)
 
-    def score(self, more_specific: float, interval_exponent=None):
-        """Assign to self.class_from_model estimates apnea or normal for each minute of data
+    def classify(self: ModelRecord, threshold=None, power=None):
+        """Estimate apnea or normal for each minute of data
+
         Args:
-            more_specific:  Higher value -> less Normal -> Apnea errors
-            interval_exponent: Exponent to adjust weight of interval component of likelihood
+            threshold:  Higher value -> less Normal -> Apnea errors
+            power: Exponent to adjust weight of interval component of likelihood
 
-        Return: Log likelihood of model for self.y_data
         """
-        if interval_exponent is not None:
-            self.model.y_mod['interval'].power = interval_exponent
+        _power, _threshold = self.model.args.power_and_threshold
+        if power is None:
+            power = _power
+        if threshold is None:
+            threshold = _threshold
+
+        if hasattr(self.model.y_mod, 'interval'):
+            self.model.y_mod['interval'].power = power
+
         self.class_from_model = self.model.class_estimate(
-            self.y_raw_data, self.samples_per_minute, more_specific)
-        if self.record_name[0] == 'x':
-            self.expert_class = numpy.zeros(len(self.class_from_model),
-                                            dtype=int)
-        else:
-            self.expert_class = read_expert(self.model.args.expert,
-                                            self.record_name)
-        self.counts = numpy.zeros(4, dtype=int)
-        # n2n = counts[0]
-        # n2a = counts[1]
-        # a2n = counts[2]
-        # a2a = counts[3]
-        n_minutes = min(len(self.class_from_model), len(self.expert_class))
+            self.y_raw_data, self.samples_per_minute, threshold)
+
+        if self.record_name[0] == 'x':  # Used for display by explore.py
+            self.class_from_expert = numpy.zeros(len(self.class_from_model),
+                                                 dtype=int)
+
+    def score(self: ModelRecord):
+        """For each minute compare class estimate from model to expert
+
+        n2n = counts[0]
+        n2a = counts[1]
+        a2n = counts[2]
+        a2a = counts[3]
+        """
+        n_minutes = min(len(self.class_from_model), len(self.class_from_expert))
         self.counts *= 0
         for i in range(n_minutes):
-            self.counts[2 * self.expert_class[i] +
+            self.counts[2 * self.class_from_expert[i] +
                         self.class_from_model[i]] += 1
-        return self.model.forward()
+        return self.counts.copy()
 
-    def formatted_result(self, report: typing.TextIO, expert=False):
+    def formatted_result(self: ModelRecord,
+                         report: typing.TextIO,
+                         expert=False):
         """Write result to open file in format that matches expert
         """
         if expert:
-            authority = self.expert_class
+            authority = self.class_from_expert
         else:
             authority = self.class_from_model
         minutes_per_hour = 60

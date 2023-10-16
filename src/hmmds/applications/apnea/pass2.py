@@ -51,9 +51,8 @@ def parse_args(argv):
         '--model_paths',
         type=str,
         nargs=2,
-        default=(
-            '../../../../build/derived_data/apnea/models/c_model',
-            '../../../../build/derived_data/apnea/models/two_ar3_masked6.1'),
+        default=('../../../../build/derived_data/apnea/models/c_model',
+                 '../../../../build/derived_data/apnea/models/two_ar6_masked6'),
         help='paths to model for records classified as N and A by pass1')
     parser.add_argument('result',
                         nargs='?',
@@ -76,16 +75,18 @@ def analyze(name, model_path, report, debug=False):
 
     """
 
-    score2 = hmmds.applications.apnea.utilities.Score2(model_path, name)
-    score2.score(1.0)
+    model_record = hmmds.applications.apnea.utilities.ModelRecord(
+        model_path, name)
+    model_record.classify()
+    model_record.score()
 
-    score2.formatted_result(report, expert=False)
+    model_record.formatted_result(report, expert=False)
     if not debug:
         return
     print('HMM')
-    score2.formatted_result(sys.stdout, expert=False)
+    model_record.formatted_result(sys.stdout, expert=False)
     print('Expert')
-    score2.formatted_result(sys.stdout, expert=True)
+    model_record.formatted_result(sys.stdout, expert=True)
 
 
 def main(argv=None):

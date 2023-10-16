@@ -39,10 +39,10 @@ heart_rate.pdf: heart_rate.tex two.tex score.tex lengths.txt $(HR_FIGS)
 	pdflatex $< ; pdflatex $<
 
 pass1.out: pass1.py
-	python $^ $@
+	python $< --model $(BEST_MODEL) $@
 
 pass2.out: pass2.py pass1.out  $(BEST_MODEL)  $(MODELS)/c_model
-	python $< pass1.out $@
+	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(BEST_MODEL) pass1.out $@
 
 score.txt: score.py pass2.out
 	python score.py pass2.out $@
