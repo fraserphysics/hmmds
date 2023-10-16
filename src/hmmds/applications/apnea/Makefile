@@ -10,8 +10,8 @@ include Rules.mk
 
 # Optimize pass2 parameters over files classified as A or near
 # boundary by pass1.  The relevant figures and modules are:
-# (errors_vs_ar_order.pdf compare_models.py) (exponent_threshold.pdf,
-# test_score2.py) (prominence_study.pdfprominence_study.py)
+# (errors_vs_ar_order.pdf compare_models.py) (power_threshold.pdf,
+# survey_power_threshold.py) (prominence_study.pdfprominence_study.py)
 APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
 
 BEST_MODEL = $(MODELS)/two_ar6_masked
@@ -22,8 +22,8 @@ errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
 	python compare_models.py --models $(AR_MODELS) --parameters $(AR_ORDERS) \
 --parameter_name "AR order" --records $(APLUSNAMES) -- $@ > errors_vs_ar_order.txt
 
-exponent_threshold.pdf: test_score2.py $(BEST_MODEL)
-	python $^ --records $(APLUSNAMES) -- $@ > exponent_threshold.txt
+power_threshold.pdf: survey_power_threshold.py $(BEST_MODEL)
+	python $^ --records $(APLUSNAMES) -- $@ > power_threshold.txt
 
 PROMINENCES = 3 3.5 4 4.5 5 5.5 5.7 5.8 5.9 5.95 6 6.05 6.1 6.2 6.3 6.4 6.5 7 7.5 8
 PROMINENCE_MODELS = $(addprefix $(BEST_MODEL), $(PROMINENCES))
@@ -33,7 +33,7 @@ prominence_study.pdf: prominence_study.py prominence_models
 	python $< --prominences $(PROMINENCES) --template $(BEST_MODEL)% --records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
 
 
-HR_FIGS = statistics.pdf errors_vs_ar_order.pdf exponent_threshold.pdf prominence_study.pdf
+HR_FIGS = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf prominence_study.pdf
 
 heart_rate.pdf: heart_rate.tex two.tex score.tex lengths.txt $(HR_FIGS)
 	pdflatex $< ; pdflatex $<
