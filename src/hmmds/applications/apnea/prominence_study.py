@@ -144,7 +144,7 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
-    fig, axeses = pyplot.subplots(nrows=2, figsize=(6, 8))
+    fig, axes = pyplot.subplots(nrows=1, figsize=(6, 3))
 
     best_power, best_threshold = args.power_and_threshold
     if args.records is None:
@@ -169,7 +169,7 @@ def main(argv=None):
     print_summary(results)
 
     # Cheap to plot.  Make it even if not used
-    _plot(axeses[0], results, 'threshold prominence')
+    _plot(axes, results, 'threshold prominence')
     if args.fig_path is not None:
         fig.savefig(args.fig_path)
 

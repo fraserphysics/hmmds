@@ -80,7 +80,7 @@ def main(argv=None):
 
     trouble = 'a11 c10'.split()
     colors = ['r', 'b']
-    fig, axeses = pyplot.subplots(nrows=2, ncols=2, figsize=(6, 8))
+    fig, axeses = pyplot.subplots(nrows=2, ncols=2, figsize=(6, 4))
     fig.tight_layout()
 
     records = dict(

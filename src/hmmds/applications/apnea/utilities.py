@@ -377,7 +377,7 @@ def read_slow_fast_respiration(args, name='a03'):
     raw_hr = _dict['hr'].to('1/minute').magnitude
     # Option to normalize
     if hasattr(args, 'norm_avg'):
-        divisor = Pass1(name, args).divisor
+        divisor = Pass1(name, args).statistic_2()
         norm = divisor / args.norm_avg
         raw_hr /= norm
     # Now pad front of raw_hr to compensate for AR-order
@@ -580,12 +580,12 @@ def read_slow_peak_interval(args, boundaries, name='a03'):
 
 
 def read_normalized_class(args, boundaries, name):
-    args.divisor = Pass1(name, args).divisor
+    args.divisor = Pass1(name, args).statistic_2()
     return read_slow_class_peak_interval(args, boundaries, name)
 
 
 def read_normalized(args, boundaries, name):
-    args.divisor = Pass1(name, args).divisor
+    args.divisor = Pass1(name, args).statistic_2()
     return read_slow_peak_interval(args, boundaries, name)
 
 

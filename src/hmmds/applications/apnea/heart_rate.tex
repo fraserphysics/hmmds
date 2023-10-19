@@ -16,6 +16,7 @@
 \newcommand{\variance}[1]{\field{V}\left[ #1 \right]}
 \newcommand{\normal}[2]{{\cal N}\left(#1,#2 \right)}
 \newcommand{\argmax}{\operatorname*{argmax}}
+\newcommand{\BestModel}{\emph{two\_ar5\_masked}}
 
 \title{HMMs for Heart Rate}
 \author{Andrew M.\ Fraser}
@@ -32,9 +33,10 @@ the CINC-2000 challenge.  I want to map the products of the ECG
 analysis described in my document \emph{HMMs for ECGs} to the two
 classification challenges.  The inputs are time series of heart rate
 estimates and likelihoods sampled at 2 Hz and the outputs are two
-stages of classification.  First: For each record determine whether or
-not the patient experienced apnea; and Second: for each minute of each
-record determine whether or not the patient was experiencing apnea.
+stages of classification.  Pass-1: For each record determine whether
+or not the patient experienced apnea; and Pass-2: for each minute of
+each record classified as apnea in pass-1, determine whether or not
+the patient was experiencing apnea.
 
 \section{A Model for Record a03}
 \label{sec:a03}
@@ -49,61 +51,63 @@ trying to create and train models with states for the apnea class
 fails.  I build models of C records that have a single state and that
 state is in the normal class.
 
-\section{Pass1 Challenges}
-\label{sec:pass1}
+\section{Pass-1 Challenges}
+\label{sec:pass-1}
 
-I built a model called \emph{two\_ar3\_masked6.1} with the following
+I built a model called \BestModel with the following
 features:
 \begin{itemize}
 \item Models detected peaks and forces them to be on chains
-\item There are \emph{two} chains, one for normal and one for apnea
+\item There are \emph{two} chains: One for normal; And one for apnea
 \item The lengths of the \emph{intervals} between peaks are modeled
-\item The heart rate signal is fit to AR3 models
+\item The heart rate signal is fit to AR5 models
 \end{itemize}
 Here I will refer to that model as simply the \emph{HMM}.
 
-The HMM does pass2 classification for the \emph{a} records reasonably
-well except for \emph{a09} and \emph{a18}.  But those records are
-almost all apnea, and the HMM has very high likelihood for them.  I'd
-hoped that I could rely on high likelihood to identify problematic
-\emph{x} records and mark them as all apnea, but that didn't work.
+The error rate for pass-2 with the HMM on the \emph{a} records is
+lower than 0.5 except for \emph{a05} \emph{a09} \emph{a18} and
+\emph{a20}.  I'd hoped that I could rely on high likelihood to
+identify problematic \emph{x} records and mark them as all apnea, but
+that doesn't work.
 
 \begin{figure}
   \centering
     \resizebox{0.8\textwidth}{!}{\includegraphics{statistics.pdf}}
-    \caption{Possible pass1 statistics.  The upper and middle plots
-      are normalized power spectral density estimates.  The sum of
-      channels from 1.0 to 3.6 cpm is $F(PSD)$ in the lower plot.
-      Note that records a11 and c10 are out of order for separating
-      \emph{a} records from \emph{c} records.  The y-axis in the lower
-      plot is the log likelihood of a particular HMM for data from
-      each record.  The vertical dotted line only differs from the
-      diagonal line in its classification of x06, x17 and x18.  The
-      HMM classifies most minutes of those records as normal, and they
-      look like c records visually.}
+    \caption{Pass-1 statistic.  Power spectral density (PSD) estimates
+      appear in the upper plots.  The solid curves are averages over
+      the \emph{a} and \emph{c} records (in red and blue
+      respectively).  In the lower plots, the y values are, $G(PSD)$,
+      which is the sum of all channels above 0.3 cpm.  For each
+      record, I divide the raw PSD by $G(PSD)$ and then sum the
+      channels from 1.0 to 3.6 cpm to obtain the pass-1 statistic,
+      $F(PSD)$, which is plotted on the x axis.  In pass 2, I treat
+      records that are left of the vertical dotted line as normal and
+      don't classify any of the minutes as apnea.  The only training
+      record that pass-1 misclassifies is \emph{c10}, and pass-2
+      performs well on that record.}
   \label{fig:statistics}
 \end{figure}
 
 Figure~\ref{fig:statistics}\footnote{The PSDs are normalized to have
-  the same power for frequencies above 0.3 cpm)} illustrates pass1.
+  the same power for frequencies above 0.3 cpm)} illustrates pass-1.
   The following \emph{x} records fall close to the boundary:
 \begin{description}
-\item[x06] Pass1 says A which seems \textbf{wrong}.  But HMM says this
+\item[x06] Pass-1 says A which seems \textbf{wrong}.  But HMM says this
   is mostly normal, which seems correct.
-\item[x09] Pass1 says A which seems correct, but HMM says this is
+\item[x09] Pass-1 says A which seems correct, but HMM says this is
   mostly normal.
-\item[x10] Pass1 says A which seems correct.  HMM misses some of the
+\item[x10] Pass-1 says A which seems correct.  HMM misses some of the
   apnea
 \item[x13] Pass 1 says A which seems correct.  HMM misses some of the
   apnea.
-\item[x15] Pass1 says A.  Maybe it's B.  HMM results seem plausible.
-\item[x17] Pass1 says A which seems \textbf{wrong}, but hmm says this
+\item[x15] Pass-1 says A.  Maybe it's B.  HMM results seem plausible.
+\item[x17] Pass-1 says A which seems \textbf{wrong}, but hmm says this
   is mostly normal.
-\item[x23] Pass1 says A which seems correct.  HMM has trouble
+\item[x23] Pass-1 says A which seems correct.  HMM has trouble
   detecting apnea.
-\item[x24] Pass1 says N which seems correct.  HMM says almost all
+\item[x24] Pass-1 says N which seems correct.  HMM says almost all
   normal.
-\item[x33 \& x34] Pass1 says N.  I don't know if that's correct.
+\item[x33 \& x34] Pass-1 says N.  I don't know if that's correct.
   Visually I guess there might be a few episodes of apnea.  HMM
   agrees.  I think \emph{x33} and \emph{x34} are different electrodes
   measuring the same record.
@@ -135,18 +139,21 @@ Here is my guess at classification of the records:
 
 x29 suffers alternans not apnea.
 
-Setting the threshold for statistic 1 between 0.34 and 0.36 classifies
-all of the \emph{a} and \emph{c} records records correctly except c10.  These are the records for which statistic 1 is between 0.28
-and 0.42:
+Setting the threshold for statistic 1 to 0.36 classifies all of the
+\emph{a} and \emph{c} records records correctly except c10, \emph{and}
+the way it classifies the \emph{x} records is consistent with my
+visual inspection.
+
+These are the records for which are close to the boundary for pass-1:
 \begin{description}
-\item[x24]  Need to trim first 15 minutes.  Looks normal to me.
 \item[c09] Like c02.  Hour to hour heart rate changes.
 \item[c07] Low hour to hour heart rate variation.
-\item[c02] Hour to hour heart rate changes.
+\item[x24]  Need to trim first 15 minutes.  Looks normal to me.
 \item[x33 x34] These are different measurements of the same thing.
   I think it's a B record.
 \item[b04] HMM correctly says mostly normal.
 \item[c08] HMM says some apnea, but expert says none.
+\item[c02] Hour to hour heart rate changes.
 \item[x06] First 5.2 minutes need to be trimmed.  I guess it's a B
   record.
 \item[x17] Last 5 minutes need to be trimmed.  Apnea 126-150.
@@ -172,35 +179,64 @@ and 0.42:
 \item[x23] Apnea 120-185 but respiration looks sort of OK
 \end{description}
 
-\textbf{Conclude:} Statistic 1 alone is adequate for pass1.
+\textbf{Conclude:} Statistic 1 alone is adequate for pass-1.
 
-\section{Work on Pass2}
-\label{sec:pass2}
+\section{Work on Pass-2}
+\label{sec:pass-2}
 
-Chose minimum prominence based on Fig.~\ref{fig:prominence_study}.
+\subsection{Setting Parameters}
+\label{sec:setting_parameters}
+
+Set the following parameters:
+\begin{description}
+\item[Minimum prominence $6.0$:] For detecting peaks.  See
+  Fig.~\ref{fig:prominence_study}.  Available as args.min\_prominence
+  from utilities.py, and specified as \emph{MIN\_PROMINENCE} in Makefile.
+\item[Power $2.0$:] Exponent for weighting the \emph{interval}
+  component of observations.  See Fig.~\ref{fig:power_threshold}.
+  Available as args.power\_and\_threshold from utilities.py
+\item[Threshold $1.0$:] For detecting apnea.  Larger values decreases
+  false alarms and increases missed detections.  See
+  Fig.~\ref{fig:power_threshold}.  Available as
+  args.power\_and\_threshold from utilities.py
+\item[AR Order $5$:] Number of past filtered heart rate samples used
+  by observation model to forecast next sample.  See
+  Fig.~\ref{fig:errors_vs_ar_order}.  Available as args.AR\_order from
+  utilities.py, and specified as \emph{BEST\_MODEL} in Makefile.
+\end{description}
 
 \begin{figure}
   \centering
     \resizebox{0.8\textwidth}{!}{\includegraphics{prominence_study.pdf}}
     \caption{Error rate on the \emph{a} records for models with
       varying prominence threshold with form
-      \emph{two\_ar3\_intervals*} .}
+      \emph{two\_ar5\_intervals*} .}
   \label{fig:prominence_study}
 \end{figure}
-
-Chose minimum the exponent for weighting components of the observation
-and the detection threshold based on the study illustrated in
-Fig.~\ref{fig:power_threshold}.
 
 \begin{figure}
   \centering
     \resizebox{0.8\textwidth}{!}{\includegraphics{power_threshold.pdf}}
     \caption{Error rate of model vs the weighting exponent and the
-      detection threshold with model \emph{two\_ar4\_masked} on the
+      detection threshold with model \BestModel on the
       \emph{a} records.}
   \label{fig:power_threshold}
 \end{figure}
 
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{errors_vs_ar_order.pdf}}
+    \caption{A plot of error rate vs.\ AR order for the training
+      records in group \emph{A}.  The models have two chains for
+      peaks; one chain for normal peaks and one chain for apnea
+      peaks.  The performance on records in group \emph{C} is worse.
+      Perhaps overall performance would be better if the threshold for
+      detection were higher.}
+  \label{fig:errors_vs_ar_order}
+\end{figure}
+
+\subsection{Problematic Records}
+\label{sec:problematic_records}
 
 Based on Tables~\ref{tab:pass2performance} and~\ref{tab:score_initial}
 These are the problematic records:
@@ -224,66 +260,71 @@ These are the problematic records:
   (multi period).  \textbf{Fixable}
 \end{description}
 
-To do:
+\begin{table*}
+  \centering
+  \input{score.tex}
+  \caption[Performance]{Performance of pass-1 combined with pass-2 on
+    training data with model
+    \BestModel for pass-2.}
+  \label{tab:score_initial}
+\end{table*}
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{norm_power_threshold.pdf}}
+    \caption{Error rate of model vs the weighting exponent and the
+      detection threshold with a model that normalizes the heart rate
+      signal on the \emph{a} records.}
+  \label{fig:norm_power_threshold}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{norm_errors_vs_ar_order.pdf}}
+    \caption{A plot of error rate vs.\ AR order for the training
+      records in group \emph{A}.  Like \ref{fig:errors_vs_ar_order}
+      but here heart rate data has been normalized.}
+  \label{fig:norm_errors_vs_ar_order}
+\end{figure}
+
+\begin{table*}
+  \centering
+  \input{norm_score.tex}
+  \caption[Performance]{Performance of pass-1 combined with pass-2 on
+    training data with model norm\_ar5\_masked which normalizes the
+    heart rate signal for pass-2.}
+  \label{tab:norm_score}
+\end{table*}
+
+\subsection{To Do}
+
 \begin{itemize}
-\item Plot performance against threshold for peaks (prominence\_study.py)
-\item Plot performance against both exponent for interval component of
-  observation and threshold for detection.  Use the set of records
-  that pass1 classifies as \emph{A} so that there is a penalty for
-  setting the threshold too low. (test\_score2.py)
-\item Plot performance vs AR order (compare\_models.py)
 \item Try scaling heart rate by high frequency power.
 \item Look at both performance on all records and fixable records.
-\item Vary the number of peak sizes
-\item Vary the minimum peak prominence
+\item Try HMM with more chains for apnea peaks and vary the number of
+  peak sizes.
+\item Try using a respiration signal.
 \end{itemize}
 
 \begin{table*}
   \centering
   \input{two.tex}
-  \caption[Performance]{Performance of model
-    \emph{two\_ar3\_masked6.1}.  Records a09 and a18 are marked all
-    apnea based on their high likelihood.  However it would be bad to
-    treat x09 and x23 which are near
-    a09 in Fig.~\ref{fig:statistics} the same way.}
+  \caption[Performance]{Performance of model \BestModel on the
+    \emph{a} records sorted by fraction of classification errors.
+    Records a09 and a18 could be marked all apnea based on their high
+    likelihood.  However it would be bad to treat x09 and x23 which
+    are near a09 in Fig.~\ref{fig:statistics} the same way.}
   \label{tab:pass2performance}
 \end{table*}
-
-\begin{table*}
-  \centering
-  \input{score.tex}
-  \caption[Performance]{Performance of pass1 combined with pass2 on
-    training data with model
-    \emph{two\_ar5\_masked} for pass2.}
-  \label{tab:score_initial}
-\end{table*}
-
-\subsection{Choosing AR Order}
-\label{sec:ar_order}
-
-Figure~\ref{fig:errors_vs_ar_order} plots error rate against AR order for models
-with two chains for peaks.  AR order 4 achieves the best performance.  
-
-\begin{figure}
-  \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{errors_vs_ar_order.pdf}}
-    \caption{A plot of error rate vs.\ AR order for the training
-      records in group \emph{A}.  The models have two chains for
-      peaks; one chain for normal peaks and one chain for apnea
-      peaks.  The performance on records in group \emph{C} is worse.
-      Perhaps overall performance would be better if the threshold for
-      detection were higher.}
-  \label{fig:errors_vs_ar_order}
-\end{figure}
 
 \section{Synchronization}
 \label{sec:sync}
 
-I use several time series in this project.  Now I will look at how to
-ensure that $t_0$ means the same thing for each of them.  I'm
-particularly worried about the alignment of the expert annotations
-and the annotations estimated using a model.  Here are the functions
-that calculate the estimated annotations:
+I use several time series in this project.  After the modifications I
+made in perparing this section, I believe that $t_0$ means the same
+thing for each of them.  I was particularly worried about the alignment
+of the expert annotations and the annotations estimated using a model.
+Here are the functions that calculate the estimated annotations:
 \begin{description}
 \item[pass2.analyze] Calls utilities.Score2(model\_path, name)
 \item[utilities.Score2.\_\_init\_\_] Reads a model (develop.HMM) and
@@ -307,17 +348,6 @@ that calculate the estimated annotations:
 \item[utilities.common\_arguments] The default for trim\_start is 0
 \end{description}
 
-What about:
-\begin{description}
-\item[AR-order] 
-\item[The last minute] Look at the last time derived from the number of:
-  \begin{description}
-  \item[ECG samples] 
-  \item[Heart Rate samples] 
-  \item[Expert Annotations] 
-  \end{description}
-\end{description}
-
 Here are the lengths of some time series for each record in the
 training data:
 
@@ -325,17 +355,10 @@ training data:
 
 After looking at a preliminary version of these lengths, I added
 padding to the beginning of the \emph{slow} time series to match the
-AR order of the \emph{slow} model.  Now, for an AR-3 model, they are
-7.5 seconds longer than the \emph{ecg} time series.  I also estimate
+AR order of the \emph{slow} model.  Now, for an AR-5 model, they are
+12.5 seconds longer than the \emph{ecg} time series.  I also estimate
 an extra minute for any record that has ecg data that doesn't end on
 an even minute.
-
-\section{To Do}
-\label{sec:todo}
-
-\begin{description}
-\item[Multiple Chains:] Try HMM with more chains for apnea peaks.
-\end{description}
 
 \section{Unlucky Thoughts}
 \label{sec:unlucky}

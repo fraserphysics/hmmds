@@ -6,18 +6,22 @@ ROOT = ../../../..
 HMMDS = $(ROOT)/src/hmmds
 BUILD = $(ROOT)/build
 
+# default target
+heart_rate.pdf:
+
 include Rules.mk
 
 # Optimize pass2 parameters over files classified as A or near
-# boundary by pass1.  The relevant figures and modules are:
-# (errors_vs_ar_order.pdf compare_models.py) (power_threshold.pdf,
-# survey_power_threshold.py) (prominence_study.pdfprominence_study.py)
+# boundary by pass1.
 APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
 
 BEST_MODEL = $(MODELS)/two_ar5_masked
+MIN_PROMINENCE = 6.0
+NORM_MODEL = $(MODELS)/norm_ar5_masked
 
-AR_ORDERS = 1 2 3 4 5 6 7 8 9
+AR_ORDERS = 1 2 3 4 5 6 7 8 9 10
 AR_MODELS = $(addsuffix _masked, $(addprefix two_ar, $(AR_ORDERS)))
+NORM_AR_MODELS = $(addsuffix _masked, $(addprefix norm_ar, $(AR_ORDERS)))
 errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
 	python compare_models.py --models $(AR_MODELS) --parameters $(AR_ORDERS) \
 --parameter_name "AR order" --records $(APLUSNAMES) -- $@ > errors_vs_ar_order.txt
@@ -29,34 +33,47 @@ PROMINENCES = 3 3.5 4 4.5 5 5.5 5.7 5.8 5.9 5.95 6 6.05 6.1 6.2 6.3 6.4 6.5 7 7.
 PROMINENCE_MODELS = $(addprefix $(BEST_MODEL), $(PROMINENCES))
 prominence_models: $(PROMINENCE_MODELS)
 	touch $@
-prominence_study.pdf: prominence_study.py prominence_models
+prominence_study.pdf: prominence_study.py prominence_models $(PROMINENCE_MODELS)
 	python $< --prominences $(PROMINENCES) --template $(BEST_MODEL)% --records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
 
 
-HR_FIGS = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf prominence_study.pdf
+HR_FIGS = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf norm_power_threshold.pdf norm_errors_vs_ar_order.pdf prominence_study.pdf
 
-heart_rate.pdf: heart_rate.tex two.tex score.tex lengths.txt $(HR_FIGS)
+heart_rate.pdf: heart_rate.tex two.tex score.tex norm_score.tex lengths.txt $(HR_FIGS)
 	pdflatex $< ; pdflatex $<
 
 pass1.out: pass1.py
 	python $< --trim 20 --threshold .36 --model $(BEST_MODEL) $@
 
-pass2.out: pass2.py pass1.out  $(BEST_MODEL)  $(MODELS)/c_model
+pass2.out: pass2.py pass1.out $(BEST_MODEL) $(MODELS)/c_model
 	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(BEST_MODEL) pass1.out $@
 
 score.txt: score.py pass2.out
 	python score.py pass2.out $@
 
+score.tex: score.py pass2.out
+	python score.py --tex pass2.out $@
+
+norm_errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NORM_AR_MODELS))
+	python compare_models.py --models $(NORM_AR_MODELS) --parameters $(AR_ORDERS) \
+--parameter_name "AR order" --records $(APLUSNAMES) --power_and_threshold 1 1 $@ > norm_errors_vs_ar_order.txt
+
+norm_pass2.out: pass2.py pass1.out $(NORM_MODEL) $(MODELS)/c_model
+	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(NORM_MODEL) --power_and_threshold 1 1 pass1.out $@
+
+norm_score.tex: score.py norm_pass2.out
+	python score.py --tex --power_and_threshold 1 1 norm_pass2.out $@
+
+norm_power_threshold.pdf: survey_power_threshold.py $(NORM_MODEL)
+	python $< --records $(APLUSNAMES) --power_and_threshold 1 1  $(NORM_MODEL) $@ > norm_power_threshold.txt
+
 # Lengths of time series for each training record
 lengths.txt: test_alignment.py $(BEST_MODEL)
 	python $< --model $(BEST_MODEL) > $@
 
-score.tex: score.py pass2.out
-	python score.py --tex pass2.out $@
-
 # A table of pass2 performance on each a-file.
-two.tex: prominence_study.py $(BEST_MODEL)
-	python $< --prominences 6 --template $(MODELS)/two_ar5_masked% --latex $@
+two.tex: prominence_study.py $(BEST_MODEL) $(BEST_MODEL)$(MIN_PROMINENCE)
+	python $< --prominences $(MIN_PROMINENCE) --template $(MODELS)/two_ar5_masked% --latex $@
 
 report.txt: cross_score.py $(MODELS)/masked_all_a
 	python $< --specific 1.0 > $@
@@ -68,11 +85,8 @@ like_table.tex: like_table.py $(MODELS)/unmasked_all_ac
 
 NORM_MODELS = $(addsuffix _masked, $(addprefix norm_ar, $(AR_ORDERS)))
 
-norm_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NORM_MODELS))
-	python compare_models.py --models $(NORM_MODELS) --parameters $(AR_ORDERS) --parameter_name "AR order" --records b04 c08 a06 a11 a09 c10 a17 a05 b01 a18 a20 -- $@
-
 statistics.pdf: statistic_plots.py
-	python  statistic_plots.py --trim 20 --AR_order 6 $@
+	python statistic_plots.py --trim 20 --AR_order 6 $@
 
 ## test                           : Run tests defined in test.py
 .PHONY : test
@@ -91,8 +105,8 @@ $(MODELS)/c_model: model_init.py
 	python $< --trim_start 0 --heart_rate_sample_frequency 24 c_model $@
 
 $(MODELS)/two_ar5_initial%: model_init.py
-	python $< --trim_start 0 --heart_rate_sample_frequency 24 --low_pass_period 8  --min_prominence $* \
---records $(ANAMES) --alpha_beta 50.0 10.0  --AR_order 5 \
+	python $< --trim_start 0 --heart_rate_sample_frequency 24 --low_pass_period 8 --min_prominence $* \
+--records $(ANAMES) --alpha_beta 50.0 10.0 --AR_order 5 \
 two_intervals $@
 
 $(MODELS)/two_ar5_masked%: apnea_train.py $(MODELS)/two_ar5_initial%
@@ -100,39 +114,39 @@ $(MODELS)/two_ar5_masked%: apnea_train.py $(MODELS)/two_ar5_initial%
 
 $(MODELS)/two_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
---records $(ANAMES) --alpha_beta 50.0 10.0  --AR_order $* \
- --min_prominence 6 two_intervals $@
+--records $(ANAMES) --alpha_beta 50.0 10.0 --AR_order $* \
+ --min_prominence $(MIN_PROMINENCE) two_intervals $@
 
 $(MODELS)/two_ar%_masked: apnea_train.py $(MODELS)/two_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 20 --min_prominence 6 $(MODELS)/two_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 20 --min_prominence $(MIN_PROMINENCE) $(MODELS)/two_ar$*_initial $@
 
 $(MODELS)/norm_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
---records $(ANAMES) --alpha_beta 50.0 10.0  --AR_order $* \
- --min_prominence 6 two_normalized $@
+--records $(APLUSNAMES) --alpha_beta 50.0 10.0 --AR_order $* \
+ --min_prominence $(MIN_PROMINENCE) --power_and_threshold 1 1 two_normalized $@
 
 $(MODELS)/norm_ar%_masked: apnea_train.py $(MODELS)/norm_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 10 --min_prominence 6 $(MODELS)/norm_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --records $(APLUSNAMES) --iterations 20 --min_prominence $(MIN_PROMINENCE) --power_and_threshold 1 1 $(MODELS)/norm_ar$*_initial $@
 
 $(MODELS)/intervals_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
---records $(EasySlow) --alpha_beta 50.0 10.0  --AR_order $* --min_prominence 6 \
+--records $(EasySlow) --alpha_beta 50.0 10.0 --AR_order $* --min_prominence $(MIN_PROMINENCE) \
 hmm_intervals $@
 
 $(MODELS)/intervals_ar%_masked: apnea_train.py $(MODELS)/intervals_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 10 --min_prominence 6 $(MODELS)/intervals_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 10 --min_prominence $(MIN_PROMINENCE) $(MODELS)/intervals_ar$*_initial $@
 
 $(MODELS)/simple_ar%_masked: apnea_train.py $(MODELS)/simple_ar%_initial
-	python $< --AR_order $* --iterations 50 --records $(EasySlow)  $(MODELS)/simple_ar$*_initial $@
+	python $< --AR_order $* --iterations 50 --records $(EasySlow) $(MODELS)/simple_ar$*_initial $@
 
 $(MODELS)/simple_ar%_initial: model_init.py
-	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 --records $(EasySlow) --alpha_beta 50.0 10.0  --trim_start 25 --AR_order $* simple $@
+	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 --records $(EasySlow) --alpha_beta 50.0 10.0 --trim_start 25 --AR_order $* simple $@
 
 $(MODELS)/%_small: model_init.py
 	python $< --records $* --alpha_beta 1.0e3 1.0e3 --trim_start 25 c_model $@
 
 $(MODELS)/%_unmasked: apnea_train.py $(MODELS)/%_small
-	python apnea_train.py --iterations 40 --records $*  $(MODELS)/$*_small --trim_start 25  $@
+	python apnea_train.py --iterations 40 --records $* $(MODELS)/$*_small --trim_start 25 $@
 
 $(MODELS)/unmasked_all_ac: $(addprefix $(MODELS)/, $(addsuffix _unmasked, $(ANAMES) $(CNAMES)))
 	touch $@
@@ -140,7 +154,7 @@ $(MODELS)/unmasked_all_ac: $(addprefix $(MODELS)/, $(addsuffix _unmasked, $(ANAM
 $(MODELS)/masked_all_a: $(addprefix $(MODELS)/, $(addsuffix _masked, $(ANAMES)))
 	touch $@
 
-## yapf                           : Force google format on all python code
+## yapf                          : Force google format on all python code
 .PHONY : yapf
 yapf :
 	yapf -i --recursive --style "google" .

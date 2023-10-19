@@ -137,7 +137,7 @@ def main(argv=None):
     fig, axeses = pyplot.subplots(nrows=2, figsize=(6, 8))
 
     min_power, min_threshold = args.power_and_threshold
-    powers = numpy.linspace(0.0, 7.0, 22)
+    powers = numpy.linspace(0.0, 3.5, 36)
     exponents = numpy.linspace(-20.0, 20.0, 21)
     thresholds = numpy.exp(exponents * numpy.log(10))
 

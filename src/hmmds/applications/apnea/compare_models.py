@@ -89,7 +89,7 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
-    fig, axes = pyplot.subplots(nrows=1, figsize=(6, 8))
+    fig, axes = pyplot.subplots(nrows=1, figsize=(6, 4))
 
     best_power, best_threshold = args.power_and_threshold
 
