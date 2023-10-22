@@ -76,7 +76,7 @@ def plot(axes, pdf_ratios: density_ratio.DensityRatio, normal_pdf, apnea_pdf,
     for pdf_ratio in pdf_ratios[1:]:
         axes.plot(z, pdf_ratio(z), color='r', linestyle='dotted')
     axes.semilogy(z, normal_pdf(z, characteristics), label='normal')
-    axes.semilogy(z, apnea_pdf(z), label='apnea')
+    axes.semilogy(z, apnea_pdf(z, characteristics), label='apnea')
     axes.set_xlabel('length/minute')
     axes.set_ylabel('p_normal/p_apnea')
     axes.legend()

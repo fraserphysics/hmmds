@@ -184,6 +184,29 @@ These are the records for which are close to the boundary for pass-1:
 \section{Work on Pass-2}
 \label{sec:pass-2}
 
+I want pass-2 code that will classify each minute of a heart rate
+signal as either \emph{apnea} or \emph{normal}.
+
+\subsection{Features}
+\label{sec:reatures}
+
+Here I look at features that I might use for classifying minutes of
+heart rate signals.
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{analyze_peaks.pdf}}
+    \caption{The distribution of local peaks in heart rate signals.}
+  \label{fig:analyze_peaks}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{interval_pdfs.pdf}}
+    \caption{Result of density ratio estimation.}
+  \label{fig:interval_pdfs}
+\end{figure}
+
 \subsection{Setting Parameters}
 \label{sec:setting_parameters}
 
@@ -271,7 +294,7 @@ These are the problematic records:
 
 \begin{figure}
   \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{norm_power_threshold.pdf}}
+%    \resizebox{0.8\textwidth}{!}{\includegraphics{norm_power_threshold.pdf}}
     \caption{Error rate of model vs the weighting exponent and the
       detection threshold with a model that normalizes the heart rate
       signal on the \emph{a} records.}
@@ -280,7 +303,7 @@ These are the problematic records:
 
 \begin{figure}
   \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{norm_errors_vs_ar_order.pdf}}
+%    \resizebox{0.8\textwidth}{!}{\includegraphics{norm_errors_vs_ar_order.pdf}}
     \caption{A plot of error rate vs.\ AR order for the training
       records in group \emph{A}.  Like \ref{fig:errors_vs_ar_order}
       but here heart rate data has been normalized.}
@@ -289,7 +312,7 @@ These are the problematic records:
 
 \begin{table*}
   \centering
-  \input{norm_score.tex}
+%  \input{norm_score.tex}
   \caption[Performance]{Performance of pass-1 combined with pass-2 on
     training data with model norm\_ar5\_masked which normalizes the
     heart rate signal for pass-2.}
@@ -299,6 +322,7 @@ These are the problematic records:
 \subsection{To Do}
 
 \begin{itemize}
+\item Try using PSD in respiration range as y-axis of Pass-1 plot
 \item Try scaling heart rate by high frequency power.
 \item Look at both performance on all records and fixable records.
 \item Try HMM with more chains for apnea peaks and vary the number of

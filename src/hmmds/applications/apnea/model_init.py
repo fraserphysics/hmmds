@@ -34,7 +34,10 @@ def parse_args(argv):
                         nargs=2,
                         default=(1.0e1, 2.0e1),
                         help="Paramters of inverse gamma prior for variance")
-
+    parser.add_argument('pickle',
+                        type=str,
+                        help='',
+                        default='pickled_characteristics_dict')
     parser.add_argument(
         'key',
         type=str,
@@ -45,7 +48,11 @@ def parse_args(argv):
     return args
 
 
-def make_joint_slow_peak_interval_class(state_dict, keys, rng, truncate=0):
+def make_joint_slow_peak_interval_class(state_dict,
+                                        keys,
+                                        rng,
+                                        characteristics,
+                                        truncate=0):
     """Return a JointObservation instance with components "slow",
     "peak", "interval", and "class"
 
@@ -96,6 +103,8 @@ def make_joint_slow_peak_interval_class(state_dict, keys, rng, truncate=0):
     for state_index, key in enumerate(keys):
         py_state[state_index, :] = state_dict[key].observation['peak']
 
+    #FixMe:
+    power = 1.0
     return hmm.base.JointObservation(
         {
             'slow':
@@ -105,8 +114,10 @@ def make_joint_slow_peak_interval_class(state_dict, keys, rng, truncate=0):
                 hmm.C.IntegerObservation(py_state, rng),
             'interval':
                 utilities.IntervalObservation(
-                    tuple(
-                        state_dict[key].observation['interval'] for key in keys)
+                    tuple(state_dict[key].observation['interval']
+                          for key in keys),
+                    characteristics,
+                    power,
                 ),
             'class':
                 hmm.base.ClassObservation(class_index2state_indices),
@@ -160,6 +171,7 @@ def dict2hmm(state_dict, make_observation_model, args, rng, truncate=0):
                        make_observation_model(state_dict,
                                               state_keys,
                                               rng,
+                                              args.characteristics,
                                               truncate=truncate),
                        args,
                        rng,
@@ -382,11 +394,6 @@ def hmm_intervals(args, rng):
     #              /                   \
     # *************                     ************
 
-    peak_dict, boundaries, norm_avg = utilities.peaks_intervals(
-        args, args.a_names, peaks_per_bin)
-    # Attach information to args for creating observation models and
-    # reading observations
-    args.boundaries = boundaries
     args.read_y_class = utilities.read_slow_class_peak_interval
     args.read_raw_y = utilities.read_slow_peak_interval
     peak_dimension = len(boundaries) + 1  # Dimension of output for peaks
@@ -395,6 +402,7 @@ def hmm_intervals(args, rng):
     apnea_class = 1
 
     state_dict = {}
+    raise RuntimeError('Use characteristics')
     interval_pdfs = utilities.make_interval_pdfs(args)
     # Make the one chain for modeling normal peaks
     normal_peak_prob = numpy.ones(peak_dimension) / (peak_dimension - 1)
@@ -425,6 +433,7 @@ def hmm_intervals(args, rng):
         make_joint_slow_peak_interval_class,
         args,
         rng,
+        characteristics,
         truncate=args.AR_order)
     return result_hmm, state_dict, state_key2state_index
 
@@ -452,7 +461,8 @@ def two_chain(args, rng, read_y_class, read_raw_y):
     apnea_class = 1
 
     state_dict = {}
-    interval_pdfs = utilities.make_interval_pdfs(args)
+    normal_pdf = args.characteristics['normal_pdf']
+    apnea_pdf = args.characteristics['apnea_pdf']
 
     def make_one_chain(char_class, int_class, pdf_class):
         """
@@ -468,8 +478,8 @@ def two_chain(args, rng, read_y_class, read_raw_y):
         make_switch_noise(args, int_class, [chain_0], state_dict, pdf_class,
                           peak_dimension, rng)
 
-    make_one_chain('N', 0, interval_pdfs.normal_pdf)
-    make_one_chain('A', 1, interval_pdfs.apnea_pdf)
+    make_one_chain('N', 0, normal_pdf)
+    make_one_chain('A', 1, apnea_pdf)
     #for key, value in state_dict.items():
     #    print(f'{key} {value}')
 
@@ -484,14 +494,10 @@ def two_chain(args, rng, read_y_class, read_raw_y):
 
 @register
 def two_intervals(args, rng):
-    """Return an hmm for joint observations that include "peaks"
+    """Return an hmm for joint observations that include "peaks" and
+    "intervals"
 
     """
-    peak_dict, boundaries, norm_avg = utilities.peaks_intervals(
-        args, args.a_names, peaks_per_bin)
-    # Attach information to args for creating observation models and
-    # reading observations
-    args.boundaries = boundaries
     return two_chain(args, rng, utilities.read_slow_class_peak_interval,
                      utilities.read_slow_peak_interval)
 
@@ -525,6 +531,10 @@ def main(argv=None):
 
     args = parse_args(argv)
     rng = numpy.random.default_rng(3)
+    with open(args.pickle, 'rb') as _file:
+        args.characteristics = pickle.load(_file)
+    args.boundaries = args.characteristics['boundaries']
+    args.min_prominence = args.characteristics['min_prominence']
 
     # Run the function specified by args.key
     model, state_dict, state_key2state_index = MODELS[args.key](args, rng)

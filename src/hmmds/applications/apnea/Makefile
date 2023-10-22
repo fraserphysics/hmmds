@@ -18,8 +18,12 @@ APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
 BEST_MODEL = $(MODELS)/two_ar5_masked
 MIN_PROMINENCE = 6.0
 
+# Change characteristics to config
 characteristics.pkl: peak_characteristics.py
 	python $< --records $(APLUSNAMES) -- $(MIN_PROMINENCE) $@
+
+characteristics%.pkl: peak_characteristics.py
+	python $< --records $(APLUSNAMES) -- $* $@
 
 interval_pdfs.pdf: apnea_ratio.py characteristics.pkl
 	python $< --records $(APLUSNAMES) -- characteristics.pkl $@
@@ -46,16 +50,18 @@ prominence_models: $(PROMINENCE_MODELS)
 prominence_study.pdf: prominence_study.py prominence_models $(PROMINENCE_MODELS)
 	python $< --prominences $(PROMINENCES) --template $(BEST_MODEL)% --records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
 
-HR_FIGS = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf norm_power_threshold.pdf norm_errors_vs_ar_order.pdf prominence_study.pdf interval_pdfs.pdf analyze_peaks.pdf
+# FixMe: put these back norm_power_threshold.pdf norm_errors_vs_ar_order.pdf norm_score.tex
+HR_FIGS = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf prominence_study.pdf interval_pdfs.pdf analyze_peaks.pdf
 
-heart_rate.pdf: heart_rate.tex two.tex score.tex norm_score.tex lengths.txt $(HR_FIGS)
+heart_rate.pdf: heart_rate.tex two.tex score.tex lengths.txt $(HR_FIGS)
 	pdflatex $< ; pdflatex $<
 
 pass1.out: pass1.py
 	python $< --trim 20 --threshold .36 --model $(BEST_MODEL) $@
 
 pass2.out: pass2.py pass1.out $(BEST_MODEL) $(MODELS)/c_model
-	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(BEST_MODEL) pass1.out $@
+	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(BEST_MODEL) pass1.out temp
+	cp temp $@
 
 score.txt: score.py pass2.out
 	python score.py pass2.out $@
@@ -68,7 +74,8 @@ norm_errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NORM_AR
 --parameter_name "AR order" --records $(APLUSNAMES) --power_and_threshold 1 1 $@ > norm_errors_vs_ar_order.txt
 
 norm_pass2.out: pass2.py pass1.out $(NORM_MODEL) $(MODELS)/c_model
-	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(NORM_MODEL) --power_and_threshold 1 1 pass1.out $@
+	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(NORM_MODEL) --power_and_threshold 1 1 pass1.out temp
+	cp temp $@
 
 norm_score.tex: score.py norm_pass2.out
 	python score.py --tex --power_and_threshold 1 1 norm_pass2.out $@
@@ -110,24 +117,25 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # Save the initial files for debugging
 .PRECIOUS: $(MODELS)/a%_initial $(MODELS)/a%_masked
 
-$(MODELS)/c_model: model_init.py
-	python $< --trim_start 0 --heart_rate_sample_frequency 24 c_model $@
+# characteristics.pkl is not used
+$(MODELS)/c_model: model_init.py characteristics.pkl
+	python $< --trim_start 0 --heart_rate_sample_frequency 24 characteristics.pkl c_model $@
 
-$(MODELS)/two_ar5_initial%: model_init.py
-	python $< --trim_start 0 --heart_rate_sample_frequency 24 --low_pass_period 8 --min_prominence $* \
+$(MODELS)/two_ar5_initial%: model_init.py characteristics%.pkl
+	python $< --trim_start 0 --heart_rate_sample_frequency 24 --low_pass_period 8 \
 --records $(ANAMES) --alpha_beta 50.0 10.0 --AR_order 5 \
-two_intervals $@
+characteristics$*.pkl two_intervals $@
 
 $(MODELS)/two_ar5_masked%: apnea_train.py $(MODELS)/two_ar5_initial%
-	python $< --heart_rate_sample_frequency 24 --iterations 20 --records $(ANAMES) --min_prominence $* $(MODELS)/two_ar5_initial$* $@
+	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(ANAMES) -- $(MODELS)/two_ar5_initial$* $@
 
-$(MODELS)/two_ar%_initial: model_init.py
+$(MODELS)/two_ar%_initial: model_init.py characteristics.pkl
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
---records $(ANAMES) --alpha_beta 50.0 10.0 --AR_order $* \
- --min_prominence $(MIN_PROMINENCE) two_intervals $@
+--records $(APLUSNAMES) --alpha_beta 50.0 10.0 --AR_order $* \
+ characteristics.pkl two_intervals $@
 
 $(MODELS)/two_ar%_masked: apnea_train.py $(MODELS)/two_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 20 --min_prominence $(MIN_PROMINENCE) $(MODELS)/two_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --records $(APLUSNAMES) --iterations 10 $(MODELS)/two_ar$*_initial $@
 
 $(MODELS)/norm_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
@@ -135,7 +143,7 @@ $(MODELS)/norm_ar%_initial: model_init.py
  --min_prominence $(MIN_PROMINENCE) --power_and_threshold 1 1 two_normalized $@
 
 $(MODELS)/norm_ar%_masked: apnea_train.py $(MODELS)/norm_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --records $(APLUSNAMES) --iterations 20 --min_prominence $(MIN_PROMINENCE) --power_and_threshold 1 1 $(MODELS)/norm_ar$*_initial $@
+	python $< --heart_rate_sample_frequency 24 --records $(APLUSNAMES) --iterations 10 --min_prominence $(MIN_PROMINENCE) --power_and_threshold 1 1 $(MODELS)/norm_ar$*_initial $@
 
 $(MODELS)/intervals_ar%_initial: model_init.py
 	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \

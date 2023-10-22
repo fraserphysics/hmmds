@@ -42,11 +42,6 @@ def parse_args(argv):
                         type=str,
                         nargs='+',
                         help='names of records to analyze')
-    parser.add_argument('pass1',
-                        nargs='?',
-                        type=argparse.FileType('rb'),
-                        default='pass1.out',
-                        help='Path to pass1 result')
     parser.add_argument(
         '--model_paths',
         type=str,
@@ -54,6 +49,11 @@ def parse_args(argv):
         default=('../../../../build/derived_data/apnea/models/c_model',
                  '../../../../build/derived_data/apnea/models/two_ar6_masked6'),
         help='paths to model for records classified as N and A by pass1')
+    parser.add_argument('pass1',
+                        nargs='?',
+                        type=argparse.FileType('rb'),
+                        default='pass1.out',
+                        help='Path to pass1 result')
     parser.add_argument('result',
                         nargs='?',
                         type=argparse.FileType('w', encoding='UTF-8'),

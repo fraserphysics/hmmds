@@ -77,15 +77,9 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
         self.untrainable_values = untrainable_values
 
     def read_y_no_class(self, record_name):
-        if hasattr(self.args, 'boundaries'):
-            return self.args.read_raw_y(self.args, self.args.boundaries,
-                                        record_name)
         return self.args.read_raw_y(self.args, record_name)
 
     def read_y_with_class(self, record_name):
-        if hasattr(self.args, 'boundaries'):
-            return self.args.read_y_class(self.args, self.args.boundaries,
-                                          record_name)
         return self.args.read_y_class(self.args, record_name)
 
     def reestimate(self: HMM):

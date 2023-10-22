@@ -73,7 +73,7 @@ def common_arguments(parser: argparse.ArgumentParser):
         '--power_and_threshold',
         type=float,
         nargs=2,
-        default=(2.0, 1.0),
+        default=(1.6, 1.0),
         help=
         'Weight of observation component "interval" and apnea detection threshold'
     )
@@ -458,10 +458,11 @@ def read_slow_class(args, name='a03'):
     return raw_dict
 
 
-def add_peaks(args, raw_dict, boundaries):
+def add_peaks(args, raw_dict):
     """Add key item 'peak':values to raw_dict
 
     """
+    boundaries = args.boundaries
     slow_signal = raw_dict['slow']
 
     if hasattr(args, 'divisor'):
@@ -502,12 +503,11 @@ def add_intervals(args, raw_dict):
     return raw_dict
 
 
-def read_slow_class_peak(args, boundaries, name='a03'):
+def read_slow_class_peak(args, name='a03'):
     """Add peak to dict from read_slow_class
 
     Args:
         args:
-        boundaries:
         name:  Record name, eg, 'a03'
 
     Return: raw_dict
@@ -517,15 +517,14 @@ def read_slow_class_peak(args, boundaries, name='a03'):
 
     """
 
-    return add_peaks(args, read_slow_class(args, name), boundaries)
+    return add_peaks(args, read_slow_class(args, name))
 
 
-def read_slow_peak(args, boundaries, name='a03'):
+def read_slow_peak(args, name='a03'):
     """Add peak to dict from read_slow
 
     Args:
         args:
-        boundaries:
         name:  Record name, eg, 'a03'
 
     Return: raw_dict
@@ -535,15 +534,14 @@ def read_slow_peak(args, boundaries, name='a03'):
 
     """
 
-    return add_peaks(args, read_slow(args, name), boundaries)
+    return add_peaks(args, read_slow(args, name))
 
 
-def read_slow_class_peak_interval(args, boundaries, name='a03'):
+def read_slow_class_peak_interval(args, name='a03'):
     """Add peak to dict from read_slow_class
 
     Args:
         args:
-        boundaries:
         name:  Record name, eg, 'a03'
 
     Return: raw_dict
@@ -553,16 +551,14 @@ def read_slow_class_peak_interval(args, boundaries, name='a03'):
 
     """
 
-    return add_intervals(
-        args, add_peaks(args, read_slow_class(args, name), boundaries))
+    return add_intervals(args, add_peaks(args, read_slow_class(args, name)))
 
 
-def read_slow_peak_interval(args, boundaries, name='a03'):
+def read_slow_peak_interval(args, name='a03'):
     """Add peak to dict from read_slow
 
     Args:
         args:
-        boundaries:
         name:  Record name, eg, 'a03'
 
     Return: raw_dict
@@ -572,18 +568,17 @@ def read_slow_peak_interval(args, boundaries, name='a03'):
 
     """
 
-    return add_intervals(args, add_peaks(args, read_slow(args, name),
-                                         boundaries))
+    return add_intervals(args, add_peaks(args, read_slow(args, name)))
 
 
-def read_normalized_class(args, boundaries, name):
+def read_normalized_class(args, name):
     args.divisor = Pass1(name, args).statistic_2()
-    return read_slow_class_peak_interval(args, boundaries, name)
+    return read_slow_class_peak_interval(args, name)
 
 
-def read_normalized(args, boundaries, name):
+def read_normalized(args, name):
     args.divisor = Pass1(name, args).statistic_2()
-    return read_slow_peak_interval(args, boundaries, name)
+    return read_slow_peak_interval(args, name)
 
 
 # I put this in utilities enable apnea_train.py to run.
@@ -637,18 +632,21 @@ class State:
 class IntervalObservation(hmm.base.BaseObservation):
     _parameter_keys = 'density_functions n_states power'.split()
 
-    def __init__(self: IntervalObservation, density_functions: tuple, power=5):
+    def __init__(self: IntervalObservation, density_functions: tuple,
+                 characteristics, power):
         r"""Output of state is a float.  The density is 1.0 if the
         state is an apnea state, and if the state is normal the
         density is given by a density ratio."
 
         Args:
             density_functions: density_functions[s] is a callable: float -> float
-        power: Exponent of likelihood, for weighting wrt other components of joint observation.
+            characteristics: Parameters for density_functions 
+            power: Exponent of likelihood, for weighting wrt other components of joint observation.
 
         """
         self.n_states = len(density_functions)
         self.density_functions = density_functions
+        self.characteristics = characteristics
         self.power = power
 
     def reestimate(self: IntervalObservation, w: numpy.ndarray):
@@ -662,7 +660,8 @@ class IntervalObservation(hmm.base.BaseObservation):
         self._likelihood *= 0.0
         for i_state in range(self.n_states):
             self._likelihood[:, i_state] = (self.density_functions[i_state](
-                self._y.reshape(-1, 1))).reshape(-1)**self.power
+                self._y.reshape(-1, 1),
+                self.characteristics)).reshape(-1)**self.power
         return self._likelihood
 
 
@@ -678,9 +677,7 @@ def interval_hmm_likelihood(model_path: str,
     model.y_mod['interval'].power = interval_power
 
     y_data = [
-        hmm.base.JointSegment(
-            read_slow_peak_interval(model.args, model.args.boundaries,
-                                    record_name))
+        hmm.base.JointSegment(read_slow_peak_interval(model.args, record_name))
     ]
     t_seg = model.y_mod.observe(y_data)
     n_times = model.y_mod.n_times
@@ -941,7 +938,7 @@ def make_density_ratio(peak_dict, limit, sigma, _lambda):
     return result
 
 
-def apnea_pdf(x):
+def apnea_pdf(x, _):
     return numpy.ones(x.shape)
 
 

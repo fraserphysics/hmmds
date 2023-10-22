@@ -37,7 +37,7 @@ def parse_args(argv):
 
 
 def plot_record(args, record_name, boundaries, axes):
-    raw_dict = utilities.read_slow_class_peak(args, boundaries, record_name)
+    raw_dict = utilities.read_slow_class_peak(args, record_name)
     axes.plot(raw_dict['slow'] / 10, label='slow')
     axes.plot(raw_dict['peak'], label='bin')
     axes.plot(raw_dict['class'], label='class')
@@ -102,7 +102,7 @@ def main(argv=None):
 
     with open(args.pickle, 'rb') as _file:
         characteristics = pickle.load(_file)
-    boundaries = characteristics['boundaries']
+    args.boundaries = characteristics['boundaries']
     # FixMe: Decide how to divide things betweek characteristics and
     # args
     args.min_prominence = characteristics['min_prominence']
@@ -117,24 +117,24 @@ def main(argv=None):
     for class_ in (0, 1):
         data = numpy.array(peak_dict[class_])
         data.sort()
-        indices[class_] = numpy.searchsorted(data, boundaries)
+        indices[class_] = numpy.searchsorted(data, args.boundaries)
         peak_dict[class_] = data
 
     plot_cdf(axeses[0], peak_dict[0], label='Normal')
     plot_cdf(axeses[0], peak_dict[1], label='Apnea')
-    axeses[0].plot(boundaries,
+    axeses[0].plot(args.boundaries,
                    indices[1] / len(peak_dict[1]),
                    linestyle='',
                    marker='x',
                    label='boundaries')
     axeses[0].set_ylabel('cdf')
 
-    plot_n(peak_dict[0], boundaries, axeses[1], True, label='Normal')
-    plot_n(peak_dict[1], boundaries, axeses[1], label='Apnea')
+    plot_n(peak_dict[0], args.boundaries, axeses[1], True, label='Normal')
+    plot_n(peak_dict[1], args.boundaries, axeses[1], label='Apnea')
     axeses[1].set_ylabel('Number')
     axeses[1].set_xlabel('peak prominences')
 
-    plot_record(args, 'a03', boundaries, axeses[2])
+    plot_record(args, 'a03', args.boundaries, axeses[2])
     for axes in axeses:
         axes.legend()
     if args.show:
