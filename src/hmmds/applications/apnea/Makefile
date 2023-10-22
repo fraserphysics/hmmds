@@ -11,6 +11,22 @@ heart_rate.pdf:
 
 include Rules.mk
 
+# Defaults copied from utilities.py
+DEFAULT_ARGS = --root $(ROOT) \
+--derived_apnea_data build/derived_data/apnea \
+--model_dir build/derived_data/apnea/models \
+--heart_rate_path_format build/derived_data/ECG/{0}_self_AR3/heart_rate \
+--rtimes raw_data/Rtimes \
+--expert raw_data/apnea/summary_of_training \
+--iterations 10 \
+--heart_rate_sample_frequency 24  \
+--power_and_threshold 1.6, 1.0  \
+--trim_start 0 \
+--fft_width 4096 \
+--low_pass_period 15.0 \
+--band_pass_center 14.0
+
+
 # Optimize pass2 parameters over files classified as A or near
 # boundary by pass1.
 APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
@@ -19,16 +35,16 @@ BEST_MODEL = $(MODELS)/two_ar5_masked
 MIN_PROMINENCE = 6.0
 
 # Change characteristics to config
-characteristics.pkl: peak_characteristics.py
+config.pkl: config_stats.py
 	python $< --records $(APLUSNAMES) -- $(MIN_PROMINENCE) $@
 
-characteristics%.pkl: peak_characteristics.py
+config%.pkl: config_stats.py
 	python $< --records $(APLUSNAMES) -- $* $@
 
-interval_pdfs.pdf: apnea_ratio.py characteristics.pkl
-	python $< --records $(APLUSNAMES) -- characteristics.pkl $@
+interval_pdfs.pdf: apnea_ratio.py config.pkl
+	python $< --records $(APLUSNAMES) -- config.pkl $@
 
-analyze_peaks.pdf: analyze_peaks.py characteristics.pkl
+analyze_peaks.pdf: analyze_peaks.py config.pkl
 	python $^ --figure_path $@
 
 NORM_MODEL = $(MODELS)/norm_ar5_masked
@@ -117,47 +133,47 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # Save the initial files for debugging
 .PRECIOUS: $(MODELS)/a%_initial $(MODELS)/a%_masked
 
-# characteristics.pkl is not used
-$(MODELS)/c_model: model_init.py characteristics.pkl
-	python $< --trim_start 0 --heart_rate_sample_frequency 24 characteristics.pkl c_model $@
+# config.pkl is not used
+$(MODELS)/c_model: model_init.py config.pkl
+	python $< config.pkl c_model $@
 
-$(MODELS)/two_ar5_initial%: model_init.py characteristics%.pkl
-	python $< --trim_start 0 --heart_rate_sample_frequency 24 --low_pass_period 8 \
+$(MODELS)/two_ar5_initial%: model_init.py config%.pkl
+	python $< --low_pass_period 8 \
 --records $(ANAMES) --alpha_beta 50.0 10.0 --AR_order 5 \
-characteristics$*.pkl two_intervals $@
+config$*.pkl two_intervals $@
 
 $(MODELS)/two_ar5_masked%: apnea_train.py $(MODELS)/two_ar5_initial%
-	python $< --heart_rate_sample_frequency 24 --iterations 10 --records $(ANAMES) -- $(MODELS)/two_ar5_initial$* $@
+	python $< --records $(ANAMES) -- $(MODELS)/two_ar5_initial$* $@
 
-$(MODELS)/two_ar%_initial: model_init.py characteristics.pkl
-	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
+$(MODELS)/two_ar%_initial: model_init.py config.pkl
+	python $<  --low_pass_period 8 \
 --records $(APLUSNAMES) --alpha_beta 50.0 10.0 --AR_order $* \
- characteristics.pkl two_intervals $@
+ config.pkl two_intervals $@
 
 $(MODELS)/two_ar%_masked: apnea_train.py $(MODELS)/two_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --records $(APLUSNAMES) --iterations 10 $(MODELS)/two_ar$*_initial $@
+	python $<  --records $(APLUSNAMES) -- $(MODELS)/two_ar$*_initial $@
 
 $(MODELS)/norm_ar%_initial: model_init.py
-	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
+	python $<  --low_pass_period 8 \
 --records $(APLUSNAMES) --alpha_beta 50.0 10.0 --AR_order $* \
  --min_prominence $(MIN_PROMINENCE) --power_and_threshold 1 1 two_normalized $@
 
 $(MODELS)/norm_ar%_masked: apnea_train.py $(MODELS)/norm_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --records $(APLUSNAMES) --iterations 10 --min_prominence $(MIN_PROMINENCE) --power_and_threshold 1 1 $(MODELS)/norm_ar$*_initial $@
+	python $<  --records $(APLUSNAMES) --iterations 10 --min_prominence $(MIN_PROMINENCE) --power_and_threshold 1 1 $(MODELS)/norm_ar$*_initial $@
 
 $(MODELS)/intervals_ar%_initial: model_init.py
-	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 \
+	python $<  --low_pass_period 8 \
 --records $(EasySlow) --alpha_beta 50.0 10.0 --AR_order $* --min_prominence $(MIN_PROMINENCE) \
 hmm_intervals $@
 
 $(MODELS)/intervals_ar%_masked: apnea_train.py $(MODELS)/intervals_ar%_initial
-	python $< --heart_rate_sample_frequency 24 --records $(ANAMES) --iterations 10 --min_prominence $(MIN_PROMINENCE) $(MODELS)/intervals_ar$*_initial $@
+	python $<  --records $(ANAMES) --min_prominence $(MIN_PROMINENCE) $(MODELS)/intervals_ar$*_initial $@
 
 $(MODELS)/simple_ar%_masked: apnea_train.py $(MODELS)/simple_ar%_initial
 	python $< --AR_order $* --iterations 50 --records $(EasySlow) $(MODELS)/simple_ar$*_initial $@
 
 $(MODELS)/simple_ar%_initial: model_init.py
-	python $< --heart_rate_sample_frequency 24 --low_pass_period 8 --records $(EasySlow) --alpha_beta 50.0 10.0 --trim_start 25 --AR_order $* simple $@
+	python $<  --low_pass_period 8 --records $(EasySlow) --alpha_beta 50.0 10.0 --trim_start 25 --AR_order $* simple $@
 
 $(MODELS)/%_small: model_init.py
 	python $< --records $* --alpha_beta 1.0e3 1.0e3 --trim_start 25 c_model $@

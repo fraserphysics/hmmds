@@ -28,9 +28,7 @@ def parse_args(argv):
                         help="display figure using Qt5")
     utilities.common_arguments(parser)
     parser.add_argument('--figure_path', type=str, help='path of file to write')
-    parser.add_argument('pickle',
-                        type=str,
-                        help='Saved characterstics of peaks')
+    parser.add_argument('config', type=str, help='Path for statistics of peaks')
     args = parser.parse_args(argv)
     utilities.join_common(args)
     return args
@@ -43,17 +41,16 @@ def plot_record(args, record_name, boundaries, axes):
     axes.plot(raw_dict['class'], label='class')
 
 
-def analyze_record(args, record_name, peak_dict, characteristics):
+def analyze_record(args, record_name, peak_dict):
     '''Put prominences of detected peaks in the right value of peak_dict
 
     Args:
         args: Command line arguments
         record_name: eg 'a03'
         peak_dict: keys (0,1) values are lists of prominences
-        characteristics: Include min_prominence
 
     '''
-    min_prominence = characteristics['min_prominence']
+    min_prominence = args.config.min_prominence
     raw_dict = utilities.read_slow_class(args, record_name)
     peak_times, properties = utilities.peaks(raw_dict['slow'],
                                              args.heart_rate_sample_frequency,
@@ -100,41 +97,41 @@ def main(argv=None):
     fig, axeses = pyplot.subplots(nrows=3, figsize=(6, 8))
     axeses[0].sharex(axeses[1])
 
-    with open(args.pickle, 'rb') as _file:
-        characteristics = pickle.load(_file)
-    args.boundaries = characteristics['boundaries']
-    # FixMe: Decide how to divide things betweek characteristics and
-    # args
-    args.min_prominence = characteristics['min_prominence']
+    with open(args.config, 'rb') as _file:
+        args.config = pickle.load(_file)
 
     # Find peaks
     peak_dict = {0: [], 1: []}
     for record_name in args.a_names:
-        analyze_record(args, record_name, peak_dict, characteristics)
+        analyze_record(args, record_name, peak_dict)
 
     # Sort the peaks and find indices of boundaries
     indices = {}
     for class_ in (0, 1):
         data = numpy.array(peak_dict[class_])
         data.sort()
-        indices[class_] = numpy.searchsorted(data, args.boundaries)
+        indices[class_] = numpy.searchsorted(data, args.config.boundaries)
         peak_dict[class_] = data
 
     plot_cdf(axeses[0], peak_dict[0], label='Normal')
     plot_cdf(axeses[0], peak_dict[1], label='Apnea')
-    axeses[0].plot(args.boundaries,
+    axeses[0].plot(args.config.boundaries,
                    indices[1] / len(peak_dict[1]),
                    linestyle='',
                    marker='x',
                    label='boundaries')
     axeses[0].set_ylabel('cdf')
 
-    plot_n(peak_dict[0], args.boundaries, axeses[1], True, label='Normal')
-    plot_n(peak_dict[1], args.boundaries, axeses[1], label='Apnea')
+    plot_n(peak_dict[0],
+           args.config.boundaries,
+           axeses[1],
+           True,
+           label='Normal')
+    plot_n(peak_dict[1], args.config.boundaries, axeses[1], label='Apnea')
     axeses[1].set_ylabel('Number')
     axeses[1].set_xlabel('peak prominences')
 
-    plot_record(args, 'a03', args.boundaries, axeses[2])
+    plot_record(args, 'a03', args.config.boundaries, axeses[2])
     for axes in axeses:
         axes.legend()
     if args.show:

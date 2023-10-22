@@ -34,10 +34,7 @@ def parse_args(argv):
                         nargs=2,
                         default=(1.0e1, 2.0e1),
                         help="Paramters of inverse gamma prior for variance")
-    parser.add_argument('pickle',
-                        type=str,
-                        help='',
-                        default='pickled_characteristics_dict')
+    parser.add_argument('pickle', type=str, help='')
     parser.add_argument(
         'key',
         type=str,
@@ -51,7 +48,7 @@ def parse_args(argv):
 def make_joint_slow_peak_interval_class(state_dict,
                                         keys,
                                         rng,
-                                        characteristics,
+                                        args,
                                         truncate=0):
     """Return a JointObservation instance with components "slow",
     "peak", "interval", and "class"
@@ -116,7 +113,7 @@ def make_joint_slow_peak_interval_class(state_dict,
                 utilities.IntervalObservation(
                     tuple(state_dict[key].observation['interval']
                           for key in keys),
-                    characteristics,
+                    args,
                     power,
                 ),
             'class':
@@ -171,7 +168,7 @@ def dict2hmm(state_dict, make_observation_model, args, rng, truncate=0):
                        make_observation_model(state_dict,
                                               state_keys,
                                               rng,
-                                              args.characteristics,
+                                              args,
                                               truncate=truncate),
                        args,
                        rng,
@@ -433,7 +430,6 @@ def hmm_intervals(args, rng):
         make_joint_slow_peak_interval_class,
         args,
         rng,
-        characteristics,
         truncate=args.AR_order)
     return result_hmm, state_dict, state_key2state_index
 
@@ -455,14 +451,13 @@ def two_chain(args, rng, read_y_class, read_raw_y):
 
     args.read_y_class = read_y_class
     args.read_raw_y = read_raw_y
-    peak_dimension = len(args.boundaries) + 1  # Dimension of output for peaks
+    peak_dimension = len(
+        args.config.boundaries) + 1  # Dimension of output for peaks
 
     normal_class = 0
     apnea_class = 1
 
     state_dict = {}
-    normal_pdf = args.characteristics['normal_pdf']
-    apnea_pdf = args.characteristics['apnea_pdf']
 
     def make_one_chain(char_class, int_class, pdf_class):
         """
@@ -478,8 +473,8 @@ def two_chain(args, rng, read_y_class, read_raw_y):
         make_switch_noise(args, int_class, [chain_0], state_dict, pdf_class,
                           peak_dimension, rng)
 
-    make_one_chain('N', 0, normal_pdf)
-    make_one_chain('A', 1, apnea_pdf)
+    make_one_chain('N', 0, args.config.normal_pdf)
+    make_one_chain('A', 1, args.config.apnea_pdf)
     #for key, value in state_dict.items():
     #    print(f'{key} {value}')
 
@@ -532,9 +527,7 @@ def main(argv=None):
     args = parse_args(argv)
     rng = numpy.random.default_rng(3)
     with open(args.pickle, 'rb') as _file:
-        args.characteristics = pickle.load(_file)
-    args.boundaries = args.characteristics['boundaries']
-    args.min_prominence = args.characteristics['min_prominence']
+        args.config = pickle.load(_file)
 
     # Run the function specified by args.key
     model, state_dict, state_key2state_index = MODELS[args.key](args, rng)

@@ -98,18 +98,17 @@ def main(argv=None):
     fig, axes = pyplot.subplots(nrows=1, figsize=(6, 4))
 
     with open(args.pickle, 'rb') as _file:
-        characteristics = pickle.load(_file)
-    normal_pdf = characteristics['normal_pdf']
-    apnea_pdf = characteristics['apnea_pdf']
-    # FixMe Either in args or characteristics
-    args.min_prominence = characteristics['min_prominence']
+        config = pickle.load(_file)
+    normal_pdf = config.normal_pdf
+    apnea_pdf = config.apnea_pdf
+    args.min_prominence = config.min_prominence
 
     n_samples = 5  # To illustrate variance of estimated ratio
     pdf_ratios = list(
         utilities.make_interval_pdfs(args, args.records)
         for _ in range(n_samples))
     max_x = 2.2
-    plot(axes, pdf_ratios, normal_pdf, apnea_pdf, characteristics, max_x)
+    plot(axes, pdf_ratios, normal_pdf, apnea_pdf, config, max_x)
 
     if args.show:
         pyplot.show()

@@ -1,6 +1,6 @@
 """statistic_plots.py.  Make plots for choosing statistics for pass1.
 
-python statistic_plots.py  --show foo.pdf
+python statistic_plots.py --show foo.pdf
 
 Plot 1. Plot the PSD of the unfiltered heart rate.
 
@@ -55,7 +55,7 @@ def parse_args(argv):
     parser.add_argument(
         '--model',
         type=str,
-        default='../../../../build/derived_data/apnea/models/two_ar6_masked6',
+        default='../../../../build/derived_data/apnea/models/two_ar5_masked',
         help='Path to model')
     parser.add_argument('--format',
                         type=str,

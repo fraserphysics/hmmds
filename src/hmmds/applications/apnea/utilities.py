@@ -64,7 +64,7 @@ def common_arguments(parser: argparse.ArgumentParser):
                         help='Training iterations')
     parser.add_argument('--heart_rate_sample_frequency',
                         type=int,
-                        default=8,
+                        default=24,
                         help='In samples per minute')
     parser.add_argument('--AR_order',
                         type=int,
@@ -462,7 +462,7 @@ def add_peaks(args, raw_dict):
     """Add key item 'peak':values to raw_dict
 
     """
-    boundaries = args.boundaries
+    boundaries = args.config.boundaries
     slow_signal = raw_dict['slow']
 
     if hasattr(args, 'divisor'):
@@ -474,7 +474,7 @@ def add_peaks(args, raw_dict):
     else:
         locations, properties = peaks(slow_signal,
                                       args.heart_rate_sample_frequency,
-                                      args.min_prominence)
+                                      args.config.min_prominence)
         digits = numpy.digitize(properties['prominences'], boundaries)
     peak_signal = numpy.zeros(len(slow_signal), dtype=numpy.int32)
     peak_signal[locations] = digits
@@ -632,21 +632,21 @@ class State:
 class IntervalObservation(hmm.base.BaseObservation):
     _parameter_keys = 'density_functions n_states power'.split()
 
-    def __init__(self: IntervalObservation, density_functions: tuple,
-                 characteristics, power):
+    def __init__(self: IntervalObservation, density_functions: tuple, args,
+                 power):
         r"""Output of state is a float.  The density is 1.0 if the
         state is an apnea state, and if the state is normal the
         density is given by a density ratio."
 
         Args:
             density_functions: density_functions[s] is a callable: float -> float
-            characteristics: Parameters for density_functions 
+            config: Parameters for density_functions 
             power: Exponent of likelihood, for weighting wrt other components of joint observation.
 
         """
         self.n_states = len(density_functions)
         self.density_functions = density_functions
-        self.characteristics = characteristics
+        self.config = args.config
         self.power = power
 
     def reestimate(self: IntervalObservation, w: numpy.ndarray):
@@ -660,8 +660,7 @@ class IntervalObservation(hmm.base.BaseObservation):
         self._likelihood *= 0.0
         for i_state in range(self.n_states):
             self._likelihood[:, i_state] = (self.density_functions[i_state](
-                self._y.reshape(-1, 1),
-                self.characteristics)).reshape(-1)**self.power
+                self._y.reshape(-1, 1), self.config)).reshape(-1)**self.power
         return self._likelihood
 
 
@@ -738,6 +737,16 @@ class Pass1:
 
     def statistic_3(self: Pass1, low=1.0, high=3.6) -> float:
         """Spectral power in band.  Range in cpm
+
+        """
+        # argmax finds first place inequality is true
+        channel_low = numpy.argmax(self.frequencies > low)
+        channel_high = numpy.argmax(self.frequencies > high)
+
+        return self.psd[channel_low:channel_high].sum()
+
+    def statistic_4(self: Pass1, low=12, high=18) -> float:
+        """Spectral power in respiration bands.  Range in cpm
 
         """
         # argmax finds first place inequality is true
@@ -942,12 +951,12 @@ def apnea_pdf(x, _):
     return numpy.ones(x.shape)
 
 
-def normal_pdf(x_in, characteristics):
-    x = characteristics['pdf_ratio'].x
-    y = characteristics['pdf_ratio'].y
+def normal_pdf(x_in, config):
+    x = config.pdf_ratio.x
+    y = config.pdf_ratio.y
     big = numpy.nonzero(x_in > x[-1])
     small = numpy.nonzero(x_in < x[0])
-    result = characteristics['normal_pdf_spline'](x_in)
+    result = config.normal_pdf_spline(x_in)
     result[big] = y[-1]
     result[small] = y[0]
     return result
