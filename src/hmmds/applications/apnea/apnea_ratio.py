@@ -2,7 +2,7 @@
 intervals between peaks for normal and apnea.  r(x) =
 p_normal(x)/p_apnea(x).
 
-python apnea_ratio.py --show
+python apnea_ratio.py --show characteristics.pkl
 
 I selected these values by experimenting and looking at plots:
 
@@ -45,14 +45,14 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(
         "Estimate and plot p_normal()/p_apnea() for intervals between peaks of heart rate."
     )
-    parser.add_argument('--pickle',
-                        type=str,
-                        help='',
-                        default='pickled_peak_dict')
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
     utilities.common_arguments(parser)
+    parser.add_argument('pickle',
+                        type=str,
+                        help='',
+                        default='pickled_characteristics_dict')
     parser.add_argument('figure_path',
                         type=str,
                         nargs='?',
@@ -62,15 +62,21 @@ def parse_args(argv):
     return args
 
 
-def plot(axes, pdf_ratio: density_ratio.DensityRatio, normal_pdf, apnea_pdf,
-         max_interval: float):
+def plot(axes, pdf_ratios: density_ratio.DensityRatio, normal_pdf, apnea_pdf,
+         characteristics, max_interval: float):
     """The minimum value for interval is .4583333
 
     """
-    z = numpy.linspace(0.1, max_interval, 1000).reshape(-1, 1)
-    axes.plot(z, pdf_ratio(z), label='ratio')
-    axes.plot(z, normal_pdf(z), label='normal')
-    axes.plot(z, apnea_pdf(z), label='apnea')
+    z = numpy.linspace(.45, max_interval, 1000).reshape(-1, 1)
+    axes.semilogy(z,
+                  pdf_ratios[0](z),
+                  label='ratio',
+                  color='r',
+                  linestyle='dotted')
+    for pdf_ratio in pdf_ratios[1:]:
+        axes.plot(z, pdf_ratio(z), color='r', linestyle='dotted')
+    axes.semilogy(z, normal_pdf(z, characteristics), label='normal')
+    axes.semilogy(z, apnea_pdf(z), label='apnea')
     axes.set_xlabel('length/minute')
     axes.set_ylabel('p_normal/p_apnea')
     axes.legend()
@@ -84,21 +90,26 @@ def main(argv=None):
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    limit = 3.0
+    limit = 2.5
     sigma = 0.1
     _lambda = 0.06
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
-    fig, axes = pyplot.subplots(nrows=1, figsize=(6, 8))
+    fig, axes = pyplot.subplots(nrows=1, figsize=(6, 4))
 
-    # Find peaks
-    peak_dict, _, _ = utilities.peaks_intervals(args, args.a_names)
-    with open(args.pickle, 'wb') as _file:
-        pickle.dump(peak_dict, _file)
+    with open(args.pickle, 'rb') as _file:
+        characteristics = pickle.load(_file)
+    normal_pdf = characteristics['normal_pdf']
+    apnea_pdf = characteristics['apnea_pdf']
+    # FixMe Either in args or characteristics
+    args.min_prominence = characteristics['min_prominence']
 
-    interval_pdfs = utilities.make_interval_pdfs(args)
-    plot(axes, interval_pdfs, interval_pdfs.normal_pdf, interval_pdfs.apnea_pdf,
-         limit + 5 * sigma)
+    n_samples = 5  # To illustrate variance of estimated ratio
+    pdf_ratios = list(
+        utilities.make_interval_pdfs(args, args.records)
+        for _ in range(n_samples))
+    max_x = 2.2
+    plot(axes, pdf_ratios, normal_pdf, apnea_pdf, characteristics, max_x)
 
     if args.show:
         pyplot.show()

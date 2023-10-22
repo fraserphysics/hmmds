@@ -383,7 +383,7 @@ def hmm_intervals(args, rng):
     # *************                     ************
 
     peak_dict, boundaries, norm_avg = utilities.peaks_intervals(
-        args, args.a_names)
+        args, args.a_names, peaks_per_bin)
     # Attach information to args for creating observation models and
     # reading observations
     args.boundaries = boundaries
@@ -488,14 +488,12 @@ def two_intervals(args, rng):
 
     """
     peak_dict, boundaries, norm_avg = utilities.peaks_intervals(
-        args, args.a_names)
+        args, args.a_names, peaks_per_bin)
     # Attach information to args for creating observation models and
     # reading observations
     args.boundaries = boundaries
-    return two_chain(
-        args, rng,
-        utilities.read_slow_class_peak_interval,
-        utilities.read_slow_peak_interval)
+    return two_chain(args, rng, utilities.read_slow_class_peak_interval,
+                     utilities.read_slow_peak_interval)
 
 
 @register
@@ -509,14 +507,13 @@ def two_normalized(args, rng):
         norm_sum += utilities.Pass1(record_name, args).statistic_2()
     norm_avg = norm_sum / len(record_names)
     args.min_prominence /= norm_sum
-    _, boundaries, _ = utilities.peaks_intervals(
-        args, record_names)
+    _, boundaries, _ = utilities.peaks_intervals(args, record_names,
+                                                 peaks_per_bin)
     # Attach information to args for creating observation models and
     # reading observations
-    args.boundaries = boundaries/norm_avg
+    args.boundaries = boundaries / norm_avg
     args.norm_avg = norm_avg
-    return two_chain(args, rng,
-                     utilities.read_normalized_class,
+    return two_chain(args, rng, utilities.read_normalized_class,
                      utilities.read_normalized)
 
 

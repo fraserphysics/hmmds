@@ -17,6 +17,16 @@ APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
 
 BEST_MODEL = $(MODELS)/two_ar5_masked
 MIN_PROMINENCE = 6.0
+
+characteristics.pkl: peak_characteristics.py
+	python $< --records $(APLUSNAMES) -- $(MIN_PROMINENCE) $@
+
+interval_pdfs.pdf: apnea_ratio.py characteristics.pkl
+	python $< --records $(APLUSNAMES) -- characteristics.pkl $@
+
+analyze_peaks.pdf: analyze_peaks.py characteristics.pkl
+	python $^ --figure_path $@
+
 NORM_MODEL = $(MODELS)/norm_ar5_masked
 
 AR_ORDERS = 1 2 3 4 5 6 7 8 9 10
@@ -36,8 +46,7 @@ prominence_models: $(PROMINENCE_MODELS)
 prominence_study.pdf: prominence_study.py prominence_models $(PROMINENCE_MODELS)
 	python $< --prominences $(PROMINENCES) --template $(BEST_MODEL)% --records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
 
-
-HR_FIGS = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf norm_power_threshold.pdf norm_errors_vs_ar_order.pdf prominence_study.pdf
+HR_FIGS = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf norm_power_threshold.pdf norm_errors_vs_ar_order.pdf prominence_study.pdf interval_pdfs.pdf analyze_peaks.pdf
 
 heart_rate.pdf: heart_rate.tex two.tex score.tex norm_score.tex lengths.txt $(HR_FIGS)
 	pdflatex $< ; pdflatex $<

@@ -19,17 +19,26 @@ import scipy.interpolate
 
 
 class DensityRatio:
+    '''Provide evaluation of estimated density ratio function
+    '''
 
-    def __init__(self, sigma, centers, theta):
+    def __init__(self, sigma, centers, theta, end=1.65):
+        '''Set parameters from estimation of density ratio
+
+        Args:
+           sigma: Variance of Gaussian kernels
+           centers: Centers of Gaussian kernels
+           theta: Weights of Gaussian kernels
+           end: Largest value of samples for spline fit
+        '''
         self.sigma = sigma
         self.centers = centers
         self.theta = theta
         # For faster evaluation, fit a cubic spline
-        end = 2.0
-        x = numpy.linspace(.1, end, int(end / .1))
-        y = self(x.reshape(-1, 1))
-        self._cubic_spline = scipy.interpolate.CubicSpline(x,
-                                                           y,
+        self.x = numpy.linspace(.1, end, int(end / .05))
+        self.y = self(self.x.reshape(-1, 1))
+        self._cubic_spline = scipy.interpolate.CubicSpline(self.x,
+                                                           self.y,
                                                            bc_type='natural',
                                                            extrapolate=True)
 

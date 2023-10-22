@@ -78,11 +78,6 @@ def common_arguments(parser: argparse.ArgumentParser):
         'Weight of observation component "interval" and apnea detection threshold'
     )
     parser.add_argument(
-        '--min_prominence',
-        type=float,
-        default=6.0,
-        help='Threshold for detecting heart rate peaks in beats per minute')
-    parser.add_argument(
         '--trim_start',
         type=int,
         default=0,
@@ -302,18 +297,20 @@ def peaks(
         prominance: Minimum prominence for detection
         wlen: Window length
 
-    Return: peaks, properties
+    Return: peaks_, properties
+
+    peaks_ is an array of indices
 
     """
     s_f_hz = sample_frequency.to('Hz').magnitude
     distance_samples = distance.to('seconds').magnitude * s_f_hz
     wlen_samples = wlen.to('seconds').magnitude * s_f_hz
 
-    peaks, properties = scipy.signal.find_peaks(filtered,
-                                                distance=distance_samples,
-                                                prominence=prominence,
-                                                wlen=wlen_samples)
-    return peaks, properties
+    peaks_, properties = scipy.signal.find_peaks(filtered,
+                                                 distance=distance_samples,
+                                                 prominence=prominence,
+                                                 wlen=wlen_samples)
+    return peaks_, properties
 
 
 def filter_hr(raw_hr: numpy.ndarray,
@@ -863,7 +860,7 @@ def print_chain_model(y_mod, weight, key2index):
             print(f'{index:3d}   {key:14s} {weight[index]:<9.4g}')
 
 
-def peaks_intervals(args, record_names, peaks_per_bin=1300):
+def peaks_intervals(args, record_names, peaks_per_bin):
     """Calculate (prominence, period) pairs.  Also find boundaries for
     digitizing prominence.
 
@@ -900,7 +897,7 @@ def peaks_intervals(args, record_names, peaks_per_bin=1300):
     apnea_peaks = pp_array[0]
     apnea_peaks.sort()
     boundaries = []
-    for index in range(0, len(apnea_peaks), 1300):
+    for index in range(0, len(apnea_peaks), peaks_per_bin):
         boundaries.append(apnea_peaks[index])
     boundaries = numpy.array(boundaries).T
 
@@ -944,16 +941,31 @@ def make_density_ratio(peak_dict, limit, sigma, _lambda):
     return result
 
 
-def make_interval_pdfs(args):
+def apnea_pdf(x):
+    return numpy.ones(x.shape)
+
+
+def normal_pdf(x_in, characteristics):
+    x = characteristics['pdf_ratio'].x
+    y = characteristics['pdf_ratio'].y
+    big = numpy.nonzero(x_in > x[-1])
+    small = numpy.nonzero(x_in < x[0])
+    result = characteristics['normal_pdf_spline'](x_in)
+    result[big] = y[-1]
+    result[small] = y[0]
+    return result
+
+
+def make_interval_pdfs(args, records=None):
     """Extrapolate result of estimating the pdf ratio to range [0, \infty)
 
     """
 
-    upper_length = 2.12
-    lower_length = 0.5
-
+    if records is None:
+        records = args.a_names
     # Find peaks
-    peak_dict, boundaries, _ = peaks_intervals(args, args.a_names)
+    peaks_per_bin = 2000  # Meaninless in this context
+    peak_dict, _, _ = peaks_intervals(args, records, peaks_per_bin)
 
     limit = 2.2  # No intervals longer than this for pdf ratio fit
     sigma = 0.1  # Kernel width
