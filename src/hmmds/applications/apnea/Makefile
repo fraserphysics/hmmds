@@ -66,10 +66,10 @@ prominence_models: $(PROMINENCE_MODELS)
 prominence_study.pdf: prominence_study.py prominence_models $(PROMINENCE_MODELS)
 	python $< --prominences $(PROMINENCES) --template $(BEST_MODEL)% --records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
 
-# FixMe: put these back norm_power_threshold.pdf norm_errors_vs_ar_order.pdf norm_score.tex
-HR_FIGS = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf prominence_study.pdf interval_pdfs.pdf analyze_peaks.pdf
+HR_FIGS = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf prominence_study.pdf \
+interval_pdfs.pdf analyze_peaks.pdf norm_power_threshold.pdf norm_errors_vs_ar_order.pdf
 
-heart_rate.pdf: heart_rate.tex two.tex score.tex lengths.txt $(HR_FIGS)
+heart_rate.pdf: heart_rate.tex  $(HR_FIGS) two.tex score.tex lengths.txt norm_score.tex
 	pdflatex $< ; pdflatex $<
 
 pass1.out: pass1.py
@@ -153,27 +153,21 @@ $(MODELS)/two_ar%_initial: model_init.py config.pkl
 $(MODELS)/two_ar%_masked: apnea_train.py $(MODELS)/two_ar%_initial
 	python $<  --records $(APLUSNAMES) -- $(MODELS)/two_ar$*_initial $@
 
-$(MODELS)/norm_ar%_initial: model_init.py
+$(MODELS)/norm_ar%_initial: model_init.py config.pkl
 	python $<  --low_pass_period 8 \
 --records $(APLUSNAMES) --alpha_beta 50.0 10.0 --AR_order $* \
- --min_prominence $(MIN_PROMINENCE) --power_and_threshold 1 1 two_normalized $@
+--power_and_threshold 1 1 config.pkl two_normalized $@
 
 $(MODELS)/norm_ar%_masked: apnea_train.py $(MODELS)/norm_ar%_initial
-	python $<  --records $(APLUSNAMES) --iterations 10 --min_prominence $(MIN_PROMINENCE) --power_and_threshold 1 1 $(MODELS)/norm_ar$*_initial $@
+	python $<  --records $(APLUSNAMES) --iterations 10 --power_and_threshold 1 1 $(MODELS)/norm_ar$*_initial $@
 
-$(MODELS)/intervals_ar%_initial: model_init.py
+$(MODELS)/intervals_ar%_initial: model_init.py config.pkl
 	python $<  --low_pass_period 8 \
---records $(EasySlow) --alpha_beta 50.0 10.0 --AR_order $* --min_prominence $(MIN_PROMINENCE) \
-hmm_intervals $@
+--records $(EasySlow) --alpha_beta 50.0 10.0 --AR_order $* \
+config.pkl hmm_intervals $@
 
 $(MODELS)/intervals_ar%_masked: apnea_train.py $(MODELS)/intervals_ar%_initial
-	python $<  --records $(ANAMES) --min_prominence $(MIN_PROMINENCE) $(MODELS)/intervals_ar$*_initial $@
-
-$(MODELS)/simple_ar%_masked: apnea_train.py $(MODELS)/simple_ar%_initial
-	python $< --AR_order $* --iterations 50 --records $(EasySlow) $(MODELS)/simple_ar$*_initial $@
-
-$(MODELS)/simple_ar%_initial: model_init.py
-	python $<  --low_pass_period 8 --records $(EasySlow) --alpha_beta 50.0 10.0 --trim_start 25 --AR_order $* simple $@
+	python $<  --records $(ANAMES) $(MODELS)/intervals_ar$*_initial $@
 
 $(MODELS)/%_small: model_init.py
 	python $< --records $* --alpha_beta 1.0e3 1.0e3 --trim_start 25 c_model $@

@@ -60,7 +60,7 @@ def common_arguments(parser: argparse.ArgumentParser):
                         help='path from root to expert annotations')
     parser.add_argument('--iterations',
                         type=int,
-                        default=20,
+                        default=10,
                         help='Training iterations')
     parser.add_argument('--heart_rate_sample_frequency',
                         type=int,
@@ -465,12 +465,12 @@ def add_peaks(args, raw_dict):
     boundaries = args.config.boundaries
     slow_signal = raw_dict['slow']
 
-    if hasattr(args, 'divisor'):
+    if 'norm_avg' in args:
         locations, properties = peaks(slow_signal,
                                       args.heart_rate_sample_frequency,
-                                      args.min_prominence / args.divisor)
+                                      args.config.min_prominence / args.norm_avg)
         digits = numpy.digitize(properties['prominences'],
-                                boundaries / args.divisor)
+                                boundaries / args.norm_avg)
     else:
         locations, properties = peaks(slow_signal,
                                       args.heart_rate_sample_frequency,
@@ -555,7 +555,7 @@ def read_slow_class_peak_interval(args, name='a03'):
 
 
 def read_slow_peak_interval(args, name='a03'):
-    """Add peak to dict from read_slow
+    """Add interval and peaks to dict from read_slow
 
     Args:
         args:
@@ -889,8 +889,13 @@ def peaks_intervals(args, record_names, peaks_per_bin):
         raw_dict = read_slow_class(args, record_name)
         slow = raw_dict['slow']
         _class = raw_dict['class']
+        if 'config' in args:
+            min_prominence = args.config.min_prominence
+        else:  # When called by config_stats which makes config
+            min_prominence = args.min_prominence
+            
         peak_ts, properties = peaks(slow, args.heart_rate_sample_frequency,
-                                    args.min_prominence)
+                                    min_prominence)
         for index in range(len(peak_ts) - 1):
             t_peak = peak_ts[index]
             prominence_t = properties['prominences'][index]

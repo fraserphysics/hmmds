@@ -502,20 +502,11 @@ def two_normalized(args, rng):
     """Return an hmm for joint observations with normalized heart rate
 
     """
-    record_names = args.records
-    norm_sum = 0.0
-    for record_name in record_names:
-        norm_sum += utilities.Pass1(record_name, args).statistic_2()
-    norm_avg = norm_sum / len(record_names)
-    args.min_prominence /= norm_sum
-    _, boundaries, _ = utilities.peaks_intervals(args, record_names,
-                                                 peaks_per_bin)
-    # Attach information to args for creating observation models and
-    # reading observations
-    args.boundaries = boundaries / norm_avg
-    args.norm_avg = norm_avg
-    return two_chain(args, rng, utilities.read_normalized_class,
-                     utilities.read_normalized)
+
+    # Functions in utilities normalize heart rate if "'norm_avg' in args"
+    args.norm_avg = args.config.norm_avg
+    return two_chain(args, rng, utilities.read_slow_class_peak_interval,
+                     utilities.read_slow_peak_interval)
 
 
 def main(argv=None):

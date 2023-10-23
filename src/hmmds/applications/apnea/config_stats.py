@@ -13,7 +13,7 @@ min_prominence      Minimum prominence for detcting a peak
 
 boundaries          For binning prominences of peaks
 
-norm_factor         Average over records of Pass1.statistic_2()
+norm_avg            Average over records of Pass1.statistic_2()
 
 n_per_bin           Number of peaks in the training data in each bin
 
@@ -92,7 +92,7 @@ def main(argv=None):
     n_per_bin = int(n_peaks / (args.n_bins - 1))
 
     # peak_dict holds (prominence, interval) pairs
-    peak_dict, boundaries, norm_factor = utilities.peaks_intervals(
+    peak_dict, boundaries, norm_avg = utilities.peaks_intervals(
         args, record_names, n_per_bin)
 
     limit = 2.2  # No intervals longer than this for pdf ratio fit
@@ -110,7 +110,7 @@ def main(argv=None):
     result.apnea_pdf = utilities.apnea_pdf
     result.normal_pdf = utilities.normal_pdf
     local = locals()
-    for key in '''min_prominence boundaries norm_factor n_per_bin
+    for key in '''min_prominence boundaries norm_avg n_per_bin
     normal_pdf_spline pdf_ratio'''.split():
         setattr(result, key, local[key])
     with open(args.result_path, 'wb') as _file:
