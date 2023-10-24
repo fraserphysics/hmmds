@@ -359,9 +359,7 @@ def filter_hr(raw_hr: numpy.ndarray,
 def read_slow_fast_respiration(args, name='a03'):
     """Read heart rate and return three filtered versions
     """
-
-    path = os.path.join(args.derived_apnea_data,
-                        f'../ECG/{name}_self_AR3/heart_rate')
+    path = args.heart_rate_path_format.format(name)
     with open(path, 'rb') as _file:
         _dict = pickle.load(_file)
     f_in = _dict['sample_frequency'].to('1/minute').magnitude
@@ -462,20 +460,11 @@ def add_peaks(args, raw_dict):
     """Add key item 'peak':values to raw_dict
 
     """
-    boundaries = args.config.boundaries
     slow_signal = raw_dict['slow']
 
-    if 'norm_avg' in args:
-        locations, properties = peaks(slow_signal,
-                                      args.heart_rate_sample_frequency,
-                                      args.config.min_prominence / args.norm_avg)
-        digits = numpy.digitize(properties['prominences'],
-                                boundaries / args.norm_avg)
-    else:
-        locations, properties = peaks(slow_signal,
-                                      args.heart_rate_sample_frequency,
-                                      args.config.min_prominence)
-        digits = numpy.digitize(properties['prominences'], boundaries)
+    locations, properties = peaks(slow_signal, args.heart_rate_sample_frequency,
+                                  args.config.min_prominence)
+    digits = numpy.digitize(properties['prominences'], args.config.boundaries)
     peak_signal = numpy.zeros(len(slow_signal), dtype=numpy.int32)
     peak_signal[locations] = digits
     raw_dict['peak'] = peak_signal
@@ -866,7 +855,7 @@ def print_chain_model(y_mod, weight, key2index):
             print(f'{index:3d}   {key:14s} {weight[index]:<9.4g}')
 
 
-def peaks_intervals(args, record_names, peaks_per_bin):
+def peaks_intervals(args, record_names):
     """Calculate (prominence, period) pairs.  Also find boundaries for
     digitizing prominence.
 
@@ -893,24 +882,27 @@ def peaks_intervals(args, record_names, peaks_per_bin):
             min_prominence = args.config.min_prominence
         else:  # When called by config_stats which makes config
             min_prominence = args.min_prominence
-            
-        peak_ts, properties = peaks(slow, args.heart_rate_sample_frequency,
+
+        peak_times, properties = peaks(slow, args.heart_rate_sample_frequency,
                                     min_prominence)
-        for index in range(len(peak_ts) - 1):
-            t_peak = peak_ts[index]
+        for index in range(len(peak_times) - 1):
+            t_peak = peak_times[index]
             prominence_t = properties['prominences'][index]
-            period_t = (peak_ts[index + 1] - t_peak) / f_sample
+            period_t = (peak_times[index + 1] - t_peak) / f_sample
             class_t = _class[t_peak]
             peak_dict[class_t].append((prominence_t, period_t))
 
     # Calculate boundaries for prominence based on peaks during apnea
     pp_array = numpy.array(peak_dict[apnea_key]).T
-    apnea_peaks = pp_array[0]
+    apnea_peaks = pp_array[0,:].copy()
     apnea_peaks.sort()
     boundaries = []
-    for index in range(0, len(apnea_peaks), peaks_per_bin):
+    for i in range(0, args.n_bins):
+        index = int(len(apnea_peaks) * i / args.n_bins)
         boundaries.append(apnea_peaks[index])
-    boundaries = numpy.array(boundaries).T
+    boundaries[0] = min_prominence
+    boundaries = numpy.array(boundaries)
+
 
     return peak_dict, boundaries, norm_sum / len(record_names)
 
@@ -975,8 +967,7 @@ def make_interval_pdfs(args, records=None):
     if records is None:
         records = args.a_names
     # Find peaks
-    peaks_per_bin = 2000  # Meaninless in this context
-    peak_dict, _, _ = peaks_intervals(args, records, peaks_per_bin)
+    peak_dict, _, _ = peaks_intervals(args, records)
 
     limit = 2.2  # No intervals longer than this for pdf ratio fit
     sigma = 0.1  # Kernel width

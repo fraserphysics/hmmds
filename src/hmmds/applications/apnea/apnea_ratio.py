@@ -48,8 +48,11 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
+    parser.add_argument('--normalize',
+                        action='store_true',
+                        help="Normalize heart rate signal")
     utilities.common_arguments(parser)
-    parser.add_argument('pickle',
+    parser.add_argument('config_path',
                         type=str,
                         help='',
                         default='pickled_characteristics_dict')
@@ -78,7 +81,7 @@ def plot(axes, pdf_ratios: density_ratio.DensityRatio, normal_pdf, apnea_pdf,
     axes.semilogy(z, normal_pdf(z, characteristics), label='normal')
     axes.semilogy(z, apnea_pdf(z, characteristics), label='apnea')
     axes.set_xlabel('length/minute')
-    axes.set_ylabel('p_normal/p_apnea')
+    axes.set_ylabel('pdf or ratio')
     axes.legend()
 
 
@@ -97,18 +100,21 @@ def main(argv=None):
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     fig, axes = pyplot.subplots(nrows=1, figsize=(6, 4))
 
-    with open(args.pickle, 'rb') as _file:
-        config = pickle.load(_file)
-    normal_pdf = config.normal_pdf
-    apnea_pdf = config.apnea_pdf
-    args.min_prominence = config.min_prominence
+    with open(args.config_path, 'rb') as _file:
+        args.config = pickle.load(_file)
+    normal_pdf = args.config.normal_pdf
+    apnea_pdf = args.config.apnea_pdf
+    args.min_prominence = args.config.min_prominence
+    args.n_bins = len(args.config.boundaries)
+    if args.normalize:
+        args.norm_avg = args.config.norm_avg
 
     n_samples = 5  # To illustrate variance of estimated ratio
     pdf_ratios = list(
         utilities.make_interval_pdfs(args, args.records)
         for _ in range(n_samples))
     max_x = 2.2
-    plot(axes, pdf_ratios, normal_pdf, apnea_pdf, config, max_x)
+    plot(axes, pdf_ratios, normal_pdf, apnea_pdf, args.config, max_x)
 
     if args.show:
         pyplot.show()

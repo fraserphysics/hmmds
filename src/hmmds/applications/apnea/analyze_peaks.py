@@ -26,9 +26,12 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
+    parser.add_argument('--normalize',
+                        action='store_true',
+                        help="Normalize heart rate signal")
     utilities.common_arguments(parser)
     parser.add_argument('--figure_path', type=str, help='path of file to write')
-    parser.add_argument('config', type=str, help='Path for statistics of peaks')
+    parser.add_argument('config_path', type=str, help='Path for statistics of peaks')
     args = parser.parse_args(argv)
     utilities.join_common(args)
     return args
@@ -95,14 +98,24 @@ def main(argv=None):
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     fig, axeses = pyplot.subplots(nrows=3, figsize=(6, 8))
+    fig.tight_layout()
+
     axeses[0].sharex(axeses[1])
+    axeses[0].set_xlim(-1, 50)
 
-    with open(args.config, 'rb') as _file:
+    with open(args.config_path, 'rb') as _file:
         args.config = pickle.load(_file)
+    if args.normalize:
+        args.norm_avg = args.config.norm_avg
 
+    if args.records:
+        records = args.records
+    else:
+        records = args.a_names
+        
     # Find peaks
     peak_dict = {0: [], 1: []}
-    for record_name in args.a_names:
+    for record_name in records:
         analyze_record(args, record_name, peak_dict)
 
     # Sort the peaks and find indices of boundaries

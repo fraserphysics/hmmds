@@ -145,6 +145,7 @@ def main(argv=None):
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     fig, axes = pyplot.subplots(nrows=1, figsize=(6, 3))
+    fig.tight_layout()
 
     best_power, best_threshold = args.power_and_threshold
     if args.records is None:
