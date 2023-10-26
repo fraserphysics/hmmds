@@ -1,11 +1,5 @@
 """model_init.py Create initial HMM models with apnea observations
 
-A rule from Rules.mk:
-
-$(MODELS)/a%_initial: model_init.py
-	python $< --records a$* --alpha_beta 1.0e3 1.0e3 --trim_start 25 apnea_dict $@
-
-
 """
 import sys
 import os.path
@@ -100,8 +94,7 @@ def make_joint_slow_peak_interval_class(state_dict,
     for state_index, key in enumerate(keys):
         py_state[state_index, :] = state_dict[key].observation['peak']
 
-    #FixMe:
-    power = 1.0
+    power = args.power_and_threshold[0]
     return hmm.base.JointObservation(
         {
             'slow':
@@ -393,37 +386,36 @@ def hmm_intervals(args, rng):
 
     args.read_y_class = utilities.read_slow_class_peak_interval
     args.read_raw_y = utilities.read_slow_peak_interval
-    peak_dimension = len(boundaries) + 1  # Dimension of output for peaks
+    n_boundaries = len(args.config.boundaries)
+    peak_dimension = n_boundaries + 1  # Dimension of output for peaks
 
     normal_class = 0
     apnea_class = 1
 
     state_dict = {}
-    raise RuntimeError('Use characteristics')
-    interval_pdfs = utilities.make_interval_pdfs(args)
     # Make the one chain for modeling normal peaks
-    normal_peak_prob = numpy.ones(peak_dimension) / (peak_dimension - 1)
+    normal_peak_prob = numpy.ones(peak_dimension) / n_boundaries
     normal_peak_prob[0] = 0
-    peak_chain('N_switch', 'N_chain', normal_class, interval_pdfs.normal_pdf,
-               args, rng, state_dict, normal_peak_prob)
+    peak_chain('N_switch', 'N_chain', normal_class, args.config.normal_pdf, args, rng,
+               state_dict, normal_peak_prob)
 
-    make_switch_noise(args, normal_class, ['N_chain_0'], state_dict,
-                      interval_pdfs.normal_pdf, peak_dimension, rng)
+    make_switch_noise(args, normal_class, ['N_chain_0'], state_dict, args.config.normal_pdf,
+                      peak_dimension, rng)
 
     # Set up discrete p_y for apnea peaks
-    peak_probs = numpy.zeros((len(boundaries), len(boundaries) + 1))
-    peak_probs[:, 1:] = numpy.eye(len(boundaries))
+    peak_probs = numpy.zeros((n_boundaries, peak_dimension))
+    peak_probs[:, 1:] = numpy.eye(n_boundaries)
 
     # Make chains for apnea peaks
     a_chain_links = []
     for number, peak_prob in enumerate(peak_probs):
         chain_key = f'A{number}'
         a_chain_links.append(f'{chain_key}_0')
-        peak_chain('A_switch', chain_key, apnea_class, interval_pdfs.apnea_pdf,
+        peak_chain('A_switch', chain_key, apnea_class, args.config.apnea_pdf,
                    args, rng, state_dict, peak_prob)
 
     make_switch_noise(args, apnea_class, a_chain_links, state_dict,
-                      interval_pdfs.apnea_pdf, peak_dimension, rng)
+                      args.config.apnea_pdf, peak_dimension, rng)
 
     result_hmm, state_key2state_index = dict2hmm(
         state_dict,
@@ -453,9 +445,6 @@ def two_chain(args, rng, read_y_class, read_raw_y):
     args.read_raw_y = read_raw_y
     peak_dimension = len(
         args.config.boundaries) + 1  # Dimension of output for peaks
-
-    normal_class = 0
-    apnea_class = 1
 
     state_dict = {}
 

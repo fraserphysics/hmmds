@@ -27,41 +27,37 @@ DEFAULT_ARGS = --root $(ROOT) \
 --band_pass_center 14.0
 
 
+INIT_PARAMETERS = --low_pass_period 8 --alpha_beta 50.0 10.0
 # Optimize pass2 parameters over these files classified as A or near
 # boundary by pass1.
 APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
 
-BEST_MODEL = $(MODELS)/two_ar5_masked
-MIN_PROMINENCE = 6.0
+BEST_MODEL = $(MODELS)/two_ar5_prom6_masked
+NORM_MODEL = $(MODELS)/norm_ar5_prom6_masked
+MIN_PROMINENCE = 6
 
 # Change to "--n_bins 5", "--power_and_threshold 1.0 1.0e-8",
 # and "--records $(ANAMES) b01 b02 b03 b04 c08 c10"
 N_BINS = 5
-NORM_POWER_THRESHOLD = 1.0 1.0e-8
+POWER_THRESHOLD = --power_and_threshold 1.6 1.0
+NORM_POWER_THRESHOLD = --power_and_threshold 1.0 1.0e-8
 
+# % is minimum threshold for detecting a prominence
 config%.pkl: config_stats.py
 	python $< --records $(APLUSNAMES) --n_bins $(N_BINS) $* $@
-
-config.pkl: config_stats.py
-	python $< --records $(APLUSNAMES) --n_bins $(N_BINS) $(MIN_PROMINENCE) $@
 
 norm_config%.pkl: config_stats.py config%.pkl
 	python $< --records $(APLUSNAMES) --normalize config$*.pkl --n_bins $(N_BINS) $* $@
 
-norm_config.pkl: config_stats.py config.pkl
-	python $< --records $(APLUSNAMES) --normalize config.pkl --n_bins $(N_BINS) $(MIN_PROMINENCE) $@
+interval_pdfs.pdf: apnea_ratio.py config6.pkl
+	python $< --records $(APLUSNAMES) -- config6.pkl $@
 
-interval_pdfs.pdf: apnea_ratio.py config.pkl
-	python $< --records $(APLUSNAMES) -- config.pkl $@
-
-analyze_peaks.pdf: analyze_peaks.py config.pkl
+analyze_peaks.pdf: analyze_peaks.py config6.pkl
 	python $^ --records $(APLUSNAMES) --figure_path $@
-
-NORM_MODEL = $(MODELS)/norm_ar5_masked
 
 AR_ORDERS = 1 2 3 4 5 6 7 8 9 10
 AR_MODELS = $(addsuffix _masked, $(addprefix two_ar, $(AR_ORDERS)))
-NORM_AR_MODELS = $(addsuffix _masked, $(addprefix norm_ar, $(AR_ORDERS)))
+NORM_AR_MODELS = $(addsuffix _prom6_masked, $(addprefix norm_ar, $(AR_ORDERS)))
 errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
 	python compare_models.py --models $(AR_MODELS) --parameters $(AR_ORDERS) \
 --parameter_name "AR order" --records $(APLUSNAMES) -- $@ > errors_vs_ar_order.txt
@@ -70,11 +66,12 @@ power_threshold.pdf: survey_power_threshold.py $(BEST_MODEL)
 	python $< --records $(APLUSNAMES) -- $(BEST_MODEL) $@ > power_threshold.txt
 
 PROMINENCES = 3 3.5 4 4.5 5 5.5 5.7 5.8 5.9 5.95 6 6.05 6.1 6.2 6.3 6.4 6.5 7 7.5 8
-PROMINENCE_MODELS = $(addprefix $(BEST_MODEL), $(PROMINENCES))
+PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix $(MODELS)/two_ar5_prom, $(PROMINENCES)))
+NORM_PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix $(MODELS)/norm_ar5_prom, $(PROMINENCES)))
 prominence_models: $(PROMINENCE_MODELS)
 	touch $@
 prominence_study.pdf: prominence_study.py prominence_models $(PROMINENCE_MODELS)
-	python $< --prominences $(PROMINENCES) --template $(BEST_MODEL)% --records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
+	python $< --prominences $(PROMINENCES) --template $(MODELS)/two_ar5_prom%_masked --records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
 
 HR_FIGS = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf \
 prominence_study.pdf interval_pdfs.pdf analyze_peaks.pdf norm_power_threshold.pdf \
@@ -97,30 +94,29 @@ score.txt: score.py pass2.out
 score.tex: score.py pass2.out
 	python score.py --tex pass2.out $@
 
-norm_analyze_peaks.pdf: analyze_peaks.py norm_config.pkl
+norm_analyze_peaks.pdf: analyze_peaks.py norm_config6.pkl
 	python $^ --normalize --records $(APLUSNAMES) --figure_path $@
 
-norm_interval_pdfs.pdf: apnea_ratio.py norm_config.pkl
-	python $< --records $(APLUSNAMES) --normalize norm_config.pkl $@
+norm_interval_pdfs.pdf: apnea_ratio.py norm_config6.pkl
+	python $< --records $(APLUSNAMES) --normalize norm_config6.pkl $@
 
-NORM_PROMINENCE_MODELS = $(addprefix $(NORM_MODEL), $(PROMINENCES))
 norm_prominence_study.pdf: prominence_study.py prominence_models $(NORM_PROMINENCE_MODELS)
-	python $< --prominences $(PROMINENCES) --template $(NORM_MODEL)% --records $(APLUSNAMES) --fig_path $@ > norm_prominence_study.txt
+	python $< --prominences $(PROMINENCES) --template $(MODELS)/norm_ar5_prom%_masked --records $(APLUSNAMES) --fig_path $@ > norm_prominence_study.txt
 
 norm_power_threshold.pdf: survey_power_threshold.py $(NORM_MODEL)
-	python $< --records $(APLUSNAMES) --power_and_threshold $(NORM_POWER_THRESHOLD) \
+	python $< --records $(APLUSNAMES) $(NORM_POWER_THRESHOLD) \
 $(NORM_MODEL) $@ > norm_power_threshold.txt
 
 norm_errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NORM_AR_MODELS))
 	python compare_models.py --models $(NORM_AR_MODELS) --parameters $(AR_ORDERS) \
 --parameter_name "AR order" --records $(APLUSNAMES) \
---power_and_threshold $(NORM_POWER_THRESHOLD) $@ > norm_errors_vs_ar_order.txt
+$(NORM_POWER_THRESHOLD) $@ > norm_errors_vs_ar_order.txt
 
 norm_score.tex: score.py norm_pass2.out
-	python score.py --tex --power_and_threshold $(NORM_POWER_THRESHOLD) norm_pass2.out $@
+	python score.py --tex $(NORM_POWER_THRESHOLD) norm_pass2.out $@
 
 norm_pass2.out: pass2.py pass1.out $(NORM_MODEL) $(MODELS)/c_model
-	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(NORM_MODEL) --power_and_threshold $(NORM_POWER_THRESHOLD) pass1.out temp
+	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(NORM_MODEL) $(NORM_POWER_THRESHOLD) pass1.out temp
 	cp temp $@
 
 # Lengths of time series for each training record
@@ -129,7 +125,7 @@ lengths.txt: test_alignment.py $(BEST_MODEL)
 
 # A table of pass2 performance on each a-file.
 two.tex: prominence_study.py $(BEST_MODEL)
-	python $< --prominences $(MIN_PROMINENCE) --template $(MODELS)/two_ar5_masked% --latex $@
+	python $< --prominences $(MIN_PROMINENCE) --template $(MODELS)/two_ar5_prom%_masked --latex $@
 
 report.txt: cross_score.py $(MODELS)/masked_all_a
 	python $< --specific 1.0 > $@
@@ -138,8 +134,6 @@ report.ps: report.txt
 	enscript -B -r -f Courier12 --media letter -p $@ report.txt
 like_table.tex: like_table.py $(MODELS)/unmasked_all_ac
 	python like_table.py --trim_start 25 $@
-
-NORM_MODELS = $(addsuffix _masked, $(addprefix norm_ar, $(AR_ORDERS)))
 
 statistics.pdf: statistic_plots.py $(BEST_MODEL)
 	python statistic_plots.py --trim 20 --model $(BEST_MODEL) $@
@@ -155,64 +149,41 @@ SmallSlow = a06 a09
 #          14  15  12  18  10  13  14  16  12  12  15  16
 EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # Save the initial files for debugging
-.PRECIOUS: $(MODELS)/a%_initial $(MODELS)/a%_masked
+.PRECIOUS: $(MODELS)/%initial $(MODELS)/%masked
 
-# config.pkl is not used
-$(MODELS)/c_model: model_init.py config.pkl
-	python $< config.pkl c_model $@
+# config6.pkl is not used for c_model, but model_init.py requires a
+# config argument
+$(MODELS)/c_model: model_init.py config6.pkl
+	python $< config6.pkl c_model $@
 
-$(MODELS)/norm_ar5_initial%: model_init.py norm_config%.pkl
-	python $< --low_pass_period 8 \
---records $(ANAMES) --alpha_beta 50.0 10.0 --AR_order 5 \
---power_and_threshold $(NORM_POWER_THRESHOLD) norm_config$*.pkl two_intervals $@
+$(MODELS)/norm_ar5_prom%_initial: model_init.py norm_config%.pkl
+	python $< $(INIT_PARAMETERS) --AR_order 5 \
+$(NORM_POWER_THRESHOLD) norm_config$*.pkl two_normalized $@
 
-$(MODELS)/norm_ar5_masked%: apnea_train.py $(MODELS)/norm_ar5_initial%
-	python $< --records $(ANAMES) --power_and_threshold $(NORM_POWER_THRESHOLD) $(MODELS)/norm_ar5_initial$* $@
-
-$(MODELS)/two_ar5_initial%: model_init.py config%.pkl
-	python $< --low_pass_period 8 \
---records $(ANAMES) --alpha_beta 50.0 10.0 --AR_order 5 \
+$(MODELS)/two_ar5_prom%_initial: model_init.py config%.pkl
+	python $< $(INIT_PARAMETERS) --AR_order 5 \
 config$*.pkl two_intervals $@
 
-$(MODELS)/two_ar5_masked%: apnea_train.py $(MODELS)/two_ar5_initial%
-	python $< --records $(ANAMES) -- $(MODELS)/two_ar5_initial$* $@
+$(MODELS)/two_ar%_prom6_initial: model_init.py config6.pkl
+	python $<  $(INIT_PARAMETERS) --AR_order $* config6.pkl two_intervals $@
 
-$(MODELS)/two_ar%_initial: model_init.py config.pkl
-	python $<  --low_pass_period 8 \
---records $(APLUSNAMES) --alpha_beta 50.0 10.0 --AR_order $* \
- config.pkl two_intervals $@
+$(MODELS)/norm_ar%_prom6_initial: model_init.py config6.pkl
+	python $<  $(INIT_PARAMETERS) --AR_order $* \
+$(NORM_POWER_THRESHOLD) config6.pkl two_normalized $@
 
-$(MODELS)/two_ar%_masked: apnea_train.py $(MODELS)/two_ar%_initial
-	python $<  --records $(APLUSNAMES) -- $(MODELS)/two_ar$*_initial $@
+$(MODELS)/intervals_ar%_initial: model_init.py config6.pkl
+	python $<  $(INIT_PARAMETERS) --AR_order $* \
+config6.pkl hmm_intervals $@
 
-$(MODELS)/norm_ar%_initial: model_init.py config.pkl
-	python $<  --low_pass_period 8 \
---records $(APLUSNAMES) --alpha_beta 50.0 10.0 --AR_order $* \
---power_and_threshold $(NORM_POWER_THRESHOLD) config.pkl two_normalized $@
+$(MODELS)/%_masked: apnea_train.py $(MODELS)/%_initial
+	python $< --records $(APLUSNAMES) --iterations 10 $(MODELS)/$*_initial $@
 
-$(MODELS)/norm_ar%_masked: apnea_train.py $(MODELS)/norm_ar%_initial
-	python $<  --records $(APLUSNAMES) --iterations 10 \
---power_and_threshold $(NORM_POWER_THRESHOLD) $(MODELS)/norm_ar$*_initial $@
+multi_chain_pass2.out: pass2.py pass1.out $(MODELS)/intervals_ar5_masked $(MODELS)/c_model
+	python $< --model_paths $(MODELS)/c_model $(MODELS)/intervals_ar5_masked pass1.out temp
+	cp temp $@
 
-$(MODELS)/intervals_ar%_initial: model_init.py config.pkl
-	python $<  --low_pass_period 8 \
---records $(EasySlow) --alpha_beta 50.0 10.0 --AR_order $* \
-config.pkl hmm_intervals $@
-
-$(MODELS)/intervals_ar%_masked: apnea_train.py $(MODELS)/intervals_ar%_initial
-	python $<  --records $(ANAMES) $(MODELS)/intervals_ar$*_initial $@
-
-$(MODELS)/%_small: model_init.py
-	python $< --records $* --alpha_beta 1.0e3 1.0e3 --trim_start 25 c_model $@
-
-$(MODELS)/%_unmasked: apnea_train.py $(MODELS)/%_small
-	python apnea_train.py --iterations 40 --records $* $(MODELS)/$*_small --trim_start 25 $@
-
-$(MODELS)/unmasked_all_ac: $(addprefix $(MODELS)/, $(addsuffix _unmasked, $(ANAMES) $(CNAMES)))
-	touch $@
-
-$(MODELS)/masked_all_a: $(addprefix $(MODELS)/, $(addsuffix _masked, $(ANAMES)))
-	touch $@
+multi_score.tex: score.py multi_chain_pass2.out
+	python score.py --tex multi_chain_pass2.out $@
 
 ## yapf                          : Force google format on all python code
 .PHONY : yapf
@@ -226,7 +197,7 @@ clean:
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo AR_MODELS: $(AR_MODELS)
+	@echo NORM_AR_MODELS: $(NORM_AR_MODELS)
 	@echo MODELS: $(MODELS)
 	@echo PROMINENCES: $(PROMINENCES)
 	@echo PROMINENCE_MODELS: $(PROMINENCE_MODELS)
