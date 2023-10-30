@@ -23,9 +23,10 @@ DEFAULT_ARGS = --root $(ROOT) \
 --power_and_threshold 1.6, 1.0  \
 --trim_start 0 \
 --fft_width 4096 \
---low_pass_period 15.0 \
+--low_pass_period 8.0 \
 --band_pass_center 14.0
 
+# In model_init.py alpha_beta = 50 10
 
 INIT_PARAMETERS = --low_pass_period 8 --alpha_beta 50.0 10.0
 # Optimize pass2 parameters over these files classified as A or near
@@ -37,11 +38,11 @@ MIN_PROMINENCE = 6
 N_BINS = 5
 POWER_THRESHOLD = --power_and_threshold 1.6 1.0
 
-NORM_POWER = 0.9
-NORM_LOG_THRESHOLD = -12
+NORM_POWER = 1.5
+NORM_LOG_THRESHOLD = -6
 NORM_POWER_THRESHOLD = --power_and_threshold $(NORM_POWER) 1.0e$(NORM_LOG_THRESHOLD)
-NORM_AR = 5
-NORM_PROM = 6.1
+NORM_AR = 6
+NORM_PROM = 3.3
 NORM_MODEL = $(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom$(NORM_PROM)_masked
 
 # Power Threshold AR Prominence Norm Errors
@@ -49,8 +50,30 @@ NORM_MODEL = $(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(
 # 1.1   1.0e-6    4  5.0        2643
 # 0.9   1.0e-12   5  6.1        2539
 ########### Start using make_init.py ######
+# 1.5   1.0e-2    3  3.3        2825
 # 0.9   1.0e-12   6  6.1        2834
 # 0.9   1.0e-12   5  6.1        2869
+# 0.9   1.0e-12   5  3.2        2743
+# 1.6   1.0e-10   7  3.2        2679
+# 1.5   1.0e-6    6  3.3        2660
+
+# One must define variables before using them.
+
+AR_ORDERS = 1 2 3 4 5 6 7 8 9 10
+AR_MODELS = $(addsuffix _prom6_masked, $(addprefix two_ar, $(AR_ORDERS)))
+PROMINENCES = 3 3.5 4 4.5 5 5.5 5.7 5.8 5.9 5.95 6 6.05 6.1 6.2 6.3 6.4 6.5 7 7.5 8
+PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix $(MODELS)/two_ar5_prom, $(PROMINENCES)))
+
+NORM_PROMINENCES = 1.5 2 2.5 3 3.1 3.2 3.3 3.4 3.5 4 4.5 5
+
+# norm_power0.9threshold-12ar%prom6.1_masked
+NORM_AR_MODELS = $(addsuffix prom$(NORM_PROM)_masked, \
+$(addprefix norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar, $(AR_ORDERS)))
+
+# norm_power0.9threshold-12ar6prom%_masked
+NORM_PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix \
+$(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom, \
+$(NORM_PROMINENCES)))
 
 # config.pkl holds statistics derived from detected peaks
 config.pkl: config_stats.py
@@ -69,8 +92,6 @@ interval_pdfs.pdf: apnea_ratio.py config6.pkl
 analyze_peaks.pdf: analyze_peaks.py config6.pkl
 	python $^ --records $(APLUSNAMES) --figure_path $@
 
-AR_ORDERS = 1 2 3 4 5 6 7 8 9 10
-AR_MODELS = $(addsuffix _prom6_masked, $(addprefix two_ar, $(AR_ORDERS)))
 errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
 	python compare_models.py --models $(AR_MODELS) --parameters $(AR_ORDERS) \
 --parameter_name "AR order" --records $(APLUSNAMES) -- $@ > errors_vs_ar_order.txt
@@ -78,8 +99,6 @@ errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
 power_threshold.pdf: survey_power_threshold.py $(BEST_MODEL)
 	python $< --records $(APLUSNAMES) -- $(BEST_MODEL) $@ > power_threshold.txt
 
-PROMINENCES = 3 3.5 4 4.5 5 5.5 5.7 5.8 5.9 5.95 6 6.05 6.1 6.2 6.3 6.4 6.5 7 7.5 8
-PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix $(MODELS)/two_ar5_prom, $(PROMINENCES)))
 prominence_models: $(PROMINENCE_MODELS)
 	touch $@
 prominence_study.pdf: prominence_study.py prominence_models $(PROMINENCE_MODELS)
@@ -112,19 +131,8 @@ norm_analyze_peaks.pdf: analyze_peaks.py norm_config$(NORM_PROM).pkl
 norm_interval_pdfs.pdf: apnea_ratio.py norm_config$(NORM_PROM).pkl
 	python $< --records $(APLUSNAMES) --normalize norm_config$(NORM_PROM).pkl $@
 
-# One must define variables before using them.
-
-# norm_power0.9threshold-12ar%prom6.1_masked
-NORM_AR_MODELS = $(addsuffix prom$(NORM_PROM)_masked, \
-$(addprefix norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar, $(AR_ORDERS)))
-
-# norm_power0.9threshold-12ar6prom%_masked
-NORM_PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix \
-$(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom, \
-$(PROMINENCES)))
-
 norm_prominence_study.pdf: prominence_study.py $(NORM_PROMINENCE_MODELS)
-	python $< --prominences $(PROMINENCES) --template \
+	python $< --prominences $(NORM_PROMINENCES) --template \
 $(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom%_masked \
 --records $(APLUSNAMES) --fig_path $@ > norm_prominence_study.txt
 
@@ -188,17 +196,12 @@ config$*.pkl two_intervals $@
 $(MODELS)/two_ar%_prom6_initial: model_init.py config6.pkl
 	python $<  $(INIT_PARAMETERS) --AR_order $* config6.pkl two_intervals $@
 
-$(MODELS)/foo_ar%_initial: model_init.py config.pkl
-	python $<  --low_pass_period 8 \
---records $(APLUSNAMES) --alpha_beta 50.0 10.0 --AR_order $* \
- config.pkl two_intervals $@
-
 # EG If % were power1.5threshold-12ar5prom6.1, the code would issue
 # the following: python model_init.py --power_and_threshold 1.5
 # 1.0e-12 --AR_order 5 norm_config6.1.pkl two_normalized
 # ../../../../build/derived_data/apnea/models/norm_power1.5threshold-12ar5prom6.1_initial
 $(MODELS)/norm_%_initial: model_init.py config_stats.py make_init.py
-	python make_init.py $* $@
+	python make_init.py two_normalized $* $@
 
 $(MODELS)/intervals_ar%_initial: model_init.py config6.pkl
 	python $<  $(INIT_PARAMETERS) --AR_order $* \

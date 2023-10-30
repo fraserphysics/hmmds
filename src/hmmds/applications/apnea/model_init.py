@@ -26,7 +26,7 @@ def parse_args(argv):
     parser.add_argument("--alpha_beta",
                         type=float,
                         nargs=2,
-                        default=(1.0e1, 2.0e1),
+                        default=(5.0e1, 1.0e1),
                         help="Paramters of inverse gamma prior for variance")
     parser.add_argument('pickle', type=str, help='')
     parser.add_argument(

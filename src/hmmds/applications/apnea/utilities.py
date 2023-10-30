@@ -90,7 +90,7 @@ def common_arguments(parser: argparse.ArgumentParser):
     parser.add_argument(
         '--low_pass_period',
         type=float,
-        default=15.0,
+        default=8.0,
         help='Period in seconds of low pass filter for heart rate')
     parser.add_argument(
         '--band_pass_center',
