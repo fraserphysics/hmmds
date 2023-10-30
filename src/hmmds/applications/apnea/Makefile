@@ -28,15 +28,17 @@ DEFAULT_ARGS = --root $(ROOT) \
 
 # In model_init.py alpha_beta = 50 10
 
-INIT_PARAMETERS = --low_pass_period 8 --alpha_beta 50.0 10.0
 # Optimize pass2 parameters over these files classified as A or near
 # boundary by pass1.
 APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
 
-BEST_MODEL = $(MODELS)/two_ar5_prom6_masked
-MIN_PROMINENCE = 6
+POWER = 1.0
+LOG_THRESHOLD = -10
+POWER_THRESHOLD = --power_and_threshold $(POWER) 1.0e$(LOG_THRESHOLD)
+AR_ORDER = 5
+PROM = 4
+BEST_MODEL = $(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom$(PROM)_masked
 N_BINS = 5
-POWER_THRESHOLD = --power_and_threshold 1.6 1.0
 
 NORM_POWER = 1.5
 NORM_LOG_THRESHOLD = -6
@@ -60,9 +62,12 @@ NORM_MODEL = $(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(
 # One must define variables before using them.
 
 AR_ORDERS = 1 2 3 4 5 6 7 8 9 10
-AR_MODELS = $(addsuffix _prom6_masked, $(addprefix two_ar, $(AR_ORDERS)))
+AR_MODELS = $(addsuffix prom$(PROM)_masked, \
+$(addprefix two_power$(POWER)threshold$(LOG_THRESHOLD)ar, $(AR_ORDERS)))
 PROMINENCES = 3 3.5 4 4.5 5 5.5 5.7 5.8 5.9 5.95 6 6.05 6.1 6.2 6.3 6.4 6.5 7 7.5 8
-PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix $(MODELS)/two_ar5_prom, $(PROMINENCES)))
+PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix \
+$(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom, \
+$(PROMINENCES)))
 
 NORM_PROMINENCES = 1.5 2 2.5 3 3.1 3.2 3.3 3.4 3.5 4 4.5 5
 
@@ -77,7 +82,7 @@ $(NORM_PROMINENCES)))
 
 # config.pkl holds statistics derived from detected peaks
 config.pkl: config_stats.py
-	python $< --records $(APLUSNAMES) -- $(MIN_PROMINENCE) $@
+	python $< --records $(APLUSNAMES) -- $(PROM) $@
 
 # % is minimum threshold for detecting a prominence
 config%.pkl: config_stats.py
@@ -99,10 +104,10 @@ errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
 power_threshold.pdf: survey_power_threshold.py $(BEST_MODEL)
 	python $< --records $(APLUSNAMES) -- $(BEST_MODEL) $@ > power_threshold.txt
 
-prominence_models: $(PROMINENCE_MODELS)
-	touch $@
-prominence_study.pdf: prominence_study.py prominence_models $(PROMINENCE_MODELS)
-	python $< --prominences $(PROMINENCES) --template $(MODELS)/two_ar5_prom%_masked --records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
+prominence_study.pdf: prominence_study.py $(PROMINENCE_MODELS)
+	python $< --prominences $(PROMINENCES) --template \
+$(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom%_masked \
+--records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
 
 HR_FIGS = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf \
 prominence_study.pdf interval_pdfs.pdf analyze_peaks.pdf norm_power_threshold.pdf \
@@ -158,7 +163,7 @@ lengths.txt: test_alignment.py $(BEST_MODEL)
 
 # A table of pass2 performance on each a-file.
 two.tex: prominence_study.py $(BEST_MODEL)
-	python $< --prominences $(MIN_PROMINENCE) --template $(MODELS)/two_ar5_prom%_masked --latex $@
+	python $< --prominences $(PROM) --template $(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom%_masked --latex $@
 
 report.txt: cross_score.py $(MODELS)/masked_all_a
 	python $< --specific 1.0 > $@
@@ -189,12 +194,8 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 $(MODELS)/c_model: model_init.py config6.pkl
 	python $< config6.pkl c_model $@
 
-$(MODELS)/two_ar5_prom%_initial: model_init.py config%.pkl
-	python $< $(INIT_PARAMETERS) --AR_order 5 \
-config$*.pkl two_intervals $@
-
-$(MODELS)/two_ar%_prom6_initial: model_init.py config6.pkl
-	python $<  $(INIT_PARAMETERS) --AR_order $* config6.pkl two_intervals $@
+$(MODELS)/two_%_initial: model_init.py config_stats.py make_init.py
+	python make_init.py two_intervals $* $@
 
 # EG If % were power1.5threshold-12ar5prom6.1, the code would issue
 # the following: python model_init.py --power_and_threshold 1.5

@@ -55,7 +55,14 @@ def hmm_intervals(args):
 
 @register
 def two_intervals(args):
-    raise RuntimeError('Not implemented')
+    d = parse_pattern(args.pattern, 'power threshold ar prom')
+    make_config = f"make config{d['prom']}.pkl"
+    run_model_init = f"""
+      python model_init.py
+      --power_and_threshold {d['power']} 1.0e{d['threshold']}
+      --AR_order {d['ar']}
+      config{d['prom']}.pkl two_intervals {args.out}"""
+    return make_config, run_model_init
 
 
 @register
