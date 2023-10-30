@@ -396,11 +396,11 @@ def hmm_intervals(args, rng):
     # Make the one chain for modeling normal peaks
     normal_peak_prob = numpy.ones(peak_dimension) / n_boundaries
     normal_peak_prob[0] = 0
-    peak_chain('N_switch', 'N_chain', normal_class, args.config.normal_pdf, args, rng,
-               state_dict, normal_peak_prob)
+    peak_chain('N_switch', 'N_chain', normal_class, args.config.normal_pdf,
+               args, rng, state_dict, normal_peak_prob)
 
-    make_switch_noise(args, normal_class, ['N_chain_0'], state_dict, args.config.normal_pdf,
-                      peak_dimension, rng)
+    make_switch_noise(args, normal_class, ['N_chain_0'], state_dict,
+                      args.config.normal_pdf, peak_dimension, rng)
 
     # Set up discrete p_y for apnea peaks
     peak_probs = numpy.zeros((n_boundaries, peak_dimension))

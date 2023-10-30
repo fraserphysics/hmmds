@@ -31,7 +31,9 @@ def parse_args(argv):
                         help="Normalize heart rate signal")
     utilities.common_arguments(parser)
     parser.add_argument('--figure_path', type=str, help='path of file to write')
-    parser.add_argument('config_path', type=str, help='Path for statistics of peaks')
+    parser.add_argument('config_path',
+                        type=str,
+                        help='Path for statistics of peaks')
     args = parser.parse_args(argv)
     utilities.join_common(args)
     return args
@@ -112,7 +114,7 @@ def main(argv=None):
         records = args.records
     else:
         records = args.a_names
-        
+
     # Find peaks
     peak_dict = {0: [], 1: []}
     for record_name in records:

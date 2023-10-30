@@ -884,7 +884,7 @@ def peaks_intervals(args, record_names):
             min_prominence = args.min_prominence
 
         peak_times, properties = peaks(slow, args.heart_rate_sample_frequency,
-                                    min_prominence)
+                                       min_prominence)
         for index in range(len(peak_times) - 1):
             t_peak = peak_times[index]
             prominence_t = properties['prominences'][index]
@@ -894,7 +894,7 @@ def peaks_intervals(args, record_names):
 
     # Calculate boundaries for prominence based on peaks during apnea
     pp_array = numpy.array(peak_dict[apnea_key]).T
-    apnea_peaks = pp_array[0,:].copy()
+    apnea_peaks = pp_array[0, :].copy()
     apnea_peaks.sort()
     boundaries = []
     for i in range(0, args.n_bins):
@@ -902,7 +902,6 @@ def peaks_intervals(args, record_names):
         boundaries.append(apnea_peaks[index])
     boundaries[0] = min_prominence
     boundaries = numpy.array(boundaries)
-
 
     return peak_dict, boundaries, norm_sum / len(record_names)
 
