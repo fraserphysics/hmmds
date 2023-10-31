@@ -80,6 +80,25 @@ NORM_PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix \
 $(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom, \
 $(NORM_PROMINENCES)))
 
+N_CHAINS = 1 2 3 4 5 6
+CHAIN_MODELS = $(addsuffix _masked, $(addprefix \
+$(MODELS)/chains_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom$(PROM)bins, \
+$(N_CHAINS)))
+
+chain_errors_vs_number.pdf: compare_models.py $(CHAIN_MODELS)
+	python compare_models.py --models $(CHAIN_MODELS) --parameters $(N_CHAINS) \
+--parameter_name "N_chains" --records $(APLUSNAMES) \
+$(POWER_THRESHOLD) $@ > chain_errors_vs_number.txt
+
+NORMCHAIN_MODELS = $(addsuffix _masked, $(addprefix \
+$(MODELS)/normchains_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom$(PROM)bins, \
+$(N_CHAINS)))
+
+normchain_errors_vs_number.pdf: compare_models.py $(NORMCHAIN_MODELS)
+	python compare_models.py --models $(NORMCHAIN_MODELS) --parameters $(N_CHAINS) \
+--parameter_name "N_chains" --records $(APLUSNAMES) \
+$(POWER_THRESHOLD) $@ > normchain_errors_vs_number.txt
+
 # config.pkl holds statistics derived from detected peaks
 config.pkl: config_stats.py
 	python $< --records $(APLUSNAMES) -- $(PROM) $@
@@ -194,6 +213,13 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 $(MODELS)/c_model: model_init.py config6.pkl
 	python $< config6.pkl c_model $@
 
+# ../../../../build/derived_data/apnea/models/chains_power1.5threshold-12ar5prom6.1bins5_initial
+$(MODELS)/chains_%_initial: model_init.py config_stats.py make_init.py
+	python make_init.py multi_chain $* $@
+
+$(MODELS)/normchains_%_initial: model_init.py config_stats.py make_init.py
+	python make_init.py chains_normalized $* $@
+
 $(MODELS)/two_%_initial: model_init.py config_stats.py make_init.py
 	python make_init.py two_intervals $* $@
 
@@ -203,10 +229,6 @@ $(MODELS)/two_%_initial: model_init.py config_stats.py make_init.py
 # ../../../../build/derived_data/apnea/models/norm_power1.5threshold-12ar5prom6.1_initial
 $(MODELS)/norm_%_initial: model_init.py config_stats.py make_init.py
 	python make_init.py two_normalized $* $@
-
-$(MODELS)/intervals_ar%_initial: model_init.py config6.pkl
-	python $<  $(INIT_PARAMETERS) --AR_order $* \
-config6.pkl hmm_intervals $@
 
 $(MODELS)/%_masked: apnea_train.py $(MODELS)/%_initial
 	python $< --records $(APLUSNAMES) --iterations 10 $(MODELS)/$*_initial $@
@@ -230,7 +252,7 @@ clean:
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo NORM_PROMINENCE_MODELS: $(NORM_PROMINENCE_MODELS)
+	@echo CHAIN_MODELS: $(CHAIN_MODELS)
 	@echo NORM_MODEL: $(NORM_MODEL)
 
 ## help                           : Print comments on targets from makefile

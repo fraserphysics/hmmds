@@ -368,8 +368,7 @@ def make_switch_noise(args, int_class, chain_keys, state_dict,
                                    trainable=trainable)
 
 
-@register  # Joint observation includes values for peaks
-def hmm_intervals(args, rng):
+def _multi_chain(args, rng, read_y_class, read_raw_y):
     """Return an hmm for joint observations that include "peaks"
 
     """
@@ -384,8 +383,8 @@ def hmm_intervals(args, rng):
     #              /                   \
     # *************                     ************
 
-    args.read_y_class = utilities.read_slow_class_peak_interval
-    args.read_raw_y = utilities.read_slow_peak_interval
+    args.read_y_class = read_y_class
+    args.read_raw_y = read_raw_y
     n_boundaries = len(args.config.boundaries)
     peak_dimension = n_boundaries + 1  # Dimension of output for peaks
 
@@ -474,6 +473,27 @@ def two_chain(args, rng, read_y_class, read_raw_y):
         rng,
         truncate=args.AR_order)
     return result_hmm, state_dict, state_key2state_index
+
+
+@register  # Joint observation includes values for peaks
+def multi_chain(args, rng):
+    """Return an hmm for joint observations that include "peaks"
+
+    """
+    return _multi_chain(args, rng, utilities.read_slow_class_peak_interval,
+                        utilities.read_slow_peak_interval)
+
+
+@register
+def chains_normalized(args, rng):
+    """Return an hmm for joint observations with normalized heart rate
+
+    """
+
+    # Functions in utilities normalize heart rate if "'norm_avg' in args"
+    args.norm_avg = args.config.norm_avg
+    return _multi_chain(args, rng, utilities.read_slow_class_peak_interval,
+                        utilities.read_slow_peak_interval)
 
 
 @register

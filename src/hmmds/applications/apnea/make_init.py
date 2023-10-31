@@ -23,7 +23,9 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser("Map model name to parameter argunments")
-
+    parser.add_argument('--debug',
+                        action='store_true',
+                        help="Print issued commands to stdout")
     parser.add_argument('key',
                         type=str,
                         help='Determines type of model, eg, two_normalized')
@@ -49,8 +51,34 @@ def register(func):
 
 
 @register
-def hmm_intervals(args):
-    raise RuntimeError('Not implemented')
+def chains_normalized(args):
+    d = parse_pattern(args.pattern, 'power threshold ar prom bins')
+    norm_avg_config = f"config{d['prom']}.pkl"
+    make_pre_config = f"make {norm_avg_config}"
+    config = f"norm_config_prom{d['prom']}bins{d['bins']}.pkl"
+    make_config = f"python config_stats.py --n_bins {d['bins']} --normalize {norm_avg_config} {d['prom']} {config}"
+    run_model_init = f"""
+      python model_init.py
+      --power_and_threshold {d['power']} 1.0e{d['threshold']}
+      --AR_order {d['ar']}
+      {config} chains_normalized {args.out}"""
+    return make_pre_config, make_config, run_model_init
+
+
+@register
+def multi_chain(args):
+    """ --n_bins to config
+    multi_chain
+    """
+    d = parse_pattern(args.pattern, 'power threshold ar prom bins')
+    config = f"config_prom{d['prom']}bins{d['bins']}.pkl"
+    make_config = f"python config_stats.py --n_bins {d['bins']} {d['prom']} {config}"
+    run_model_init = f"""
+      python model_init.py
+      --power_and_threshold {d['power']} 1.0e{d['threshold']}
+      --AR_order {d['ar']}
+      {config} multi_chain {args.out}"""
+    return make_config, run_model_init
 
 
 @register
@@ -97,6 +125,12 @@ def main(argv=None):
 
     args = parse_args(argv)
     for call_string in MODELS[args.key](args):
+        if args.debug:
+            print(f'''
+from make_init.py issue:
+
+{call_string}
+''')
         subprocess.run(call_string.split(), check=True)
 
 
