@@ -47,6 +47,8 @@ NORM_AR = 6
 NORM_PROM = 3.3
 NORM_MODEL = $(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom$(NORM_PROM)_masked
 
+NORM_PROMINENCES = 1.5 2 2.5 3 3.1 3.2 3.3 3.4 3.5 4 4.5 5
+
 # Power Threshold AR Prominence Norm Errors
 # 1.5   1.0e-2    3  5.0        2623
 # 1.1   1.0e-6    4  5.0        2643
@@ -59,6 +61,15 @@ NORM_MODEL = $(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(
 # 1.6   1.0e-10   7  3.2        2679
 # 1.5   1.0e-6    6  3.3        2660
 
+NORMCHAIN_POWER = 10.5
+NORMCHAIN_LOG_THRESHOLD = -42
+NORMCHAIN_POWER_THRESHOLD = --power_and_threshold $(NORMCHAIN_POWER) 1.0e$(NORMCHAIN_LOG_THRESHOLD)
+NORMCHAIN_AR = 5
+NORMCHAIN_BINS = 6
+NORMCHAIN_PROM = 4.5
+NORMCHAIN_MODEL = $(MODELS)/normchains_power$(NORMCHAIN_POWER)threshold$(NORMCHAIN_LOG_THRESHOLD)ar$(NORM_CHAI_AR)prom$(NORMCHAIN_PROM)bins$(NORMCHAIN_BINS)_masked
+
+NORMCHAIN_PROMINENCES = 1.5 2 2.5 3 3.5 4 4.5 5 5.5 6 6.5
 # One must define variables before using them.
 
 AR_ORDERS = 1 2 3 4 5 6 7 8 9 10
@@ -68,8 +79,6 @@ PROMINENCES = 3 3.5 4 4.5 5 5.5 5.7 5.8 5.9 5.95 6 6.05 6.1 6.2 6.3 6.4 6.5 7 7.
 PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix \
 $(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom, \
 $(PROMINENCES)))
-
-NORM_PROMINENCES = 1.5 2 2.5 3 3.1 3.2 3.3 3.4 3.5 4 4.5 5
 
 # norm_power0.9threshold-12ar%prom6.1_masked
 NORM_AR_MODELS = $(addsuffix prom$(NORM_PROM)_masked, \
@@ -85,13 +94,20 @@ CHAIN_MODELS = $(addsuffix _masked, $(addprefix \
 $(MODELS)/chains_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom$(PROM)bins, \
 $(N_CHAINS)))
 
+NORMCHAIN_AR_MODELS = $(addsuffix prom$(NORMCHAIN_PROM)bins$(NORMCHAIN_BINS)_masked, \
+$(addprefix normchains_power$(NORMCHAIN_POWER)threshold$(NORMCHAIN_LOG_THRESHOLD)ar, $(AR_ORDERS)))
+
+NORMCHAIN_PROMINENCE_MODELS = $(addsuffix bins$(NORMCHAIN_BINS)_masked, $(addprefix \
+$(MODELS)/normchains_power$(NORMCHAIN_POWER)threshold$(NORMCHAIN_LOG_THRESHOLD)ar$(NORMCHAIN_AR)prom, \
+$(NORMCHAIN_PROMINENCES)))
+
 chain_errors_vs_number.pdf: compare_models.py $(CHAIN_MODELS)
 	python compare_models.py --models $(CHAIN_MODELS) --parameters $(N_CHAINS) \
 --parameter_name "N_chains" --records $(APLUSNAMES) \
 $(POWER_THRESHOLD) $@ > chain_errors_vs_number.txt
 
 NORMCHAIN_MODELS = $(addsuffix _masked, $(addprefix \
-$(MODELS)/normchains_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom$(PROM)bins, \
+$(MODELS)/normchains_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom$(NORMCHAIN_PROM)bins, \
 $(N_CHAINS)))
 
 normchain_errors_vs_number.pdf: compare_models.py $(NORMCHAIN_MODELS)
@@ -121,7 +137,7 @@ errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
 --parameter_name "AR order" --records $(APLUSNAMES) -- $@ > errors_vs_ar_order.txt
 
 power_threshold.pdf: survey_power_threshold.py $(BEST_MODEL)
-	python $< --records $(APLUSNAMES) -- $(BEST_MODEL) $@ > power_threshold.txt
+	python $< --powers 0.0 3.5 36 --thresholds -20.0 20.0 21 --records $(APLUSNAMES) -- $(BEST_MODEL) $@ > power_threshold.txt
 
 prominence_study.pdf: prominence_study.py $(PROMINENCE_MODELS)
 	python $< --prominences $(PROMINENCES) --template \
@@ -166,7 +182,7 @@ norm_errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NORM_AR
 $(NORM_POWER_THRESHOLD) $@ > norm_errors_vs_ar_order.txt
 
 norm_power_threshold.pdf: survey_power_threshold.py $(NORM_MODEL)
-	python $< --records $(APLUSNAMES) $(NORM_POWER_THRESHOLD) \
+	python $< --powers 0.0 3.5 36 --thresholds -20.0 20.0 21 --records $(APLUSNAMES) $(NORM_POWER_THRESHOLD) \
 $(NORM_MODEL) $@ > norm_power_threshold.txt
 
 norm_score.tex: score.py norm_pass2.out
@@ -175,6 +191,20 @@ norm_score.tex: score.py norm_pass2.out
 norm_pass2.out: pass2.py pass1.out $(NORM_MODEL) $(MODELS)/c_model
 	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(NORM_MODEL) $(NORM_POWER_THRESHOLD) pass1.out temp
 	cp temp $@
+
+normchain_errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NORMCHAIN_AR_MODELS))
+	python compare_models.py --models $(NORMCHAIN_AR_MODELS) --parameters $(AR_ORDERS) \
+--parameter_name "AR order" --records $(APLUSNAMES) \
+$(NORMCHAIN_POWER_THRESHOLD) $@ > normchain_errors_vs_ar_order.txt
+
+normchain_prominence_study.pdf: prominence_study.py $(NORMCHAIN_PROMINENCE_MODELS)
+	python $< --prominences $(NORM_PROMINENCES) --template \
+$(MODELS)/normchains_power$(NORMCHAIN_POWER)threshold$(NORMCHAIN_LOG_THRESHOLD)ar$(NORMCHAIN_AR)prom%bins$(NORMCHAIN_BINS)_masked \
+--records $(APLUSNAMES) --fig_path $@ > normchain_prominence_study.txt
+
+normchain_power_threshold.pdf: survey_power_threshold.py $(NORMCHAIN_MODEL)
+	python $< --powers 6.0 16.0 21 --thresholds -46.0 -36.0 21 --records $(APLUSNAMES) $(NORM_POWER_THRESHOLD) \
+$(NORMCHAIN_MODEL) $@ > normchain_power_threshold.txt
 
 # Lengths of time series for each training record
 lengths.txt: test_alignment.py $(BEST_MODEL)
@@ -252,7 +282,7 @@ clean:
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo CHAIN_MODELS: $(CHAIN_MODELS)
+	@echo NORMCHAIN_PROMINENCE_MODELS: $(NORMCHAIN_PROMINENCE_MODELS)
 	@echo NORM_MODEL: $(NORM_MODEL)
 
 ## help                           : Print comments on targets from makefile

@@ -20,6 +20,14 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Map (model,data):-> class sequence")
     utilities.common_arguments(parser)
+    parser.add_argument('--powers',
+                        type=str,
+                        nargs=3,
+                        help='Start, stop, number for range to evaluate')
+    parser.add_argument('--thresholds',
+                        type=str,
+                        nargs=3,
+                        help='Start, stop, number for range to evaluate')
     parser.add_argument('--record_name',
                         type=str,
                         default='a03',
@@ -137,8 +145,13 @@ def main(argv=None):
     fig, axeses = pyplot.subplots(nrows=2, figsize=(6, 8))
 
     min_power, min_threshold = args.power_and_threshold
-    powers = numpy.linspace(0.0, 3.5, 36)
-    exponents = numpy.linspace(-20.0, 20.0, 21)
+
+    def linspace(triple):
+        return numpy.linspace(float(triple[0]), float(triple[1]),
+                              int(triple[2]))
+
+    powers = linspace(args.powers)
+    exponents = linspace(args.thresholds)
     thresholds = numpy.exp(exponents * numpy.log(10))
 
     if args.records is None:

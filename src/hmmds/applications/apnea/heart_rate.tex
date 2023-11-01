@@ -292,7 +292,9 @@ These are the problematic records:
   \label{tab:score_initial}
 \end{table*}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Normalized Two Chain Models}
+\label{sec:norm_two}
+
 
 \begin{figure}
   \centering
@@ -309,47 +311,45 @@ These are the problematic records:
   \label{fig:norm_interval_pdfs}
 \end{figure}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \begin{figure}
   \centering
     \resizebox{0.8\textwidth}{!}{\includegraphics{norm_prominence_study.pdf}}
-    \caption{Error rate on the \emph{a} records for models with
-      varying prominence threshold with \textbf{normalized} heart rate
-      signals.}
+    \caption{Like \ref{fig:prominence_study} but for models with
+      \textbf{normalized} heart rate signals.}
   \label{fig:norm_prominence_study}
 \end{figure}
 
 \begin{figure}
   \centering
   \resizebox{0.8\textwidth}{!}{\includegraphics{norm_power_threshold.pdf}}
-    \caption{Error rate of model vs the weighting exponent and the
-      detection threshold with a model that \textbf{normalizes} the heart rate
-      signal on the \emph{a} records.}
+  \caption{Like Fig.~\ref{fig:power_threshold} but for a model with
+    \textbf{normalized} heart rate signals.}
   \label{fig:norm_power_threshold}
 \end{figure}
 
 \begin{figure}
   \centering
   \resizebox{0.8\textwidth}{!}{\includegraphics{norm_errors_vs_ar_order.pdf}}
-    \caption{A plot of error rate vs.\ AR order for the training
-      records in group \emph{A}.  Like Fig.~\ref{fig:errors_vs_ar_order}
-      but here heart rate data has been \textbf{normalized}.}
+    \caption{Like Fig.~\ref{fig:errors_vs_ar_order} but for models
+      with \textbf{normalized} heart rate signals.}
   \label{fig:norm_errors_vs_ar_order}
 \end{figure}
 
 \begin{table*}
   \centering
   \input{norm_score.tex}
-  \caption[Performance]{Performance of pass-1 combined with pass-2 on
-    training data with model norm\_ar5\_masked which \textbf{normalizes} the
-    heart rate signal for pass-2.}
+  \caption[Performance]{Like Table~\ref{tab:score_initial} but for a
+    model with \textbf{normalized} heart rate signals.}
   \label{tab:norm_score}
 \end{table*}
 
 \subsection{To Do}
 
 \begin{itemize}
-\item Try HMM with more chains for apnea peaks and vary the number of
-  peak sizes.
+\item Include results of multi-chain and normalized multi-chain models
+  in this document.
 \item Try using a respiration signal.
 \end{itemize}
 
