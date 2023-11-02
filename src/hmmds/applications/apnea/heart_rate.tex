@@ -258,31 +258,6 @@ Set the following parameters:
   \label{fig:errors_vs_ar_order}
 \end{figure}
 
-\subsection{Problematic Records}
-\label{sec:problematic_records}
-
-Based on Tables~\ref{tab:pass2performance} and~\ref{tab:score_initial}
-These are the problematic records:
-\begin{description}
-\item[a02] Peaks of small oscillations not detected.  Error rate is
-  0.31.  Not sure it could be much better.
-\item[a05] Complex oscillations (period 2 ish, maybe multi-chain would
-  fix) Should be possible to detect apnea that starts at 159.
-  \textbf{fixable}
-\item[a06] 360-370 looks \textbf{hopeless}.  I just don't see apnea vs
-  normal in the heart rate signal.
-\item[a09] The apnea that starts at 131 has large (60 to 71 cpm in
-  0.15 minutes) slow (.8 cpm?) oscillations.  193 to 200 no peaks
-  detected in complex apnea oscillation.  \textbf{Maybe fixable}
-\item[a11] At minutes 100 to 110 the peaks are not detected.  The
-  oscillations are high frequency and don't look like apnea to me.
-\item[a18] Apnea starts at 33 and I don't see it in the heart rate
-  signal.  It looks \textbf{hopeless} to me.
-\item[a20] Apnea starts at 50 and seems visible in HR signal,  The
-  oscillations are slow (.9 cpm).  At 355 oscillations are complex
-  (multi period).  \textbf{Fixable}
-\end{description}
-
 \begin{table*}
   \centering
   \input{score.tex}
@@ -346,6 +321,15 @@ These are the problematic records:
 
 \StudyFigs{norm}{with \textbf{normalized} heart rate signals}
 
+\subsection{Multi-Chain Models}
+\label{sec:multichain}
+
+Multiple chains for apnea heart rate signals without normalization.
+
+\StudyFigs{multichain}{with \textbf{different chains} for different prominences
+  of \textbf{unnormalized} heart rate signals}
+
+
 \subsection{Normalized Multi-Chain Models}
 \label{sec:normchains}
 
@@ -355,21 +339,27 @@ These are the problematic records:
 \subsection{To Do}
 
 \begin{itemize}
-\item Include results of multi-chain and normalized multi-chain models
-  in this document.
 \item Try using a respiration signal.
 \end{itemize}
 
-\begin{table*}
-  \centering
-  \input{two.tex}
-  \caption[Performance]{Performance of model \BestModel on the
-    \emph{a} records sorted by fraction of classification errors.
-    Records a09 and a18 could be marked all apnea based on their high
-    likelihood.  However it would be bad to treat x09 and x23 which
-    are near a09 in Fig.~\ref{fig:statistics} the same way.}
-  \label{tab:pass2performance}
-\end{table*}
+\subsubsection{Problematic Records}
+\label{sec:problematic_records}
+
+In Table~\ref{tab:norm_score} These are the records with more than 165
+errors:
+\begin{description}
+\item[a05 229] Complex oscillations (period 2 ish, maybe multi-chain would
+  fix) Should be possible to detect apnea that starts at 159.
+  \textbf{fixable}
+\item[a06 175] 360-370 looks \textbf{hopeless}.  I just don't see apnea vs
+  normal in the heart rate signal.
+\item[a15 178] Apnea starts at 33 and I don't see it in the heart rate
+  signal.  It looks \textbf{hopeless} to me.
+\item[a20 210] Apnea starts at 50 and seems visible in HR signal,  The
+  oscillations are slow (.9 cpm).  At 355 oscillations are complex
+  (multi period).  \textbf{Fixable}
+\item[b02 267] 
+\end{description}
 
 \section{Synchronization}
 \label{sec:sync}
