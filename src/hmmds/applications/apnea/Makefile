@@ -67,7 +67,7 @@ NORMCHAIN_POWER_THRESHOLD = --power_and_threshold $(NORMCHAIN_POWER) 1.0e$(NORMC
 NORMCHAIN_AR = 5
 NORMCHAIN_BINS = 6
 NORMCHAIN_PROM = 4.5
-NORMCHAIN_MODEL = $(MODELS)/normchains_power$(NORMCHAIN_POWER)threshold$(NORMCHAIN_LOG_THRESHOLD)ar$(NORM_CHAI_AR)prom$(NORMCHAIN_PROM)bins$(NORMCHAIN_BINS)_masked
+NORMCHAIN_MODEL = $(MODELS)/normchains_power$(NORMCHAIN_POWER)threshold$(NORMCHAIN_LOG_THRESHOLD)ar$(NORMCHAIN_AR)prom$(NORMCHAIN_PROM)bins$(NORMCHAIN_BINS)_masked
 
 NORMCHAIN_PROMINENCES = 1.5 2 2.5 3 3.5 4 4.5 5 5.5 6 6.5
 # One must define variables before using them.
@@ -144,19 +144,25 @@ prominence_study.pdf: prominence_study.py $(PROMINENCE_MODELS)
 $(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom%_masked \
 --records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
 
-HR_FIGS = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf \
+# HR_INCLUDES are items that are not in the INCLUDE_LIST pattern
+HR_INCLUDES = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf \
 prominence_study.pdf interval_pdfs.pdf analyze_peaks.pdf norm_power_threshold.pdf \
-norm_errors_vs_ar_order.pdf norm_analyze_peaks.pdf norm_interval_pdfs.pdf \
-norm_prominence_study.pdf norm_power_threshold.pdf
+two.tex score.tex lengths.txt
 
-heart_rate.pdf: heart_rate.tex  $(HR_FIGS) two.tex score.tex lengths.txt norm_score.tex
+# INCUDE_LIST matches StudyFigs in heart_rate.tex
+INCLUDE_LIST = _prominence_study.pdf _power_threshold.pdf _errors_vs_ar_order.pdf _score.tex
+NORM_INCLUDES = $(addprefix norm, $(INCLUDE_LIST))
+
+NORMCHAIN_INCLUDES = $(addprefix normchain, $(INCLUDE_LIST))
+
+heart_rate.pdf: heart_rate.tex  $(HR_INCLUDES) $(NORM_INCLUDES) $(NORMCHAIN_INCLUDES)
 	pdflatex $< ; pdflatex $<
 
 pass1.out: pass1.py
 	python $< --trim 20 --threshold .36 --model $(BEST_MODEL) $@
 
 pass2.out: pass2.py pass1.out $(BEST_MODEL) $(MODELS)/c_model
-	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(BEST_MODEL) pass1.out temp
+	python $< --model_paths $(MODELS)/c_model $(BEST_MODEL) pass1.out temp
 	cp temp $@
 
 score.txt: score.py pass2.out
@@ -198,13 +204,20 @@ normchain_errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NO
 $(NORMCHAIN_POWER_THRESHOLD) $@ > normchain_errors_vs_ar_order.txt
 
 normchain_prominence_study.pdf: prominence_study.py $(NORMCHAIN_PROMINENCE_MODELS)
-	python $< --prominences $(NORM_PROMINENCES) --template \
+	python $< --prominences $(NORMCHAIN_PROMINENCES) --template \
 $(MODELS)/normchains_power$(NORMCHAIN_POWER)threshold$(NORMCHAIN_LOG_THRESHOLD)ar$(NORMCHAIN_AR)prom%bins$(NORMCHAIN_BINS)_masked \
 --records $(APLUSNAMES) --fig_path $@ > normchain_prominence_study.txt
+
+normchain_pass2.out: pass2.py pass1.out $(NORMCHAIN_MODEL) $(MODELS)/c_model
+	python $< --model_paths $(MODELS)/c_model $(NORMCHAIN_MODEL) pass1.out temp
+	cp temp $@
 
 normchain_power_threshold.pdf: survey_power_threshold.py $(NORMCHAIN_MODEL)
 	python $< --powers 6.0 16.0 21 --thresholds -46.0 -36.0 21 --records $(APLUSNAMES) $(NORM_POWER_THRESHOLD) \
 $(NORMCHAIN_MODEL) $@ > normchain_power_threshold.txt
+
+normchain_score.tex: score.py normchain_pass2.out
+	python score.py --tex $(NORMCHAIN_POWER_THRESHOLD) normchain_pass2.out $@
 
 # Lengths of time series for each training record
 lengths.txt: test_alignment.py $(BEST_MODEL)

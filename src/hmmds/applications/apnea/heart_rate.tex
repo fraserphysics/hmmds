@@ -313,37 +313,44 @@ These are the problematic records:
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\newcommand{\StudyFigs}[2]{
 \begin{figure}
   \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{norm_prominence_study.pdf}}
-    \caption{Like \ref{fig:prominence_study} but for models with
-      \textbf{normalized} heart rate signals.}
-  \label{fig:norm_prominence_study}
+    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_prominence_study.pdf}}
+    \caption{Like Fig.~\ref{fig:prominence_study} but for models #2.}
+  \label{fig:#1_prominence_study}
 \end{figure}
 
 \begin{figure}
   \centering
-  \resizebox{0.8\textwidth}{!}{\includegraphics{norm_power_threshold.pdf}}
-  \caption{Like Fig.~\ref{fig:power_threshold} but for a model with
-    \textbf{normalized} heart rate signals.}
-  \label{fig:norm_power_threshold}
+  \resizebox{0.8\textwidth}{!}{\includegraphics{#1_power_threshold.pdf}}
+  \caption{Like Fig.~\ref{fig:power_threshold} but for a model #2.}
+  \label{fig:#1_power_threshold}
 \end{figure}
 
 \begin{figure}
   \centering
-  \resizebox{0.8\textwidth}{!}{\includegraphics{norm_errors_vs_ar_order.pdf}}
+  \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_ar_order.pdf}}
     \caption{Like Fig.~\ref{fig:errors_vs_ar_order} but for models
-      with \textbf{normalized} heart rate signals.}
-  \label{fig:norm_errors_vs_ar_order}
+      #2.}
+  \label{fig:#1_errors_vs_ar_order}
 \end{figure}
 
 \begin{table*}
   \centering
-  \input{norm_score.tex}
+  \input{#1_score.tex}
   \caption[Performance]{Like Table~\ref{tab:score_initial} but for a
-    model with \textbf{normalized} heart rate signals.}
-  \label{tab:norm_score}
-\end{table*}
+    model #2.}
+  \label{tab:#1_score}
+\end{table*}}
+
+\StudyFigs{norm}{with \textbf{normalized} heart rate signals}
+
+\subsection{Normalized Multi-Chain Models}
+\label{sec:normchains}
+
+\StudyFigs{normchain}{with \textbf{different chains} for different prominences
+  of \textbf{normalized} heart rate signals}
 
 \subsection{To Do}
 
