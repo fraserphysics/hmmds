@@ -106,11 +106,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         ecg = pyqtgraph.GraphicsLayoutWidget(title="ECG")
         ecg_plot = ecg.addPlot()
         ecg_plot.addLegend()
-        self.ecg_dict = {
-            'curves': [
-                ecg_plot.plot(pen='g', name='ecg')
-            ]
-        }
+        self.ecg_dict = {'curves': [ecg_plot.plot(pen='g', name='ecg')]}
 
         hr = pyqtgraph.GraphicsLayoutWidget(title="Heart Rate")
         hr_plot = hr.addPlot()
@@ -135,11 +131,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         class_ = pyqtgraph.GraphicsLayoutWidget(title="Classification")
         class_plot = class_.addPlot()
         class_plot.addLegend()
-        self.class_dict = {
-            'curves': [
-                class_plot.plot(pen='r', name='expert')
-            ]
-        }
+        self.class_dict = {'curves': [class_plot.plot(pen='r', name='expert')]}
 
         # Layout plot section
         for widget in (ecg, hr, filter, class_):
@@ -213,9 +205,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         each other
 
         """
+        record_name = f'{self.record_box.text()}'
         # Read ECG
         prefix = os.path.join(self.root_box.text(), 'raw_data/Rtimes',
-                              f'{self.record_box.text()}')
+                              record_name)
         with open(prefix + '.ecg', 'rb') as _file:
             _dict = pickle.load(_file)
         self.ecg = _dict['raw']
@@ -224,16 +217,17 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Read heart rate
         with open(self.signal_path('heart_rate'), 'rb') as _file:
             pickle_dict = pickle.load(_file)
+        sample_frequency = pickle_dict['sample_frequency']
         self.hr_signal = pickle_dict['hr'].to('1/minute').magnitude
         self.hr_notch = utilities.notch_hr(self.hr_signal)
-        self.hr_times = numpy.arange(len(
-            self.hr_signal)) / pickle_dict['sample_frequency']
+        self.hr_times = numpy.arange(len(self.hr_signal)) / sample_frequency
 
         # Calculate spectral filters using fft method in utilities
-        #self.filters = utilities.read_slow_fast_respiration(
-        #    self.model.args, self.record_box.text())
-        #self.filters['times'] = numpy.arange(len(
-        #    self.filters['slow'])) / self.filters['sample_frequency']
+        divisor = utilities.Pass1(record_name,
+                                  self.args).statistic_2() / self.args.norm_avg
+        #divisor = 1.0
+        self.filters = utilities.hr_2_respiration(self.hr_signal / divisor,
+                                                  1 / sample_frequency)
 
     def plot_ecg(self):
         """"""
@@ -251,7 +245,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                            ):
         record_name = self.record_box.text()
         if record_name[0] == 'x':
-            expert_class = numpy.ones(480)*.5
+            expert_class = numpy.ones(480) * .5
         else:
             expert_class = utilities.read_expert(self.args.expert, record_name)
         expert_times = numpy.arange(len(expert_class)) * PINT('minutes')
@@ -262,12 +256,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         """plot spectral filters
 
         """
-        return
         self.filter_dict['signals'] = [
-            (self.filters['times'], self.slow),
-            (self.filters['times'], 2 * self.filters['fast']),
-            (self.filters['times'], 2 * self.filters['respiration']),
-            (self.hr_peak_times, self.hr_peaks),
+            (self.filters['times'], self.filters['fast']),
+            (self.filters['times'], self.filters['respiration'])
         ]
         self.plot_window(**self.filter_dict)
 

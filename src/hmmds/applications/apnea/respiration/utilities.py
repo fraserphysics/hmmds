@@ -127,6 +127,7 @@ def join_common(args: argparse.Namespace):
     args.c_names = [f'c{i:02d}' for i in range(1, 11)]
     args.x_names = [f'x{i:02d}' for i in range(1, 36)]
     args.all_names = args.a_names + args.b_names + args.c_names + args.x_names
+    args.norm_avg = 1198.4863330917258
 
 
 def parse_args(argv):
@@ -313,47 +314,84 @@ def peaks(
     return peaks_, properties
 
 
-def filter_hr(raw_hr: numpy.ndarray,
-              sample_period: float,
-              low_pass_width,
-              bandpass_center,
-              skip=1,
-              custom=None) -> dict:
-    """ Calculate filtered heart rate
+def hr_2_respiration(
+    raw_hr: numpy.ndarray,
+    sample_period_in,
+    sample_period_out=PINT('minute') / 40,
+    bandpass_center=15 / PINT('minute'),
+    band_pass_width=3 / PINT('minute')
+) -> dict:
+    """Calculate filtered heart rate
  
     Args:
         raw_hr:
         sample_period:
-        low_pass_width:
-        bandpass_center:  To capture 14 cycle per minute respiration
+        bandpass_center:
+        band_pass_width:
 
-    Return: {'slow': x, 'fast': y, 'respiration':z}
+    Return: {'filtered': y, 'envelope': z, 'times':t}
+
+    The number and times of samples in y and z match the input raw_hr.
+
     """
 
+    def seconds(time):
+        return time.to('s').magnitude
+
+    skip = int(seconds(sample_period_out) / seconds(sample_period_in))
+    # Check for float -> int trouble
+    assert skip * seconds(sample_period_in) == seconds(
+        sample_period_out
+    ), f'{skip=} {seconds(sample_period_out)=} {seconds(sample_period_in)=}'
     n = len(raw_hr)
     HR = numpy.fft.rfft(raw_hr, 131072)
-    low_pass = numpy.fft.irfft(
-        window(HR, sample_period, 0 / sample_period, low_pass_width))
-    BP = window(HR, sample_period, bandpass_center, low_pass_width)
+    BP = window(HR, sample_period_in, bandpass_center, band_pass_width)
     band_pass = numpy.fft.irfft(BP)
-    SBP = window(HR, sample_period, bandpass_center, low_pass_width, shift=True)
-    shift = numpy.fft.irfft(SBP)
-    TEMP = numpy.fft.rfft(numpy.sqrt(shift * shift + band_pass * band_pass),
-                          131072)
-    respiration = numpy.fft.irfft(
-        window(TEMP, sample_period, 0 / sample_period, low_pass_width / 2))
 
-    result = {
-        'slow': low_pass[:n:skip],
+    # This block calculates a positive envelope of band_pass.  FixMe:
+    # I'm not sure it's right.  SBP is spectral domain of band pass
+    # shifted by pi/2
+    SBP = window(HR,
+                 sample_period_in,
+                 bandpass_center,
+                 band_pass_width,
+                 shift=True)
+    shifted = numpy.fft.irfft(SBP)
+    RESPIRATION = numpy.fft.rfft(
+        numpy.sqrt(shifted * shifted + band_pass * band_pass), 131072)
+    envelope = numpy.fft.irfft(RESPIRATION)
+    respiration = numpy.fft.irfft(
+        window(RESPIRATION, sample_period_in, 0 / sample_period_in,
+               band_pass_width / 1))
+
+    return {
         'fast': band_pass[:n:skip],
-        'respiration': respiration[:n:skip]
+        'respiration': respiration[:n:skip],
+        'times': numpy.arange(n // skip) * sample_period_out
     }
-    if not isinstance(custom, tuple):
-        return result
-    C = window(HR, sample_period, custom[0], custom[1])
-    c = numpy.fft.irfft(C)
-    result[custom[2]] = (C, c)
-    return result
+
+
+def read_hr(args, record_name):
+    """Verify format of pickled heart rate and return as array
+
+    Args:
+        args: Provides args.heart_rate_path_format
+        record_name: EG, 'a01'
+
+    Return: (raw_hr, sample_frequency)
+
+    raw_hr is a numpy array with ~8 hours at 2Hz, ~57,600 samples
+    sample_frequency is 2 Hz as a pint quantity
+    """
+    path = args.heart_rate_path_format.format(record_name)
+    with open(path, 'rb') as _file:
+        _dict = pickle.load(_file)
+    assert set(_dict.keys()) == set('hr sample_frequency'.split())
+    sample_frequency = _dict['sample_frequency']
+    assert sample_frequency.to('Hz').magnitude == 2
+    raw_hr = _dict['hr'].to('1/minute').magnitude
+
+    return raw_hr, sample_frequency
 
 
 def read_slow_fast_respiration(args, name='a03'):
@@ -980,6 +1018,8 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     args = parse_args(argv)
+    read_hr(args, 'a01')
+    return 0
     for key, value in args.__dict__.items():
         print(f'{key}: {value}')
 
