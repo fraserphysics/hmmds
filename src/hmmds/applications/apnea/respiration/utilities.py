@@ -192,7 +192,7 @@ def read_expert(path: str, name: str) -> numpy.ndarray:
 
     """
     mark_dict = {'N': 0, 'A': 1}
-    with open(path, 'r') as data_file:
+    with open(path, encoding='utf-8', mode='r') as data_file:
 
         # Skip to line that starts with name
         line = data_file.readline()
@@ -394,6 +394,26 @@ def read_hr(args, record_name):
     return raw_hr, sample_frequency
 
 
+def read_respiration(args, record_name, normalize=False):
+    raw_hr, f_sample_in = read_hr(args, record_name)
+    if normalize:
+        divisor = Pass1(record_name, args).statistic_2() / self.args.norm_avg
+        raw_hr /= divisor
+    return {
+        'respiration':
+            hr_2_respiration(raw_hr, 1 / f_sample_in,
+                             1 / args.heart_rate_sample_frequency)
+            ['respiration']
+    }
+
+
+def read_respiration_class(args, record_name):
+    raw_dict = read_respiration(args, record_name)
+    result = add_class(args, record_name, raw_dict)
+    assert set(result.keys()) == set('respiration class'.split())
+    return result
+
+
 def read_slow_fast_respiration(args, name='a03'):
     """Read heart rate and return three filtered versions
     """
@@ -492,6 +512,29 @@ def read_slow_class(args, name='a03'):
     for key, value in raw_dict.items():
         raw_dict[key] = value[:length]
     return raw_dict
+
+
+def procrustes(raw_dict):
+    """ Shorten all values to match the shortest one
+    """
+    new_length = min(list(len(value) for value in raw_dict.values()))
+    for key, value in raw_dict.items():
+        raw_dict[key] = value[:new_length]
+    return raw_dict
+
+
+def add_class(args, record_name, raw_dict):
+    """Add key item 'expert':values to raw_dict
+
+    """
+
+    f_s_float = args.heart_rate_sample_frequency.to('1/minute').magnitude
+    samples_per_minute = int(f_s_float)
+    assert f_s_float - samples_per_minute == 0.0, f'Conversion error: {f_s_float=} {samples_per_minute=}'
+    path = os.path.join(args.root, 'raw_data/apnea/summary_of_training')
+    raw_dict['class'] = read_expert(path,
+                                    record_name).repeat(samples_per_minute)
+    return procrustes(raw_dict)
 
 
 def add_peaks(args, raw_dict):
