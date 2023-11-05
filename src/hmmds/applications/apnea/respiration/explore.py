@@ -219,7 +219,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             pickle_dict = pickle.load(_file)
         sample_frequency = pickle_dict['sample_frequency']
         self.hr_signal = pickle_dict['hr'].to('1/minute').magnitude
-        self.hr_notch = utilities.notch_hr(self.hr_signal)
+        notch = (12 * PINT('1/minute'), 18 * PINT('1/minute'))
+        top_freq = 3 * PINT('1/minute')
+        self.hr_notch = utilities.notch_hr(self.hr_signal, 1 / sample_frequency,
+                                           notch, top_freq)
         self.hr_times = numpy.arange(len(self.hr_signal)) / sample_frequency
 
         # Calculate spectral filters using fft method in utilities

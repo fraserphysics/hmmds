@@ -249,7 +249,7 @@ def window(F: numpy.ndarray,
 def notch_hr(
     raw_hr: numpy.ndarray,
     sample_period=.5 * PINT('seconds'),
-    notch=(50 * PINT('1/minutes'), 175 * PINT('1/minutes')),
+    notch=(12 * PINT('1/minutes'), 18 * PINT('1/minutes')),
     top=-1 * PINT('1/minutes')
 ) -> numpy.ndarray:
     """Calculate filtered heart rate
@@ -272,7 +272,8 @@ def notch_hr(
     HR = numpy.fft.rfft(raw_hr, 131072)
 
     omega_max = (numpy.pi / sample_period).to('Hz').magnitude
-    n_low, n_high, n_top = (int(len(HR) * (x / omega_max).to('Hz').magnitude)
+    n_low, n_high, n_top = (int(
+        len(HR) * (2 * numpy.pi * x / omega_max).to('Hz').magnitude)
                             for x in notch + (top,))
 
     HR[n_low:n_high] = 0.0
@@ -319,7 +320,7 @@ def hr_2_respiration(
     sample_period_in,
     sample_period_out=PINT('minute') / 40,
     bandpass_center=15 / PINT('minute'),
-    band_pass_width=3 / PINT('minute')
+    bandpass_width=3 / PINT('minute')
 ) -> dict:
     """Calculate filtered heart rate
  
@@ -327,13 +328,16 @@ def hr_2_respiration(
         raw_hr:
         sample_period:
         bandpass_center:
-        band_pass_width:
+        bandpass_width:
 
     Return: {'filtered': y, 'envelope': z, 'times':t}
 
     The number and times of samples in y and z match the input raw_hr.
 
     """
+
+    omega_center = bandpass_center * 2 * numpy.pi
+    omega_width = bandpass_width * 2 * numpy.pi
 
     def seconds(time):
         return time.to('s').magnitude
@@ -345,27 +349,23 @@ def hr_2_respiration(
     ), f'{skip=} {seconds(sample_period_out)=} {seconds(sample_period_in)=}'
     n = len(raw_hr)
     HR = numpy.fft.rfft(raw_hr, 131072)
-    BP = window(HR, sample_period_in, bandpass_center, band_pass_width)
-    band_pass = numpy.fft.irfft(BP)
+    BP = window(HR, sample_period_in, omega_center, omega_width)
+    bandpass = numpy.fft.irfft(BP)
 
-    # This block calculates a positive envelope of band_pass.  FixMe:
+    # This block calculates a positive envelope of bandpass.  FixMe:
     # I'm not sure it's right.  SBP is spectral domain of band pass
     # shifted by pi/2
-    SBP = window(HR,
-                 sample_period_in,
-                 bandpass_center,
-                 band_pass_width,
-                 shift=True)
+    SBP = window(HR, sample_period_in, omega_center, omega_width, shift=True)
     shifted = numpy.fft.irfft(SBP)
     RESPIRATION = numpy.fft.rfft(
-        numpy.sqrt(shifted * shifted + band_pass * band_pass), 131072)
+        numpy.sqrt(shifted * shifted + bandpass * bandpass), 131072)
     envelope = numpy.fft.irfft(RESPIRATION)
     respiration = numpy.fft.irfft(
         window(RESPIRATION, sample_period_in, 0 / sample_period_in,
-               band_pass_width / 1))
+               omega_width / 2))
 
     return {
-        'fast': band_pass[:n:skip],
+        'fast': bandpass[:n:skip],
         'respiration': respiration[:n:skip],
         'times': numpy.arange(n // skip) * sample_period_out
     }
