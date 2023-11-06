@@ -124,9 +124,24 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.filter_dict = {
             'curves': [
                 filter_plot.plot(pen='r', name='fast'),
-                filter_plot.plot(pen='y', name='resp')
+                filter_plot.plot(pen='y', name='envelope')
             ]
         }
+        resp = pyqtgraph.GraphicsLayoutWidget(title="Resp")
+        resp_plot = resp.addPlot()
+        resp_plot.addLegend()
+        self.resp_dict = {
+            'curves': [
+                resp_plot.plot(pen='r', name='resp_a'),
+                resp_plot.plot(pen='y', name='resp_c'),
+                resp_plot.plot(pen='g', name='resp_n')
+            ]
+        }
+
+        SpO2_ = pyqtgraph.GraphicsLayoutWidget(title="Classification")
+        SpO2_plot = SpO2_.addPlot()
+        SpO2_plot.addLegend()
+        self.SpO2_dict = {'curves': [SpO2_plot.plot(pen='r', name='SpO2')]}
 
         class_ = pyqtgraph.GraphicsLayoutWidget(title="Classification")
         class_plot = class_.addPlot()
@@ -134,7 +149,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.class_dict = {'curves': [class_plot.plot(pen='r', name='expert')]}
 
         # Layout plot section
-        for widget in (ecg, hr, filter, class_):
+        for widget in (ecg, hr, filter, resp, SpO2_, class_):
             plot_layout.addWidget(widget)
 
         # Make self the central widget
@@ -145,7 +160,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
     def update_plots(self  # MainWindow
                     ):
         for _dict in (self.ecg_dict, self.hr_dict, self.filter_dict,
-                      self.class_dict):
+                      self.resp_dict, self.SpO2_dict, self.class_dict):
             self.plot_window(**_dict)
 
     def open_file_dialog(self, directory=None):
@@ -190,6 +205,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_ecg()
         self.plot_hr()
         self.plot_filter()
+        self.plot_resp()
+        self.plot_SpO2()
         self.plot_classification()
 
     def signal_path(self, signal):
@@ -214,23 +231,32 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.ecg = _dict['raw']
         self.ecg_times = _dict['times'] * PINT('seconds')
 
+        top_freq = 2 * PINT('1/minute')  # Used in both hr_notch and
+        # respiration derived from
+        # heart rate
+
         # Read heart rate
         with open(self.signal_path('heart_rate'), 'rb') as _file:
             pickle_dict = pickle.load(_file)
         sample_frequency = pickle_dict['sample_frequency']
         self.hr_signal = pickle_dict['hr'].to('1/minute').magnitude
         notch = (12 * PINT('1/minute'), 18 * PINT('1/minute'))
-        top_freq = 3 * PINT('1/minute')
         self.hr_notch = utilities.notch_hr(self.hr_signal, 1 / sample_frequency,
                                            notch, top_freq)
         self.hr_times = numpy.arange(len(self.hr_signal)) / sample_frequency
 
         # Calculate spectral filters using fft method in utilities
+        # with normalization for amplitude of heart rate signal.
         divisor = utilities.Pass1(record_name,
                                   self.args).statistic_2() / self.args.norm_avg
-        #divisor = 1.0
-        self.filters = utilities.hr_2_respiration(self.hr_signal / divisor,
-                                                  1 / sample_frequency)
+        self.filters = utilities.hr_2_respiration(
+            self.hr_signal / divisor,
+            1 / sample_frequency,
+            sample_period_out=PINT('minute') / 120,
+            bandpass_center=17 / PINT('minute'),
+            bandpass_width=3 / PINT('minute'),
+            smooth_width=top_freq,
+        )
 
     def plot_ecg(self):
         """"""
@@ -244,6 +270,54 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                                    (self.hr_times, self.hr_notch)]
         self.plot_window(**self.hr_dict)
 
+    def plot_filter(self):
+        """plot spectral filters
+
+        """
+        self.filter_dict['signals'] = [
+            (self.filters['times'], self.filters['fast']),
+            (self.filters['times'], self.filters['respiration'])
+        ]
+        self.plot_window(**self.filter_dict)
+
+    def plot_resp(self):
+        """plot wfdb respiration signals
+
+        """
+        record_name = self.record_box.text()
+        if record_name not in 'a01 a02 a03 a04 b01 c01 c02 c03'.split():
+            signals = (numpy.ones(480) * .5,) * 3
+            times = numpy.arange(480) * PINT('minutes')
+        else:
+            with open(f'../../../../../raw_data/apnea/ers/{record_name}er.pkl',
+                      'rb') as _file:
+                record_dict = pickle.load(_file)
+            freq, unit = record_dict['sample_frequency']
+            sample_frequency = freq * PINT(unit)
+            signals = tuple(
+                record_dict[x] for x in ('Resp A', 'Resp C', 'Resp N'))
+            times = numpy.arange(len(signals[0])) / sample_frequency
+
+        self.resp_dict['signals'] = [(times, signal) for signal in signals]
+        self.plot_window(**self.resp_dict)
+
+    def plot_SpO2(self  # MainWindow
+                 ):
+        record_name = self.record_box.text()
+        if record_name not in 'a01 a02 a03 a04 b01 c01 c02 c03'.split():
+            signal = numpy.ones(480) * .5
+            times = numpy.arange(480) * PINT('minutes')
+        else:
+            with open(f'../../../../../raw_data/apnea/ers/{record_name}er.pkl',
+                      'rb') as _file:
+                record_dict = pickle.load(_file)
+            freq, unit = record_dict['sample_frequency']
+            sample_frequency = freq * PINT(unit)
+            signal = record_dict['SpO2']
+            times = numpy.arange(len(signal)) / sample_frequency
+        self.SpO2_dict['signals'] = [(times, signal)]
+        self.plot_window(**self.SpO2_dict)
+
     def plot_classification(self  # MainWindow
                            ):
         record_name = self.record_box.text()
@@ -254,16 +328,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         expert_times = numpy.arange(len(expert_class)) * PINT('minutes')
         self.class_dict['signals'] = [(expert_times, expert_class)]
         self.plot_window(**self.class_dict)
-
-    def plot_filter(self):
-        """plot spectral filters
-
-        """
-        self.filter_dict['signals'] = [
-            (self.filters['times'], self.filters['fast']),
-            (self.filters['times'], self.filters['respiration'])
-        ]
-        self.plot_window(**self.filter_dict)
 
 
 class Variable(PyQt5.QtWidgets.QWidget):

@@ -320,15 +320,17 @@ def hr_2_respiration(
     sample_period_in,
     sample_period_out=PINT('minute') / 40,
     bandpass_center=15 / PINT('minute'),
-    bandpass_width=3 / PINT('minute')
+    bandpass_width=3 / PINT('minute'),
+    smooth_width=1.5 / PINT('minute')
 ) -> dict:
     """Calculate filtered heart rate
  
     Args:
-        raw_hr:
-        sample_period:
-        bandpass_center:
-        bandpass_width:
+        raw_hr: Array of estimated hear rates
+        sample_period: pint quantity. Time between raw_hr samples
+        bandpass_center: Center frequency of respiration filter
+        bandpass_width: width of respiration filter
+        smooth_width: For smoothing amplitude of envelope
 
     Return: {'filtered': y, 'envelope': z, 'times':t}
 
@@ -338,6 +340,7 @@ def hr_2_respiration(
 
     omega_center = bandpass_center * 2 * numpy.pi
     omega_width = bandpass_width * 2 * numpy.pi
+    omega_smooth = smooth_width * 2 * numpy.pi
 
     def seconds(time):
         return time.to('s').magnitude
@@ -362,7 +365,7 @@ def hr_2_respiration(
     envelope = numpy.fft.irfft(RESPIRATION)
     respiration = numpy.fft.irfft(
         window(RESPIRATION, sample_period_in, 0 / sample_period_in,
-               omega_width / 2))
+               omega_smooth))
 
     return {
         'fast': bandpass[:n:skip],
