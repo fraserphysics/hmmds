@@ -95,7 +95,12 @@ def common_arguments(parser: argparse.ArgumentParser):
     parser.add_argument(
         '--band_pass_center',
         type=float,
-        default=14.0,
+        default=16.0,
+        help='Frequency in cycles per minute for heart rate -> respiration')
+    parser.add_argument(
+        '--band_pass_width',
+        type=float,
+        default=4.0,
         help='Frequency in cycles per minute for heart rate -> respiration')
 
 
@@ -121,9 +126,10 @@ def join_common(args: argparse.Namespace):
     args.trim_start *= PINT('minutes')
     args.low_pass_period *= PINT('seconds')
     args.band_pass_center /= PINT('minutes')
+    args.band_pass_width /= PINT('minutes')
 
     args.a_names = [f'a{i:02d}' for i in range(1, 21)]
-    args.b_names = [f'b{i:02d}' for i in range(1, 5)]
+    args.b_names = [f'b{i:02d}' for i in range(1, 5)]  #b05 is no good
     args.c_names = [f'c{i:02d}' for i in range(1, 11)]
     args.x_names = [f'x{i:02d}' for i in range(1, 36)]
     args.all_names = args.a_names + args.b_names + args.c_names + args.x_names
@@ -315,6 +321,22 @@ def peaks(
     return peaks_, properties
 
 
+def calculate_skip(sample_period_in, sample_period_out):
+    """Calculate integer decimation factor
+
+    """
+
+    def seconds(time):
+        return time.to('s').magnitude
+
+    skip = int(seconds(sample_period_out) / seconds(sample_period_in))
+    # Check for float -> int trouble
+    assert skip * seconds(sample_period_in) == seconds(
+        sample_period_out
+    ), f'{skip=} {seconds(sample_period_out)=} {seconds(sample_period_in)=}'
+    return skip
+
+
 def hr_2_respiration(
     raw_hr: numpy.ndarray,
     sample_period_in,
@@ -342,14 +364,6 @@ def hr_2_respiration(
     omega_width = bandpass_width * 2 * numpy.pi
     omega_smooth = smooth_width * 2 * numpy.pi
 
-    def seconds(time):
-        return time.to('s').magnitude
-
-    skip = int(seconds(sample_period_out) / seconds(sample_period_in))
-    # Check for float -> int trouble
-    assert skip * seconds(sample_period_in) == seconds(
-        sample_period_out
-    ), f'{skip=} {seconds(sample_period_out)=} {seconds(sample_period_in)=}'
     n = len(raw_hr)
     HR = numpy.fft.rfft(raw_hr, 131072)
     BP = window(HR, sample_period_in, omega_center, omega_width)
@@ -367,6 +381,7 @@ def hr_2_respiration(
         window(RESPIRATION, sample_period_in, 0 / sample_period_in,
                omega_smooth))
 
+    skip = calculate_skip(sample_period_in, sample_period_out)
     return {
         'fast': bandpass[:n:skip],
         'respiration': respiration[:n:skip],
@@ -400,7 +415,7 @@ def read_hr(args, record_name):
 def read_respiration(args, record_name, normalize=False):
     raw_hr, f_sample_in = read_hr(args, record_name)
     if normalize:
-        divisor = Pass1(record_name, args).statistic_2() / self.args.norm_avg
+        divisor = Pass1(record_name, args).statistic_2() / args.norm_avg
         raw_hr /= divisor
     return {
         'respiration':
@@ -414,6 +429,52 @@ def read_respiration_class(args, record_name):
     raw_dict = read_respiration(args, record_name)
     result = add_class(args, record_name, raw_dict)
     assert set(result.keys()) == set('respiration class'.split())
+    return result
+
+
+def read_lphr_respiration(args, record_name, normalize=False) -> numpy.ndarray:
+    """read two data dimensions  and return it in format for VARG model
+
+    Return: result with result.shape = (T,2) and result[t] =
+    [heart_rate, respiration]
+
+    """
+    top_freq = 1 / args.low_pass_period  # For low pass filter
+    notch = (12 * PINT('1/minute'), 18 * PINT('1/minute'))  # Dummy here
+
+    raw_hr, f_sample_in = read_hr(args, record_name)
+    skip = calculate_skip(1 / f_sample_in, 1 / args.heart_rate_sample_frequency)
+    result = numpy.empty((len(raw_hr) // skip + 1, 2))
+
+    # respiration derived from heart rate
+    if normalize:
+        divisor = Pass1(record_name, args).statistic_2() / args.norm_avg
+        raw_hr /= divisor
+    result[:, 0] = notch_hr(raw_hr, 1 / f_sample_in, notch, top_freq)[::skip]
+    result[:, 1] = hr_2_respiration(
+        raw_hr,
+        1 / f_sample_in,
+        1 / args.heart_rate_sample_frequency,
+        bandpass_center=args.band_pass_center,
+        bandpass_width=args.band_pass_width,
+        smooth_width=top_freq,
+    )['respiration']
+
+    if args.AR_order is None:
+        return {'hr_respiration': result}
+    # Now pad front of result to compensate for AR-order
+    pad = args.AR_order
+    padded = numpy.empty((len(result) + pad, 2))
+    padded[:pad] = result[0]
+    padded[pad:] = result
+
+    return {'hr_respiration': padded}
+
+
+def read_lphr_respiration_class(args, record_name, normalize=False):
+    raw_dict = read_lphr_respiration(args, record_name, normalize)
+    result = add_class(args, record_name, raw_dict)
+    assert set(result.keys()) == set('hr_respiration class'.split())
     return result
 
 
@@ -517,15 +578,6 @@ def read_slow_class(args, name='a03'):
     return raw_dict
 
 
-def procrustes(raw_dict):
-    """ Shorten all values to match the shortest one
-    """
-    new_length = min(list(len(value) for value in raw_dict.values()))
-    for key, value in raw_dict.items():
-        raw_dict[key] = value[:new_length]
-    return raw_dict
-
-
 def add_class(args, record_name, raw_dict):
     """Add key item 'expert':values to raw_dict
 
@@ -537,7 +589,7 @@ def add_class(args, record_name, raw_dict):
     path = os.path.join(args.root, 'raw_data/apnea/summary_of_training')
     raw_dict['class'] = read_expert(path,
                                     record_name).repeat(samples_per_minute)
-    return procrustes(raw_dict)
+    return raw_dict
 
 
 def add_peaks(args, raw_dict):

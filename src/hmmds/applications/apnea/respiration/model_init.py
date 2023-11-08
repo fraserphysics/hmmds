@@ -85,23 +85,29 @@ def c_model(args, rng):
     return hmm_, state_dict, state_key2state_index
 
 
-@register  # Model that uses respiration signal
-def respiration2(args, rng):
-    """Return an hmm with two states that model the respiration signal
+@register  # Model that uses respiration signal and low pass heart
+# rate.
+def lphr_respiration2(args, rng):
+    """Return an hmm with two states with VARG observation models.
 
     """
 
     n_states = 2
+    y_dim = 2
+    ar_order = args.AR_order
     p_state_initial = numpy.ones(n_states) / n_states
     p_state_time_average = p_state_initial.copy()
     p_state2state = hmm.simple.Prob(numpy.ones((n_states, n_states))) / 2
 
     class_index2state_indices = {0: [0], 1: [1]}
 
+    a = numpy.ones((n_states, y_dim, y_dim * ar_order + 1))
+    sigma = numpy.empty((n_states, y_dim, y_dim))
+    for state in range(n_states):
+        sigma[state, :, :] = numpy.eye(2) * 1e4
     y_model = hmm.base.JointObservation({
-        'respiration':
-            hmm.observe_float.Gauss(numpy.array([1.0, 3.0]),
-                                    numpy.ones(2) * 2.0, rng),
+        'hr_respiration':
+            hmm.observe_float.VARG(a, sigma, rng, Psi=1.0e5, nu=1.0e3),
         'class':
             hmm.base.ClassObservation(class_index2state_indices),
     })
@@ -111,8 +117,8 @@ def respiration2(args, rng):
                                                 p_state_time_average,
                                                 p_state2state, y_model, args,
                                                 rng)
-    args.read_y_class = utilities.read_respiration_class
-    args.read_raw_y = utilities.read_respiration
+    args.read_y_class = utilities.read_lphr_respiration_class
+    args.read_raw_y = utilities.read_lphr_respiration
 
     # Next two lines are for debugging more complicated models
     state_key2state_index = {0: 0, 1: 1}

@@ -39,8 +39,8 @@ $(MODELS)/c_model: model_init.py config6.pkl
 	python $< config6.pkl c_model $@
 
 #$(MODELS)/respiration2_initial: model_init.py
-respiration2_initial: model_init.py
-	python $< respiration2 $@
+lphr_respiration2_initial: model_init.py
+	python $< --heart_rate_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 lphr_respiration2 $@
 
 #$(MODELS)/%_masked: apnea_train.py $(MODELS)/%_initial
 %_masked: ../apnea_train.py %_initial
