@@ -28,7 +28,7 @@ def parse_args(argv):
                         nargs=2,
                         default=(5.0e1, 1.0e1),
                         help="Paramters of inverse gamma prior for variance")
-    parser.add_argument('pickle', type=str, help='')
+    parser.add_argument('config', type=str, help='Path to config file')
     parser.add_argument(
         'key',
         type=str,
@@ -39,11 +39,12 @@ def parse_args(argv):
     return args
 
 
-def make_joint_slow_peak_interval_class(state_dict,
-                                        keys,
-                                        rng,
-                                        args,
-                                        truncate=0):
+def make_joint_slow_peak_interval_class(
+    state_dict,
+    keys,
+    rng,
+    args,
+):
     """Return a JointObservation instance with components "slow",
     "peak", "interval", and "class"
 
@@ -51,7 +52,6 @@ def make_joint_slow_peak_interval_class(state_dict,
         state_dict:
         keys: Establishes order for state_dict
         rng:
-        truncate:
 
     Return: a JointObservation instance
 
@@ -95,35 +95,30 @@ def make_joint_slow_peak_interval_class(state_dict,
         py_state[state_index, :] = state_dict[key].observation['peak']
 
     power = args.power_and_threshold[0]
-    return hmm.base.JointObservation(
-        {
-            'slow':
-                hmm.C.AutoRegressive(ar_coefficients, offsets, variances, rng,
-                                     alphas, betas),
-            'peak':
-                hmm.C.IntegerObservation(py_state, rng),
-            'interval':
-                utilities.IntervalObservation(
-                    tuple(state_dict[key].observation['interval']
-                          for key in keys),
-                    args,
-                    power,
-                ),
-            'class':
-                hmm.base.ClassObservation(class_index2state_indices),
-        },
-        truncate=truncate)
+    return hmm.base.JointObservation({
+        'slow':
+            hmm.C.AutoRegressive(ar_coefficients, offsets, variances, rng,
+                                 alphas, betas),
+        'peak':
+            hmm.C.IntegerObservation(py_state, rng),
+        'interval':
+            utilities.IntervalObservation(
+                tuple(state_dict[key].observation['interval'] for key in keys),
+                args,
+                power,
+            ),
+        'class':
+            hmm.base.ClassObservation(class_index2state_indices),
+    })
 
 
-def dict2hmm(state_dict, make_observation_model, args, rng, truncate=0):
+def dict2hmm(state_dict, make_observation_model, args, rng):
     """Create an HMM based on state_dict for supervised training
 
     Args:
         state_dict: state_dict[state_key] is a State instance
         make_observation_model: Function
         rng: A random number generator
-        truncate: Number of elements to drop from the beginning of each segment
-                  of class observations.
 
     Return: hmm, state_key2state_index
 
@@ -158,11 +153,8 @@ def dict2hmm(state_dict, make_observation_model, args, rng, truncate=0):
     return develop.HMM(p_state_initial,
                        p_state_time_average,
                        p_state2state,
-                       make_observation_model(state_dict,
-                                              state_keys,
-                                              rng,
-                                              args,
-                                              truncate=truncate),
+                       make_observation_model(state_dict, state_keys, rng,
+                                              args),
                        args,
                        rng,
                        untrainable_indices=tuple(
@@ -417,11 +409,7 @@ def _multi_chain(args, rng, read_y_class, read_raw_y):
                       args.config.apnea_pdf, peak_dimension, rng)
 
     result_hmm, state_key2state_index = dict2hmm(
-        state_dict,
-        make_joint_slow_peak_interval_class,
-        args,
-        rng,
-        truncate=args.AR_order)
+        state_dict, make_joint_slow_peak_interval_class, args, rng)
     return result_hmm, state_dict, state_key2state_index
 
 
@@ -467,11 +455,7 @@ def two_chain(args, rng, read_y_class, read_raw_y):
     #    print(f'{key} {value}')
 
     result_hmm, state_key2state_index = dict2hmm(
-        state_dict,
-        make_joint_slow_peak_interval_class,
-        args,
-        rng,
-        truncate=args.AR_order)
+        state_dict, make_joint_slow_peak_interval_class, args, rng)
     return result_hmm, state_dict, state_key2state_index
 
 
@@ -518,6 +502,46 @@ def two_normalized(args, rng):
                      utilities.read_slow_peak_interval)
 
 
+@register  # Model that uses respiration signal and low pass heart
+# rate.
+def lphr_respiration2(args, rng):
+    """Return an hmm with two states with VARG observation models.
+
+    """
+
+    n_states = 2
+    y_dim = 2
+    ar_order = args.AR_order
+    p_state_initial = numpy.ones(n_states) / n_states
+    p_state_time_average = p_state_initial.copy()
+    p_state2state = hmm.simple.Prob(numpy.ones((n_states, n_states))) / 2
+
+    class_index2state_indices = {0: [0], 1: [1]}
+
+    a = numpy.ones((n_states, y_dim, y_dim * ar_order + 1))
+    sigma = numpy.empty((n_states, y_dim, y_dim))
+    for state in range(n_states):
+        sigma[state, :, :] = numpy.eye(2) * 1e4
+    y_model = hmm.base.JointObservation({
+        'hr_respiration':
+            hmm.observe_float.VARG(a, sigma, rng, Psi=1.0e5, nu=1.0e3),
+        'class':
+            hmm.base.ClassObservation(class_index2state_indices),
+    })
+
+    # Create and return the hmm
+    hmm_ = develop.HMM(p_state_initial, p_state_time_average, p_state2state,
+                       y_model, args, rng)
+    args.read_y_class = utilities.read_lphr_respiration_class
+    args.read_raw_y = utilities.read_lphr_respiration
+
+    # Next two lines are for debugging more complicated models
+    state_key2state_index = {0: 0, 1: 1}
+    state_dict = {0: State([0], [1.0], y_model), 1: State([0], [1.0], y_model)}
+
+    return hmm_, state_dict, state_key2state_index
+
+
 def main(argv=None):
     """Create an hmm and write it as a pickle.
     """
@@ -526,7 +550,7 @@ def main(argv=None):
 
     args = parse_args(argv)
     rng = numpy.random.default_rng(3)
-    with open(args.pickle, 'rb') as _file:
+    with open(args.config, 'rb') as _file:
         args.config = pickle.load(_file)
 
     # Run the function specified by args.key

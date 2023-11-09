@@ -24,9 +24,11 @@ import develop
 PINT = pint.UnitRegistry()
 
 
-def parse_args(argv):
+def parse_args(argv=None):
     """ This is for debugging
     """
+    if argv is None:
+        argv = sys.argv[1:]
     import argparse
     parser = argparse.ArgumentParser("Only for debugging")
     utilities.common_arguments(parser)
@@ -40,6 +42,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.args = parse_args()
         self.setWindowTitle("Examine Apnea Model Performance")
         # Configure the main window
         layout0 = PyQt5.QtWidgets.QHBoxLayout()
@@ -73,7 +76,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         self.model_box = PyQt5.QtWidgets.QLineEdit(self)
         self.model_box.setText(
-            f'{self.root_box.text()}/build/derived_data/apnea/models/two_ar6_masked6'
+            f'{self.root_box.text()}/build/derived_data/apnea/models/two_power1.0threshold-10ar5prom4_masked'
         )
         model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
         model_ok.clicked.connect(self.new_model)
@@ -262,8 +265,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_states()
         self.plot_classification()
         # Print diagnostic information.
-        utilities.print_chain_model(self.model.y_mod, self.weight,
-                                    self.model.args.state_key2state_index)
+        if 'interval' in self.model.y_mod:
+            utilities.print_chain_model(self.model.y_mod, self.weight,
+                                        self.model.args.state_key2state_index)
 
     def signal_path(self, signal):
         """ Return path to signal
@@ -304,9 +308,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Get observations for apnea model
         read_y = self.model.read_y_no_class(self.record_box.text())
-        self.slow = read_y['slow']
-        print(f'{read_y.keys()=}')
         self.y_data = [hmm.base.JointSegment(read_y)]
+        self.slow = utilities.read_slow_fast_respiration(
+            self.args, self.record_box.text())['slow']
 
         # Calculate spectral filters using fft method in utilities
         self.filters = utilities.read_slow_fast_respiration(

@@ -315,6 +315,9 @@ $(MODELS)/two_%_initial: model_init.py config_stats.py make_init.py
 $(MODELS)/norm_%_initial: model_init.py config_stats.py make_init.py
 	python make_init.py two_normalized $* $@
 
+$(MODELS)/lphr_respiration2_initial: model_init.py
+	python $< --heart_rate_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 config4.pkl lphr_respiration2 $@
+
 $(MODELS)/%_masked: apnea_train.py $(MODELS)/%_initial
 	python $< --records $(APLUSNAMES) --iterations 10 $(MODELS)/$*_initial $@
 
