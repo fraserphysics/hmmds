@@ -21,9 +21,7 @@ b01
 
 """
 import sys
-import os
 import argparse
-import glob
 import pickle
 
 import numpy
@@ -64,7 +62,7 @@ def parse_args(argv):
     return args
 
 
-def analyze(name, model_path, report, debug=False):
+def analyze(name, model_path, report, debug=False, power=None, threshold=None):
     """Writes to the open file report a string that has the same form as
         the expert file
 
@@ -77,7 +75,7 @@ def analyze(name, model_path, report, debug=False):
 
     model_record = hmmds.applications.apnea.utilities.ModelRecord(
         model_path, name)
-    model_record.classify()
+    model_record.classify(threshold=threshold)
     model_record.score()
 
     model_record.formatted_result(report, expert=False)
@@ -104,8 +102,13 @@ def main(argv=None):
 
     model_paths = {'N': args.model_paths[0], 'A': args.model_paths[1]}
 
+    power, threshold = args.power_and_threshold
     for name in args.names:
-        analyze(name, model_paths[pass1_dict[name]], args.result)
+        analyze(name,
+                model_paths[pass1_dict[name]],
+                args.result,
+                power=power,
+                threshold=threshold)
 
     return 0
 

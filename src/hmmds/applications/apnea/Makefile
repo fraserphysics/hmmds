@@ -132,6 +132,13 @@ norm_pass2.out: pass2.py pass1.out $(NORM_MODEL) $(MODELS)/c_model
 	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(NORM_MODEL) $(NORM_POWER_THRESHOLD) pass1.out temp
 	cp temp $@
 
+lphr_respiration_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MODELS)/lphr_respiration2_initial 
+	python $< --model_paths $(MODELS)/c_model $(MODELS)/lphr_respiration2_masked --power_and_threshold 1.5 0.5 pass1.out temp
+	cp temp $@
+
+lphr_respiration_score.tex: score.py lphr_respiration_pass2.out
+	python $^ $@  --tex
+
 ###########################Multi Chain Unnormalized#############################
 MULTICHAIN_POWER = 10.5
 MULTICHAIN_LOG_THRESHOLD = -42
@@ -208,7 +215,8 @@ analyze_peaks.pdf: analyze_peaks.py config6.pkl
 # HR_INCLUDES are items that are not in the INCLUDE_LIST pattern
 HR_INCLUDES = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf \
 prominence_study.pdf interval_pdfs.pdf norm_interval_pdfs.pdf analyze_peaks.pdf \
-norm_analyze_peaks.pdf norm_power_threshold.pdf score.tex lengths.txt
+norm_analyze_peaks.pdf norm_power_threshold.pdf score.tex lengths.txt \
+lphr_respiration_score.tex
 
 # INCUDE_LIST matches StudyFigs in heart_rate.tex
 INCLUDE_LIST = _prominence_study.pdf _power_threshold.pdf _errors_vs_ar_order.pdf _score.tex
