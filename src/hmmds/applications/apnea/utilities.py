@@ -62,6 +62,10 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=int,
                         default=10,
                         help='Training iterations')
+    parser.add_argument('--model_sample_frequency',
+                        type=int,
+                        default=6,
+                        help='In samples per minute')
     parser.add_argument('--heart_rate_sample_frequency',
                         type=int,
                         default=24,
@@ -123,6 +127,7 @@ def join_common(args: argparse.Namespace):
     args.model_dir = os.path.join(args.root, args.model_dir)
 
     args.heart_rate_sample_frequency *= PINT('1/minutes')
+    args.model_sample_frequency *= PINT('1/minutes')
     args.trim_start *= PINT('minutes')
     args.low_pass_period *= PINT('seconds')
     args.band_pass_center /= PINT('minutes')
@@ -157,6 +162,112 @@ def parse_args(argv):
     join_common(args)
     return args
 
+class HeartRate:
+    """ Reads, holds and manipulates the derived heart rate for a record.
+
+    Args:
+        args: From parse_args
+        record_name: EG 'a01'
+
+    """
+
+    def __init__(self: HeartRate, args, record_name:str):
+
+        self.args = args
+        self.record_name = record_name
+
+        path = args.heart_rate_path_format.format(record_name)
+        with open(path, 'rb') as _file:
+            _dict = pickle.load(_file)
+        assert set(_dict.keys()) == set('hr sample_frequency'.split())
+        assert _dict['sample_frequency'].to('Hz').magnitude == 2
+
+        self.hr_sample_frequency = _dict['sample_frequency']
+        self.raw_hr = _dict['hr'].to('1/minute').magnitude
+        self.fft_length = 131072
+        self.RAW_HR = numpy.fft.rfft(self.raw_hr, self.fft_length)
+        self.hr_omega_max = numpy.pi * self.hr_sample_frequency
+
+    def dict(self:HeartRate, items, item_args={}):
+        """ Return a dict of specified items
+
+        Args:
+            items: An iterable of keys
+            item_args: Dict that may have arguments for get methods
+
+        Return: dict
+
+        """
+        result = {}
+        for name in items:
+            if name in item_args:
+                result[name] = getattr(self, f'get_{name}')(item_args[name])
+            else:
+                result[name] = getattr(self, f'get_{name}')()
+        return result
+
+    def get_raw_hr(self: HeartRate):
+        return self.raw_hr
+
+    def get_expert(self: HeartRate):
+        """Return expert annotations with repetitions for
+        model_sample_frequency
+        """
+
+        repeat = self.args.model_sample_frequency.to('1/minute').magnitude
+        path = os.path.join(self.args.root, 'raw_data/apnea/summary_of_training')
+        return read_expert(path, self.record_name).repeat(repeat)
+
+    def hr_2_respiration(
+            self: HeartRate,
+            bandpass_center=15 / PINT('minute'),
+            bandpass_width=3 / PINT('minute'),
+            smooth_width=1.5 / PINT('minute')
+    ):
+        """Calculate filtered heart rate properties
+
+        Args:
+            bandpass_center: Center frequency of respiration filter
+            bandpass_width: width of respiration filter
+            smooth_width: For smoothing amplitude of envelope
+
+        Assigns the following attributes of self.  Shapes match
+        self.raw_hr:
+
+        bandpass: Raw heart rate filtered 12 to 18 cpm
+        envelope: Positive envelope of bandpass
+        respiration: Smoothed version of envelope
+        notch: Raw heart rate with 12 to 18 cpm dropped
+
+        """
+
+        omega_center = bandpass_center * 2 * numpy.pi
+        omega_width = bandpass_width * 2 * numpy.pi
+        omega_smooth = smooth_width * 2 * numpy.pi
+        n_t = len(self.raw_hr)
+
+        sample_period_in = self.hr_sample_frequency
+        bandpass = numpy.fft.irfft(window(self.RAW_HR, sample_period_in, omega_center, omega_width))
+
+        # This block calculates a positive envelope of bandpass.  FixMe:
+        # I'm not sure it's right.  SBP is spectral domain of band pass
+        # shifted by pi/2
+        SBP = window(self.RAW_HR, sample_period_in, omega_center, omega_width, shift=True)
+        shifted = numpy.fft.irfft(SBP)
+        RESPIRATION = numpy.fft.rfft(
+            numpy.sqrt(shifted * shifted + bandpass * bandpass), self.fft_length)
+        self.envelope = numpy.fft.irfft(RESPIRATION)[:n_t]
+        self.respiration = numpy.fft.irfft(
+            window(RESPIRATION, sample_period_in, 0 / sample_period_in,
+                   omega_smooth))[:n_t]
+        self.bandpass = bandpass[:n_t]
+
+        n_low, n_high = (int(
+            self.fft_length * (x / self.hr_omega_max).to('Hz').magnitude)
+                                for x in (omega_center-omega_width, omega_center+omega_width))
+        NOTCH = self.RAW_HR.copy()
+        NOTCH[n_low, n_high] = 0.0
+        self.notch = numpy.fft.irfft(NOTCH)[:n_t]
 
 def read_train_log(path: str) -> numpy.ndarray:
     """Read a text file created by train.py
