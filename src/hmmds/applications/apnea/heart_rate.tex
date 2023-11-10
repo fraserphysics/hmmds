@@ -339,7 +339,14 @@ Multiple chains for apnea heart rate signals without normalization.
 \subsection{Respiration from Heart Rate}
 \label{sec:respiration}
 
-
+A normal heart rate signal is modulated by
+respiration,\marginpar{illustrate with a figure} and I've written code
+to extract a time series of the amplitude of that modulation.
+Combining that respiration time series with a low pass filtered heart
+rate signal yields a vector time series.
+Table~\ref{tab:lphr_respiration_score} reports the classification
+performance of a two state HMM with AR order 6 output models for such
+vector time series.
 \begin{table*}
   \centering
   \input{lphr_respiration_score.tex}
@@ -349,11 +356,38 @@ Multiple chains for apnea heart rate signals without normalization.
   \label{tab:lphr_respiration_score}
 \end{table*}
 
+\subsection{Combining Intervals, Respiration and Heart Rate}
+\label{sec:combination}
+
+Next, I combine the vector heart rate and respiration signal of
+Section~\ref{sec:respiration} with the two chain state structure and
+interval modeling of Section~\ref{sec:norm_two}.  The parameters to
+choose include:
+\begin{description}
+\item[Sample frequencies] For VARG (Vector AutoRegressive Gaussian)
+  model of the combined respiration -- low-pass filtered heart rate
+  signal and for the peak detector.
+\item[Filter parameters] For the low-pass filtered heart rate and for
+  deriving the respiration signal.
+\item[AR order] 
+\item[$\psi$ and $\nu$] Priors for each state
+\item[Prominence threshold] 
+\item[Detector threshold] 
+\item[Weighting power] 
+\end{description}
+
 \subsection{To Do}
 
-\begin{itemize}
-\item Try using a respiration signal.
-\end{itemize}
+\begin{enumerate}
+\item Write new utilities.read\_slow\_peaks\_intervals function that
+  computes intervals with resolution that is independent of
+  args.heart\_rate\_sample\_frequency.  It should report slow and peaks at
+  the heart\_rate\_sample\_frequency.
+\item \label{parameter_dicts} Replace make\_observation with dicts as
+  arguments to make\_observation\_model functions.
+\item Make a two\_varg\_masked model.
+\item Modify other model types to use \ref{parameter_dicts}
+\end{enumerate}
 
 \subsubsection{Problematic Records}
 \label{sec:problematic_records}

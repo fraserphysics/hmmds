@@ -49,9 +49,10 @@ def make_joint_slow_peak_interval_class(
     "peak", "interval", and "class"
 
     Args:
-        state_dict:
+        state_dict: Parameters for s in state_dict[s].observation
         keys: Establishes order for state_dict
-        rng:
+        rng: numpy random number generator
+        args: Command line arguments
 
     Return: a JointObservation instance
 
@@ -104,6 +105,79 @@ def make_joint_slow_peak_interval_class(
         'interval':
             utilities.IntervalObservation(
                 tuple(state_dict[key].observation['interval'] for key in keys),
+                args,
+                power,
+            ),
+        'class':
+            hmm.base.ClassObservation(class_index2state_indices),
+    })
+
+
+def make_joint_varg_peak_interval_class(
+    state_dict: dict,
+    keys: list,
+    rng,
+    args,
+)->hmm.base.JointObservation:
+    """Return a JointObservation instance with components "hr_respiration",
+    "peak", "interval", and "class"
+
+    Args:
+        state_dict: Parameters for s in state_dict[s].observation
+        keys: Establishes order for state_dict
+        rng: numpy random number generator
+        args: Command line arguments
+
+    Return: result with
+
+    result["hr_respiration"] is a VARG instance
+    result["peak"] is an IntegerObservation instance
+    result['interval'][s] is a pdf for intervals
+    result['class'] is a hmm.base.ClassObservation instance
+
+    """
+    class_index2state_indices = {}
+    n_states = len(keys)
+    assert n_states == len(state_dict)
+    y_dim, len_coefficients = state_dict[
+        keys[0]].observation['hr_respiration']['coefficients'].shape
+
+
+    # Arrays for "hr_respiration" component
+    ar_coefficients = numpy.empty((n_states, y_dim, len_coefficients))
+    sigma = numpy.empty((n_states, y_dim, y_dim))
+    psi = numpy.empty((n_states, y_dim, y_dim))
+    nu = numpy.empty(n_states)
+
+    p_peak_state = numpy.empty((n_states, 2))
+
+    interval_pdfs = []
+
+    class_index2state_indices = {0:[], 1:[]}
+
+    for state_index, (key, parameters) in enumerate(
+            (key, state_dict[key].observation) for key in keys):
+
+        varg = parameters['hr_respiration']
+        ar_coefficients[state_index] = varg['coefficients']
+        sigma[state_index] = varg['sigma']
+        psi[state_index] = varg['psi']
+        nu[state_index] = varg['nu']
+
+        p_peak_state[state_index, :] = parameters['peak']
+
+        interval_pdfs.append(parameters['interval'])
+
+        class_index2state_indices[parameters['class']].append(state_index)
+
+    power = args.power_and_threshold[0]
+    return hmm.base.JointObservation({
+        'hr_respiration':
+            hmm.observe_float.VARG(ar_coefficients, sigma, rng, psi=psi, nu=nu),
+        'peak':
+            hmm.C.IntegerObservation(p_peak_state, rng),
+        'interval':
+            utilities.IntervalObservation(interval_pdfs,
                 args,
                 power,
             ),
@@ -212,63 +286,34 @@ def c_model(args, rng):
     return hmm_, state_dict, state_key2state_index
 
 
+# int_class, pdf_interval, peak_prob
 def peak_chain(switch_key: str,
                prefix: str,
-               int_class: int,
-               pdf_interval: callable,
-               args,
-               rng,
+               peak_args,
+               non_peak_args,
                state_dict,
-               peak_prob: numpy.ndarray,
                length=9):
     """Add a sequence of states to state_dict
 
     Args:
         switch_key: Key of state that links these chains
         prefix: For state keys
-        int_class:
         args:
+        peak_args: Arguments for make_observation_model
+        non_peak_args: Arguments for make_observation_model
         rng:
         state_dict:
-        peak_prob: Output distribution at peak
-        length: Number of 2.5 second samples in peak pattern
+        length: Number of samples in peak pattern
 
     """
-
-    # Magic numbers
-
-    args_alpha, args_beta = args.alpha_beta
-
-    variance = 1.0e3
-    non_peak = numpy.zeros(len(peak_prob))
-    non_peak[0] = 1.0
-
-    def make_observation(alpha, beta, prob):
-        """Return an argument for State.__init__()
-        """
-        return {
-            'slow': {
-                'coefficients': rng.random(args.AR_order) / args.AR_order,
-                'alpha': alpha,
-                'beta': beta,
-                'offset': 0.0,
-                'variance': variance
-            },
-            'peak': prob,
-            'interval': pdf_interval,
-            'class': int_class,
-        }
 
     for index in range(length + 1):
         state_key = f'{prefix}_{index}'
         next_key = f'{prefix}_{index+1}'
         if index == int(length / 2):
-            prob = peak_prob
+            state_dict[state_key] = State([next_key], [1.0], peak_args)
         else:
-            prob = non_peak
-        state_dict[state_key] = State([next_key], [1.0],
-                                      make_observation(args_alpha, args_beta,
-                                                       prob))
+            state_dict[state_key] = State([next_key], [1.0], non_peak_args)
 
     # Repair transitions in slow and last states
     slow_key = f'{prefix}_0'
@@ -280,14 +325,17 @@ def peak_chain(switch_key: str,
     state_dict[last_key].set_transitions([slow_key], [1.0])
 
 
-def make_switch_noise(args, int_class, chain_keys, state_dict,
-                      pdf_interval: callable, peak_dimension, rng):
+def make_switch_noise(int_class, chain_keys, state_dict, noise_args,
+                      switch_args):
     """Make states for switching and for noise
 
     Args:
+        args:
         int_class: Either 0 or 1
         chain_keys: Names of states that switch links to
         state_dict:
+        noise_args:  Arguments for make_observation_model for noise state
+        switch_args:  Arguments for make_observation_model for switch state
     """
     # Magic numbers
     noise_p = 1.0e-30  # Probability of transition to noise state
@@ -308,38 +356,10 @@ def make_switch_noise(args, int_class, chain_keys, state_dict,
     else:
         raise ValueError(f'{int_class=} not in [0,1]')
 
-    # Define alpha and beta of inverse gamma for noise states.
-    # There are about 12,000 minutes of data, 25 records * 480 minutes
-    noise_alpha = 9.6e4
-    noise_prior_variance = 10.0**2
-    noise_beta = noise_alpha * noise_prior_variance
-
-    args_alpha, args_beta = args.alpha_beta
-
-    variance = 1.0e3
-
-    def make_observation(alpha: float, beta: float, p_y: numpy.ndarray) -> dict:
-        """Makes dict for switch and noise states"""
-        return {
-            'slow': {
-                'coefficients': rng.random(args.AR_order) / args.AR_order,
-                'alpha': alpha,
-                'beta': beta,
-                'offset': 0.0,
-                'variance': variance
-            },
-            'peak': p_y,
-            'interval': pdf_interval,
-            'class': int_class,
-        }
-
-    p_y = numpy.ones(peak_dimension) / peak_dimension
-
     # Specify noise state
     state_dict[noise_key] = State([noise_key, other_noise, switch_key],
                                   [noise_p, noise_p, 1.0 - 2 * noise_p],
-                                  make_observation(noise_alpha, noise_beta,
-                                                   p_y),
+                                  noise_args,
                                   trainable=(False, False, False))
 
     # Specify switch state
@@ -352,11 +372,9 @@ def make_switch_noise(args, int_class, chain_keys, state_dict,
     probabilities /= probabilities.sum()
     trainable = [True] * len(successors)
     trainable[0:4] = [False] * 4
-    p_y = numpy.zeros(peak_dimension)
-    p_y[0] = 1
     state_dict[switch_key] = State(successors,
                                    probabilities,
-                                   make_observation(args_alpha, args_beta, p_y),
+                                   switch_args,
                                    trainable=trainable)
 
 
@@ -524,7 +542,7 @@ def lphr_respiration2(args, rng):
         sigma[state, :, :] = numpy.eye(2) * 1e4
     y_model = hmm.base.JointObservation({
         'hr_respiration':
-            hmm.observe_float.VARG(a, sigma, rng, Psi=1.0e5, nu=1.0e3),
+            hmm.observe_float.VARG(a, sigma, rng, psi=1.0e5, nu=1.0e3),
         'class':
             hmm.base.ClassObservation(class_index2state_indices),
     })
@@ -540,6 +558,97 @@ def lphr_respiration2(args, rng):
     state_dict = {0: State([0], [1.0], y_model), 1: State([0], [1.0], y_model)}
 
     return hmm_, state_dict, state_key2state_index
+
+
+@register  # low pass heart rate, respiration, and interval
+def two_varg(args, rng):
+    """HMM for respiration, heart rate, and interval with one chain
+    each for normal and apnea
+
+    """
+
+    #  Normal chain  N Switch A Switch  Apnea chain
+    #
+    #    **********                     *********
+    #   *          \                   /         *
+    #  *            \________  _______/           *
+    # *peak          |      |--|     |         peak*
+    #  *            /--------  -------\           *
+    #   *          /                   \         *
+    #    **********                     *********
+
+    # ToDo: Think about trainable parameters
+
+    # Functions in utilities normalize heart rate if "'norm_avg' in args"
+    args.norm_avg = args.config.norm_avg
+    args.read_y_class = utilities.read_lphr_respiration_peak_interval_class
+    args.read_raw_y = utilities.read_lphr_respiration_peak_interval
+
+    y_dim = 2
+    ar_order = args.AR_order
+    coefficient_shape = (y_dim, y_dim*ar_order +1)
+    # Mean of inverse Wishart without data is psi/nu
+
+    # Observation paramaters for state at peak of heart rate
+    peak_args = {
+        'hr_respiration': {
+            'coefficients': numpy.ones(coefficient_shape),
+            'sigma': numpy.eye(2) * 1.0e4,
+            'psi': numpy.eye(2) * 1.0e3,
+            'nu': 1.0e3
+        },
+        'class': None,  # Reset in make_one_chain
+        'peak': numpy.array([0, 1.0]),
+        'interval': None,  # Reset in make_one_chain
+    }
+
+    # Observation paramaters for states in chain w/o peak
+    non_peak_args = peak_args.copy()
+    non_peak_args['peak'] = numpy.array([1.0, 0])
+
+    # Observation paramaters for noise states
+    noise_args = {
+        'hr_respiration': {
+            'coefficients': numpy.ones(coefficient_shape),
+            'sigma': numpy.eye(2) * 1.0e4,
+            'psi': numpy.eye(2) * 1.0e6,
+            'nu': 1.0e4
+        },
+        'class': None,  # Reset in make_one_chain
+        'peak': numpy.array([.5, .5]),
+        'interval': None,  # Reset in make_one_chain
+    }
+
+    # Observation paramaters for switch
+    switch_args = non_peak_args
+
+    state_dict = {}
+
+    def make_one_chain(char_class, int_class, pdf_class):
+        """
+        """
+        switch_key = f'{char_class}_switch'
+        chain_key = f'{char_class}_chain'
+        chain_0 = f'{char_class}_chain_0'
+        peak_prob = numpy.array([0, 1.0])
+        peak_dimension = 2
+        peak_args['class'] = int_class
+        peak_args['interval'] = pdf_class
+        non_peak_args['class'] = int_class
+        non_peak_args['interval'] = pdf_class
+        peak_chain(switch_key, chain_key, peak_args, non_peak_args, state_dict, length=3)
+
+        make_switch_noise(int_class, [chain_0], state_dict, noise_args,
+                          switch_args)
+
+    make_one_chain('N', 0, args.config.normal_pdf)
+    make_one_chain('A', 1, args.config.apnea_pdf)
+    #for key, value in state_dict.items():
+    #    print(f'{key} {value}')
+
+    result_hmm, state_key2state_index = dict2hmm(
+        state_dict, make_joint_varg_peak_interval_class, args, rng)
+    return result_hmm, state_dict, state_key2state_index
 
 
 def main(argv=None):
