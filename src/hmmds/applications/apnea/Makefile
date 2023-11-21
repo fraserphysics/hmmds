@@ -326,6 +326,13 @@ $(MODELS)/norm_%_initial: model_init.py config_stats.py make_init.py
 $(MODELS)/lphr_respiration2_initial: model_init.py
 	python $< --heart_rate_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 config4.pkl lphr_respiration2 $@
 
+new_config.pkl: config_stats.py
+	python $< --normalize 4.0 $@
+
+$(MODELS)/two_varg_initial: model_init.py new_config.pkl
+	mkdir -p $(MODELS)
+	python $< --model_sample_frequency 8 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 new_config.pkl two_varg $@
+
 $(MODELS)/%_masked: apnea_train.py $(MODELS)/%_initial
 	python $< --records $(APLUSNAMES) --iterations 10 $(MODELS)/$*_initial $@
 
@@ -341,7 +348,7 @@ clean:
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo NORMCHAIN_PROMINENCE_MODELS: $(NORMCHAIN_PROMINENCE_MODELS)
+	@echo MODELS: $(MODELS)
 	@echo NORM_MODEL: $(NORM_MODEL)
 
 ## help                           : Print comments on targets from makefile

@@ -44,6 +44,8 @@ def main(argv=None):
         model = pickle.load(_file)
 
     y_data = list(
+        # model.read_y_with_class calls
+        # self.args.read_y_class(self.args, record_name)
         hmm.base.JointSegment(model.read_y_with_class(record))
         for record in args.records)
 

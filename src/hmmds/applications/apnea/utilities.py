@@ -162,6 +162,7 @@ def parse_args(argv):
     join_common(args)
     return args
 
+
 class HeartRate:
     """ Reads, holds and manipulates the derived heart rate for a record.
 
@@ -169,13 +170,23 @@ class HeartRate:
         args: From parse_args
         record_name: EG 'a01'
 
+    Many methods set values of instance attributes.
+
     """
 
-    def __init__(self: HeartRate, args, record_name:str):
+    # UPPERCASE Variables are in frequency space
+    # pylint: disable=attribute-defined-outside-init, invalid-name
+    def __init__(self: HeartRate,
+                 args,
+                 record_name: str,
+                 config,
+                 normalize=False):
 
         self.args = args
         self.record_name = record_name
+        self.config = config
 
+        # Read the raw heart rate
         path = args.heart_rate_path_format.format(record_name)
         with open(path, 'rb') as _file:
             _dict = pickle.load(_file)
@@ -184,12 +195,24 @@ class HeartRate:
 
         self.hr_sample_frequency = _dict['sample_frequency']
         self.raw_hr = _dict['hr'].to('1/minute').magnitude
+
+        if normalize:
+            self.raw_hr *= config.norm_avg / Pass1(record_name,
+                                                   args).statistic_2()
+
+        # Set up for fft based filtering
         self.fft_length = 131072
         self.RAW_HR = numpy.fft.rfft(self.raw_hr, self.fft_length)
         self.hr_omega_max = numpy.pi * self.hr_sample_frequency
 
-    def dict(self:HeartRate, items, item_args={}):
-        """ Return a dict of specified items
+        # Attach attributes of args to self
+        self.model_sample_frequency = args.model_sample_frequency
+        self.hr_2_model_decimate = self._calculate_skip(
+            1 / self.model_sample_frequency)
+        self.n_model = (len(self.raw_hr) - 1) // self.hr_2_model_decimate + 1
+
+    def dict(self: HeartRate, items, item_args=None):
+        """ Return a dict of specified items sampled at rate for model
 
         Args:
             items: An iterable of keys
@@ -199,75 +222,243 @@ class HeartRate:
 
         """
         result = {}
-        for name in items:
-            if name in item_args:
+        lengths = numpy.zeros(len(items), dtype=int)
+        for index, name in enumerate(items):
+            if item_args and name in item_args:
                 result[name] = getattr(self, f'get_{name}')(item_args[name])
             else:
                 result[name] = getattr(self, f'get_{name}')()
+            lengths[index] = len(result[name])
+        for name, value in result.items():
+            result[name] = value[:lengths.min()]
         return result
 
     def get_raw_hr(self: HeartRate):
-        return self.raw_hr
+        """Return the raw heart rate sampled at the model sample frequency
+        """
+        return self.raw_hr[::self.hr_2_model_decimate]
 
-    def get_expert(self: HeartRate):
+    def read_expert(self: HeartRate):
+        """Read expert annotations, assign to self and return as an array
+        """
+        path = os.path.join(self.args.root,
+                            'raw_data/apnea/summary_of_training')
+        self.expert = read_expert(path, self.record_name)
+        return self.expert
+
+    def get_class(self: HeartRate):
         """Return expert annotations with repetitions for
         model_sample_frequency
         """
 
+        if not hasattr(self, 'expert'):
+            raise RuntimeError('Call read_expert before calling get_class')
         repeat = self.args.model_sample_frequency.to('1/minute').magnitude
-        path = os.path.join(self.args.root, 'raw_data/apnea/summary_of_training')
-        return read_expert(path, self.record_name).repeat(repeat)
+        assert repeat - int(repeat) == 0.0
+        return self.expert.repeat(int(repeat))
 
-    def hr_2_respiration(
-            self: HeartRate,
-            bandpass_center=15 / PINT('minute'),
-            bandpass_width=3 / PINT('minute'),
-            smooth_width=1.5 / PINT('minute')
-    ):
+    def filter_hr(self: HeartRate,
+                  resp_pass_center=15 / PINT('minute'),
+                  resp_pass_width=3 / PINT('minute'),
+                  envelope_smooth=1.5 / PINT('minute'),
+                  low_pass_width=7.5 / PINT('minute')):
         """Calculate filtered heart rate properties
 
         Args:
-            bandpass_center: Center frequency of respiration filter
-            bandpass_width: width of respiration filter
-            smooth_width: For smoothing amplitude of envelope
+            resp_pass_center: Center frequency of respiration filter
+            resp_pass_width: width of respiration filter
+            envelope_smooth: For smoothing amplitude of respiration envelope
+            low_pass_width: For smoothing the heart rate signal
 
         Assigns the following attributes of self.  Shapes match
         self.raw_hr:
 
-        bandpass: Raw heart rate filtered 12 to 18 cpm
-        envelope: Positive envelope of bandpass
+        resp_pass: Raw heart rate filtered 12 to 18 cpm
+        envelope: Positive envelope of resp_pass
         respiration: Smoothed version of envelope
-        notch: Raw heart rate with 12 to 18 cpm dropped
+        notch: Raw heart rate with 12 to 18 cpm dropped (respiration)
+        slow: Low pass filtered heart rate
 
         """
 
-        omega_center = bandpass_center * 2 * numpy.pi
-        omega_width = bandpass_width * 2 * numpy.pi
-        omega_smooth = smooth_width * 2 * numpy.pi
+        omega_center = resp_pass_center * 2 * numpy.pi
+        omega_width = resp_pass_width * 2 * numpy.pi
+        omega_envelope = envelope_smooth * 2 * numpy.pi
+        omega_low_pass = low_pass_width * 2 * numpy.pi
         n_t = len(self.raw_hr)
 
-        sample_period_in = self.hr_sample_frequency
-        bandpass = numpy.fft.irfft(window(self.RAW_HR, sample_period_in, omega_center, omega_width))
+        sample_period_in = 1 / self.hr_sample_frequency
+        resp_pass = numpy.fft.irfft(
+            window(self.RAW_HR, sample_period_in, omega_center, omega_width))
 
-        # This block calculates a positive envelope of bandpass.  FixMe:
+        # This block calculates a positive envelope of resp_pass.  FixMe:
         # I'm not sure it's right.  SBP is spectral domain of band pass
         # shifted by pi/2
-        SBP = window(self.RAW_HR, sample_period_in, omega_center, omega_width, shift=True)
+        SBP = window(self.RAW_HR,
+                     sample_period_in,
+                     omega_center,
+                     omega_width,
+                     shift=True)
         shifted = numpy.fft.irfft(SBP)
         RESPIRATION = numpy.fft.rfft(
-            numpy.sqrt(shifted * shifted + bandpass * bandpass), self.fft_length)
+            numpy.sqrt(shifted * shifted + resp_pass * resp_pass),
+            self.fft_length)
         self.envelope = numpy.fft.irfft(RESPIRATION)[:n_t]
         self.respiration = numpy.fft.irfft(
             window(RESPIRATION, sample_period_in, 0 / sample_period_in,
-                   omega_smooth))[:n_t]
-        self.bandpass = bandpass[:n_t]
+                   omega_envelope))[:n_t]
+        self.resp_pass = resp_pass[:n_t]
 
         n_low, n_high = (int(
-            self.fft_length * (x / self.hr_omega_max).to('Hz').magnitude)
-                                for x in (omega_center-omega_width, omega_center+omega_width))
+            self.fft_length *
+            (x.to('Hz').magnitude / self.hr_omega_max.to('Hz').magnitude))
+                         for x in (omega_center - omega_width,
+                                   omega_center + omega_width))
         NOTCH = self.RAW_HR.copy()
-        NOTCH[n_low, n_high] = 0.0
+        NOTCH[n_low:n_high] = 0.0
         self.notch = numpy.fft.irfft(NOTCH)[:n_t]
+        self.slow = numpy.fft.irfft(
+            window(self.RAW_HR, sample_period_in, 0 * omega_low_pass,
+                   omega_low_pass))[:n_t]
+
+    def find_peaks(
+            self: HeartRate,
+            distance=0.417 * PINT('minutes'),
+            wlen=1.42 * PINT('minutes'),
+            prominence=None,  # In beats per minute
+    ):
+        """Find peaks in the low pass filtered heart rate signal
+
+        Args:
+            distance: Minimum time (pint) between peaks
+            wlen: Window length (time as pint quantity)
+            prominance: Minimum prominence for detection
+
+        """
+        if prominence is None:
+            prominence = self.config.min_prominence
+        s_f_hz = self.hr_sample_frequency.to('Hz').magnitude
+        distance_samples = distance.to('seconds').magnitude * s_f_hz
+        wlen_samples = wlen.to('seconds').magnitude * s_f_hz
+
+        self.peaks, properties = scipy.signal.find_peaks(
+            self.slow,
+            distance=distance_samples,
+            prominence=prominence,
+            wlen=wlen_samples)
+        self.peak_prominences = properties['prominences']
+        return self.peaks
+
+    def _calculate_skip(self: HeartRate,
+                        sample_period_out,
+                        sample_period_in=None):
+        """Calculate integer decimation factor
+
+        """
+
+        def seconds(time):
+            return time.to('s').magnitude
+
+        if sample_period_in is None:
+            sample_period_in = 1 / self.hr_sample_frequency
+        skip = int(seconds(sample_period_out) / seconds(sample_period_in))
+        # Check for float -> int trouble
+        assert skip * seconds(sample_period_in) == seconds(
+            sample_period_out
+        ), f'{skip=} {seconds(sample_period_out)=} {seconds(sample_period_in)=}'
+        return skip
+
+    def get_resp_pass(self: HeartRate):
+        """Return heart rate signal filtered to pass respiration
+        frequencies.  Decimate to model_sample_frequency.
+
+        """
+        if not hasattr(self, 'resp_pass'):
+            raise RuntimeError('Call filter_hr before calling get_resp_pass')
+        result = self.resp_pass[::self.hr_2_model_decimate]
+        assert result.shape == (self.n_model,)
+        return result
+
+    def get_notch(self: HeartRate):
+        """Return heart rate signal filtered to block respiration
+        frequencies.  Decimate to model_sample_frequency.
+
+        """
+        if not hasattr(self, 'notch'):
+            raise RuntimeError('Call hr_2_respiration before calling get_notch')
+        result = self.notch[::self.hr_2_model_decimate]
+        assert result.shape == (self.n_model,)
+        return result
+
+    def get_envelope(self: HeartRate):
+        """Return envelope of heart rate signal filtered to pass
+        respiration frequencies.  Decimate to model_sample_frequency.
+
+        """
+        if not hasattr(self, 'envelope'):
+            raise RuntimeError('Call filter_hr before calling get_envelope')
+        result = self.envelope[::self.hr_2_model_decimate]
+        assert result.shape == (self.n_model,)
+        return result
+
+    def get_slow(self: HeartRate):
+        """Return low pass filtered heart rate signal.  Decimate to
+        model_sample_frequency.
+
+        """
+        if not hasattr(self, 'slow'):
+            raise RuntimeError('Call filter_hr before calling get_slow')
+        result = self.slow[::self.hr_2_model_decimate]
+        assert result.shape == (self.n_model,)
+        return result
+
+    def get_hr_respiration(self: HeartRate):
+        """Return a time series of 2d vectors: result[t] =
+        (hr,respiration)
+
+        """
+        hr = self.get_slow()
+        respiration = self.get_envelope()
+        assert hr.shape == respiration.shape == (self.n_model,)
+        result = numpy.stack((hr, respiration), axis=1)
+        assert result.shape == (self.n_model, 2)
+        return result
+
+    def get_peak(self: HeartRate):
+        """Return array with ones where there are peaks and zeros
+        elesewhere.  Use model_sample_frequency.
+
+        """
+
+        if not hasattr(self, 'peaks'):
+            raise RuntimeError('Call find_peaks before calling get_peak')
+        # There could be a peak after self.n_model *
+        # self.hr_2_model_decimate
+        peak = numpy.zeros(self.n_model + 1, dtype=numpy.int32)
+        locations = self.peaks // self.hr_2_model_decimate
+        peak[locations] = 1
+        return peak[:self.n_model]
+
+    def get_interval(self: HeartRate):
+        """Return an interval duration signal sampled at
+        model_sample_frequency.
+
+        """
+        if not hasattr(self, 'peaks'):
+            raise RuntimeError('Call find_peaks before calling get_interval')
+        interval = numpy.ones(self.n_model, dtype=float) * -1
+        for t_start, t_stop in zip(self.peaks[:-1], self.peaks[1:]):
+            i_start, i_stop = (
+                t // self.hr_2_model_decimate for t in (t_start, t_stop))
+            interval[i_start:i_stop] = t_stop - t_start
+        first_i, last_i = (t // self.hr_2_model_decimate
+                           for t in (self.peaks[0], self.peaks[-1]))
+        # The loop assigned interval from first_i up to (not including) last_i
+        interval[:first_i] = interval[first_i]
+        interval[last_i:] = interval[last_i - 1]
+        assert interval.min() > -1
+        return interval
+
 
 def read_train_log(path: str) -> numpy.ndarray:
     """Read a text file created by train.py
@@ -343,9 +534,9 @@ def window(F: numpy.ndarray,
 
     Args:
         F: The RFFT of a time series f
-        t_sample: The time between samples in f
-        center: The center frequency in radians per unit
-        width: Sigma in radians per unit
+        t_sample: The time (pint) between samples in f
+        center: The center frequency in radians per pint time
+        width: Sigma in radians per pint time
         shift: Shift phase pi/2
     """
     # FixMe: Is this right?
@@ -871,7 +1062,7 @@ class State:
         prior: Optional parameters for observation model
     """
 
-    def __init__(self,
+    def __init__(self: State,
                  successors,
                  probabilities,
                  observation,
@@ -886,7 +1077,7 @@ class State:
             self.trainable = [True] * len(successors)
         self.prior = prior
 
-    def set_transitions(self, successors, probabilities, trainable=None):
+    def set_transitions(self: State, successors, probabilities, trainable=None):
         if trainable is None:
             self.trainable = [True] * len(successors)
         else:
@@ -894,7 +1085,7 @@ class State:
         self.successors = successors
         self.probabilities = probabilities
 
-    def __str__(self):
+    def __str__(self: State):
         result = [f'{self.__class__} instance\n']
         result.append(f'observation: {self.observation}, prior: {self.prior}\n')
         result.append(
@@ -981,9 +1172,6 @@ class Pass1:
             norm_frequency: Divide PSD by sum of channels above this frequency (in cpm)
 
         """
-
-        if hasattr(args, 'model'):
-            self.likelihood = interval_hmm_likelihood(args.model, name)
 
         self.name = name
         with open(args.heart_rate_path_format.format(name), 'rb') as _file:
@@ -1145,25 +1333,20 @@ def print_chain_model(y_mod, weight, key2index):
 
 
 def peaks_intervals(args, record_names):
-    """Calculate (prominence, period) pairs.  Also find boundaries for
-    digitizing prominence.
+    """Calculate (prominence, period) pairs.
 
     Args:
         args: command line arguments
         record_names: Specifies data to analyze
-        peaks_per_bin: Number of apnea peaks between bounary levels
 
     The returned intervals are in minutes
     """
 
     f_sample = args.heart_rate_sample_frequency.to('1/minute').magnitude
-    apnea_key = 1
 
     # Calculate (prominence, period) pairs
     peak_dict = {0: [], 1: []}
-    norm_sum = 0.0
     for record_name in record_names:
-        norm_sum += Pass1(record_name, args).statistic_2()
         raw_dict = read_slow_class(args, record_name)
         slow = raw_dict['slow']
         _class = raw_dict['class']
@@ -1181,18 +1364,7 @@ def peaks_intervals(args, record_names):
             class_t = _class[t_peak]
             peak_dict[class_t].append((prominence_t, period_t))
 
-    # Calculate boundaries for prominence based on peaks during apnea
-    pp_array = numpy.array(peak_dict[apnea_key]).T
-    apnea_peaks = pp_array[0, :].copy()
-    apnea_peaks.sort()
-    boundaries = []
-    for i in range(0, args.n_bins):
-        index = int(len(apnea_peaks) * i / args.n_bins)
-        boundaries.append(apnea_peaks[index])
-    boundaries[0] = min_prominence
-    boundaries = numpy.array(boundaries)
-
-    return peak_dict, boundaries, norm_sum / len(record_names)
+    return peak_dict
 
 
 def make_density_ratio(peak_dict, limit, sigma, _lambda):

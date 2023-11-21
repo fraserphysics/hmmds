@@ -5,6 +5,7 @@ import sys
 import os.path
 import pickle
 import argparse
+import copy
 
 import numpy
 
@@ -15,6 +16,7 @@ import hmm.C
 import develop
 import utilities
 from utilities import State
+import hmmds.applications.apnea.model_init
 
 
 def parse_args(argv):
@@ -118,7 +120,7 @@ def make_joint_varg_peak_interval_class(
     keys: list,
     rng,
     args,
-)->hmm.base.JointObservation:
+) -> hmm.base.JointObservation:
     """Return a JointObservation instance with components "hr_respiration",
     "peak", "interval", and "class"
 
@@ -136,12 +138,11 @@ def make_joint_varg_peak_interval_class(
     result['class'] is a hmm.base.ClassObservation instance
 
     """
-    class_index2state_indices = {}
+
     n_states = len(keys)
     assert n_states == len(state_dict)
     y_dim, len_coefficients = state_dict[
         keys[0]].observation['hr_respiration']['coefficients'].shape
-
 
     # Arrays for "hr_respiration" component
     ar_coefficients = numpy.empty((n_states, y_dim, len_coefficients))
@@ -153,10 +154,10 @@ def make_joint_varg_peak_interval_class(
 
     interval_pdfs = []
 
-    class_index2state_indices = {0:[], 1:[]}
+    class_index2state_indices = {0: [], 1: []}
 
     for state_index, (key, parameters) in enumerate(
-            (key, state_dict[key].observation) for key in keys):
+        (key, state_dict[key].observation) for key in keys):
 
         varg = parameters['hr_respiration']
         ar_coefficients[state_index] = varg['coefficients']
@@ -173,11 +174,12 @@ def make_joint_varg_peak_interval_class(
     power = args.power_and_threshold[0]
     return hmm.base.JointObservation({
         'hr_respiration':
-            hmm.observe_float.VARG(ar_coefficients, sigma, rng, psi=psi, nu=nu),
+            hmm.observe_float.VARG(ar_coefficients, sigma, rng, Psi=psi, nu=nu),
         'peak':
             hmm.C.IntegerObservation(p_peak_state, rng),
         'interval':
-            utilities.IntervalObservation(interval_pdfs,
+            utilities.IntervalObservation(
+                interval_pdfs,
                 args,
                 power,
             ),
@@ -307,6 +309,8 @@ def peak_chain(switch_key: str,
 
     """
 
+    if length < 2:
+        raise ValueError(f'For peak chain, length must be > 1, but {length=}.')
     for index in range(length + 1):
         state_key = f'{prefix}_{index}'
         next_key = f'{prefix}_{index+1}'
@@ -338,10 +342,10 @@ def make_switch_noise(int_class, chain_keys, state_dict, noise_args,
         switch_args:  Arguments for make_observation_model for switch state
     """
     # Magic numbers
-    noise_p = 1.0e-30  # Probability of transition to noise state
+    noise_p = 1.0e-10  # Probability of transition to noise state
     # from self or either switch state
     switch_p = 1.0e-10  # Probability of transition between classes
-    p_switch_self = 1.0e-30  # Probability of tranistion from
+    p_switch_self = 1.0e-20  # Probability of tranistion from
     # switch state to self
     if int_class == 0:
         switch_key = 'N_switch'
@@ -560,6 +564,57 @@ def lphr_respiration2(args, rng):
     return hmm_, state_dict, state_key2state_index
 
 
+def read_y_class4two_varg(args, record_name):
+    """Called by HMM, and returns a dict of observation components
+
+    Args:
+        args: From HMM.args
+        record_name: EG, 'a01'
+
+    Components are hr_respiration, peak, interval and class.
+
+    """
+    keys = 'hr_respiration peak interval class'.split()
+
+    # develop.HMM.read_y_with_class calls this with self.args, and
+    # apnea_train.main wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = utilities.HeartRate(args, record_name, args.config,
+                                      args.normalize)
+    hr_instance.read_expert()
+    hr_instance.filter_hr()
+    hr_instance.find_peaks()
+
+    return hr_instance.dict(keys)
+
+
+def read_raw_y4two_varg(args, record_name):
+    """Called by HMM, and returns a dict of observation components
+
+    Args:
+        args: From HMM.args
+        record_name: EG, 'a01'
+
+    Components are hr_respiration, peak and interval.
+
+    """
+    keys = 'hr_respiration peak interval'.split()
+
+    # develop.HMM.read_y_no_class calls this with self.args, and
+    # utilities.ModelRecord wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = utilities.HeartRate(args, record_name, args.config,
+                                      args.normalize)
+    hr_instance.filter_hr()
+    hr_instance.find_peaks()
+
+    return hr_instance.dict(keys)
+
+
 @register  # low pass heart rate, respiration, and interval
 def two_varg(args, rng):
     """HMM for respiration, heart rate, and interval with one chain
@@ -581,46 +636,27 @@ def two_varg(args, rng):
 
     # Functions in utilities normalize heart rate if "'norm_avg' in args"
     args.norm_avg = args.config.norm_avg
-    args.read_y_class = utilities.read_lphr_respiration_peak_interval_class
-    args.read_raw_y = utilities.read_lphr_respiration_peak_interval
+    args.read_y_class = hmmds.applications.apnea.model_init.read_y_class4two_varg
+    args.read_raw_y = hmmds.applications.apnea.model_init.read_raw_y4two_varg
 
     y_dim = 2
     ar_order = args.AR_order
-    coefficient_shape = (y_dim, y_dim*ar_order +1)
+    coefficient_shape = (y_dim, y_dim * ar_order + 1)
     # Mean of inverse Wishart without data is psi/nu
 
-    # Observation paramaters for state at peak of heart rate
-    peak_args = {
+    coefficients = numpy.zeros(coefficient_shape)
+    coefficients[:, 0] = 1.0
+    observation_args = {
         'hr_respiration': {
-            'coefficients': numpy.ones(coefficient_shape),
-            'sigma': numpy.eye(2) * 1.0e4,
-            'psi': numpy.eye(2) * 1.0e3,
+            'coefficients': coefficients,
+            'sigma': numpy.eye(2) * 1.0e6,
+            'psi': numpy.eye(2) * 1.0e5,
             'nu': 1.0e3
         },
-        'class': None,  # Reset in make_one_chain
-        'peak': numpy.array([0, 1.0]),
-        'interval': None,  # Reset in make_one_chain
+        'class': None,  # Set in copies
+        'peak': numpy.array([1.0, 0.0]),
+        'interval': None,  # Set in copies
     }
-
-    # Observation paramaters for states in chain w/o peak
-    non_peak_args = peak_args.copy()
-    non_peak_args['peak'] = numpy.array([1.0, 0])
-
-    # Observation paramaters for noise states
-    noise_args = {
-        'hr_respiration': {
-            'coefficients': numpy.ones(coefficient_shape),
-            'sigma': numpy.eye(2) * 1.0e4,
-            'psi': numpy.eye(2) * 1.0e6,
-            'nu': 1.0e4
-        },
-        'class': None,  # Reset in make_one_chain
-        'peak': numpy.array([.5, .5]),
-        'interval': None,  # Reset in make_one_chain
-    }
-
-    # Observation paramaters for switch
-    switch_args = non_peak_args
 
     state_dict = {}
 
@@ -630,24 +666,37 @@ def two_varg(args, rng):
         switch_key = f'{char_class}_switch'
         chain_key = f'{char_class}_chain'
         chain_0 = f'{char_class}_chain_0'
-        peak_prob = numpy.array([0, 1.0])
-        peak_dimension = 2
-        peak_args['class'] = int_class
-        peak_args['interval'] = pdf_class
-        non_peak_args['class'] = int_class
-        non_peak_args['interval'] = pdf_class
-        peak_chain(switch_key, chain_key, peak_args, non_peak_args, state_dict, length=3)
+
+        peak_args = copy.deepcopy(observation_args)
+        non_peak_args = copy.deepcopy(observation_args)
+        noise_args = copy.deepcopy(observation_args)
+        switch_args = copy.deepcopy(observation_args)
+
+        for _args in (peak_args, non_peak_args, noise_args, switch_args):
+            _args['class'] = int_class
+            _args['interval'] = pdf_class
+        peak_args['peak'] = numpy.array([0.0, 1.0])
+        noise_args['peak'] = numpy.array([0.5, 0.5])
+
+        peak_chain(switch_key,
+                   chain_key,
+                   peak_args,
+                   non_peak_args,
+                   state_dict,
+                   length=2)
 
         make_switch_noise(int_class, [chain_0], state_dict, noise_args,
                           switch_args)
 
     make_one_chain('N', 0, args.config.normal_pdf)
     make_one_chain('A', 1, args.config.apnea_pdf)
-    #for key, value in state_dict.items():
-    #    print(f'{key} {value}')
 
     result_hmm, state_key2state_index = dict2hmm(
         state_dict, make_joint_varg_peak_interval_class, args, rng)
+
+    #for key, value in state_dict.items():
+    #    print(f'{key} {value}')
+
     return result_hmm, state_dict, state_key2state_index
 
 
@@ -661,6 +710,7 @@ def main(argv=None):
     rng = numpy.random.default_rng(3)
     with open(args.config, 'rb') as _file:
         args.config = pickle.load(_file)
+    args.normalize = args.config.normalize
 
     # Run the function specified by args.key
     model, state_dict, state_key2state_index = MODELS[args.key](args, rng)
