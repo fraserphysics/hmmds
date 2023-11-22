@@ -76,7 +76,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         self.model_box = PyQt5.QtWidgets.QLineEdit(self)
         self.model_box.setText(
-            f'{self.root_box.text()}/build/derived_data/apnea/models/two_power1.0threshold-10ar5prom4_masked'
+            f'{self.root_box.text()}/build/derived_data/apnea/models/lphr_respiration2_masked'
         )
         model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
         model_ok.clicked.connect(self.new_model)
@@ -264,10 +264,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_like()
         self.plot_states()
         self.plot_classification()
-        # Print diagnostic information.
-        if 'interval' in self.model.y_mod:
-            utilities.print_chain_model(self.model.y_mod, self.weight,
-                                        self.model.args.state_key2state_index)
 
     def signal_path(self, signal):
         """ Return path to signal
@@ -282,6 +278,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         each other
 
         """
+
+        # Read apnea model.
+        self.read_model()
+
         # Read ECG
         prefix = os.path.join(self.root_box.text(), 'raw_data/Rtimes',
                               f'{self.record_box.text()}')
@@ -296,32 +296,37 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.r_times = numpy.nonzero(states == 32)[0]
 
         # Read heart rate
-        with open(self.signal_path('heart_rate'), 'rb') as _file:
-            pickle_dict = pickle.load(_file)
-        self.hr_signal = pickle_dict['hr'].to('1/minute').magnitude
-        self.hr_notch = utilities.notch_hr(self.hr_signal)
+        self.hr_instance = utilities.HeartRate(
+            self.args,
+            self.record_box.text(),
+            self.model.args.config,
+            False  # normalize
+        )  # Sets: hr_sample_frequency, raw_hr
+        self.hr_instance.read_expert()  # Sets and returns expert,
+        # (normal->0, apnea->1)
+        self.hr_instance.filter_hr()  # Sets slow, notch, respiration,
+        # envelope
+        peak_times = self.hr_instance.find_peaks()  # Sets peaks and
+        # prominences.
+        # Returns peaks
+        self.hr_signal = self.hr_instance.raw_hr
+        self.slow = self.hr_instance.slow
+        self.hr_notch = self.hr_instance.notch
         self.hr_times = numpy.arange(len(
-            self.hr_signal)) / pickle_dict['sample_frequency']
+            self.hr_signal)) / self.hr_instance.hr_sample_frequency
 
-        # Read apnea model.
-        self.read_model()
+        # Calculate spectral filters using fft method in utilities
+        self.filters = {
+            'times': self.hr_times,
+            'fast': self.hr_instance.respiration,
+            'respiration': self.hr_instance.envelope
+        }
+        self.hr_peaks = self.slow[peak_times]
+        self.hr_peak_times = peak_times / self.hr_instance.hr_sample_frequency
 
         # Get observations for apnea model
         read_y = self.model.read_y_no_class(self.record_box.text())
         self.y_data = [hmm.base.JointSegment(read_y)]
-        self.slow = utilities.read_slow_fast_respiration(
-            self.args, self.record_box.text())['slow']
-
-        # Calculate spectral filters using fft method in utilities
-        self.filters = utilities.read_slow_fast_respiration(
-            self.model.args, self.record_box.text())
-        self.filters['times'] = numpy.arange(len(
-            self.filters['slow'])) / self.filters['sample_frequency']
-        prominence_threshold = 6.0
-        peaks, _ = utilities.peaks(self.slow, self.filters['sample_frequency'],
-                                   prominence_threshold)
-        self.hr_peaks = self.slow[peaks]
-        self.hr_peak_times = peaks / self.filters['sample_frequency']
 
         # Calculate hmm classification
         self.new_classification()

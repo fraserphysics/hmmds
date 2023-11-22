@@ -55,15 +55,20 @@ class Record:
             # centiseconds
         self.ecg = (ecg_dict['raw'], 100 * PINT('Hz'))
 
+        # Pad prepended to slow by read
         y_data = model.read_y_no_class(name)
-        length = len(y_data['slow'])
+        length = len(y_data['slow']) - model.args.AR_order
         for key, value in y_data.items():
+            if key == 'slow':
+                continue
             assert len(value) == length, f'{key} {len(value)} != {length}'
-        f_sample = model.args.heart_rate_sample_frequency
+        f_sample = model.args.model_sample_frequency
         self.slow = (y_data['slow'], f_sample)
 
         joint_data = [hmm.base.JointSegment(y_data)]
         samples_per_minute = int(f_sample.to('1/minute').magnitude)
+        # class_estimate calls weights, calls y_mod.observe, calls
+        # _concatenate which uses first ar_order samples for context.
         self.estimated_class = (model.class_estimate(joint_data,
                                                      samples_per_minute,
                                                      1.0), 1 / PINT('minute'))
@@ -73,7 +78,10 @@ class Record:
             path, name), 1 / PINT('minute'))
         for attribute in self.fields:
             data, frequency = getattr(self, attribute)
-            last_time = (len(data) / frequency).to('seconds').magnitude
+            length = len(data)
+            if attribute == 'slow':
+                length -= model.args.AR_order
+            last_time = (length / frequency).to('seconds').magnitude
             setattr(self, attribute, (data, frequency, last_time))
         self.ecg_expert = self.ecg[-1] - self.expert[-1]
 

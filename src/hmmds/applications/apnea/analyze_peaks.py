@@ -56,7 +56,10 @@ def analyze_record(args, record_name, peak_dict):
 
     '''
     min_prominence = args.config.min_prominence
-    raw_dict = utilities.read_slow_class(args, record_name)
+    heart_rate = utilities.HeartRate(args, record_name, args.config)
+    heart_rate.filter_hr()
+    heart_rate.read_expert()
+    raw_dict = heart_rate.dict('slow class'.split())
     peak_times, properties = utilities.peaks(raw_dict['slow'],
                                              args.heart_rate_sample_frequency,
                                              min_prominence)
@@ -125,28 +128,16 @@ def main(argv=None):
     for class_ in (0, 1):
         data = numpy.array(peak_dict[class_])
         data.sort()
-        indices[class_] = numpy.searchsorted(data, args.config.boundaries)
+        #indices[class_] = numpy.searchsorted(data, args.config.boundaries)
         peak_dict[class_] = data
 
     plot_cdf(axeses[0], peak_dict[0], label='Normal')
     plot_cdf(axeses[0], peak_dict[1], label='Apnea')
-    axeses[0].plot(args.config.boundaries,
-                   indices[1] / len(peak_dict[1]),
-                   linestyle='',
-                   marker='x',
-                   label='boundaries')
     axeses[0].set_ylabel('cdf')
 
-    plot_n(peak_dict[0],
-           args.config.boundaries,
-           axeses[1],
-           True,
-           label='Normal')
-    plot_n(peak_dict[1], args.config.boundaries, axeses[1], label='Apnea')
     axeses[1].set_ylabel('Number')
     axeses[1].set_xlabel('peak prominences')
 
-    plot_record(args, 'a03', args.config.boundaries, axeses[2])
     for axes in axeses:
         axes.legend()
     if args.show:

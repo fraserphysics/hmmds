@@ -51,37 +51,6 @@ def register(func):
 
 
 @register
-def chains_normalized(args):
-    d = parse_pattern(args.pattern, 'power threshold ar prom bins')
-    norm_avg_config = f"config{d['prom']}.pkl"
-    make_pre_config = f"make {norm_avg_config}"
-    config = f"norm_config_prom{d['prom']}bins{d['bins']}.pkl"
-    make_config = f"python config_stats.py --n_bins {d['bins']} --normalize {norm_avg_config} {d['prom']} {config}"
-    run_model_init = f"""
-      python model_init.py
-      --power_and_threshold {d['power']} 1.0e{d['threshold']}
-      --AR_order {d['ar']}
-      {config} chains_normalized {args.out}"""
-    return make_pre_config, make_config, run_model_init
-
-
-@register
-def multi_chain(args):
-    """ --n_bins to config
-    multi_chain
-    """
-    d = parse_pattern(args.pattern, 'power threshold ar prom bins')
-    config = f"config_prom{d['prom']}bins{d['bins']}.pkl"
-    make_config = f"python config_stats.py --n_bins {d['bins']} {d['prom']} {config}"
-    run_model_init = f"""
-      python model_init.py
-      --power_and_threshold {d['power']} 1.0e{d['threshold']}
-      --AR_order {d['ar']}
-      {config} multi_chain {args.out}"""
-    return make_config, run_model_init
-
-
-@register
 def two_intervals(args):
     d = parse_pattern(args.pattern, 'power threshold ar prom')
     make_config = f"make config{d['prom']}.pkl"

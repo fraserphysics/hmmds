@@ -39,15 +39,14 @@ POWER_THRESHOLD = --power_and_threshold $(POWER) 1.0e$(LOG_THRESHOLD)
 AR_ORDER = 5
 PROM = 4
 BEST_MODEL = $(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom$(PROM)_masked
-N_BINS = 5
 
 AR_ORDERS = 1 2 3 4 5 6 7 8 9 10
 AR_MODELS = $(addsuffix prom$(PROM)_masked, \
 $(addprefix two_power$(POWER)threshold$(LOG_THRESHOLD)ar, $(AR_ORDERS)))
 PROMINENCES = 3 3.5 4 4.5 5 5.5 5.7 5.8 5.9 5.95 6 6.05 6.1 6.2 6.3 6.4 6.5 7 7.5 8
 PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix \
-$(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom, \
-$(PROMINENCES)))
+    $(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom, \
+    $(PROMINENCES)))
 
 errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
 	python compare_models.py --models $(AR_MODELS) --parameters $(AR_ORDERS) \
@@ -58,8 +57,8 @@ power_threshold.pdf: survey_power_threshold.py $(BEST_MODEL)
 
 prominence_study.pdf: prominence_study.py $(PROMINENCE_MODELS)
 	python $< --prominences $(PROMINENCES) --template \
-$(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom%_masked \
---records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
+    $(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom%_masked \
+    --records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
 
 score.txt: score.py pass2.out
 	python score.py pass2.out $@
@@ -113,85 +112,33 @@ norm_interval_pdfs.pdf: apnea_ratio.py norm_config$(NORM_PROM).pkl
 
 norm_prominence_study.pdf: prominence_study.py $(NORM_PROMINENCE_MODELS)
 	python $< --prominences $(NORM_PROMINENCES) --template \
-$(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom%_masked \
---records $(APLUSNAMES) --fig_path $@ > norm_prominence_study.txt
+    $(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom%_masked \
+    --records $(APLUSNAMES) --fig_path $@ > norm_prominence_study.txt
 
 norm_errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NORM_AR_MODELS))
 	python compare_models.py --models $(NORM_AR_MODELS) --parameters $(AR_ORDERS) \
---parameter_name "AR order" --records $(APLUSNAMES) \
-$(NORM_POWER_THRESHOLD) $@ > norm_errors_vs_ar_order.txt
+    --parameter_name "AR order" --records $(APLUSNAMES) \
+    $(NORM_POWER_THRESHOLD) $@ > norm_errors_vs_ar_order.txt
 
 norm_power_threshold.pdf: survey_power_threshold.py $(NORM_MODEL)
-	python $< --powers 0.0 3.5 36 --thresholds -20.0 20.0 21 --records $(APLUSNAMES) $(NORM_POWER_THRESHOLD) \
-$(NORM_MODEL) $@ > norm_power_threshold.txt
+	python $< --powers 0.0 3.5 36 --thresholds -20.0 20.0 21 --records $(APLUSNAMES) \
+    $(NORM_POWER_THRESHOLD) $(NORM_MODEL) $@ > norm_power_threshold.txt
 
 norm_score.tex: score.py norm_pass2.out
 	python score.py --tex $(NORM_POWER_THRESHOLD) norm_pass2.out $@
 
 norm_pass2.out: pass2.py pass1.out $(NORM_MODEL) $(MODELS)/c_model
-	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model $(NORM_MODEL) $(NORM_POWER_THRESHOLD) pass1.out temp
+	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model \
+    $(NORM_MODEL) $(NORM_POWER_THRESHOLD) pass1.out temp
 	cp temp $@
 
-lphr_respiration_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MODELS)/lphr_respiration2_initial 
-	python $< --model_paths $(MODELS)/c_model $(MODELS)/lphr_respiration2_masked --power_and_threshold 1.5 0.5 pass1.out temp
+lphr_respiration_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MODELS)/lphr_respiration2_masked
+	python $< --model_paths $(MODELS)/c_model $(MODELS)/lphr_respiration2_masked \
+    --power_and_threshold 1.5 0.5 pass1.out temp
 	cp temp $@
 
 lphr_respiration_score.tex: score.py lphr_respiration_pass2.out
 	python $^ $@  --tex
-
-###########################Multi Chain Unnormalized#############################
-MULTICHAIN_POWER = 10.5
-MULTICHAIN_LOG_THRESHOLD = -42
-MULTICHAIN_POWER_THRESHOLD = --power_and_threshold $(MULTICHAIN_POWER) 1.0e$(MULTICHAIN_LOG_THRESHOLD)
-MULTICHAIN_AR = 5
-MULTICHAIN_BINS = 6
-MULTICHAIN_PROM = 4.5
-MULTICHAIN_MODEL = $(MODELS)/multichain_power$(MULTICHAIN_POWER)threshold$(MULTICHAIN_LOG_THRESHOLD)ar$(MULTICHAIN_AR)prom$(MULTICHAIN_PROM)bins$(MULTICHAIN_BINS)_masked
-
-MULTICHAIN_PROMINENCES = 1.5 2 2.5 3 3.5 4 4.5 5 5.5 6 6.5
-
-MULTICHAIN_AR_MODELS = $(addsuffix prom$(MULTICHAIN_PROM)bins$(MULTICHAIN_BINS)_masked, \
-$(addprefix multichain_power$(MULTICHAIN_POWER)threshold$(MULTICHAIN_LOG_THRESHOLD)ar, $(AR_ORDERS)))
-
-MULTICHAIN_PROMINENCE_MODELS = $(addsuffix bins$(MULTICHAIN_BINS)_masked, $(addprefix \
-$(MODELS)/multichain_power$(MULTICHAIN_POWER)threshold$(MULTICHAIN_LOG_THRESHOLD)ar$(MULTICHAIN_AR)prom, \
-$(MULTICHAIN_PROMINENCES)))
-
-MULTICHAIN_MODELS = $(addsuffix _masked, $(addprefix \
-$(MODELS)/multichain_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom$(MULTICHAIN_PROM)bins, \
-$(N_CHAINS)))
-
-multichain_errors_vs_number.pdf: compare_models.py $(MULTICHAIN_MODELS)
-	python compare_models.py --models $(MULTICHAIN_MODELS) --parameters $(N_CHAINS) \
---parameter_name "N_chains" --records $(APLUSNAMES) \
-$(POWER_THRESHOLD) $@ > multichain_errors_vs_number.txt
-
-###########################Multi Chain Normalized###############################
-NORMCHAIN_POWER = 10.5
-NORMCHAIN_LOG_THRESHOLD = -42
-NORMCHAIN_POWER_THRESHOLD = --power_and_threshold $(NORMCHAIN_POWER) 1.0e$(NORMCHAIN_LOG_THRESHOLD)
-NORMCHAIN_AR = 5
-NORMCHAIN_BINS = 6
-NORMCHAIN_PROM = 4.5
-NORMCHAIN_MODEL = $(MODELS)/normchains_power$(NORMCHAIN_POWER)threshold$(NORMCHAIN_LOG_THRESHOLD)ar$(NORMCHAIN_AR)prom$(NORMCHAIN_PROM)bins$(NORMCHAIN_BINS)_masked
-
-NORMCHAIN_PROMINENCES = 1.5 2 2.5 3 3.5 4 4.5 5 5.5 6 6.5
-
-NORMCHAIN_AR_MODELS = $(addsuffix prom$(NORMCHAIN_PROM)bins$(NORMCHAIN_BINS)_masked, \
-$(addprefix normchains_power$(NORMCHAIN_POWER)threshold$(NORMCHAIN_LOG_THRESHOLD)ar, $(AR_ORDERS)))
-
-NORMCHAIN_PROMINENCE_MODELS = $(addsuffix bins$(NORMCHAIN_BINS)_masked, $(addprefix \
-$(MODELS)/normchains_power$(NORMCHAIN_POWER)threshold$(NORMCHAIN_LOG_THRESHOLD)ar$(NORMCHAIN_AR)prom, \
-$(NORMCHAIN_PROMINENCES)))
-
-NORMCHAIN_MODELS = $(addsuffix _masked, $(addprefix \
-$(MODELS)/normchains_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom$(NORMCHAIN_PROM)bins, \
-$(N_CHAINS)))
-
-normchain_errors_vs_number.pdf: compare_models.py $(NORMCHAIN_MODELS)
-	python compare_models.py --models $(NORMCHAIN_MODELS) --parameters $(N_CHAINS) \
---parameter_name "N_chains" --records $(APLUSNAMES) \
-$(POWER_THRESHOLD) $@ > normchain_errors_vs_number.txt
 
 #####################Calculate statistics of peaks##############################
 # config.pkl holds statistics derived from detected peaks
@@ -200,10 +147,10 @@ config.pkl: config_stats.py
 
 # % is minimum threshold for detecting a prominence
 config%.pkl: config_stats.py
-	python $< --records $(APLUSNAMES) --n_bins $(N_BINS) $* $@
+	python $< --records $(APLUSNAMES) -- $* $@
 
 norm_config%.pkl: config_stats.py config%.pkl
-	python $< --records $(APLUSNAMES) --normalize config$*.pkl --n_bins $(N_BINS) $* $@
+	python $< --records $(APLUSNAMES) --normalize $* $@
 
 interval_pdfs.pdf: apnea_ratio.py config6.pkl
 	python $< --records $(APLUSNAMES) -- config6.pkl $@
@@ -222,56 +169,10 @@ lphr_respiration_score.tex
 INCLUDE_LIST = _prominence_study.pdf _power_threshold.pdf _errors_vs_ar_order.pdf _score.tex
 NORM_INCLUDES = $(addprefix norm, $(INCLUDE_LIST))
 
-MULTICHAIN_INCLUDES = $(addprefix multichain, $(INCLUDE_LIST))
-
-NORMCHAIN_INCLUDES = $(addprefix normchain, $(INCLUDE_LIST))
-
-heart_rate.pdf: heart_rate.tex  $(HR_INCLUDES) $(NORM_INCLUDES) $(MULTICHAIN_INCLUDES) $(NORMCHAIN_INCLUDES)
+heart_rate.pdf: heart_rate.tex  $(HR_INCLUDES) $(NORM_INCLUDES)
 	pdflatex $< ; pdflatex $<
 
-multichain_errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(MULTICHAIN_AR_MODELS))
-	python compare_models.py --models $(MULTICHAIN_AR_MODELS) --parameters $(AR_ORDERS) \
---parameter_name "AR order" --records $(APLUSNAMES) \
-$(MULTICHAIN_POWER_THRESHOLD) $@ > multichain_errors_vs_ar_order.txt
-
-multichain_prominence_study.pdf: prominence_study.py $(MULTICHAIN_PROMINENCE_MODELS)
-	python $< --prominences $(MULTICHAIN_PROMINENCES) --template \
-$(MODELS)/multichain_power$(MULTICHAIN_POWER)threshold$(MULTICHAIN_LOG_THRESHOLD)ar$(MULTICHAIN_AR)prom%bins$(MULTICHAIN_BINS)_masked \
---records $(APLUSNAMES) --fig_path $@ > multichain_prominence_study.txt
-
-multichain_pass2.out: pass2.py pass1.out $(MULTICHAIN_MODEL) $(MODELS)/c_model
-	python $< --model_paths $(MODELS)/c_model $(MULTICHAIN_MODEL) pass1.out temp
-	cp temp $@
-
-multichain_power_threshold.pdf: survey_power_threshold.py $(MULTICHAIN_MODEL)
-	python $< --powers 6.0 16.0 21 --thresholds -46.0 -36.0 21 --records $(APLUSNAMES) $(NORM_POWER_THRESHOLD) \
-$(MULTICHAIN_MODEL) $@ > multichain_power_threshold.txt
-
-multichain_score.tex: score.py multichain_pass2.out
-	python score.py --tex $(MULTICHAIN_POWER_THRESHOLD) multichain_pass2.out $@
-
 ################################################################################
-
-normchain_errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NORMCHAIN_AR_MODELS))
-	python compare_models.py --models $(NORMCHAIN_AR_MODELS) --parameters $(AR_ORDERS) \
---parameter_name "AR order" --records $(APLUSNAMES) \
-$(NORMCHAIN_POWER_THRESHOLD) $@ > normchain_errors_vs_ar_order.txt
-
-normchain_prominence_study.pdf: prominence_study.py $(NORMCHAIN_PROMINENCE_MODELS)
-	python $< --prominences $(NORMCHAIN_PROMINENCES) --template \
-$(MODELS)/normchains_power$(NORMCHAIN_POWER)threshold$(NORMCHAIN_LOG_THRESHOLD)ar$(NORMCHAIN_AR)prom%bins$(NORMCHAIN_BINS)_masked \
---records $(APLUSNAMES) --fig_path $@ > normchain_prominence_study.txt
-
-normchain_pass2.out: pass2.py pass1.out $(NORMCHAIN_MODEL) $(MODELS)/c_model
-	python $< --model_paths $(MODELS)/c_model $(NORMCHAIN_MODEL) pass1.out temp
-	cp temp $@
-
-normchain_power_threshold.pdf: survey_power_threshold.py $(NORMCHAIN_MODEL)
-	python $< --powers 6.0 16.0 21 --thresholds -46.0 -36.0 21 --records $(APLUSNAMES) $(NORM_POWER_THRESHOLD) \
-$(NORMCHAIN_MODEL) $@ > normchain_power_threshold.txt
-
-normchain_score.tex: score.py normchain_pass2.out
-	python score.py --tex $(NORMCHAIN_POWER_THRESHOLD) normchain_pass2.out $@
 
 # Lengths of time series for each training record
 lengths.txt: test_alignment.py $(BEST_MODEL)
@@ -301,17 +202,10 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # Save the initial files for debugging
 .PRECIOUS: $(MODELS)/%_initial $(MODELS)/%_masked
 
-# config6.pkl is not used for c_model, but model_init.py requires a
+# new_config.pkl is not used for c_model, but model_init.py requires a
 # config argument
-$(MODELS)/c_model: model_init.py config6.pkl
-	python $< config6.pkl c_model $@
-
-# ../../../../build/derived_data/apnea/models/multichain_power1.5threshold-12ar5prom6.1bins5_initial
-$(MODELS)/multichain_%_initial: model_init.py config_stats.py make_init.py
-	python make_init.py multi_chain $* $@
-
-$(MODELS)/normchains_%_initial: model_init.py config_stats.py make_init.py
-	python make_init.py chains_normalized $* $@
+$(MODELS)/c_model: model_init.py new_config.pkl
+	python $< new_config.pkl c_model $@
 
 $(MODELS)/two_%_initial: model_init.py config_stats.py make_init.py
 	python make_init.py two_intervals $* $@
@@ -323,7 +217,7 @@ $(MODELS)/two_%_initial: model_init.py config_stats.py make_init.py
 $(MODELS)/norm_%_initial: model_init.py config_stats.py make_init.py
 	python make_init.py two_normalized $* $@
 
-$(MODELS)/lphr_respiration2_initial: model_init.py
+$(MODELS)/lphr_respiration2_initial: model_init.py config4.pkl
 	python $< --heart_rate_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 config4.pkl lphr_respiration2 $@
 
 new_config.pkl: config_stats.py
@@ -349,7 +243,7 @@ clean:
 .PHONY : variables
 variables:
 	@echo MODELS: $(MODELS)
-	@echo NORM_MODEL: $(NORM_MODEL)
+	@echo BEST_MODEL: $(BEST_MODEL)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help

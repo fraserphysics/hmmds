@@ -321,21 +321,6 @@ Set the following parameters:
 
 \StudyFigs{norm}{with \textbf{normalized} heart rate signals}
 
-\subsection{Multi-Chain Models}
-\label{sec:multichain}
-
-Multiple chains for apnea heart rate signals without normalization.
-
-\StudyFigs{multichain}{with \textbf{different chains} for different prominences
-  of \textbf{unnormalized} heart rate signals}
-
-
-\subsection{Normalized Multi-Chain Models}
-\label{sec:normchains}
-
-\StudyFigs{normchain}{with \textbf{different chains} for different prominences
-  of \textbf{normalized} heart rate signals}
-
 \subsection{Respiration from Heart Rate}
 \label{sec:respiration}
 
@@ -457,6 +442,7 @@ an even minute.
 Here are some ideas that didn't work out\footnote{He's not stupid.
   He's just unlucky when he thinks.}:
 \begin{description}
+\item[Multi-chain] Using different chains for different peak prominences.
 \item[Cumulative distribution of respiration] I looked at the CDF of
   the respiration signal.  I hoped to use it to resolve records in
   pass-1 that the low frequency PSD left on the border.

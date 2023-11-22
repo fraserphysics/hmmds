@@ -105,7 +105,6 @@ def main(argv=None):
     normal_pdf = args.config.normal_pdf
     apnea_pdf = args.config.apnea_pdf
     args.min_prominence = args.config.min_prominence
-    args.n_bins = len(args.config.boundaries)
     if args.normalize:
         args.norm_avg = args.config.norm_avg
 

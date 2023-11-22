@@ -222,15 +222,25 @@ class HeartRate:
 
         """
         result = {}
-        lengths = numpy.zeros(len(items), dtype=int)
-        for index, name in enumerate(items):
+        for name in items:
             if item_args and name in item_args:
-                result[name] = getattr(self, f'get_{name}')(item_args[name])
+                result[name] = getattr(self, f'get_{name}')(**item_args[name])
             else:
                 result[name] = getattr(self, f'get_{name}')()
-            lengths[index] = len(result[name])
+
+        lengths = numpy.zeros(len(items), dtype=int)
+        for index, name in enumerate(items):
+            if item_args and name in item_args and 'pad' in item_args[name]:
+                lengths[index] = len(result[name]) - item_args[name]['pad']
+            else:
+                lengths[index] = len(result[name])
+
         for name, value in result.items():
-            result[name] = value[:lengths.min()]
+            if item_args and name in item_args and 'pad' in item_args[name]:
+                result[name] = value[:lengths.min() + item_args[name]['pad']]
+            else:
+                result[name] = value[:lengths.min()]
+
         return result
 
     def get_raw_hr(self: HeartRate):
@@ -401,7 +411,7 @@ class HeartRate:
         assert result.shape == (self.n_model,)
         return result
 
-    def get_slow(self: HeartRate):
+    def get_slow(self: HeartRate, pad=0):
         """Return low pass filtered heart rate signal.  Decimate to
         model_sample_frequency.
 
@@ -410,9 +420,14 @@ class HeartRate:
             raise RuntimeError('Call filter_hr before calling get_slow')
         result = self.slow[::self.hr_2_model_decimate]
         assert result.shape == (self.n_model,)
-        return result
+        if pad == 0:
+            return result
+        padded = numpy.empty(len(result) + pad)
+        padded[:pad] = result[0]
+        padded[pad:] = result
+        return padded
 
-    def get_hr_respiration(self: HeartRate):
+    def get_hr_respiration(self: HeartRate, pad=0):
         """Return a time series of 2d vectors: result[t] =
         (hr,respiration)
 
@@ -422,7 +437,12 @@ class HeartRate:
         assert hr.shape == respiration.shape == (self.n_model,)
         result = numpy.stack((hr, respiration), axis=1)
         assert result.shape == (self.n_model, 2)
-        return result
+        if pad == 0:
+            return result
+        padded = numpy.empty((len(result) + pad, 2))
+        padded[:pad] = result[0]
+        padded[pad:] = result
+        return padded
 
     def get_peak(self: HeartRate):
         """Return array with ones where there are peaks and zeros
@@ -711,343 +731,6 @@ def read_hr(args, record_name):
     raw_hr = _dict['hr'].to('1/minute').magnitude
 
     return raw_hr, sample_frequency
-
-
-def read_respiration(args, record_name, normalize=False):
-    raw_hr, f_sample_in = read_hr(args, record_name)
-    if normalize:
-        divisor = Pass1(record_name, args).statistic_2() / args.norm_avg
-        raw_hr /= divisor
-    return {
-        'respiration':
-            hr_2_respiration(raw_hr, 1 / f_sample_in,
-                             1 / args.heart_rate_sample_frequency)
-            ['respiration']
-    }
-
-
-def read_respiration_class(args, record_name):
-    raw_dict = read_respiration(args, record_name)
-    result = add_class(args, record_name, raw_dict)
-    assert set(result.keys()) == set('respiration class'.split())
-    return result
-
-
-def read_lphr_respiration(args, record_name, normalize=False) -> numpy.ndarray:
-    """read two data dimensions  and return it in format for VARG model
-
-    Return: result with result.shape = (T,2) and result[t] =
-    [heart_rate, respiration]
-
-    """
-    top_freq = 1 / args.low_pass_period  # For low pass filter
-    notch = (12 * PINT('1/minute'), 18 * PINT('1/minute'))  # Dummy here
-
-    raw_hr, f_sample_in = read_hr(args, record_name)
-    skip = calculate_skip(1 / f_sample_in, 1 / args.heart_rate_sample_frequency)
-    result = numpy.empty((len(raw_hr) // skip + 1, 2))
-
-    # respiration derived from heart rate
-    if normalize:
-        divisor = Pass1(record_name, args).statistic_2() / args.norm_avg
-        raw_hr /= divisor
-    result[:, 0] = notch_hr(raw_hr, 1 / f_sample_in, notch, top_freq)[::skip]
-    result[:, 1] = hr_2_respiration(
-        raw_hr,
-        1 / f_sample_in,
-        1 / args.heart_rate_sample_frequency,
-        bandpass_center=args.band_pass_center,
-        bandpass_width=args.band_pass_width,
-        smooth_width=top_freq,
-    )['respiration']
-
-    if args.AR_order is None:
-        return {'hr_respiration': result}
-    # Now pad front of result to compensate for AR-order
-    pad = args.AR_order
-    padded = numpy.empty((len(result) + pad, 2))
-    padded[:pad] = result[0]
-    padded[pad:] = result
-
-    return {'hr_respiration': padded}
-
-
-def read_lphr_respiration_class(args, record_name, normalize=False):
-    raw_dict = read_lphr_respiration(args, record_name, normalize)
-    result = add_class(args, record_name, raw_dict)
-    assert set(result.keys()) == set('hr_respiration class'.split())
-    return result
-
-
-def filter_hr(raw_hr: numpy.ndarray,
-              sample_period: float,
-              low_pass_width,
-              bandpass_center,
-              skip=1,
-              custom=None) -> dict:
-    """ Calculate filtered heart rate
- 
-    Args:
-        raw_hr:
-        sample_period:
-        low_pass_width:
-        bandpass_center:  To capture 14 cycle per minute respiration
-
-    Return: {'slow': x, 'fast': y, 'respiration':z}
-    """
-
-    n = len(raw_hr)
-    HR = numpy.fft.rfft(raw_hr, 131072)
-    low_pass = numpy.fft.irfft(
-        window(HR, sample_period, 0 / sample_period, low_pass_width))
-    BP = window(HR, sample_period, bandpass_center, low_pass_width)
-    band_pass = numpy.fft.irfft(BP)
-    SBP = window(HR, sample_period, bandpass_center, low_pass_width, shift=True)
-    shift = numpy.fft.irfft(SBP)
-    TEMP = numpy.fft.rfft(numpy.sqrt(shift * shift + band_pass * band_pass),
-                          131072)
-    respiration = numpy.fft.irfft(
-        window(TEMP, sample_period, 0 / sample_period, low_pass_width / 2))
-
-    result = {
-        'slow': low_pass[:n:skip],
-        'fast': band_pass[:n:skip],
-        'respiration': respiration[:n:skip]
-    }
-    if not isinstance(custom, tuple):
-        return result
-    C = window(HR, sample_period, custom[0], custom[1])
-    c = numpy.fft.irfft(C)
-    result[custom[2]] = (C, c)
-    return result
-
-
-def read_slow_fast_respiration(args, name='a03'):
-    """Read heart rate and return three filtered versions
-    """
-    path = args.heart_rate_path_format.format(name)
-    with open(path, 'rb') as _file:
-        _dict = pickle.load(_file)
-    f_in = _dict['sample_frequency'].to('1/minute').magnitude
-    f_out = args.heart_rate_sample_frequency.to('1/minute').magnitude
-    sample_period = (1.0 / f_in) * PINT('minutes')
-    trim_samples = int(
-        (args.heart_rate_sample_frequency * args.trim_start).to(''))
-    skip = int(f_in / f_out)
-    assert f_in == f_out * skip, f'{f_in=} {f_out=} {skip=}'
-    raw_hr = _dict['hr'].to('1/minute').magnitude
-    # Option to normalize
-    if hasattr(args, 'norm_avg'):
-        divisor = Pass1(name, args).statistic_2()
-        norm = divisor / args.norm_avg
-        raw_hr /= norm
-    # Now pad front of raw_hr to compensate for AR-order
-    if args.AR_order is None:
-        pad = 0
-    else:
-        pad = skip * args.AR_order
-    padded = numpy.empty(len(raw_hr) + pad)
-    padded[:pad] = raw_hr[0]
-    padded[pad:] = raw_hr
-    result = filter_hr(padded,
-                       sample_period,
-                       low_pass_width=2 * numpy.pi / args.low_pass_period,
-                       bandpass_center=2 * numpy.pi * args.band_pass_center,
-                       skip=skip)
-    result['trim_samples'] = trim_samples
-    result['sample_frequency'] = f_out * PINT('1/minute')
-    return result
-
-
-def read_slow_respiration(args, name='a03'):
-    input_ = read_slow_fast_respiration(args, name)
-    result = {}
-    for key in 'slow respiration'.split():
-        trim_samples = input_['trim_samples']
-        if trim_samples == 0:
-            result[key] = input_[key]
-        else:
-            result[key] = input_[key][trim_samples:-trim_samples]
-    return result
-
-
-def read_slow_respiration_class(args, name='a03'):
-    """Add class to dict from read_slow_respiration
-    """
-
-    f_s_float = args.heart_rate_sample_frequency.to('1/minute').magnitude
-    samples_per_minute = int(f_s_float)
-    assert f_s_float - samples_per_minute == 0.0, f'Conversion error: {f_s_float=} {samples_per_minute=}'
-    raw_dict = read_slow_respiration(args, name)
-    path = os.path.join(args.root, 'raw_data/apnea/summary_of_training')
-    raw_dict['class'] = read_expert(path, name).repeat(samples_per_minute)
-
-    length = min(*[len(x) for x in raw_dict.values()])
-    for key, value in raw_dict.items():
-        raw_dict[key] = value[:length]
-    return raw_dict
-
-
-def read_slow(args, name='a03'):
-    input_ = read_slow_fast_respiration(args, name)
-    trim_samples = input_['trim_samples']
-    if trim_samples == 0:
-        return {'slow': input_['slow']}
-    return {'slow': input_['slow'][trim_samples:-trim_samples]}
-
-
-def read_slow_class(args, name='a03'):
-    """Add class to dict from read_slow
-
-    Args:
-        args:
-        name:  Record name, eg, 'a03'
-
-    Return: raw_dict
-
-    Keys of raw_dict are 'slow' and 'class' and values are time series
-    sampled at rate args.heart_rate_sample_frequency
-
-    """
-
-    f_s_float = args.heart_rate_sample_frequency.to('1/minute').magnitude
-    samples_per_minute = int(f_s_float)
-    assert f_s_float - samples_per_minute == 0.0, f'Conversion error: {f_s_float=} {samples_per_minute=}'
-    raw_dict = read_slow(args, name)
-    path = os.path.join(args.root, 'raw_data/apnea/summary_of_training')
-    raw_dict['class'] = read_expert(path, name).repeat(samples_per_minute)
-    length = min(*[len(x) for x in raw_dict.values()])
-    for key, value in raw_dict.items():
-        raw_dict[key] = value[:length]
-    return raw_dict
-
-
-def add_class(args, record_name, raw_dict):
-    """Add key item 'expert':values to raw_dict
-
-    """
-
-    f_s_float = args.heart_rate_sample_frequency.to('1/minute').magnitude
-    samples_per_minute = int(f_s_float)
-    assert f_s_float - samples_per_minute == 0.0, f'Conversion error: {f_s_float=} {samples_per_minute=}'
-    path = os.path.join(args.root, 'raw_data/apnea/summary_of_training')
-    raw_dict['class'] = read_expert(path,
-                                    record_name).repeat(samples_per_minute)
-    return raw_dict
-
-
-def add_peaks(args, raw_dict):
-    """Add key item 'peak':values to raw_dict
-
-    """
-    slow_signal = raw_dict['slow']
-
-    locations, properties = peaks(slow_signal, args.heart_rate_sample_frequency,
-                                  args.config.min_prominence)
-    digits = numpy.digitize(properties['prominences'], args.config.boundaries)
-    peak_signal = numpy.zeros(len(slow_signal), dtype=numpy.int32)
-    peak_signal[locations] = digits
-    raw_dict['peak'] = peak_signal
-    assert peak_signal.max() > 0
-    return raw_dict
-
-
-def add_intervals(args, raw_dict):
-    """Add key item 'interval':values to raw_dict
-
-    """
-    peak_signal = raw_dict['peak']
-
-    interval_signal = numpy.zeros(n_times := len(peak_signal))
-    locations = numpy.nonzero(peak_signal)[0]
-
-    for t_start, t_stop in zip(locations[:-1], locations[1:]):
-        interval_signal[t_start:t_stop] = t_stop - t_start
-    interval_signal[:locations[0]] = locations[0]
-    interval_signal[locations[-1]:] = n_times - locations[-1]
-
-    raw_dict[
-        'interval'] = interval_signal / args.heart_rate_sample_frequency.to(
-            '1/minute').magnitude
-    return raw_dict
-
-
-def read_slow_class_peak(args, name='a03'):
-    """Add peak to dict from read_slow_class
-
-    Args:
-        args:
-        name:  Record name, eg, 'a03'
-
-    Return: raw_dict
-
-    Keys of raw_dict are 'slow', 'class', and 'peak' and values are
-    time series sampled at rate args.heart_rate_sample_frequency
-
-    """
-
-    return add_peaks(args, read_slow_class(args, name))
-
-
-def read_slow_peak(args, name='a03'):
-    """Add peak to dict from read_slow
-
-    Args:
-        args:
-        name:  Record name, eg, 'a03'
-
-    Return: raw_dict
-
-    Keys of raw_dict are 'slow', 'class', and 'peak' and values are
-    time series sampled at rate args.heart_rate_sample_frequency
-
-    """
-
-    return add_peaks(args, read_slow(args, name))
-
-
-def read_slow_class_peak_interval(args, name='a03'):
-    """Add peak to dict from read_slow_class
-
-    Args:
-        args:
-        name:  Record name, eg, 'a03'
-
-    Return: raw_dict
-
-    Keys of raw_dict are 'slow', 'class', and 'peak' and values are
-    time series sampled at rate args.heart_rate_sample_frequency
-
-    """
-
-    return add_intervals(args, add_peaks(args, read_slow_class(args, name)))
-
-
-def read_slow_peak_interval(args, name='a03'):
-    """Add interval and peaks to dict from read_slow
-
-    Args:
-        args:
-        name:  Record name, eg, 'a03'
-
-    Return: raw_dict
-
-    Keys of raw_dict are 'slow', 'class', and 'peak' and values are
-    time series sampled at rate args.heart_rate_sample_frequency
-
-    """
-
-    return add_intervals(args, add_peaks(args, read_slow(args, name)))
-
-
-def read_normalized_class(args, name):
-    args.divisor = Pass1(name, args).statistic_2()
-    return read_slow_class_peak_interval(args, name)
-
-
-def read_normalized(args, name):
-    args.divisor = Pass1(name, args).statistic_2()
-    return read_slow_peak_interval(args, name)
 
 
 # I put this in utilities enable apnea_train.py to run.
@@ -1347,7 +1030,10 @@ def peaks_intervals(args, record_names):
     # Calculate (prominence, period) pairs
     peak_dict = {0: [], 1: []}
     for record_name in record_names:
-        raw_dict = read_slow_class(args, record_name)
+        heart_rate = HeartRate(args, record_name, args.config)
+        heart_rate.filter_hr()
+        heart_rate.read_expert()
+        raw_dict = heart_rate.dict('slow class'.split())
         slow = raw_dict['slow']
         _class = raw_dict['class']
         if 'config' in args:
@@ -1427,7 +1113,7 @@ def make_interval_pdfs(args, records=None):
     if records is None:
         records = args.a_names
     # Find peaks
-    peak_dict, _, _ = peaks_intervals(args, records)
+    peak_dict = peaks_intervals(args, records)
 
     limit = 2.2  # No intervals longer than this for pdf ratio fit
     sigma = 0.1  # Kernel width
@@ -1435,6 +1121,96 @@ def make_interval_pdfs(args, records=None):
     pdf_ratio = make_density_ratio(peak_dict, limit, sigma, _lambda)
 
     return pdf_ratio
+
+
+def read_lphr_respiration_class(args, record_name):
+    """FixMe: put this in model_init.py
+    """
+
+    keys = 'hr_respiration class'.split()
+    item_args = {'hr_respiration': {'pad': args.AR_order}}
+
+    # develop.HMM.read_y_with_class calls this with self.args, and
+    # apnea_train.main wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = HeartRate(args, record_name, args.config, args.normalize)
+    hr_instance.read_expert()
+    hr_instance.filter_hr()
+
+    return hr_instance.dict(keys, item_args)
+
+
+def read_lphr_respiration(args, record_name):
+    """FixMe: put this in model_init.py
+    """
+
+    keys = ['hr_respiration']
+    item_args = {'hr_respiration': {'pad': args.AR_order}}
+
+    # develop.HMM.read_y_with_class calls this with self.args, and
+    # apnea_train.main wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = HeartRate(args, record_name, args.config, args.normalize)
+    hr_instance.filter_hr()
+
+    return hr_instance.dict(keys, item_args)
+
+
+def read_slow_class_peak_interval(args, record_name):
+    """FixMe: put this in model_init.py Called by HMM, and returns a
+    dict of observation components
+
+    Args:
+        args: From HMM.args
+        record_name: EG, 'a01'
+
+    Components are slow, peak, interval and class.
+
+    """
+    keys = 'slow peak interval class'.split()
+    item_args = {'slow': {'pad': args.AR_order}}
+
+    # develop.HMM.read_y_with_class calls this with self.args, and
+    # apnea_train.main wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = HeartRate(args, record_name, args.config, args.normalize)
+    hr_instance.read_expert()
+    hr_instance.filter_hr()
+    hr_instance.find_peaks()
+
+    return hr_instance.dict(keys, item_args)
+
+
+def read_slow_peak_interval(args, record_name):
+    """FixMe: put this in model_init.py Called by HMM, and returns a
+    dict of observation components
+
+    Args:
+        args: From HMM.args
+        record_name: EG, 'a01'
+
+    Components are slow, peak, and interval.
+
+    """
+    keys = 'slow peak interval'.split()
+    item_args = {'slow': {'pad': args.AR_order}}
+
+    # develop.HMM.read_y_with_class calls this with self.args, and
+    # apnea_train.main wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = HeartRate(args, record_name, args.config, args.normalize)
+    hr_instance.filter_hr()
+    hr_instance.find_peaks()
+
+    return hr_instance.dict(keys, item_args)
 
 
 def main(argv=None):
