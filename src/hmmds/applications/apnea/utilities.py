@@ -1025,31 +1025,31 @@ def peaks_intervals(args, record_names):
     The returned intervals are in minutes
     """
 
-    f_sample = args.heart_rate_sample_frequency.to('1/minute').magnitude
-
     # Calculate (prominence, period) pairs
     peak_dict = {0: [], 1: []}
     for record_name in record_names:
         heart_rate = HeartRate(args, record_name, args.config)
         heart_rate.filter_hr()
         heart_rate.read_expert()
-        raw_dict = heart_rate.dict('slow class'.split())
-        slow = raw_dict['slow']
-        _class = raw_dict['class']
+        slow = heart_rate.slow
+        _class = heart_rate.expert
+
+        sample_frequency = heart_rate.hr_sample_frequency
+        sample_frequency_cpm = int(sample_frequency.to('1/minute').magnitude)
         if 'config' in args:
             min_prominence = args.config.min_prominence
         else:  # When called by config_stats which makes config
             min_prominence = args.min_prominence
 
-        peak_times, properties = peaks(slow, args.heart_rate_sample_frequency,
-                                       min_prominence)
+        peak_times, properties = peaks(slow, sample_frequency, min_prominence)
         for index in range(len(peak_times) - 1):
             t_peak = peak_times[index]
             prominence_t = properties['prominences'][index]
-            period_t = (peak_times[index + 1] - t_peak) / f_sample
-            class_t = _class[t_peak]
-            peak_dict[class_t].append((prominence_t, period_t))
-
+            period_t = (peak_times[index + 1] - t_peak) / sample_frequency_cpm
+            temp = t_peak // sample_frequency_cpm
+            if temp >= len(_class):
+                break
+            peak_dict[_class[temp]].append((prominence_t, period_t))
     return peak_dict
 
 
@@ -1070,10 +1070,10 @@ def make_density_ratio(peak_dict, limit, sigma, _lambda):
     key_a = 1
     i_interval = 1
 
-    def drop_big(x_in):
+    def drop_big(interval):
         """Return x_i after dropping values larger than limit
         """
-        return x_in[numpy.nonzero(x_in < limit)]
+        return interval[numpy.nonzero(interval < limit)]
 
     normal, apnea = (drop_big(numpy.array(peak_dict[key])[:,
                                                           i_interval]).reshape(

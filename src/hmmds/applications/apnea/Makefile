@@ -108,7 +108,7 @@ norm_analyze_peaks.pdf: analyze_peaks.py norm_config$(NORM_PROM).pkl
 	python $^ --normalize --records $(APLUSNAMES) --figure_path $@
 
 norm_interval_pdfs.pdf: apnea_ratio.py norm_config$(NORM_PROM).pkl
-	python $< --records $(APLUSNAMES) --normalize norm_config$(NORM_PROM).pkl $@
+	python $< --records $(APLUSNAMES) -- norm_config$(NORM_PROM).pkl $@
 
 norm_prominence_study.pdf: prominence_study.py $(NORM_PROMINENCE_MODELS)
 	python $< --prominences $(NORM_PROMINENCES) --template \
@@ -149,7 +149,7 @@ config.pkl: config_stats.py
 config%.pkl: config_stats.py
 	python $< --records $(APLUSNAMES) -- $* $@
 
-norm_config%.pkl: config_stats.py config%.pkl
+norm_config%.pkl: config_stats.py
 	python $< --records $(APLUSNAMES) --normalize $* $@
 
 interval_pdfs.pdf: apnea_ratio.py config6.pkl

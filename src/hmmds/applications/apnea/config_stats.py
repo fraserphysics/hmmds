@@ -62,7 +62,7 @@ def parse_args(argv):
 
 
 class Record:
-    """Holds properties of records and method to calculate them
+    """Holds properties of records and methods to calculate them
 
     """
 

@@ -48,9 +48,6 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
-    parser.add_argument('--normalize',
-                        action='store_true',
-                        help="Normalize heart rate signal")
     utilities.common_arguments(parser)
     parser.add_argument('config_path',
                         type=str,
@@ -105,14 +102,14 @@ def main(argv=None):
     normal_pdf = args.config.normal_pdf
     apnea_pdf = args.config.apnea_pdf
     args.min_prominence = args.config.min_prominence
-    if args.normalize:
+    if hasattr(args.config, 'norm_avg'):
         args.norm_avg = args.config.norm_avg
 
     n_samples = 5  # To illustrate variance of estimated ratio
     pdf_ratios = list(
         utilities.make_interval_pdfs(args, args.records)
         for _ in range(n_samples))
-    max_x = 2.2
+    max_x = 2.0
     plot(axes, pdf_ratios, normal_pdf, apnea_pdf, args.config, max_x)
 
     if args.show:
