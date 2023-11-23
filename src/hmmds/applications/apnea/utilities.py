@@ -49,7 +49,7 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=str,
                         nargs='+',
                         help='eg, --records a01 x02 -- ')
-    # Group that are relative to derived_apna
+    # Group that are relative to derived_apnea
     parser.add_argument('--rtimes',
                         type=str,
                         default='raw_data/Rtimes',

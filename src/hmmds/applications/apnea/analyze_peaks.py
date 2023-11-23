@@ -11,9 +11,6 @@ import argparse
 
 import numpy
 
-import hmm.base
-import hmm.simple
-
 import utilities
 import plotscripts.utilities
 
@@ -39,14 +36,7 @@ def parse_args(argv):
     return args
 
 
-def plot_record(args, record_name, boundaries, axes):
-    raw_dict = utilities.read_slow_class_peak(args, record_name)
-    axes.plot(raw_dict['slow'] / 10, label='slow')
-    axes.plot(raw_dict['peak'], label='bin')
-    axes.plot(raw_dict['class'], label='class')
-
-
-def analyze_record(args, record_name, peak_dict):
+def analyze_record(args, config, record_name, peak_dict):
     '''Put prominences of detected peaks in the right value of peak_dict
 
     Args:
@@ -55,17 +45,17 @@ def analyze_record(args, record_name, peak_dict):
         peak_dict: keys (0,1) values are lists of prominences
 
     '''
-    min_prominence = args.config.min_prominence
-    heart_rate = utilities.HeartRate(args, record_name, args.config)
+    heart_rate = utilities.HeartRate(args, record_name, config)
     heart_rate.filter_hr()
     heart_rate.read_expert()
-    raw_dict = heart_rate.dict('slow class'.split())
-    peak_times, properties = utilities.peaks(raw_dict['slow'],
-                                             args.heart_rate_sample_frequency,
-                                             min_prominence)
-    for time, prominence in zip(peak_times, properties['prominences']):
-        class_ = raw_dict['class'][time]
-        peak_dict[class_].append(prominence)
+    heart_rate.find_peaks()
+
+    for time, prominence in zip(heart_rate.peaks, heart_rate.peak_prominences):
+        minute = int(time /
+                     heart_rate.hr_sample_frequency.to('1/minute').magnitude)
+        if minute >= len(heart_rate.expert):
+            break
+        peak_dict[heart_rate.expert[minute]].append(prominence)
 
 
 def plot_cdf(axes, data, color=None, label=None):
@@ -79,39 +69,32 @@ def plot_cdf(axes, data, color=None, label=None):
     axes.plot(data, y, color=color, linewidth=2, linestyle='solid', label=label)
 
 
-def plot_n(x, boundaries, axes, marks=False, label=None):
+def plot_n(x, axes, label=None):
     '''Mark boundaries on plot of cumulative number
 
     Args:
        x: sorted 1-d array of floats
-       boundaries: Boundaries of bins
        axes: A pyplot axes instance
     '''
-    x_b = numpy.searchsorted(x, boundaries)
-    axes.plot(boundaries, x_b, linestyle='', marker='x')
     y = numpy.arange(len(x))
     axes.plot(x, y, label=label)
-    if marks:
-        axes.plot([0] * len(x_b), x_b, linestyle='', marker='x')
 
 
 def main(argv=None):
-    """
+    """Plot cdf and number of peak prominences for normal and apnea.
+
     """
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
-    fig, axeses = pyplot.subplots(nrows=3, figsize=(6, 8))
-    fig.tight_layout()
+    fig, axeses = pyplot.subplots(nrows=2, figsize=(6, 8))
 
     axeses[0].sharex(axeses[1])
     axeses[0].set_xlim(-1, 50)
 
     with open(args.config_path, 'rb') as _file:
-        args.config = pickle.load(_file)
-    if args.normalize:
-        args.norm_avg = args.config.norm_avg
+        config = pickle.load(_file)
 
     if args.records:
         records = args.records
@@ -121,20 +104,20 @@ def main(argv=None):
     # Find peaks
     peak_dict = {0: [], 1: []}
     for record_name in records:
-        analyze_record(args, record_name, peak_dict)
+        analyze_record(args, config, record_name, peak_dict)
 
-    # Sort the peaks and find indices of boundaries
-    indices = {}
+    # Sort the peaks
     for class_ in (0, 1):
         data = numpy.array(peak_dict[class_])
         data.sort()
-        #indices[class_] = numpy.searchsorted(data, args.config.boundaries)
         peak_dict[class_] = data
 
     plot_cdf(axeses[0], peak_dict[0], label='Normal')
     plot_cdf(axeses[0], peak_dict[1], label='Apnea')
     axeses[0].set_ylabel('cdf')
 
+    plot_n(peak_dict[0], axeses[1], label='Normal')
+    plot_n(peak_dict[1], axeses[1], label='Apnea')
     axeses[1].set_ylabel('Number')
     axeses[1].set_xlabel('peak prominences')
 
@@ -143,6 +126,7 @@ def main(argv=None):
     if args.show:
         pyplot.show()
     if args.figure_path:
+        fig.tight_layout()
         fig.savefig(args.figure_path)
     return 0
 
