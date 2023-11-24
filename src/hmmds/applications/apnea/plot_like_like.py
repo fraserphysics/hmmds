@@ -29,9 +29,13 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser(
         description='Plot of likelihoods of heart rate model and ecg model')
-    parser.add_argument('--name',
+    parser.add_argument('--record_name',
                         type=str,
                         default='a06',
+                        help='Record to analyze')
+    parser.add_argument('--model_name',
+                        type=str,
+                        default='lphr_respiration2_masked',
                         help='Records to analyze')
 
     # Likelihood is in eg, build/derived_data/ECG/a06_self_AR3/likelihood
@@ -47,17 +51,11 @@ def parse_args(argv):
     # Model is in eg, build/derived_data/apnea/models/a06_unmasked
     parser.add_argument('--model_template',
                         type=str,
-                        default='%s/%s_unmasked',
+                        default='%s/%s',
                         help='For paths to models')
-    parser.add_argument(
-        '--model_dir',
-        type=str,
-        default='../../../../build/derived_data/apnea/models',
-        help='Path to trained models of the joint filtered heart rate data')
 
-    # Joint filtered heart rate data will be read by
-    # utilities.read_slow_respiration(args, record) which needs
-    # args.derived_apnea_data, args.heart_rate_sample_frequency, and
+    # Joint filtered heart rate data will be read by readers that need
+    # args.derived_apnea_data, args.model_sample_frequency, and
     # args.trim_start.  All of those args are provided by utilities.py
 
     parser.add_argument('--show',
@@ -71,27 +69,18 @@ def parse_args(argv):
 
 
 def read_joint_model(args):
-    model_path = args.model_template % (args.model_dir, args.name)
+    model_path = args.model_template % (args.model_dir, args.model_name)
     with open(model_path, 'rb') as _file:
-        old_args, result = pickle.load(_file)
+        result = pickle.load(_file)
     return result
 
 
 def read_ecg_likelihood(args):
-    path = os.path.join(args.ECG_dir, f'{args.name}_self_AR3/likelihood')
+    path = os.path.join(args.ECG_dir, f'{args.record_name}_self_AR3/likelihood')
     with open(path, 'rb') as _file:
         likelihood = pickle.load(_file)
     final_time = len(likelihood) / args.likelihood_sample_frequency
     return likelihood
-
-
-def read_data(args):
-    """Read data joint slow-respiration data
-    """
-    data = hmm.base.JointSegment(
-        utilities.read_slow_respiration(args, args.name))
-    final_time = len(data) / args.heart_rate_sample_frequency
-    return data
 
 
 def main(argv=None):
@@ -103,15 +92,14 @@ def main(argv=None):
 
     model = read_joint_model(args)
     ecg_log_likelihood = numpy.log(read_ecg_likelihood(args))
-    joint_heart_rate_data = read_data(args)
-    joint_log_likelihood = numpy.log(model.likelihood(joint_heart_rate_data))
+    data = hmm.base.JointSegment(model.read_y_with_class(args.record_name))
+    joint_log_likelihood = numpy.log(model.likelihood(data))
     # Hack to circumvent "Cannot operate with Quantity and Quantity of
     # different registries."
     f_like = int(args.likelihood_sample_frequency.to('1/minutes').magnitude)
-    f_joint = int(args.heart_rate_sample_frequency.to('1/minutes').magnitude)
+    f_joint = int(args.model_sample_frequency.to('1/minutes').magnitude)
     f_ratio = f_like // f_joint
-    n_joint = min(len(joint_heart_rate_data),
-                  len(ecg_log_likelihood) // f_ratio)
+    n_joint = min(len(data), len(ecg_log_likelihood) // f_ratio)
     assert len(
         ecg_log_likelihood
     ) / f_ratio >= n_joint, f'{len(ecg_log_likelihood)/f_ratio=} {f_ratio=} {n_joint=}'
@@ -128,7 +116,11 @@ def main(argv=None):
     ecg_axes.set_ylabel('LL_ecg')
     joint_axes.plot(joint_minutes, joint_log_likelihood)
     joint_axes.set_ylabel('joint_ecg')
-    both_axes.plot(x, joint_log_likelihood, linestyle='', marker='.')
+    last = min(len(x), len(joint_log_likelihood))
+    both_axes.plot(x[:last],
+                   joint_log_likelihood[:last],
+                   linestyle='',
+                   marker='.')
     both_axes.set_xlabel('ecg')
     both_axes.set_ylabel('joint')
 
