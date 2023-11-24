@@ -19,7 +19,7 @@ DEFAULT_ARGS = --root $(ROOT) \
 --rtimes raw_data/Rtimes \
 --expert raw_data/apnea/summary_of_training \
 --iterations 10 \
---heart_rate_sample_frequency 24  \
+--heart_rate_sample_frequency 120  \
 --power_and_threshold 1.6, 1.0  \
 --trim_start 0 \
 --fft_width 4096 \
@@ -205,7 +205,7 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # new_config.pkl is not used for c_model, but model_init.py requires a
 # config argument
 $(MODELS)/c_model: model_init.py new_config.pkl
-	python $< new_config.pkl c_model $@
+	python $< --model_sample_frequency 12 new_config.pkl c_model $@
 
 $(MODELS)/two_%_initial: model_init.py config_stats.py make_init.py
 	python make_init.py two_intervals $* $@
@@ -218,7 +218,7 @@ $(MODELS)/norm_%_initial: model_init.py config_stats.py make_init.py
 	python make_init.py two_normalized $* $@
 
 $(MODELS)/lphr_respiration2_initial: model_init.py config4.pkl
-	python $< --heart_rate_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 config4.pkl lphr_respiration2 $@
+	python $< --model_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 config4.pkl lphr_respiration2 $@
 
 new_config.pkl: config_stats.py
 	python $< --normalize 4.0 $@

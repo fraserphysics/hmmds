@@ -76,6 +76,9 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
         self.untrainable_indices = untrainable_indices
         self.untrainable_values = untrainable_values
 
+    # The self.args argument for the read functions was defined when
+    # the HMM instance was created.  The only information propagated
+    # from the caller is "record_name".
     def read_y_no_class(self: HMM, record_name):
         return self.args.read_raw_y(self.args, record_name)
 

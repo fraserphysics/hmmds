@@ -911,15 +911,22 @@ class ModelRecord:
         """Holds a model and observations for a single record
 
         Args:
-            model: Path to pickled HMM and its args
+            model: Path to pickled HMM
             record: The name, eg, 'a01' of the record
+
+        Note: Subsequent processing uses the "args" attribute of the
+        pickled model.  A ModelRecord instance only uses information
+        from the caller that are in the arguments to __init__, namely
+        model_path and record_name.  In particular no other
+        information from the command line arguments of the caller have
+        any effects.
+
         """
         self.record_name = record_name
         with open(model_path, 'rb') as _file:
             self.model = pickle.load(_file)
         self.samples_per_minute = int(
-            self.model.args.heart_rate_sample_frequency.to(
-                '1/minute').magnitude)
+            self.model.args.model_sample_frequency.to('1/minute').magnitude)
         if record_name[0] == 'x':
             self.y_class_data = None
             self.class_from_expert = None
@@ -937,7 +944,7 @@ class ModelRecord:
         """Estimate apnea or normal for each minute of data
 
         Args:
-            threshold:  Higher value -> less Normal -> Apnea errors
+            threshold:  Higher value -> less (Normal -> Apnea) errors
             power: Exponent to adjust weight of interval component of likelihood
 
         """
