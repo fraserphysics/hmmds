@@ -182,9 +182,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         class_plot.addLegend()
         self.class_dict = {
             'curves': [
-                class_plot.plot(pen='r', name='expert'),
+                class_plot.plot(pen=pyqtgraph.mkPen(color=(255, 64, 0),
+                                                    width=3),
+                                name='expert'),
                 class_plot.plot(
-                    pen=pyqtgraph.mkPen(color=(0, 255, 255),
+                    pen=pyqtgraph.mkPen(color=(0, 200, 255),
                                         width=2,
                                         style=PyQt5.QtCore.Qt.DotLine),
                     name='hmm')
@@ -302,7 +304,8 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             self.model.args.config,
             False  # normalize
         )  # Sets: hr_sample_frequency, raw_hr
-        self.hr_instance.read_expert()  # Sets and returns expert,
+        if self.record_box.text()[0] != 'x':
+            self.hr_instance.read_expert()  # Sets and returns expert,
         # (normal->0, apnea->1)
         self.hr_instance.filter_hr()  # Sets slow, notch, respiration,
         # envelope
@@ -336,12 +339,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         del self.model.y_mod['class']
         self.states = self.model.decode(self.y_data)
         self.time_states = numpy.arange(len(
-            self.states)) / self.model.args.heart_rate_sample_frequency
+            self.states)) / self.model.args.model_sample_frequency
 
         self.weight = self.model.weights(self.y_data).sum(axis=0)
         self.like = -numpy.log(self.model.gamma_inv)
         self.time_like = numpy.arange(len(
-            self.like)) / self.model.args.heart_rate_sample_frequency
+            self.like)) / self.model.args.model_sample_frequency
 
         self.model.y_mod['class'] = class_model
 
