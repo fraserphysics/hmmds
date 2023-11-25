@@ -269,6 +269,100 @@ def read_slow(args, record_name):
     return heart_rate.dict(['slow'])
 
 
+def read_lphr_respiration_class(args, record_name):
+    """
+    """
+
+    keys = 'hr_respiration class'.split()
+    item_args = {'hr_respiration': {'pad': args.AR_order}}
+
+    # develop.HMM.read_y_with_class calls this with self.args, and
+    # apnea_train.main wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = utilities.HeartRate(args, record_name, args.config,
+                                      args.normalize)
+    hr_instance.read_expert()
+    hr_instance.filter_hr()
+
+    return hr_instance.dict(keys, item_args)
+
+
+def read_lphr_respiration(args, record_name):
+    """
+    """
+
+    keys = ['hr_respiration']
+    item_args = {'hr_respiration': {'pad': args.AR_order}}
+
+    # develop.HMM.read_y_with_class calls this with self.args, and
+    # apnea_train.main wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = utilities.HeartRate(args, record_name, args.config,
+                                      args.normalize)
+    hr_instance.filter_hr()
+
+    return hr_instance.dict(keys, item_args)
+
+
+def read_slow_class_peak_interval(args, record_name):
+    """Called by HMM, and returns a
+    dict of observation components
+
+    Args:
+        args: From HMM.args
+        record_name: EG, 'a01'
+
+    Components are slow, peak, interval and class.
+
+    """
+    keys = 'slow peak interval class'.split()
+    item_args = {'slow': {'pad': args.AR_order}}
+
+    # develop.HMM.read_y_with_class calls this with self.args, and
+    # apnea_train.main wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = utilities.HeartRate(args, record_name, args.config,
+                                      args.normalize)
+    hr_instance.read_expert()
+    hr_instance.filter_hr()
+    hr_instance.find_peaks()
+
+    return hr_instance.dict(keys, item_args)
+
+
+def read_slow_peak_interval(args, record_name):
+    """Called by HMM, and returns a
+    dict of observation components
+
+    Args:
+        args: From HMM.args
+        record_name: EG, 'a01'
+
+    Components are slow, peak, and interval.
+
+    """
+    keys = 'slow peak interval'.split()
+    item_args = {'slow': {'pad': args.AR_order}}
+
+    # develop.HMM.read_y_with_class calls this with self.args, and
+    # apnea_train.main wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = utilities.HeartRate(args, record_name, args.config,
+                                      args.normalize)
+    hr_instance.filter_hr()
+    hr_instance.find_peaks()
+
+    return hr_instance.dict(keys, item_args)
+
+
 @register  # Model for "c" records
 def c_model(args, rng):
     """Return an hmm that finds all minutes normal
@@ -488,8 +582,10 @@ def two_intervals(args, rng):
     "intervals"
 
     """
-    return two_chain(args, rng, utilities.read_slow_class_peak_interval,
-                     utilities.read_slow_peak_interval)
+    return two_chain(
+        args, rng,
+        hmmds.applications.apnea.model_init.read_slow_class_peak_interval,
+        hmmds.applications.apnea.model_init.read_slow_peak_interval)
 
 
 @register
@@ -536,8 +632,8 @@ def lphr_respiration2(args, rng):
     # Create and return the hmm
     hmm_ = develop.HMM(p_state_initial, p_state_time_average, p_state2state,
                        y_model, args, rng)
-    args.read_y_class = utilities.read_lphr_respiration_class
-    args.read_raw_y = utilities.read_lphr_respiration
+    args.read_y_class = hmmds.applications.apnea.model_init.read_lphr_respiration_class
+    args.read_raw_y = hmmds.applications.apnea.model_init.read_lphr_respiration
 
     # Next two lines are for debugging more complicated models
     state_key2state_index = {0: 0, 1: 1}
@@ -557,6 +653,7 @@ def read_slow_class_peak_interval(args, record_name):
 
     """
     keys = 'slow peak interval class'.split()
+    item_args = {'slow': {'pad': args.AR_order}}
 
     # develop.HMM.read_y_with_class calls this with self.args, and
     # apnea_train.main wraps the result in hmm.base.JointSegment
@@ -569,7 +666,7 @@ def read_slow_class_peak_interval(args, record_name):
     hr_instance.filter_hr()
     hr_instance.find_peaks()
 
-    return hr_instance.dict(keys)
+    return hr_instance.dict(keys, item_args)
 
 
 def read_slow_peak_interval(args, record_name):
@@ -583,6 +680,7 @@ def read_slow_peak_interval(args, record_name):
 
     """
     keys = 'slow peak interval'.split()
+    item_args = {'slow': {'pad': args.AR_order}}
 
     # develop.HMM.read_y_with_class calls this with self.args, and
     # apnea_train.main wraps the result in hmm.base.JointSegment
@@ -594,7 +692,7 @@ def read_slow_peak_interval(args, record_name):
     hr_instance.filter_hr()
     hr_instance.find_peaks()
 
-    return hr_instance.dict(keys)
+    return hr_instance.dict(keys, item_args)
 
 
 def read_y_class4two_varg(args, record_name):

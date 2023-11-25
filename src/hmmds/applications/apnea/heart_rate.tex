@@ -349,14 +349,26 @@ Section~\ref{sec:respiration} with the two chain state structure and
 interval modeling of Section~\ref{sec:norm_two}.  The parameters to
 choose include:
 \begin{description}
-\item[Sample frequencies] For VARG (Vector AutoRegressive Gaussian)
-  model of the combined respiration -- low-pass filtered heart rate
-  signal and for the peak detector.
-\item[Filter parameters] For the low-pass filtered heart rate and for
-  deriving the respiration signal.
-\item[AR order] 
-\item[$\psi$ and $\nu$] Priors for each state
-\item[Prominence threshold] 
+\item[VARG parameters:] for the (Vector AutoRegressive Gaussian) model
+  of the 2-d vectors with components respiration and low-pass filtered
+  heart rate.  The parameters include:
+  \begin{description}
+  \item[sample rate] 
+  \item[normalization] 
+  \item[low pass width] 7.5 per minute
+  \item[respiration pass center] 15 per minute
+  \item[respiration pass width] 3 per minute
+  \item[envelope smooth] 1.5 per minute
+  \item[AR order] 
+  \item[$\psi$ and $\nu$] Priors for each state
+  \end{description}
+\item[Peak parameters] For finding peaks.  Note: The signal used is
+  from the low pass filter for the VARG signal.
+  \begin{description}
+  \item[minimum prominence] 
+  \item[distance] 0.417 minutes
+  \item[window length] 1.42 minutes
+  \end{description}
 \item[Detector threshold] 
 \item[Weighting power] 
 \end{description}
@@ -364,14 +376,8 @@ choose include:
 \subsection{To Do}
 
 \begin{enumerate}
-\item Write new utilities.read\_slow\_peaks\_intervals function that
-  computes intervals with resolution that is independent of
-  args.heart\_rate\_sample\_frequency.  It should report slow and peaks at
-  the heart\_rate\_sample\_frequency.
-\item \label{parameter_dicts} Replace make\_observation with dicts as
-  arguments to make\_observation\_model functions.
-\item Make a two\_varg\_masked model.
-\item Modify other model types to use \ref{parameter_dicts}
+\item Explore how performance depends on the parameters of the model
+  in Sec.~\ref{sec:combination}.
 \end{enumerate}
 
 \subsubsection{Problematic Records}
