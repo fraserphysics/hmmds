@@ -480,34 +480,6 @@ class HeartRate:
         return interval
 
 
-def read_train_log(path: str) -> numpy.ndarray:
-    """Read a text file created by train.py
-
-    Args:
-        path: Path to log file
-
-    """
-
-    def parse_line(line):
-        result = {}
-        parts = line.split()
-        for i, key in enumerate(parts):
-            if (key[0] == 'L' and len(key) > 1) or key in 'prior U/n'.split():
-                result[key] = float(parts[i + 1])
-        return result
-
-    with open(path, 'r') as log_file:
-        lines = log_file.readlines()
-    column_dict = {key: [value] for key, value in parse_line(lines[0]).items()}
-    for line in lines[1:]:
-        _dict = parse_line(line)
-        for key, value in _dict.items():
-            column_dict[key].append(value)
-    for key, value in column_dict.items():
-        column_dict[key] = numpy.array(value)
-    return column_dict
-
-
 def read_expert(path: str, name: str) -> numpy.ndarray:
     """ Create int array for record specified by name.
     Args:
@@ -580,7 +552,7 @@ def notch_hr(
     top=-1 * PINT('1/minutes')
 ) -> numpy.ndarray:
     """Calculate filtered heart rate
- 
+
     Args:
         raw_hr:
         sample_period: Time with pint
@@ -608,38 +580,6 @@ def notch_hr(
         HR[n_top:] = 0.0
 
     return numpy.fft.irfft(HR)[:n_t]
-
-
-def peaks(
-        filtered: numpy.ndarray,  # Heart rate in beats per minute
-        sample_frequency,  # A pint frequency
-        prominence,  # In beats per minute
-        distance=0.417 * PINT('minutes'),
-        wlen=1.42 * PINT('minutes'),
-):
-    """Find peaks in the low pass filtered heart rate signal
-    
-    Args:
-        filtered: Heart rate time series as array of floats
-        sample_frequency: A pint frequency
-        distance: Minimum time between peaks
-        prominance: Minimum prominence for detection
-        wlen: Window length
-
-    Return: peaks_, properties
-
-    peaks_ is an array of indices
-
-    """
-    s_f_hz = sample_frequency.to('Hz').magnitude
-    distance_samples = distance.to('seconds').magnitude * s_f_hz
-    wlen_samples = wlen.to('seconds').magnitude * s_f_hz
-
-    peaks_, properties = scipy.signal.find_peaks(filtered,
-                                                 distance=distance_samples,
-                                                 prominence=prominence,
-                                                 wlen=wlen_samples)
-    return peaks_, properties
 
 
 def calculate_skip(sample_period_in, sample_period_out):
@@ -708,29 +648,6 @@ def hr_2_respiration(
         'respiration': respiration[:n:skip],
         'times': numpy.arange(n // skip) * sample_period_out
     }
-
-
-def read_hr(args, record_name):
-    """Verify format of pickled heart rate and return as array
-
-    Args:
-        args: Provides args.heart_rate_path_format
-        record_name: EG, 'a01'
-
-    Return: (raw_hr, sample_frequency)
-
-    raw_hr is a numpy array with ~8 hours at 2Hz, ~57,600 samples
-    sample_frequency is 2 Hz as a pint quantity
-    """
-    path = args.heart_rate_path_format.format(record_name)
-    with open(path, 'rb') as _file:
-        _dict = pickle.load(_file)
-    assert set(_dict.keys()) == set('hr sample_frequency'.split())
-    sample_frequency = _dict['sample_frequency']
-    assert sample_frequency.to('Hz').magnitude == 2
-    raw_hr = _dict['hr'].to('1/minute').magnitude
-
-    return raw_hr, sample_frequency
 
 
 # I put this in utilities enable apnea_train.py to run.
@@ -1023,40 +940,40 @@ def print_chain_model(y_mod, weight, key2index):
 
 
 def peaks_intervals(args, record_names):
-    """Calculate (prominence, period) pairs.
+    """Calculate (prominence, interval) pairs.
 
     Args:
         args: command line arguments
         record_names: Specifies data to analyze
 
+    Return: peak_dict with peak_dict[_class][t] = (prominence, interval)
+
     The returned intervals are in minutes
     """
 
-    # Calculate (prominence, period) pairs
+    # Calculate (prominence, interval) pairs
     peak_dict = {0: [], 1: []}
     for record_name in record_names:
         heart_rate = HeartRate(args, record_name, args.config)
         heart_rate.filter_hr()
         heart_rate.read_expert()
-        slow = heart_rate.slow
+        heart_rate.find_peaks()
+
+        peak_times = heart_rate.peaks
+        prominences = heart_rate.peak_prominences
         _class = heart_rate.expert
-
         sample_frequency = heart_rate.hr_sample_frequency
-        sample_frequency_cpm = int(sample_frequency.to('1/minute').magnitude)
-        if 'config' in args:
-            min_prominence = args.config.min_prominence
-        else:  # When called by config_stats which makes config
-            min_prominence = args.min_prominence
 
-        peak_times, properties = peaks(slow, sample_frequency, min_prominence)
-        for index in range(len(peak_times) - 1):
-            t_peak = peak_times[index]
-            prominence_t = properties['prominences'][index]
-            period_t = (peak_times[index + 1] - t_peak) / sample_frequency_cpm
-            temp = t_peak // sample_frequency_cpm
-            if temp >= len(_class):
+        sample_frequency_cpm = int(sample_frequency.to('1/minute').magnitude)
+        intervals = (peak_times[1:] - peak_times[:-1]) / sample_frequency_cpm
+
+        for index, (prominence,
+                    interval) in enumerate(zip(prominences[:-1], intervals)):
+            minute = int(peak_times[index] / sample_frequency_cpm)
+            if minute >= len(_class):
                 break
-            peak_dict[_class[temp]].append((prominence_t, period_t))
+            peak_dict[_class[minute]].append((prominence, interval))
+
     return peak_dict
 
 

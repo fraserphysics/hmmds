@@ -21,8 +21,6 @@ lambda = 0.06 The densratio code says this is optimal
 
 kernel_num = 800 Perhaps larger than necessary, but still fast.
 
-I used apnea.plot_pp.py to create the file pickled_peak_dict.
-
 See Density Ratio Estimation: A Comprehensive Review at
 http://www.ms.k.u-tokyo.ac.jp/sugi/2010/RIMS2010.pdf
 

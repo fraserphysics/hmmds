@@ -36,28 +36,6 @@ def parse_args(argv):
     return args
 
 
-def analyze_record(args, config, record_name, peak_dict):
-    '''Put prominences of detected peaks in the right value of peak_dict
-
-    Args:
-        args: Command line arguments
-        record_name: eg 'a03'
-        peak_dict: keys (0,1) values are lists of prominences
-
-    '''
-    heart_rate = utilities.HeartRate(args, record_name, config)
-    heart_rate.filter_hr()
-    heart_rate.read_expert()
-    heart_rate.find_peaks()
-
-    for time, prominence in zip(heart_rate.peaks, heart_rate.peak_prominences):
-        minute = int(time /
-                     heart_rate.hr_sample_frequency.to('1/minute').magnitude)
-        if minute >= len(heart_rate.expert):
-            break
-        peak_dict[heart_rate.expert[minute]].append(prominence)
-
-
 def plot_cdf(axes, data, color=None, label=None):
     '''Plot cumulative distribution function
 
@@ -94,21 +72,19 @@ def main(argv=None):
     axeses[0].set_xlim(-1, 50)
 
     with open(args.config_path, 'rb') as _file:
-        config = pickle.load(_file)
+        args.config = pickle.load(_file)
 
     if args.records:
         records = args.records
     else:
         records = args.a_names
 
-    # Find peaks
-    peak_dict = {0: [], 1: []}
-    for record_name in records:
-        analyze_record(args, config, record_name, peak_dict)
+    peak_interval_dict = utilities.peaks_intervals(args, records)
 
     # Sort the peaks
+    peak_dict = {}
     for class_ in (0, 1):
-        data = numpy.array(peak_dict[class_])
+        data = numpy.array(list(x[0] for x in peak_interval_dict[class_]))
         data.sort()
         peak_dict[class_] = data
 
