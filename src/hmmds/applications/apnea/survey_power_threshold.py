@@ -144,7 +144,8 @@ def main(argv=None):
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     fig, axeses = pyplot.subplots(nrows=2, figsize=(6, 8))
 
-    min_power, min_threshold = args.power_and_threshold
+    min_threshold = args.threshold
+    min_power = args.power
 
     def linspace(triple):
         return numpy.linspace(float(triple[0]), float(triple[1]),

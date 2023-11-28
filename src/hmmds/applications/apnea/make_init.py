@@ -56,7 +56,8 @@ def two_intervals(args):
     make_config = f"make config{d['prom']}.pkl"
     run_model_init = f"""
       python model_init.py
-      --power_and_threshold {d['power']} 1.0e{d['threshold']}
+      --power 1 1 {d['power']} 1
+      --threshold 1.0e{d['threshold']}
       --AR_order {d['ar']}
       config{d['prom']}.pkl two_intervals {args.out}"""
     return make_config, run_model_init
@@ -68,7 +69,8 @@ def two_normalized(args):
     make_config = f"make norm_config{d['prom']}.pkl"
     run_model_init = f"""
       python model_init.py
-      --power_and_threshold {d['power']} 1.0e{d['threshold']}
+      --power 1 1 {d['power']} 1
+      --threshold 1.0e{d['threshold']}
       --AR_order {d['ar']}
       norm_config{d['prom']}.pkl two_normalized {args.out}"""
     return make_config, run_model_init

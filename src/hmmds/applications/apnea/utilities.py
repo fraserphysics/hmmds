@@ -74,13 +74,15 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=int,
                         help="Number of previous values for prediction.")
     parser.add_argument(
-        '--power_and_threshold',
+        '--threshold',
         type=float,
-        nargs=2,
-        default=(1.6, 1.0),
-        help=
-        'Weight of observation component "interval" and apnea detection threshold'
-    )
+        default=1.0,
+        help='Apnea detection threshold.  A positive in (,\infty)')
+    parser.add_argument(
+        '--power',
+        type=float,
+        nargs='+',
+        help='Observation components weighted by likelihood**power')
     parser.add_argument(
         '--trim_start',
         type=int,
@@ -699,24 +701,21 @@ class State:
 
 
 class IntervalObservation(hmm.base.BaseObservation):
-    _parameter_keys = 'density_functions n_states power'.split()
+    _parameter_keys = 'density_functions n_states'.split()
 
-    def __init__(self: IntervalObservation, density_functions: tuple, args,
-                 power):
+    def __init__(self: IntervalObservation, density_functions: tuple, args):
         r"""Output of state is a float.  The density is 1.0 if the
         state is an apnea state, and if the state is normal the
         density is given by a density ratio."
 
         Args:
             density_functions: density_functions[s] is a callable: float -> float
-            config: Parameters for density_functions 
-            power: Exponent of likelihood, for weighting wrt other components of joint observation.
+            config: Parameters for density_functions
 
         """
         self.n_states = len(density_functions)
         self.density_functions = density_functions
         self.config = args.config
-        self.power = power
 
     def reestimate(self: IntervalObservation, w: numpy.ndarray):
         pass
@@ -729,20 +728,17 @@ class IntervalObservation(hmm.base.BaseObservation):
         self._likelihood *= 0.0
         for i_state in range(self.n_states):
             self._likelihood[:, i_state] = (self.density_functions[i_state](
-                self._y.reshape(-1, 1), self.config)).reshape(-1)**self.power
+                self._y.reshape(-1, 1), self.config)).reshape(-1)
         return self._likelihood
 
 
 # FixMe: Test this
-def interval_hmm_likelihood(model_path: str,
-                            record_name: str,
-                            interval_power=1.0):
+def interval_hmm_likelihood(model_path: str, record_name: str):
     """Calculate log likelihood of model wrt data for a record
     """
     with open(model_path, 'rb') as _file:
         model = pickle.load(_file)
     del model.y_mod['class']
-    model.y_mod['interval'].power = interval_power
 
     y_data = [
         hmm.base.JointSegment(read_slow_peak_interval(model.args, record_name))
@@ -862,20 +858,12 @@ class ModelRecord:
 
         Args:
             threshold:  Higher value -> less (Normal -> Apnea) errors
-            power: Exponent to adjust weight of interval component of likelihood
+            power: Exponential weights of ovservation components
 
         """
-        _power, _threshold = self.model.args.power_and_threshold
-        if power is None:
-            power = _power
-        if threshold is None:
-            threshold = _threshold
-
-        if 'interval' in self.model.y_mod:
-            self.model.y_mod['interval'].power = power
 
         self.class_from_model = self.model.class_estimate(
-            self.y_raw_data, self.samples_per_minute, threshold)
+            self.y_raw_data, self.samples_per_minute, threshold, power)
 
         if self.record_name[0] == 'x':  # Used for display by explore.py
             self.class_from_expert = numpy.zeros(len(self.class_from_model),

@@ -75,7 +75,7 @@ def analyze(name, model_path, report, debug=False, power=None, threshold=None):
 
     model_record = hmmds.applications.apnea.utilities.ModelRecord(
         model_path, name)
-    model_record.classify(threshold=threshold)
+    model_record.classify(threshold, power)
     model_record.score()
 
     model_record.formatted_result(report, expert=False)
@@ -102,13 +102,12 @@ def main(argv=None):
 
     model_paths = {'N': args.model_paths[0], 'A': args.model_paths[1]}
 
-    power, threshold = args.power_and_threshold
     for name in args.names:
         analyze(name,
                 model_paths[pass1_dict[name]],
                 args.result,
-                power=power,
-                threshold=threshold)
+                power=args.power,
+                threshold=args.threshold)
 
     return 0
 

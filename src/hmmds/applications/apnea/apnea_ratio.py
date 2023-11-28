@@ -107,7 +107,7 @@ def main(argv=None):
     pdf_ratios = list(
         utilities.make_interval_pdfs(args, args.records)
         for _ in range(n_samples))
-    max_x = 2.0
+    max_x = 1.8
     plot(axes, pdf_ratios, normal_pdf, apnea_pdf, args.config, max_x)
 
     if args.show:

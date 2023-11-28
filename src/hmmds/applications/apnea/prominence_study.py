@@ -147,7 +147,8 @@ def main(argv=None):
     fig, axes = pyplot.subplots(nrows=1, figsize=(6, 3))
     fig.tight_layout()
 
-    best_power, best_threshold = args.power_and_threshold
+    best_threshold = args.threshold
+    best_power = dict(zip('slow peak interval class'.split(), args.power))
     if args.records is None:
         records = args.a_names
     else:

@@ -97,22 +97,24 @@ def make_joint_slow_peak_interval_class(
     for state_index, key in enumerate(keys):
         py_state[state_index, :] = state_dict[key].observation['peak']
 
-    power = args.power_and_threshold[0]
-    return hmm.base.JointObservation({
-        'slow':
-            hmm.C.AutoRegressive(ar_coefficients, offsets, variances, rng,
-                                 alphas, betas),
-        'peak':
-            hmm.C.IntegerObservation(py_state, rng),
-        'interval':
-            utilities.IntervalObservation(
-                tuple(state_dict[key].observation['interval'] for key in keys),
-                args,
-                power,
-            ),
-        'class':
-            hmm.base.ClassObservation(class_index2state_indices),
-    })
+    power = dict(zip('slow peak interval class'.split(), args.power))
+    return hmm.base.JointObservation(
+        {
+            'slow':
+                hmm.C.AutoRegressive(ar_coefficients, offsets, variances, rng,
+                                     alphas, betas),
+            'peak':
+                hmm.C.IntegerObservation(py_state, rng),
+            'interval':
+                utilities.IntervalObservation(
+                    tuple(state_dict[key].observation['interval']
+                          for key in keys),
+                    args,
+                ),
+            'class':
+                hmm.base.ClassObservation(class_index2state_indices),
+        },
+        power=power)
 
 
 def make_joint_varg_peak_interval_class(
@@ -171,21 +173,20 @@ def make_joint_varg_peak_interval_class(
 
         class_index2state_indices[parameters['class']].append(state_index)
 
-    power = args.power_and_threshold[0]
-    return hmm.base.JointObservation({
-        'hr_respiration':
-            hmm.observe_float.VARG(ar_coefficients, sigma, rng, Psi=psi, nu=nu),
-        'peak':
-            hmm.C.IntegerObservation(p_peak_state, rng),
-        'interval':
-            utilities.IntervalObservation(
-                interval_pdfs,
-                args,
-                power,
-            ),
-        'class':
-            hmm.base.ClassObservation(class_index2state_indices),
-    })
+    power = dict(zip('hr_respiration peak interval class'.split(), args.power))
+    return hmm.base.JointObservation(
+        {
+            'hr_respiration':
+                hmm.observe_float.VARG(
+                    ar_coefficients, sigma, rng, Psi=psi, nu=nu),
+            'peak':
+                hmm.C.IntegerObservation(p_peak_state, rng),
+            'interval':
+                utilities.IntervalObservation(interval_pdfs, args),
+            'class':
+                hmm.base.ClassObservation(class_index2state_indices),
+        },
+        power=power)
 
 
 def dict2hmm(state_dict, make_observation_model, args, rng):
@@ -308,7 +309,7 @@ def read_lphr_respiration(args, record_name):
     return hr_instance.dict(keys, item_args)
 
 
-def read_slow_class_peak_interval(args, record_name):
+def read_slow_peak_interval_class(args, record_name):
     """Called by HMM, and returns a
     dict of observation components
 
@@ -584,7 +585,7 @@ def two_intervals(args, rng):
     """
     return two_chain(
         args, rng,
-        hmmds.applications.apnea.model_init.read_slow_class_peak_interval,
+        hmmds.applications.apnea.model_init.read_slow_peak_interval_class,
         hmmds.applications.apnea.model_init.read_slow_peak_interval)
 
 
@@ -598,7 +599,7 @@ def two_normalized(args, rng):
     args.norm_avg = args.config.norm_avg
     return two_chain(
         args, rng,
-        hmmds.applications.apnea.model_init.read_slow_class_peak_interval,
+        hmmds.applications.apnea.model_init.read_slow_peak_interval_class,
         hmmds.applications.apnea.model_init.read_slow_peak_interval)
 
 
@@ -642,7 +643,7 @@ def lphr_respiration2(args, rng):
     return hmm_, state_dict, state_key2state_index
 
 
-def read_slow_class_peak_interval(args, record_name):
+def read_slow_peak_interval_class(args, record_name):
     """Called by HMM, and returns a dict of observation components
 
     Args:

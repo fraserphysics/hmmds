@@ -149,12 +149,14 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
     def class_estimate(self: HMM,
                        y: list,
                        samples_per_minute: int,
-                       more_specific: float = 1) -> list:
+                       threshold: float = 1.0,
+                       power: dict = None) -> list:
         """ Estimate a sequence of classes
         Args:
             y: List with single element that is a time series of measurements
             samples_per_minute: Sample frequency
-            more_specific: >1 increase the number of normal minutes
+            threshold: >1 increase or (0:1) decrease the number of normal minutes
+            power: Exponential weights of observation components
 
         Returns:
             Time series of class identifiers with a sample frequency 1/minute
@@ -191,7 +193,7 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
 
         weights_normal = weights_per_minute(class_model.class2state[0])
         weights_apnea = weights_per_minute(class_model.class2state[1])
-        result = weights_apnea > weights_normal * more_specific
+        result = weights_apnea > weights_normal * threshold
         return result
 
 

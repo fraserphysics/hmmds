@@ -91,7 +91,8 @@ def main(argv=None):
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     fig, axes = pyplot.subplots(nrows=1, figsize=(6, 4))
 
-    best_power, best_threshold = args.power_and_threshold
+    best_power = args.power
+    best_threshold = args.threshold
 
     if args.records is None:
         records = args.a_names

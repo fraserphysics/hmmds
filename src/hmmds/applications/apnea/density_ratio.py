@@ -22,7 +22,7 @@ class DensityRatio:
     '''Provide evaluation of estimated density ratio function
     '''
 
-    def __init__(self, sigma, centers, theta, end=1.65):
+    def __init__(self, sigma, centers, theta, end=1.5):
         '''Set parameters from estimation of density ratio
 
         Args:
@@ -47,7 +47,7 @@ class DensityRatio:
 
     def normal_pdf(self, lengths):
         lower_length = 0.5
-        upper_length = 1.657
+        upper_length = 1.5
         # Map values outside the interval [lower_length:upper_length]
         # to the endpoints.  Note that in most applications most
         # values will fall in the interval.

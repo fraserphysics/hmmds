@@ -37,7 +37,7 @@ def parse_args(argv):
                         default='../../../../build/derived_data/ECG/',
                         help='Path to heart rate data for reading')
     parser.add_argument(
-        '--threshold',
+        '--border',
         type=float,
         default=0.36,
         help='Border between normal and apnea for whole records')
@@ -73,7 +73,7 @@ def main(argv=None):
     result = {}
     for name in all_names:
         statistic = records[name].statistic_1()
-        _class = ("N", "A")[int(statistic > args.threshold)]
+        _class = ("N", "A")[int(statistic > args.border)]
         print(f'{name} {_class} {statistic:6.4f}')
         result[name] = _class
     with open(args.pickle, 'wb') as _file:

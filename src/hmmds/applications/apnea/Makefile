@@ -20,7 +20,6 @@ DEFAULT_ARGS = --root $(ROOT) \
 --expert raw_data/apnea/summary_of_training \
 --iterations 10 \
 --heart_rate_sample_frequency 120  \
---power_and_threshold 1.6, 1.0  \
 --trim_start 0 \
 --fft_width 4096 \
 --low_pass_period 8.0 \
@@ -34,8 +33,10 @@ APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
 
 ###########################Two Chain Unnormalized###############################
 POWER = 1.0
+# powers are for the observation components: slow peak interval class
+POWER_VECTOR = --power 1 1 $(POWER) 1
 LOG_THRESHOLD = -10
-POWER_THRESHOLD = --power_and_threshold $(POWER) 1.0e$(LOG_THRESHOLD)
+POWER_THRESHOLD = $(POWER_VECTOR) --threshold 1.0e$(LOG_THRESHOLD)
 AR_ORDER = 5
 PROM = 4
 BEST_MODEL = $(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom$(PROM)_masked
@@ -56,7 +57,7 @@ power_threshold.pdf: survey_power_threshold.py $(BEST_MODEL)
 	python $< --powers 0.0 3.5 36 --thresholds -20.0 20.0 21 --records $(APLUSNAMES) -- $(BEST_MODEL) $@ > power_threshold.txt
 
 prominence_study.pdf: prominence_study.py $(PROMINENCE_MODELS)
-	python $< --prominences $(PROMINENCES) --template \
+	python $< $(POWER_THRESHOLD) --prominences $(PROMINENCES) --template \
     $(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom%_masked \
     --records $(APLUSNAMES) --fig_path $@ > prominence_study.txt
 
@@ -67,7 +68,7 @@ score.tex: score.py pass2.out
 	python score.py --tex pass2.out $@
 
 pass1.out: pass1.py
-	python $< --trim 20 --threshold .36 --model $(BEST_MODEL) $@
+	python $< --trim 20 --border .36 --model $(BEST_MODEL) $@
 
 pass2.out: pass2.py pass1.out $(BEST_MODEL) $(MODELS)/c_model
 	python $< --model_paths $(MODELS)/c_model $(BEST_MODEL) pass1.out temp
@@ -75,8 +76,9 @@ pass2.out: pass2.py pass1.out $(BEST_MODEL) $(MODELS)/c_model
 
 ###########################Two Chain Normalized#################################
 NORM_POWER = 1.5
+NORM_POWER_VECTOR = --power 1 1 $(NORM_POWER) 1
 NORM_LOG_THRESHOLD = -6
-NORM_POWER_THRESHOLD = --power_and_threshold $(NORM_POWER) 1.0e$(NORM_LOG_THRESHOLD)
+NORM_POWER_THRESHOLD = $(NORM_POWER_VECTOR) --threshold 1.0e$(NORM_LOG_THRESHOLD)
 NORM_AR = 6
 NORM_PROM = 3.3
 NORM_MODEL = $(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom$(NORM_PROM)_masked
@@ -111,9 +113,10 @@ norm_interval_pdfs.pdf: apnea_ratio.py norm_config$(NORM_PROM).pkl
 	python $< --records $(APLUSNAMES) -- norm_config$(NORM_PROM).pkl $@
 
 norm_prominence_study.pdf: prominence_study.py $(NORM_PROMINENCE_MODELS)
-	python $< --prominences $(NORM_PROMINENCES) --template \
+	python $< $(NORM_POWER_THRESHOLD) --template \
     $(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom%_masked \
-    --records $(APLUSNAMES) --fig_path $@ > norm_prominence_study.txt
+    --records $(APLUSNAMES) --prominences $(NORM_PROMINENCES) --fig_path $@ \
+    > norm_prominence_study.txt
 
 norm_errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NORM_AR_MODELS))
 	python compare_models.py --models $(NORM_AR_MODELS) --parameters $(AR_ORDERS) \
@@ -134,10 +137,18 @@ norm_pass2.out: pass2.py pass1.out $(NORM_MODEL) $(MODELS)/c_model
 
 lphr_respiration_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MODELS)/lphr_respiration2_masked
 	python $< --model_paths $(MODELS)/c_model $(MODELS)/lphr_respiration2_masked \
-    --power_and_threshold 1.5 0.5 pass1.out temp
+    --power 1.5 1.0 --threshold 0.5 pass1.out temp
 	cp temp $@
 
 lphr_respiration_score.tex: score.py lphr_respiration_pass2.out
+	python $^ $@  --tex
+
+two_varg_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MODELS)/two_varg_masked
+	python $< --model_paths $(MODELS)/c_model $(MODELS)/two_varg_masked \
+    --power 1.0 0.0 0.0 1.0 --threshold 0.5 pass1.out temp
+	cp temp $@
+
+two_varg_score.tex: score.py two_varg_pass2.out
 	python $^ $@  --tex
 
 #####################Calculate statistics of peaks##############################
@@ -211,7 +222,7 @@ $(MODELS)/two_%_initial: model_init.py config_stats.py make_init.py
 	python make_init.py two_intervals $* $@
 
 # EG If % were power1.5threshold-12ar5prom6.1, the code would issue
-# the following: python model_init.py --power_and_threshold 1.5
+# the following: python model_init.py --power 1 1 1.5 1 --threshold 1.5
 # 1.0e-12 --AR_order 5 norm_config6.1.pkl two_normalized
 # ../../../../build/derived_data/apnea/models/norm_power1.5threshold-12ar5prom6.1_initial
 $(MODELS)/norm_%_initial: model_init.py config_stats.py make_init.py
@@ -225,7 +236,7 @@ new_config.pkl: config_stats.py
 
 $(MODELS)/two_varg_initial: model_init.py new_config.pkl
 	mkdir -p $(MODELS)
-	python $< --model_sample_frequency 8 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 new_config.pkl two_varg $@
+	python $< --power 1 0 0 1 --threshold 1.0 --model_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 new_config.pkl two_varg $@
 
 $(MODELS)/%_masked: apnea_train.py $(MODELS)/%_initial
 	python $< --records $(APLUSNAMES) --iterations 10 $(MODELS)/$*_initial $@
