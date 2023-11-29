@@ -140,8 +140,19 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         hr_plot.addLegend()
         self.hr_dict = {
             'curves': [
-                hr_plot.plot(pen='g', name='hr'),
-                hr_plot.plot(pen='r', name='filtered'),
+                hr_plot.plot(pen=pyqtgraph.mkPen(color=(128, 255, 128),
+                                                 width=2),
+                             name='hr'),
+                hr_plot.plot(pen=pyqtgraph.mkPen(color=(255, 128, 128),
+                                                 width=2),
+                             name='slow'),
+                hr_plot.plot(
+                    pen=None,
+                    symbol='+',
+                    symbolSize=15,
+                    symbolBrush=('b'),
+                    name='peaks',
+                ),
             ]
         }
 
@@ -150,16 +161,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         filter_plot.addLegend()
         self.filter_dict = {
             'curves': [
-                filter_plot.plot(pen='g', name='slow'),
-                filter_plot.plot(pen='r', name='fast'),
-                filter_plot.plot(pen='y', name='resp'),
-                filter_plot.plot(
-                    pen=None,
-                    symbol='+',
-                    symbolSize=15,
-                    symbolBrush=('b'),
-                    name='peaks',
-                )
+                filter_plot.plot(pen=pyqtgraph.mkPen(color=(255, 128, 128),
+                                                     width=2),
+                                 name='respiration'),
+                filter_plot.plot(pen='y', name='envelope'),
+                filter_plot.plot(pen='g', name='resp_pass'),
             ]
         }
 
@@ -247,7 +253,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         if signals is None:
             print(f'No signals to plot.')
             return
-        start = self.variable['T']() + self.variable['fine T']() / 200
+        start = self.variable['T']() + self.variable['fine T']() / 50
         stop = start + numpy.exp(self.variable['Delta T']())
         window = [start, stop]
         for curve, signal in zip(curves, signals):
@@ -305,24 +311,23 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             False  # normalize
         )  # Sets: hr_sample_frequency, raw_hr
         if self.record_box.text()[0] != 'x':
-            self.hr_instance.read_expert()  # Sets and returns expert,
-        # (normal->0, apnea->1)
-        self.hr_instance.filter_hr()  # Sets slow, notch, respiration,
-        # envelope
-        peak_times = self.hr_instance.find_peaks()  # Sets peaks and
-        # prominences.
-        # Returns peaks
+            # Set expert, (normal->0, apnea->1)
+            self.hr_instance.read_expert()
+        # Set slow, notch, respiration, envelope
+        self.hr_instance.filter_hr()
+        # Set peaks and prominences
+        peak_times = self.hr_instance.find_peaks()
         self.hr_signal = self.hr_instance.raw_hr
         self.slow = self.hr_instance.slow
-        self.hr_notch = self.hr_instance.notch
         self.hr_times = numpy.arange(len(
             self.hr_signal)) / self.hr_instance.hr_sample_frequency
 
         # Calculate spectral filters using fft method in utilities
         self.filters = {
             'times': self.hr_times,
-            'fast': self.hr_instance.respiration,
-            'respiration': self.hr_instance.envelope
+            'resp_pass': self.hr_instance.resp_pass,
+            'envelope': self.hr_instance.envelope,
+            'respiration': self.hr_instance.respiration,
         }
         self.hr_peaks = self.slow[peak_times]
         self.hr_peak_times = peak_times / self.hr_instance.hr_sample_frequency
@@ -358,8 +363,11 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.plot_window(**self.ecg_dict)
 
     def plot_hr(self):
-        self.hr_dict['signals'] = [(self.hr_times, self.hr_signal),
-                                   (self.hr_times, self.hr_notch)]
+        self.hr_dict['signals'] = [
+            (self.hr_times, self.hr_signal),
+            (self.filters['times'], self.slow),
+            (self.hr_peak_times, self.hr_peaks),
+        ]
         self.plot_window(**self.hr_dict)
 
     def plot_like(self):
@@ -397,10 +405,9 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         """
         self.filter_dict['signals'] = [
-            (self.filters['times'], self.slow),
-            (self.filters['times'], 2 * self.filters['fast']),
-            (self.filters['times'], 2 * self.filters['respiration']),
-            (self.hr_peak_times, self.hr_peaks),
+            (self.filters['times'], self.filters['respiration']),
+            (self.filters['times'], self.filters['envelope']),
+            (self.filters['times'], self.filters['resp_pass']),
         ]
         self.plot_window(**self.filter_dict)
 
