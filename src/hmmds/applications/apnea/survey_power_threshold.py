@@ -151,7 +151,6 @@ def main(argv=None):
         return numpy.linspace(float(triple[0]), float(triple[1]),
                               int(triple[2]))
 
-    powers = linspace(args.powers)
     exponents = linspace(args.thresholds)
     thresholds = numpy.exp(exponents * numpy.log(10))
 
@@ -165,16 +164,17 @@ def main(argv=None):
         model_record_dict[record_name] = utilities.ModelRecord(
             args.model_path, record_name)
 
-    power_results = power_study(model_record_dict, powers, min_threshold)
-    _print('power', power_results)
-
     threshold_results = threshold_study(model_record_dict, thresholds,
                                         min_power)
     _print('threshold', threshold_results)
 
     log_plot(axeses[0], threshold_results, xlabel='threshold')
 
-    plot(axeses[1], power_results, xlabel='power')
+    if args.powers:
+        powers = linspace(args.powers)
+        power_results = power_study(model_record_dict, powers, min_threshold)
+        _print('power', power_results)
+        plot(axeses[1], power_results, xlabel='power')
 
     if args.show:
         pyplot.show()

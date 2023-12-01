@@ -76,6 +76,48 @@ def two_normalized(args):
     return make_config, run_model_init
 
 
+@register
+def varg2state(args):
+    """
+    ar AR_order
+    fs model_sample_frequency  samples per minute
+    lpp low_pass_period        seconds
+    rc band_pass_center        cycles per minute
+    rw band_pass_width         cycles per minute
+    es envelope_smooth         cycles per minute
+    
+    """
+    d = parse_pattern(args.pattern, 'ar fs lpp rc rw es')
+    make_config = f"make norm_config4.pkl"
+    run_model_init = f"""
+      python model_init.py
+      --AR_order {d['ar']}
+      --model_sample_frequency {d['fs']}
+      --low_pass_period {d['lpp']}
+      --band_pass_center {d['rc']}
+      --band_pass_width {d['rw']}
+      --envelope_smooth {d['es']}
+      norm_config4.pkl varg2state {args.out}"""
+    return make_config, run_model_init
+
+
+@register
+def varg2chain(args):
+    d = parse_pattern(args.pattern, 'threshold ar prom')
+    make_config = f"make norm_config{d['prom']}.pkl"
+    run_model_init = f"""
+      python model_init.py
+      --power 1 1 1.5 1
+      --threshold 1.0e{d['threshold']}
+      --AR_order {d['ar']}
+      --model_sample_frequency 6
+      --low_pass_period 2
+      --band_pass_center  16
+      --band_pass_width 4 
+      norm_config{d['prom']}.pkl two_varg {args.out}"""
+    return make_config, run_model_init
+
+
 def parse_pattern(pattern, key_string):
     """ Make a dict from pairs keynumber in pattern
     """

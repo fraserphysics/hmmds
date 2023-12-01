@@ -103,8 +103,8 @@ $(addprefix norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar, $(AR_ORDERS
 
 # norm_power0.9threshold-12ar6prom%_masked
 NORM_PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix \
-$(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom, \
-$(NORM_PROMINENCES)))
+  $(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom, \
+  $(NORM_PROMINENCES)))
 
 norm_analyze_peaks.pdf: analyze_peaks.py norm_config$(NORM_PROM).pkl
 	python $^ --normalize --records $(APLUSNAMES) --figure_path $@
@@ -135,20 +135,15 @@ norm_pass2.out: pass2.py pass1.out $(NORM_MODEL) $(MODELS)/c_model
     $(NORM_MODEL) $(NORM_POWER_THRESHOLD) pass1.out temp
 	cp temp $@
 
-lphr_respiration_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MODELS)/lphr_respiration2_masked
-	python $< --model_paths $(MODELS)/c_model $(MODELS)/lphr_respiration2_masked \
-    --power 1.5 1.0 --threshold 0.5 pass1.out temp
-	cp temp $@
-
-lphr_respiration_score.tex: score.py lphr_respiration_pass2.out
-	python $^ $@  --tex
-
-two_varg_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MODELS)/two_varg_masked
-	python $< --model_paths $(MODELS)/c_model $(MODELS)/two_varg_masked \
+# FixMe: Rename varg2chain to v2c
+# x_varg2chain has fixed parameters.  The x_ distinguishes it from
+# varg2chain% in which % describes a collection of parameters.
+x_varg2chain_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MODELS)/x_varg2chain_masked
+	python $< --model_paths $(MODELS)/c_model $(MODELS)/x_varg2chain_masked \
     --power 1.0 0.0 0.0 1.0 --threshold 0.5 pass1.out temp
 	cp temp $@
 
-two_varg_score.tex: score.py two_varg_pass2.out
+x_varg2chain_score.tex: score.py x_varg2chain_pass2.out
 	python $^ $@  --tex
 
 #####################Calculate statistics of peaks##############################
@@ -174,7 +169,7 @@ analyze_peaks.pdf: analyze_peaks.py config6.pkl
 HR_INCLUDES = statistics.pdf errors_vs_ar_order.pdf power_threshold.pdf \
 prominence_study.pdf interval_pdfs.pdf norm_interval_pdfs.pdf analyze_peaks.pdf \
 norm_analyze_peaks.pdf norm_power_threshold.pdf score.tex lengths.txt \
-lphr_respiration_score.tex
+varg2state_score.tex
 
 # INCUDE_LIST matches StudyFigs in heart_rate.tex
 INCLUDE_LIST = _prominence_study.pdf _power_threshold.pdf _errors_vs_ar_order.pdf _score.tex
@@ -213,6 +208,9 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # Save the initial files for debugging
 .PRECIOUS: $(MODELS)/%_initial $(MODELS)/%_masked
 
+new_config.pkl: config_stats.py
+	python $< --normalize 4.0 $@
+
 # new_config.pkl is not used for c_model, but model_init.py requires a
 # config argument
 $(MODELS)/c_model: model_init.py new_config.pkl
@@ -228,15 +226,146 @@ $(MODELS)/two_%_initial: model_init.py config_stats.py make_init.py
 $(MODELS)/norm_%_initial: model_init.py config_stats.py make_init.py
 	python make_init.py two_normalized $* $@
 
-$(MODELS)/lphr_respiration2_initial: model_init.py config4.pkl
-	python $< --model_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 config4.pkl lphr_respiration2 $@
+$(MODELS)/varg2state_initial: model_init.py config4.pkl
+	python $< --model_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 config4.pkl varg2state $@
 
-new_config.pkl: config_stats.py
-	python $< --normalize 4.0 $@
+varg2state_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MODELS)/varg2state_masked
+	python $< --model_paths $(MODELS)/c_model $(MODELS)/varg2state_masked \
+    --power 1.5 1.0 --threshold 0.5 pass1.out temp
+	cp temp $@
 
-$(MODELS)/two_varg_initial: model_init.py new_config.pkl
+varg2state_score.tex: score.py varg2state_pass2.out
+	python $^ $@  --tex
+
+varg_power_threshold.pdf: survey_power_threshold.py $(VARG_MODEL)
+	python $< --thresholds -80.0 0.0 21 --records $(APLUSNAMES) \
+    $(VARG_POWER_THRESHOLD) $(VARG_MODEL) $@ > varg_power_threshold.txt
+
+
+###########################WIP#########################################
+
+VARG_POWER = 1.5
+VARG_POWER_VECTOR = --power 1 1 $(VARG_POWER) 1
+VARG_LOG_THRESHOLD = -36
+VARG_POWER_THRESHOLD = $(VARG_POWER_VECTOR) --threshold 1.0e$(VARG_LOG_THRESHOLD)
+VARG_AR = 6
+VARG_PROM = 4.5
+VARG_MODEL = $(MODELS)/varg_power$(NORM_POWER)threshold$(VARG_LOG_THRESHOLD)ar$(VARG_AR)prom$(VARG_PROM)_masked
+
+VARG_PROMINENCES = 1.5 2 2.5 3 3.5 4 4.5 5
+
+######################Parameters for varg2state V2S #######################
+# AutoRegressive order
+V2S_AR = 16
+# Model sample frequency cpm
+V2S_FS = 4
+# Low Pass Period seconds
+V2S_LPP = 10
+# Respiration Center frequency cpm
+V2S_RC = 17
+# Respiration Width cpm
+V2S_RW = 4.7
+# Envelope Smoothing for respiration envelope cpm FixMe: Call this Respiration Smoothing
+V2S_ES = .44
+
+V2S_BEST = $(MODELS)/varg2state_ar$(V2S_AR)fs$(V2S_FS)lpp$(V2S_LPP)rc$(V2S_RC)rw$(V2S_RW)es$(V2S_ES)_masked
+
+# Default threshold in utilities.py of log(1) = 0 is good
+v2s_threshold.pdf: survey_power_threshold.py $(V2S_BEST)
+	python $< --thresholds -1.0 1.0 21 --records $(APLUSNAMES) -- $(V2S_BEST) $@ \
+    > v2s_threshold.txt
+
+# Sensitivity to AutoRegressive order
+V2S_ARs = 5 10 15 16 17 18 19 20 25 30
+VAR_MODELS = $(addsuffix fs$(V2S_FS)lpp$(V2S_LPP)rc$(V2S_RC)rw$(V2S_RW)es$(V2S_ES)_masked, \
+    $(addprefix varg2state_ar, $(V2S_ARs)))
+
+v_errors_vs_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(VAR_MODELS))
+	python compare_models.py --models $(VAR_MODELS) --parameters $(V2S_ARs) \
+--parameter_name "AR order" --records $(APLUSNAMES) -- $@ > v_errors_vs_ar.txt
+
+# Sensitivity to Sample Frequency
+V2S_FSs = 2 3 4 5 6
+VFS_MODELS = $(addsuffix lpp$(V2S_LPP)rc$(V2S_RC)rw$(V2S_RW)es$(V2S_ES)_masked, \
+    $(addprefix varg2state_ar$(V2S_AR)fs, $(V2S_FSs)))
+
+v_errors_vs_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MODELS))
+	python compare_models.py --models $(VFS_MODELS) --parameters $(V2S_FSs) \
+--parameter_name "Sample Frequency" --records $(APLUSNAMES) -- $@ > v_errors_vs_fs.txt
+
+# Sensitivity to Low Pass Period in seconds.
+V2S_LPPs = 5 8 9 10 11 12 15 20 25 30 40 45 50
+LPP_MODELS = $(addsuffix rc$(V2S_RC)rw$(V2S_RW)es$(V2S_ES)_masked, $(addprefix \
+    varg2state_ar$(V2S_AR)fs$(V2S_FS)lpp, \
+    $(V2S_LPPs)))
+
+v_errors_vs_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
+	python compare_models.py --models $(LPP_MODELS) --parameters $(V2S_LPPs) \
+--parameter_name "Low Pass Period" --records $(APLUSNAMES) -- $@ > v_errors_vs_lpp.txt
+
+# Sensitivity to Respiration Center frequency in cpm
+V2S_RCs = 12 14 16 17 18 19 20 22 24 28
+RC_MODELS = $(addsuffix rw$(V2S_RW)es$(V2S_ES)_masked, $(addprefix \
+    varg2state_ar$(V2S_AR)fs$(V2S_FS)lpp$(V2S_LPP)rc, \
+    $(V2S_RCs)))
+
+v_errors_vs_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MODELS))
+	python compare_models.py --models $(RC_MODELS) --parameters $(V2S_RCs) \
+--parameter_name "Center Frequency" --records $(APLUSNAMES) -- $@ > v_errors_vs_rc.txt
+
+# Sensitivity to Respiration width frequency in cpm
+V2S_RWs = 4 4.3 4.4 4.5 4.6 4.7 5 5.1
+RW_MODELS = $(addsuffix es$(V2S_ES)_masked, $(addprefix \
+    varg2state_ar$(V2S_AR)fs$(V2S_FS)lpp$(V2S_LPP)rc$(V2S_RC)rw, \
+    $(V2S_RWs)))
+
+v_errors_vs_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MODELS))
+	python compare_models.py --models $(RW_MODELS) --parameters $(V2S_RWs) \
+--parameter_name "Frequency Width" --records $(APLUSNAMES) -- $@ > v_errors_vs_rw.txt
+
+# Sensitivity to Envelope Smoothing frequency in cpm
+V2S_ESs =  .2 .3 .4 .41 .42 .43 .44 .45 .46 .6 1.0
+ES_MODELS = $(addsuffix _masked, $(addprefix \
+    varg2state_ar$(V2S_AR)fs$(V2S_FS)lpp$(V2S_LPP)rc$(V2S_RC)rw$(V2S_RW)es, \
+    $(V2S_ESs)))
+
+v_errors_vs_es.pdf: compare_models.py $(addprefix $(MODELS)/, $(ES_MODELS))
+	python compare_models.py --models $(ES_MODELS) --parameters $(V2S_ESs) \
+--parameter_name "Envelope Smoothing" --records $(APLUSNAMES) -- $@ > v_errors_vs_es.txt
+
+# EG $(MODELS)/varg2state_ar6fs6lpp2rc16rw4es1.5_init:
+
+$(MODELS)/varg2state_%_init: make_init.py model_init.py config_stats.py
+	python $< varg2state $* $@
+
+$(MODELS)/varg2state%_masked: apnea_train.py $(MODELS)/varg2state%_init
+	python $< --records $(APLUSNAMES) --iterations 3 $(MODELS)/varg2state$*_init $@
+
+VARG_AR_MODELS = $(addsuffix prom$(VARG_PROM)_masked, \
+$(addprefix varg_power$(VARG_POWER)threshold$(VARG_LOG_THRESHOLD)ar, $(AR_ORDERS)))
+
+VARG_PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix \
+  $(MODELS)/varg_threshold$(VARG_LOG_THRESHOLD)ar$(VARG_AR)prom, \
+  $(VARG_PROMINENCES)))
+
+varg_analyze_peaks.pdf: analyze_peaks.py varg_config$(VARG_PROM).pkl
+	python $^ --normalize --records $(APLUSNAMES) --figure_path $@
+
+varg_interval_pdfs.pdf: apnea_ratio.py norm_config$(VARG_PROM).pkl
+	python $< --records $(APLUSNAMES) -- norm_config$(VARG_PROM).pkl $@
+
+varg_prominence_study.pdf: prominence_study.py $(VARG_PROMINENCE_MODELS)
+	python $< $(VARG_POWER_THRESHOLD) --template \
+    $(MODELS)/varg_threshold$(VARG_LOG_THRESHOLD)ar$(VARG_AR)prom%_masked \
+    --records $(APLUSNAMES) --prominences $(VARG_PROMINENCES) --fig_path $@ \
+    > varg_prominence_study.txt
+
+$(MODELS)/varg2chain_%_initial: make_init.py model_init.py config_stats.py
+	python $< varg2chain $* $@
+
+$(MODELS)/x_varg2chain_initial: model_init.py new_config.pkl
 	mkdir -p $(MODELS)
-	python $< --power 1 0 0 1 --threshold 1.0 --model_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 new_config.pkl two_varg $@
+	python $< --power 1 0 0 1 --threshold 1.0 --model_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 new_config.pkl varg2chain $@
 
 $(MODELS)/%_masked: apnea_train.py $(MODELS)/%_initial
 	python $< --records $(APLUSNAMES) --iterations 10 $(MODELS)/$*_initial $@
@@ -254,7 +383,7 @@ clean:
 .PHONY : variables
 variables:
 	@echo MODELS: $(MODELS)
-	@echo BEST_MODEL: $(BEST_MODEL)
+	@echo VFS_MODELS: $(VFS_MODELS)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help

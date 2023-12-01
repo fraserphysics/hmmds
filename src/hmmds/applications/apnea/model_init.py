@@ -285,7 +285,12 @@ def read_lphr_respiration_class(args, record_name):
     hr_instance = utilities.HeartRate(args, record_name, args.config,
                                       args.normalize)
     hr_instance.read_expert()
-    hr_instance.filter_hr()
+    resp_pass_center = args.band_pass_center
+    resp_pass_width = args.band_pass_width
+    envelope_smooth = args.envelope_smooth
+    low_pass_width = 1 / args.low_pass_period
+    hr_instance.filter_hr(resp_pass_center, resp_pass_width, envelope_smooth,
+                          low_pass_width)
 
     return hr_instance.dict(keys, item_args)
 
@@ -304,7 +309,12 @@ def read_lphr_respiration(args, record_name):
 
     hr_instance = utilities.HeartRate(args, record_name, args.config,
                                       args.normalize)
-    hr_instance.filter_hr()
+    resp_pass_center = args.band_pass_center
+    resp_pass_width = args.band_pass_width
+    envelope_smooth = args.envelope_smooth
+    low_pass_width = 1 / args.low_pass_period
+    hr_instance.filter_hr(resp_pass_center, resp_pass_width, envelope_smooth,
+                          low_pass_width)
 
     return hr_instance.dict(keys, item_args)
 
@@ -579,8 +589,8 @@ def two_chain(args, rng, read_y_class, read_raw_y):
 
 @register
 def two_intervals(args, rng):
-    """Return an hmm for joint observations that include "peaks" and
-    "intervals"
+    """Return an hmm with two chains and joint observations that
+    include "slow", "peak" and "interval"
 
     """
     return two_chain(
@@ -591,7 +601,8 @@ def two_intervals(args, rng):
 
 @register
 def two_normalized(args, rng):
-    """Return an hmm for joint observations with normalized heart rate
+    """Return an hmm with two chains and joint observations with
+    normalized heart rate as "slow", and "peak" and "interval".
 
     """
 
@@ -605,7 +616,7 @@ def two_normalized(args, rng):
 
 @register  # Model that uses respiration signal and low pass heart
 # rate.
-def lphr_respiration2(args, rng):
+def varg2state(args, rng):
     """Return an hmm with two states with VARG observation models.
 
     """
@@ -622,10 +633,11 @@ def lphr_respiration2(args, rng):
     a = numpy.ones((n_states, y_dim, y_dim * ar_order + 1))
     sigma = numpy.empty((n_states, y_dim, y_dim))
     for state in range(n_states):
-        sigma[state, :, :] = numpy.eye(2) * 1e4
+        sigma[state, :, :] = numpy.eye(2) * 1e6
+    Psi = numpy.array([[5.0e7, 0.0], [0.0, 1.0e6]])
     y_model = hmm.base.JointObservation({
         'hr_respiration':
-            hmm.observe_float.VARG(a, sigma, rng, Psi=1.0e5, nu=1.0e3),
+            hmm.observe_float.VARG(a, sigma, rng, Psi=Psi, nu=1.0e5),
         'class':
             hmm.base.ClassObservation(class_index2state_indices),
     })
@@ -696,7 +708,7 @@ def read_slow_peak_interval(args, record_name):
     return hr_instance.dict(keys, item_args)
 
 
-def read_y_class4two_varg(args, record_name):
+def read_y_class4varg2chain(args, record_name):
     """Called by HMM, and returns a dict of observation components
 
     Args:
@@ -722,7 +734,7 @@ def read_y_class4two_varg(args, record_name):
     return hr_instance.dict(keys)
 
 
-def read_raw_y4two_varg(args, record_name):
+def read_raw_y4varg2chain(args, record_name):
     """Called by HMM, and returns a dict of observation components
 
     Args:
@@ -748,7 +760,7 @@ def read_raw_y4two_varg(args, record_name):
 
 
 @register  # low pass heart rate, respiration, and interval
-def two_varg(args, rng):
+def varg2chain(args, rng):
     """HMM for respiration, heart rate, and interval with one chain
     each for normal and apnea
 
@@ -768,8 +780,8 @@ def two_varg(args, rng):
 
     # Functions in utilities normalize heart rate if "'norm_avg' in args"
     args.norm_avg = args.config.norm_avg
-    args.read_y_class = hmmds.applications.apnea.model_init.read_y_class4two_varg
-    args.read_raw_y = hmmds.applications.apnea.model_init.read_raw_y4two_varg
+    args.read_y_class = hmmds.applications.apnea.model_init.read_y_class4varg2chain
+    args.read_raw_y = hmmds.applications.apnea.model_init.read_raw_y4varg2chain
 
     y_dim = 2
     ar_order = args.AR_order

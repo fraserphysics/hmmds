@@ -329,16 +329,16 @@ respiration,\marginpar{illustrate with a figure} and I've written code
 to extract a time series of the amplitude of that modulation.
 Combining that respiration time series with a low pass filtered heart
 rate signal yields a vector time series.
-Table~\ref{tab:lphr_respiration_score} reports the classification
+Table~\ref{tab:varg2state_score} reports the classification
 performance of a two state HMM with AR order 6 output models for such
 vector time series.
 \begin{table*}
   \centering
-  \input{lphr_respiration_score.tex}
+  \input{varg2state_score.tex}
   \caption[Performance]{Like Table~\ref{tab:score_initial} but for a
     two state vector autoregressive model of the filtered heart rate
     and a \textbf{respiration} signal derived from the heart rate.}
-  \label{tab:lphr_respiration_score}
+  \label{tab:varg2state_score}
 \end{table*}
 
 \subsection{Combining Intervals, Respiration and Heart Rate}
@@ -353,13 +353,13 @@ choose include:
   of the 2-d vectors with components respiration and low-pass filtered
   heart rate.  The parameters include:
   \begin{description}
-  \item[sample rate] 
+  \item[AR order] % ar
+  \item[sample rate] % fs
+  \item[low pass width] 7.5 per minute % lpw
+  \item[respiration pass center] 15 per minute % rc
+  \item[respiration pass width] 3 per minute % rw
+  \item[envelope smooth] 1.5 per minute % es
   \item[normalization] 
-  \item[low pass width] 7.5 per minute
-  \item[respiration pass center] 15 per minute
-  \item[respiration pass width] 3 per minute
-  \item[envelope smooth] 1.5 per minute
-  \item[AR order] 
   \item[$\psi$ and $\nu$] Priors for each state
   \end{description}
 \item[Peak parameters] For finding peaks.  Note: The signal used is

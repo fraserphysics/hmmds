@@ -102,12 +102,19 @@ def common_arguments(parser: argparse.ArgumentParser):
         '--band_pass_center',
         type=float,
         default=16.0,
-        help='Frequency in cycles per minute for heart rate -> respiration')
+        help='Frequency in cycles per minute for heart rate -> resp_pass')
     parser.add_argument(
         '--band_pass_width',
         type=float,
         default=4.0,
-        help='Frequency in cycles per minute for heart rate -> respiration')
+        help='Frequency in cycles per minute for heart rate -> resp_pass')
+    parser.add_argument(
+        '--envelope_smooth',
+        type=float,
+        default=1.5,
+        help=
+        'Frequency in cycles per minute of smoothing for resp_pass -> respiration'
+    )
 
 
 def join_common(args: argparse.Namespace):
@@ -134,6 +141,7 @@ def join_common(args: argparse.Namespace):
     args.low_pass_period *= PINT('seconds')
     args.band_pass_center /= PINT('minutes')
     args.band_pass_width /= PINT('minutes')
+    args.envelope_smooth /= PINT('minutes')
 
     args.a_names = [f'a{i:02d}' for i in range(1, 21)]
     args.b_names = [f'b{i:02d}' for i in range(1, 5)]  #b05 is no good
@@ -292,7 +300,6 @@ class HeartRate:
         slow: Low pass filtered heart rate
 
         """
-
         omega_center = resp_pass_center * 2 * numpy.pi
         omega_width = resp_pass_width * 2 * numpy.pi
         omega_envelope = envelope_smooth * 2 * numpy.pi
@@ -413,6 +420,17 @@ class HeartRate:
         assert result.shape == (self.n_model,)
         return result
 
+    def get_respiration(self: HeartRate):
+        """Return respiration signal derived from heart rate signal.
+        Decimate to model_sample_frequency.
+
+        """
+        if not hasattr(self, 'respiration'):
+            raise RuntimeError('Call filter_hr before calling get_respiration')
+        result = self.respiration[::self.hr_2_model_decimate]
+        assert result.shape == (self.n_model,)
+        return result
+
     def get_slow(self: HeartRate, pad=0):
         """Return low pass filtered heart rate signal.  Decimate to
         model_sample_frequency.
@@ -435,7 +453,7 @@ class HeartRate:
 
         """
         hr = self.get_slow()
-        respiration = self.get_envelope()
+        respiration = self.get_respiration()
         assert hr.shape == respiration.shape == (self.n_model,)
         result = numpy.stack((hr, respiration), axis=1)
         assert result.shape == (self.n_model, 2)
@@ -858,7 +876,7 @@ class ModelRecord:
 
         Args:
             threshold:  Higher value -> less (Normal -> Apnea) errors
-            power: Exponential weights of ovservation components
+            power: Dict of exponential weights of ovservation components
 
         """
 
