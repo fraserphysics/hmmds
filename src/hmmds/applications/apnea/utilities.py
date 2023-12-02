@@ -109,7 +109,7 @@ def common_arguments(parser: argparse.ArgumentParser):
         default=4.0,
         help='Frequency in cycles per minute for heart rate -> resp_pass')
     parser.add_argument(
-        '--envelope_smooth',
+        '--respiration_smooth',
         type=float,
         default=1.5,
         help=
@@ -141,7 +141,7 @@ def join_common(args: argparse.Namespace):
     args.low_pass_period *= PINT('seconds')
     args.band_pass_center /= PINT('minutes')
     args.band_pass_width /= PINT('minutes')
-    args.envelope_smooth /= PINT('minutes')
+    args.respiration_smooth /= PINT('minutes')
 
     args.a_names = [f'a{i:02d}' for i in range(1, 21)]
     args.b_names = [f'b{i:02d}' for i in range(1, 5)]  #b05 is no good
@@ -280,14 +280,14 @@ class HeartRate:
     def filter_hr(self: HeartRate,
                   resp_pass_center=15 / PINT('minute'),
                   resp_pass_width=3 / PINT('minute'),
-                  envelope_smooth=1.5 / PINT('minute'),
+                  respiration_smooth=1.5 / PINT('minute'),
                   low_pass_width=7.5 / PINT('minute')):
         """Calculate filtered heart rate properties
 
         Args:
             resp_pass_center: Center frequency of respiration filter
             resp_pass_width: width of respiration filter
-            envelope_smooth: For smoothing amplitude of respiration envelope
+            respiration_smooth: For smoothing amplitude of respiration envelope
             low_pass_width: For smoothing the heart rate signal
 
         Assigns the following attributes of self.  Shapes match
@@ -302,7 +302,7 @@ class HeartRate:
         """
         omega_center = resp_pass_center * 2 * numpy.pi
         omega_width = resp_pass_width * 2 * numpy.pi
-        omega_envelope = envelope_smooth * 2 * numpy.pi
+        omega_envelope = respiration_smooth * 2 * numpy.pi
         omega_low_pass = low_pass_width * 2 * numpy.pi
         n_t = len(self.raw_hr)
 

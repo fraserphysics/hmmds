@@ -287,9 +287,9 @@ def read_lphr_respiration_class(args, record_name):
     hr_instance.read_expert()
     resp_pass_center = args.band_pass_center
     resp_pass_width = args.band_pass_width
-    envelope_smooth = args.envelope_smooth
+    respiration_smooth = args.respiration_smooth
     low_pass_width = 1 / args.low_pass_period
-    hr_instance.filter_hr(resp_pass_center, resp_pass_width, envelope_smooth,
+    hr_instance.filter_hr(resp_pass_center, resp_pass_width, respiration_smooth,
                           low_pass_width)
 
     return hr_instance.dict(keys, item_args)
@@ -311,9 +311,9 @@ def read_lphr_respiration(args, record_name):
                                       args.normalize)
     resp_pass_center = args.band_pass_center
     resp_pass_width = args.band_pass_width
-    envelope_smooth = args.envelope_smooth
+    respiration_smooth = args.respiration_smooth
     low_pass_width = 1 / args.low_pass_period
-    hr_instance.filter_hr(resp_pass_center, resp_pass_width, envelope_smooth,
+    hr_instance.filter_hr(resp_pass_center, resp_pass_width, respiration_smooth,
                           low_pass_width)
 
     return hr_instance.dict(keys, item_args)
@@ -433,7 +433,8 @@ def peak_chain(switch_key: str,
         state_key = f'{prefix}_{index}'
         next_key = f'{prefix}_{index+1}'
         if index == int(length / 2):
-            state_dict[state_key] = State([next_key], [1.0], peak_args)
+            state_dict[state_key] = State([next_key, f'{prefix}_0'], [.9, .1],
+                                          peak_args)
         else:
             state_dict[state_key] = State([next_key], [1.0], non_peak_args)
 

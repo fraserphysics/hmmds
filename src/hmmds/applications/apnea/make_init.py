@@ -17,12 +17,15 @@ import sys
 import argparse
 import subprocess
 
+import utilities
+
 
 def parse_args(argv):
     """ A single line argument
     """
 
     parser = argparse.ArgumentParser("Map model name to parameter argunments")
+    utilities.common_arguments(parser)
     parser.add_argument('--debug',
                         action='store_true',
                         help="Print issued commands to stdout")
@@ -35,6 +38,7 @@ def parse_args(argv):
         help='Sets values of parameters, eg, power1.5threshold-12ar5prom6.1')
     parser.add_argument('out', type=str, help='path for writing initial model')
     args = parser.parse_args(argv)
+    utilities.join_common(args)
     return args
 
 
@@ -84,10 +88,10 @@ def varg2state(args):
     lpp low_pass_period        seconds
     rc band_pass_center        cycles per minute
     rw band_pass_width         cycles per minute
-    es envelope_smooth         cycles per minute
+    rs respiration_smooth      cycles per minute
     
     """
-    d = parse_pattern(args.pattern, 'ar fs lpp rc rw es')
+    d = parse_pattern(args.pattern, 'ar fs lpp rc rw rs')
     make_config = f"make norm_config4.pkl"
     run_model_init = f"""
       python model_init.py
@@ -96,25 +100,37 @@ def varg2state(args):
       --low_pass_period {d['lpp']}
       --band_pass_center {d['rc']}
       --band_pass_width {d['rw']}
-      --envelope_smooth {d['es']}
+      --respiration_smooth {d['rs']}
       norm_config4.pkl varg2state {args.out}"""
     return make_config, run_model_init
 
 
 @register
 def varg2chain(args):
-    d = parse_pattern(args.pattern, 'threshold ar prom')
-    make_config = f"make norm_config{d['prom']}.pkl"
+    """ Observation components: varg, peak, interval, class
+        Variables:
+            pt: Prominence threshold
+            ldt: Log detection threshold
+            vp: Varg Power: Exponential weight of component
+            ip: Interval Power: Exponential weight of component
+    """
+    d = parse_pattern(args.pattern, 'pt ldt vp ip')
+    threshold = 10.0**float(d['ldt'])
+    low_pass_period = int(args.low_pass_period.to('second').magnitude)
+    sample_frequency = int(args.model_sample_frequency.to('1/minute').magnitude)
+    band_pass_center = args.band_pass_center.to('1/minute').magnitude
+    band_pass_width = args.band_pass_width.to('1/minute').magnitude
+    make_config = f"make norm_config{d['pt']}.pkl"
     run_model_init = f"""
       python model_init.py
-      --power 1 1 1.5 1
-      --threshold 1.0e{d['threshold']}
-      --AR_order {d['ar']}
-      --model_sample_frequency 6
-      --low_pass_period 2
-      --band_pass_center  16
-      --band_pass_width 4 
-      norm_config{d['prom']}.pkl two_varg {args.out}"""
+      --power {d['vp']} 1 {d['ip']}  1
+      --threshold {threshold}
+      --AR_order {args.AR_order}
+      --model_sample_frequency {sample_frequency}
+      --low_pass_period {low_pass_period}
+      --band_pass_center {band_pass_center}
+      --band_pass_width {band_pass_width} 
+      norm_config{d['pt']}.pkl varg2chain {args.out}"""
     return make_config, run_model_init
 
 
@@ -141,7 +157,6 @@ def main(argv=None):
         if args.debug:
             print(f'''
 from make_init.py issue:
-
 {call_string}
 ''')
         subprocess.run(call_string.split(), check=True)

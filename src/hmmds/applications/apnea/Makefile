@@ -226,35 +226,8 @@ $(MODELS)/two_%_initial: model_init.py config_stats.py make_init.py
 $(MODELS)/norm_%_initial: model_init.py config_stats.py make_init.py
 	python make_init.py two_normalized $* $@
 
-$(MODELS)/varg2state_initial: model_init.py config4.pkl
-	python $< --model_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 config4.pkl varg2state $@
+###################### 2 states with only VARG observation, V2S ###########
 
-varg2state_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MODELS)/varg2state_masked
-	python $< --model_paths $(MODELS)/c_model $(MODELS)/varg2state_masked \
-    --power 1.5 1.0 --threshold 0.5 pass1.out temp
-	cp temp $@
-
-varg2state_score.tex: score.py varg2state_pass2.out
-	python $^ $@  --tex
-
-varg_power_threshold.pdf: survey_power_threshold.py $(VARG_MODEL)
-	python $< --thresholds -80.0 0.0 21 --records $(APLUSNAMES) \
-    $(VARG_POWER_THRESHOLD) $(VARG_MODEL) $@ > varg_power_threshold.txt
-
-
-###########################WIP#########################################
-
-VARG_POWER = 1.5
-VARG_POWER_VECTOR = --power 1 1 $(VARG_POWER) 1
-VARG_LOG_THRESHOLD = -36
-VARG_POWER_THRESHOLD = $(VARG_POWER_VECTOR) --threshold 1.0e$(VARG_LOG_THRESHOLD)
-VARG_AR = 6
-VARG_PROM = 4.5
-VARG_MODEL = $(MODELS)/varg_power$(NORM_POWER)threshold$(VARG_LOG_THRESHOLD)ar$(VARG_AR)prom$(VARG_PROM)_masked
-
-VARG_PROMINENCES = 1.5 2 2.5 3 3.5 4 4.5 5
-
-######################Parameters for varg2state V2S #######################
 # AutoRegressive order
 V2S_AR = 16
 # Model sample frequency cpm
@@ -265,10 +238,10 @@ V2S_LPP = 10
 V2S_RC = 17
 # Respiration Width cpm
 V2S_RW = 4.7
-# Envelope Smoothing for respiration envelope cpm FixMe: Call this Respiration Smoothing
-V2S_ES = .44
+# Filter for Respiration Smoothing in cpm.
+V2S_RS = .44
 
-V2S_BEST = $(MODELS)/varg2state_ar$(V2S_AR)fs$(V2S_FS)lpp$(V2S_LPP)rc$(V2S_RC)rw$(V2S_RW)es$(V2S_ES)_masked
+V2S_BEST = $(MODELS)/varg2state_ar$(V2S_AR)fs$(V2S_FS)lpp$(V2S_LPP)rc$(V2S_RC)rw$(V2S_RW)rs$(V2S_RS)_masked
 
 # Default threshold in utilities.py of log(1) = 0 is good
 v2s_threshold.pdf: survey_power_threshold.py $(V2S_BEST)
@@ -277,7 +250,7 @@ v2s_threshold.pdf: survey_power_threshold.py $(V2S_BEST)
 
 # Sensitivity to AutoRegressive order
 V2S_ARs = 5 10 15 16 17 18 19 20 25 30
-VAR_MODELS = $(addsuffix fs$(V2S_FS)lpp$(V2S_LPP)rc$(V2S_RC)rw$(V2S_RW)es$(V2S_ES)_masked, \
+VAR_MODELS = $(addsuffix fs$(V2S_FS)lpp$(V2S_LPP)rc$(V2S_RC)rw$(V2S_RW)rs$(V2S_RS)_masked, \
     $(addprefix varg2state_ar, $(V2S_ARs)))
 
 v_errors_vs_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(VAR_MODELS))
@@ -286,7 +259,7 @@ v_errors_vs_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(VAR_MODELS))
 
 # Sensitivity to Sample Frequency
 V2S_FSs = 2 3 4 5 6
-VFS_MODELS = $(addsuffix lpp$(V2S_LPP)rc$(V2S_RC)rw$(V2S_RW)es$(V2S_ES)_masked, \
+VFS_MODELS = $(addsuffix lpp$(V2S_LPP)rc$(V2S_RC)rw$(V2S_RW)rs$(V2S_RS)_masked, \
     $(addprefix varg2state_ar$(V2S_AR)fs, $(V2S_FSs)))
 
 v_errors_vs_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MODELS))
@@ -295,7 +268,7 @@ v_errors_vs_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MODELS))
 
 # Sensitivity to Low Pass Period in seconds.
 V2S_LPPs = 5 8 9 10 11 12 15 20 25 30 40 45 50
-LPP_MODELS = $(addsuffix rc$(V2S_RC)rw$(V2S_RW)es$(V2S_ES)_masked, $(addprefix \
+LPP_MODELS = $(addsuffix rc$(V2S_RC)rw$(V2S_RW)rs$(V2S_RS)_masked, $(addprefix \
     varg2state_ar$(V2S_AR)fs$(V2S_FS)lpp, \
     $(V2S_LPPs)))
 
@@ -305,7 +278,7 @@ v_errors_vs_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
 
 # Sensitivity to Respiration Center frequency in cpm
 V2S_RCs = 12 14 16 17 18 19 20 22 24 28
-RC_MODELS = $(addsuffix rw$(V2S_RW)es$(V2S_ES)_masked, $(addprefix \
+RC_MODELS = $(addsuffix rw$(V2S_RW)rs$(V2S_RS)_masked, $(addprefix \
     varg2state_ar$(V2S_AR)fs$(V2S_FS)lpp$(V2S_LPP)rc, \
     $(V2S_RCs)))
 
@@ -315,7 +288,7 @@ v_errors_vs_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MODELS))
 
 # Sensitivity to Respiration width frequency in cpm
 V2S_RWs = 4 4.3 4.4 4.5 4.6 4.7 5 5.1
-RW_MODELS = $(addsuffix es$(V2S_ES)_masked, $(addprefix \
+RW_MODELS = $(addsuffix rs$(V2S_RS)_masked, $(addprefix \
     varg2state_ar$(V2S_AR)fs$(V2S_FS)lpp$(V2S_LPP)rc$(V2S_RC)rw, \
     $(V2S_RWs)))
 
@@ -323,17 +296,18 @@ v_errors_vs_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MODELS))
 	python compare_models.py --models $(RW_MODELS) --parameters $(V2S_RWs) \
 --parameter_name "Frequency Width" --records $(APLUSNAMES) -- $@ > v_errors_vs_rw.txt
 
-# Sensitivity to Envelope Smoothing frequency in cpm
-V2S_ESs =  .2 .3 .4 .41 .42 .43 .44 .45 .46 .6 1.0
-ES_MODELS = $(addsuffix _masked, $(addprefix \
-    varg2state_ar$(V2S_AR)fs$(V2S_FS)lpp$(V2S_LPP)rc$(V2S_RC)rw$(V2S_RW)es, \
-    $(V2S_ESs)))
+# Sensitivity to Respiration Smoothing frequency in cpm
+V2S_RSs =  .2 .3 .4 .41 .42 .43 .44 .45 .46 .6 1.0
+RS_MODELS = $(addsuffix _masked, $(addprefix \
+    varg2state_ar$(V2S_AR)fs$(V2S_FS)lpp$(V2S_LPP)rc$(V2S_RC)rw$(V2S_RW)rs, \
+    $(V2S_RSs)))
 
-v_errors_vs_es.pdf: compare_models.py $(addprefix $(MODELS)/, $(ES_MODELS))
-	python compare_models.py --models $(ES_MODELS) --parameters $(V2S_ESs) \
---parameter_name "Envelope Smoothing" --records $(APLUSNAMES) -- $@ > v_errors_vs_es.txt
+v_errors_vs_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MODELS))
+	python compare_models.py --models $(RS_MODELS) --parameters $(V2S_RSs) \
+    --parameter_name "Respiration Smoothing Filter" --records $(APLUSNAMES) -- \
+    $@ > v_errors_vs_rs.txt
 
-# EG $(MODELS)/varg2state_ar6fs6lpp2rc16rw4es1.5_init:
+# EG $(MODELS)/varg2state_ar16fs4lpp10rc17rw4.7rs.44_init
 
 $(MODELS)/varg2state_%_init: make_init.py model_init.py config_stats.py
 	python $< varg2state $* $@
@@ -341,27 +315,43 @@ $(MODELS)/varg2state_%_init: make_init.py model_init.py config_stats.py
 $(MODELS)/varg2state%_masked: apnea_train.py $(MODELS)/varg2state%_init
 	python $< --records $(APLUSNAMES) --iterations 3 $(MODELS)/varg2state$*_init $@
 
-VARG_AR_MODELS = $(addsuffix prom$(VARG_PROM)_masked, \
-$(addprefix varg_power$(VARG_POWER)threshold$(VARG_LOG_THRESHOLD)ar, $(AR_ORDERS)))
+v2s_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(V2S_BEST)
+	python $< --model_paths $(MODELS)/c_model $(V2S_BEST) \
+    --threshold 1.0 pass1.out temp
+	cp temp $@
+
+v2s_score.tex: score.py v2s_pass2.out
+	python $^ $@  --tex
+
+###################### WIP ######################################
+
+###############v2c: 2 chain model with varg, peak, interval observation ########
+
+# Prominence Threshold
+V2C_PT = 3.3
+# Log Detection Threshold
+V2C_LDT = 0.0
+# Exponential weight for varg component
+V2C_VP = 1.0
+# Exponential weight for interval component
+V2C_IP = 1.0
+
+V2C_BEST = $(MODELS)/varg2chain_pt$(V2C_PT)ldt$(V2C_LDT)vp$(V2C_VP)ip$(V2C_IP)_masked
+
+$(MODELS)/varg2chain_%_initial: make_init.py model_init.py config_stats.py
+	python $< --debug --AR_order $(V2S_AR) --model_sample_frequency $(V2S_FS) \
+    --low_pass_period $(V2S_LPP) --band_pass_center $(V2S_RC) --band_pass_width $(V2S_RW) \
+    varg2chain $* $@
 
 VARG_PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix \
   $(MODELS)/varg_threshold$(VARG_LOG_THRESHOLD)ar$(VARG_AR)prom, \
   $(VARG_PROMINENCES)))
-
-varg_analyze_peaks.pdf: analyze_peaks.py varg_config$(VARG_PROM).pkl
-	python $^ --normalize --records $(APLUSNAMES) --figure_path $@
-
-varg_interval_pdfs.pdf: apnea_ratio.py norm_config$(VARG_PROM).pkl
-	python $< --records $(APLUSNAMES) -- norm_config$(VARG_PROM).pkl $@
 
 varg_prominence_study.pdf: prominence_study.py $(VARG_PROMINENCE_MODELS)
 	python $< $(VARG_POWER_THRESHOLD) --template \
     $(MODELS)/varg_threshold$(VARG_LOG_THRESHOLD)ar$(VARG_AR)prom%_masked \
     --records $(APLUSNAMES) --prominences $(VARG_PROMINENCES) --fig_path $@ \
     > varg_prominence_study.txt
-
-$(MODELS)/varg2chain_%_initial: make_init.py model_init.py config_stats.py
-	python $< varg2chain $* $@
 
 $(MODELS)/x_varg2chain_initial: model_init.py new_config.pkl
 	mkdir -p $(MODELS)
@@ -383,7 +373,7 @@ clean:
 .PHONY : variables
 variables:
 	@echo MODELS: $(MODELS)
-	@echo VFS_MODELS: $(VFS_MODELS)
+	@echo V2C_BEST: $(V2C_BEST)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help
