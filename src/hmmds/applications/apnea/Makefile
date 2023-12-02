@@ -328,7 +328,7 @@ v2s_score.tex: score.py v2s_pass2.out
 ###############v2c: 2 chain model with varg, peak, interval observation ########
 
 # Prominence Threshold
-V2C_PT = 3.3
+V2C_PT = 1.85
 # Log Detection Threshold
 V2C_LDT = 0.0
 # Exponential weight for varg component
@@ -343,19 +343,44 @@ $(MODELS)/varg2chain_%_initial: make_init.py model_init.py config_stats.py
     --low_pass_period $(V2S_LPP) --band_pass_center $(V2S_RC) --band_pass_width $(V2S_RW) \
     varg2chain $* $@
 
-VARG_PROMINENCE_MODELS = $(addsuffix _masked, $(addprefix \
-  $(MODELS)/varg_threshold$(VARG_LOG_THRESHOLD)ar$(VARG_AR)prom, \
-  $(VARG_PROMINENCES)))
 
-varg_prominence_study.pdf: prominence_study.py $(VARG_PROMINENCE_MODELS)
-	python $< $(VARG_POWER_THRESHOLD) --template \
-    $(MODELS)/varg_threshold$(VARG_LOG_THRESHOLD)ar$(VARG_AR)prom%_masked \
-    --records $(APLUSNAMES) --prominences $(VARG_PROMINENCES) --fig_path $@ \
-    > varg_prominence_study.txt
+# Sensitivity to Detection Threshold
+v2c_threshold.pdf: survey_power_threshold.py $(V2C_BEST)
+	python $< --thresholds -1.0 1.0 21 --records $(APLUSNAMES) -- $(V2C_BEST) $@ \
+    > v2c_threshold.txt
 
-$(MODELS)/x_varg2chain_initial: model_init.py new_config.pkl
-	mkdir -p $(MODELS)
-	python $< --power 1 0 0 1 --threshold 1.0 --model_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 new_config.pkl varg2chain $@
+# Sensitivity to Prominence Threshold
+V2C_PTs = 1.5 1.6 1.7 1.8 1.82 1.83 1.84 1.85 1.86 1.87 1.9 2 2.2 2.5 3 3.5 4 4.5 5
+PT_MODELS = $(addsuffix ldt$(V2C_LDT)vp$(V2C_VP)ip$(V2C_IP)_masked, $(addprefix \
+    varg2chain_pt, \
+    $(V2C_PTs)))
+
+v2c_errors_vs_pt.pdf: compare_models.py $(addprefix $(MODELS)/, $(PT_MODELS))
+	python compare_models.py --models $(PT_MODELS) --parameters $(V2C_PTs) \
+    --parameter_name "Prominence Threshold" --records $(APLUSNAMES) -- \
+    $@ > v2c_errors_vs_pt.txt
+
+# Sensitivity to IP, exponential Power for the Interval component
+V2C_IPs = .25 .5 1.0 2.0 4.0
+IP_MODELS = $(addsuffix _masked, $(addprefix \
+    varg2chain_pt$(V2C_PT)ldt$(V2C_LDT)vp$(V2C_VP)ip, \
+    $(V2C_IPs)))
+
+v2c_errors_vs_ip.pdf: compare_models.py $(addprefix $(MODELS)/, $(IP_MODELS))
+	python compare_models.py --models $(IP_MODELS) --parameters $(V2C_IPs) \
+    --parameter_name "Interval Weight" --records $(APLUSNAMES) -- \
+    $@ > v2c_errors_vs_ip.txt
+
+# Sensitivity to VP, exponential Power for the VARG component
+V2C_VPs = .25 .5 1.0 2.0 4.0
+VP_MODELS = $(addsuffix ip$(V2C_IP)_masked, $(addprefix \
+    varg2chain_pt$(V2C_PT)ldt$(V2C_LDT)vp, \
+    $(V2C_VPs)))
+
+v2c_errors_vs_vp.pdf: compare_models.py $(addprefix $(MODELS)/, $(VP_MODELS))
+	python compare_models.py --models $(VP_MODELS) --parameters $(V2C_VPs) \
+    --parameter_name "VARG Weight" --records $(APLUSNAMES) -- \
+    $@ > v2c_errors_vs_vp.txt
 
 $(MODELS)/%_masked: apnea_train.py $(MODELS)/%_initial
 	python $< --records $(APLUSNAMES) --iterations 10 $(MODELS)/$*_initial $@
@@ -372,7 +397,7 @@ clean:
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo MODELS: $(MODELS)
+	@echo VP_MODELS: $(VP_MODELS)
 	@echo V2C_BEST: $(V2C_BEST)
 
 ## help                           : Print comments on targets from makefile
