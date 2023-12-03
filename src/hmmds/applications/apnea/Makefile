@@ -330,10 +330,10 @@ V4S_AR = 16
 # Model sample frequency cpm
 V4S_FS = 5
 # Low Pass Period seconds
-V4S_LPP = 10
+V4S_LPP = 27
 # Respiration Center frequency cpm
-V4S_RC = 17
-# Respiration Width cpm
+V4S_RC = 14
+# Respiration Width cpm todo
 V4S_RW = 4.7
 # Filter for Respiration Smoothing in cpm.
 V4S_RS = .44
@@ -364,7 +364,7 @@ v4s_errors_vs_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MODELS))
 --parameter_name "Sample Frequency" --records $(APLUSNAMES) -- $@ > v4s_errors_vs_fs.txt
 
 # Sensitivity to Low Pass Period in seconds.
-V4S_LPPs = 5 8 9 10 11 12 15 20 25 30 40 45 50
+V4S_LPPs = 20 25 26 27 28 29 30 35
 LPP_MODELS = $(addsuffix rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked, $(addprefix \
     varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp, \
     $(V4S_LPPs)))
@@ -374,7 +374,7 @@ v4s_errors_vs_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
 --parameter_name "Low Pass Period" --records $(APLUSNAMES) -- $@ > v4s_errors_vs_lpp.txt
 
 # Sensitivity to Respiration Center frequency in cpm
-V4S_RCs = 12 14 16 17 18 19 20 22 24 28
+V4S_RCs = 12 13 14 15 16
 RC_MODELS = $(addsuffix rw$(V4S_RW)rs$(V4S_RS)_masked, $(addprefix \
     varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc, \
     $(V4S_RCs)))
