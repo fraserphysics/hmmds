@@ -106,6 +106,31 @@ def varg2state(args):
 
 
 @register
+def four_state(args):
+    """
+    ar AR_order
+    fs model_sample_frequency  samples per minute
+    lpp low_pass_period        seconds
+    rc band_pass_center        cycles per minute
+    rw band_pass_width         cycles per minute
+    rs respiration_smooth      cycles per minute
+    
+    """
+    d = parse_pattern(args.pattern, 'ar fs lpp rc rw rs')
+    make_config = f"make norm_config4.pkl"
+    run_model_init = f"""
+      python model_init.py
+      --AR_order {d['ar']}
+      --model_sample_frequency {d['fs']}
+      --low_pass_period {d['lpp']}
+      --band_pass_center {d['rc']}
+      --band_pass_width {d['rw']}
+      --respiration_smooth {d['rs']}
+      norm_config4.pkl four_state {args.out}"""
+    return make_config, run_model_init
+
+
+@register
 def varg2chain(args):
     """ Observation components: varg, peak, interval, class
         Variables:

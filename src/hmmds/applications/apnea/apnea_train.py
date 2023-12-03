@@ -50,8 +50,6 @@ def main(argv=None):
         for record in args.records)
 
     model.multi_train(y_data, args.iterations)
-    #hmmds.applications.apnea.utilities.print_chain_model(
-    #    model.y_mod, model.alpha.sum(axis=0), model.args.state_key2state_index)
 
     model.strip()
     with open(args.write_path, 'wb') as _file:

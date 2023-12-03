@@ -374,6 +374,57 @@ def read_slow_peak_interval(args, record_name):
     return hr_instance.dict(keys, item_args)
 
 
+def read_y_class4varg2chain(args, record_name):
+    """Called by HMM, and returns a dict of observation components
+
+    Args:
+        args: From HMM.args
+        record_name: EG, 'a01'
+
+    Components are hr_respiration, peak, interval and class.
+
+    """
+    keys = 'hr_respiration peak interval class'.split()
+
+    # develop.HMM.read_y_with_class calls this with self.args, and
+    # apnea_train.main wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = utilities.HeartRate(args, record_name, args.config,
+                                      args.normalize)
+    hr_instance.read_expert()
+    hr_instance.filter_hr()
+    hr_instance.find_peaks()
+
+    return hr_instance.dict(keys)
+
+
+def read_raw_y4varg2chain(args, record_name):
+    """Called by HMM, and returns a dict of observation components
+
+    Args:
+        args: From HMM.args
+        record_name: EG, 'a01'
+
+    Components are hr_respiration, peak and interval.
+
+    """
+    keys = 'hr_respiration peak interval'.split()
+
+    # develop.HMM.read_y_no_class calls this with self.args, and
+    # utilities.ModelRecord wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = utilities.HeartRate(args, record_name, args.config,
+                                      args.normalize)
+    hr_instance.filter_hr()
+    hr_instance.find_peaks()
+
+    return hr_instance.dict(keys)
+
+
 @register  # Model for "c" records
 def c_model(args, rng):
     """Return an hmm that finds all minutes normal
@@ -656,108 +707,103 @@ def varg2state(args, rng):
     return hmm_, state_dict, state_key2state_index
 
 
-def read_slow_peak_interval_class(args, record_name):
-    """Called by HMM, and returns a dict of observation components
+@register  # Add noise states to varg2state
+def four_state(args, rng):
+    """Return an hmm with two states with VARG observation models.
 
-    Args:
-        args: From HMM.args
-        record_name: EG, 'a01'
-
-    Components are slow, peak, interval and class.
-
-    """
-    keys = 'slow peak interval class'.split()
-    item_args = {'slow': {'pad': args.AR_order}}
-
-    # develop.HMM.read_y_with_class calls this with self.args, and
-    # apnea_train.main wraps the result in hmm.base.JointSegment
-
-    assert args.config.normalize == args.normalize
-
-    hr_instance = utilities.HeartRate(args, record_name, args.config,
-                                      args.normalize)
-    hr_instance.read_expert()
-    hr_instance.filter_hr()
-    hr_instance.find_peaks()
-
-    return hr_instance.dict(keys, item_args)
-
-
-def read_slow_peak_interval(args, record_name):
-    """Called by HMM, and returns a dict of observation components
-
-    Args:
-        args: From HMM.args
-        record_name: EG, 'a01'
-
-    Components are slow, peak, and interval.
+    state 0: Typical normal (not apnea) state
+    state 1: Normal noise state (to handle eg, lead noise)
+    state 2: Typical apnea state
+    state 3: Apnea noise state
 
     """
-    keys = 'slow peak interval'.split()
-    item_args = {'slow': {'pad': args.AR_order}}
 
-    # develop.HMM.read_y_with_class calls this with self.args, and
-    # apnea_train.main wraps the result in hmm.base.JointSegment
+    normal_class = 0
+    apnea_class = 1
 
-    assert args.config.normalize == args.normalize
+    normal_state = 0
+    normal_noise_state = 1
+    apnea_state = 2
+    apnea_noise_state = 3
 
-    hr_instance = utilities.HeartRate(args, record_name, args.config,
-                                      args.normalize)
-    hr_instance.filter_hr()
-    hr_instance.find_peaks()
+    n_states = 4
+    v_dim = 2
+    tiny = 1.0e-30
+    small = 1.0e-5  # Sequential noise observations drive probability
+    # to zero exponentially at rate small
+    ar_order = args.AR_order
+    p_state_initial = numpy.ones(n_states) / n_states
+    p_state_time_average = p_state_initial.copy()
+    p_state2state = hmm.simple.Prob(numpy.ones((n_states, n_states)) * tiny)
+    p_state2state[normal_noise_state, normal_noise_state] = small
+    p_state2state[apnea_noise_state, apnea_noise_state] = small
 
-    return hr_instance.dict(keys, item_args)
+    for x, y in ((normal_state, normal_state), (normal_state, apnea_state),
+                 (normal_noise_state, normal_state), (apnea_state, apnea_state),
+                 (apnea_state, normal_state), (apnea_noise_state, apnea_state)):
+        p_state2state[x, y] = 1.0
+    p_state2state.normalize()
 
+    class_index2state_indices = {
+        normal_class: [normal_state, normal_noise_state],
+        apnea_class: [apnea_state, apnea_noise_state]
+    }
 
-def read_y_class4varg2chain(args, record_name):
-    """Called by HMM, and returns a dict of observation components
+    coefficients = numpy.zeros((n_states, v_dim, v_dim * ar_order + 1))
+    for state in range(n_states):
+        coefficients[state, 0] = 1.0
 
-    Args:
-        args: From HMM.args
-        record_name: EG, 'a01'
+    sigma = numpy.empty((n_states, v_dim, v_dim))
+    Psi = numpy.empty((n_states, v_dim, v_dim))
+    nu = numpy.empty(n_states)
 
-    Components are hr_respiration, peak, interval and class.
+    # Noise states visited about 200 times.  Regular states visited
+    # about 25,000 times
+    _nu = 500.0
+    for state in (normal_state, apnea_state):
+        sigma[state, :, :] = numpy.eye(2) * 1.0e4
+        Psi[state, :, :] = numpy.array([[50.0, 0], [0, .001]]) * _nu
+        nu[state] = _nu
 
-    """
-    keys = 'hr_respiration peak interval class'.split()
+    for state in (normal_noise_state, apnea_noise_state):
+        sigma[state, :, :] = numpy.eye(2) * 1.0e6
+        Psi[state, :, :] = numpy.array([[8000.0, 0], [0, 800.0]]) * _nu
+        nu[state] = _nu
 
-    # develop.HMM.read_y_with_class calls this with self.args, and
-    # apnea_train.main wraps the result in hmm.base.JointSegment
+    y_model = hmm.base.JointObservation({
+        'hr_respiration':
+            hmm.observe_float.VARG(coefficients, sigma, rng, Psi=Psi, nu=nu),
+        'class':
+            hmm.base.ClassObservation(class_index2state_indices),
+    })
 
-    assert args.config.normalize == args.normalize
+    untrainable_indices = []
+    untrainable_values = []
+    for from_state in range(n_states):
+        for to_state in (normal_noise_state, apnea_noise_state):
+            untrainable_indices.append((from_state, to_state))
+            if from_state == to_state:
+                untrainable_values.append(small)
+            else:
+                untrainable_values.append(tiny)
+    # Create and return the hmm
+    hmm_ = develop.HMM(p_state_initial,
+                       p_state_time_average,
+                       p_state2state,
+                       y_model,
+                       args,
+                       rng,
+                       untrainable_indices=tuple(
+                           numpy.array(untrainable_indices).T),
+                       untrainable_values=numpy.array(untrainable_values))
+    args.read_y_class = hmmds.applications.apnea.model_init.read_lphr_respiration_class
+    args.read_raw_y = hmmds.applications.apnea.model_init.read_lphr_respiration
 
-    hr_instance = utilities.HeartRate(args, record_name, args.config,
-                                      args.normalize)
-    hr_instance.read_expert()
-    hr_instance.filter_hr()
-    hr_instance.find_peaks()
+    # Next two lines are for debugging more complicated models
+    state_key2state_index = {}
+    state_dict = {}
 
-    return hr_instance.dict(keys)
-
-
-def read_raw_y4varg2chain(args, record_name):
-    """Called by HMM, and returns a dict of observation components
-
-    Args:
-        args: From HMM.args
-        record_name: EG, 'a01'
-
-    Components are hr_respiration, peak and interval.
-
-    """
-    keys = 'hr_respiration peak interval'.split()
-
-    # develop.HMM.read_y_no_class calls this with self.args, and
-    # utilities.ModelRecord wraps the result in hmm.base.JointSegment
-
-    assert args.config.normalize == args.normalize
-
-    hr_instance = utilities.HeartRate(args, record_name, args.config,
-                                      args.normalize)
-    hr_instance.filter_hr()
-    hr_instance.find_peaks()
-
-    return hr_instance.dict(keys)
+    return hmm_, state_dict, state_key2state_index
 
 
 @register  # low pass heart rate, respiration, and interval

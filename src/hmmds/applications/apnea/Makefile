@@ -323,7 +323,102 @@ v2s_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(V2S_BEST)
 v2s_score.tex: score.py v2s_pass2.out
 	python $^ $@  --tex
 
-###################### WIP ######################################
+###################### 4 states with only VARG observation, V4S ###########
+
+# AutoRegressive order
+V4S_AR = 16
+# Model sample frequency cpm
+V4S_FS = 5
+# Low Pass Period seconds
+V4S_LPP = 10
+# Respiration Center frequency cpm
+V4S_RC = 17
+# Respiration Width cpm
+V4S_RW = 4.7
+# Filter for Respiration Smoothing in cpm.
+V4S_RS = .44
+
+V4S_THRESHOLD = 150.0
+V4S_BEST = $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked
+
+v4s_threshold.pdf: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds 1.5 2.5 21 --records $(APLUSNAMES) -- $(V4S_BEST) $@ \
+    > v4s_threshold.txt
+
+# Sensitivity to AutoRegressive order
+V4S_ARs = 5 10 15 16 17 18 19 20 25 30
+VAR_MODELS = $(addsuffix fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked, \
+    $(addprefix varg4state_ar, $(V4S_ARs)))
+
+v4s_errors_vs_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(VAR_MODELS))
+	python compare_models.py --threshold $(V4S_THRESHOLD) --models $(VAR_MODELS) --parameters $(V4S_ARs) \
+--parameter_name "AR order" --records $(APLUSNAMES) -- $@ > v4s_errors_vs_ar.txt
+
+# Sensitivity to Sample Frequency
+V4S_FSs = 2 3 4 5 6
+VFS_MODELS = $(addsuffix lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked, \
+    $(addprefix varg4state_ar$(V4S_AR)fs, $(V4S_FSs)))
+
+v4s_errors_vs_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MODELS))
+	python compare_models.py --threshold $(V4S_THRESHOLD) --models $(VFS_MODELS) --parameters $(V4S_FSs) \
+--parameter_name "Sample Frequency" --records $(APLUSNAMES) -- $@ > v4s_errors_vs_fs.txt
+
+# Sensitivity to Low Pass Period in seconds.
+V4S_LPPs = 5 8 9 10 11 12 15 20 25 30 40 45 50
+LPP_MODELS = $(addsuffix rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked, $(addprefix \
+    varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp, \
+    $(V4S_LPPs)))
+
+v4s_errors_vs_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
+	python compare_models.py --threshold $(V4S_THRESHOLD) --models $(LPP_MODELS) --parameters $(V4S_LPPs) \
+--parameter_name "Low Pass Period" --records $(APLUSNAMES) -- $@ > v4s_errors_vs_lpp.txt
+
+# Sensitivity to Respiration Center frequency in cpm
+V4S_RCs = 12 14 16 17 18 19 20 22 24 28
+RC_MODELS = $(addsuffix rw$(V4S_RW)rs$(V4S_RS)_masked, $(addprefix \
+    varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc, \
+    $(V4S_RCs)))
+
+v4s_errors_vs_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MODELS))
+	python compare_models.py --threshold $(V4S_THRESHOLD) --models $(RC_MODELS) --parameters $(V4S_RCs) \
+--parameter_name "Center Frequency" --records $(APLUSNAMES) -- $@ > v4s_errors_vs_rc.txt
+
+# Sensitivity to Respiration width frequency in cpm
+V4S_RWs = 4 4.3 4.4 4.5 4.6 4.7 5 5.1
+RW_MODELS = $(addsuffix rs$(V4S_RS)_masked, $(addprefix \
+    varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw, \
+    $(V4S_RWs)))
+
+v4s_errors_vs_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MODELS))
+	python compare_models.py --threshold $(V4S_THRESHOLD) --models $(RW_MODELS) --parameters $(V4S_RWs) \
+--parameter_name "Frequency Width" --records $(APLUSNAMES) -- $@ > v4s_errors_vs_rw.txt
+
+# Sensitivity to Respiration Smoothing frequency in cpm
+V4S_RSs =  .2 .3 .4 .41 .42 .43 .44 .45 .46 .6 1.0
+RS_MODELS = $(addsuffix _masked, $(addprefix \
+    varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs, \
+    $(V4S_RSs)))
+
+v4s_errors_vs_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MODELS))
+	python compare_models.py --threshold $(V4S_THRESHOLD) --models $(RS_MODELS) --parameters $(V4S_RSs) \
+    --parameter_name "Respiration Smoothing Filter" --records $(APLUSNAMES) -- \
+    $@ > v4s_errors_vs_rs.txt
+
+# EG $(MODELS)/varg4state_ar16fs4lpp10rc17rw4.7rs.44_init
+
+$(MODELS)/varg4state_%_init: make_init.py model_init.py config_stats.py
+	python $<  four_state $* $@
+
+$(MODELS)/varg4state%_masked: apnea_train.py $(MODELS)/varg4state%_init
+	python $< --records $(APLUSNAMES) --iterations 10 $(MODELS)/varg4state$*_init $@
+
+v4s_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(V4S_BEST)
+	python $< --model_paths $(MODELS)/c_model $(V4S_BEST) \
+    --threshold 1.0 pass1.out temp
+	cp temp $@
+
+v4s_score.tex: score.py v4s_pass2.out
+	python $^ $@  --tex
 
 ###############v2c: 2 chain model with varg, peak, interval observation ########
 
