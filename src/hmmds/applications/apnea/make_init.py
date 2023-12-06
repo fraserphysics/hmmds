@@ -114,9 +114,11 @@ def four_state(args):
     rc band_pass_center        cycles per minute
     rw band_pass_width         cycles per minute
     rs respiration_smooth      cycles per minute
+    vp power for varg component
+    ip power for interval component
     
     """
-    d = parse_pattern(args.pattern, 'ar fs lpp rc rw rs')
+    d = parse_pattern(args.pattern, 'ar fs lpp rc rw rs vp ip')
     make_config = f"make norm_config4.pkl"
     run_model_init = f"""
       python model_init.py
@@ -126,6 +128,7 @@ def four_state(args):
       --band_pass_center {d['rc']}
       --band_pass_width {d['rw']}
       --respiration_smooth {d['rs']}
+      --power {d['vp']} {d['ip']} 1 --
       norm_config4.pkl four_state {args.out}"""
     return make_config, run_model_init
 

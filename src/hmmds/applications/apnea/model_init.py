@@ -270,11 +270,11 @@ def read_slow(args, record_name):
     return heart_rate.dict(['slow'])
 
 
-def read_lphr_respiration_class(args, record_name):
+def read_lphr_respiration_interval_class(args, record_name):
     """
     """
 
-    keys = 'hr_respiration class'.split()
+    keys = 'hr_respiration interval class'.split()
     item_args = {'hr_respiration': {'pad': args.AR_order}}
 
     # develop.HMM.read_y_with_class calls this with self.args, and
@@ -291,15 +291,16 @@ def read_lphr_respiration_class(args, record_name):
     low_pass_width = 1 / args.low_pass_period
     hr_instance.filter_hr(resp_pass_center, resp_pass_width, respiration_smooth,
                           low_pass_width)
+    hr_instance.find_peaks()
 
     return hr_instance.dict(keys, item_args)
 
 
-def read_lphr_respiration(args, record_name):
+def read_lphr_respiration_interval(args, record_name):
     """
     """
 
-    keys = ['hr_respiration']
+    keys = 'hr_respiration interval'.split()
     item_args = {'hr_respiration': {'pad': args.AR_order}}
 
     # develop.HMM.read_y_with_class calls this with self.args, and
@@ -315,6 +316,7 @@ def read_lphr_respiration(args, record_name):
     low_pass_width = 1 / args.low_pass_period
     hr_instance.filter_hr(resp_pass_center, resp_pass_width, respiration_smooth,
                           low_pass_width)
+    hr_instance.find_peaks()
 
     return hr_instance.dict(keys, item_args)
 
@@ -770,12 +772,20 @@ def four_state(args, rng):
         Psi[state, :, :] = numpy.array([[8000.0, 0], [0, 800.0]]) * _nu
         nu[state] = _nu
 
-    y_model = hmm.base.JointObservation({
-        'hr_respiration':
-            hmm.observe_float.VARG(coefficients, sigma, rng, Psi=Psi, nu=nu),
-        'class':
-            hmm.base.ClassObservation(class_index2state_indices),
-    })
+    pdf_tuple = (args.config.normal_pdf,) * 2 + (args.config.apnea_pdf,) * 2
+    power = dict(zip('hr_respiration interval class'.split(), args.power))
+    assert len(power) == 3, f'{power=} {args.power=}'
+    y_model = hmm.base.JointObservation(
+        {
+            'hr_respiration':
+                hmm.observe_float.VARG(coefficients, sigma, rng, Psi=Psi,
+                                       nu=nu),
+            'interval':
+                utilities.IntervalObservation(pdf_tuple, args),
+            'class':
+                hmm.base.ClassObservation(class_index2state_indices),
+        },
+        power=power)
 
     untrainable_indices = []
     untrainable_values = []
@@ -796,8 +806,8 @@ def four_state(args, rng):
                        untrainable_indices=tuple(
                            numpy.array(untrainable_indices).T),
                        untrainable_values=numpy.array(untrainable_values))
-    args.read_y_class = hmmds.applications.apnea.model_init.read_lphr_respiration_class
-    args.read_raw_y = hmmds.applications.apnea.model_init.read_lphr_respiration
+    args.read_y_class = hmmds.applications.apnea.model_init.read_lphr_respiration_interval_class
+    args.read_raw_y = hmmds.applications.apnea.model_init.read_lphr_respiration_interval
 
     # Next two lines are for debugging more complicated models
     state_key2state_index = {}

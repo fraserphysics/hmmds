@@ -99,7 +99,8 @@ def main(argv=None):
     else:
         records = args.records
 
-    assert len(args.models) == len(args.parameters)
+    assert len(args.models) == len(
+        args.parameters), f'{args.models=} {args.parameters=}'
     error_rates = []
     for model_name, parameter in zip(args.models, args.parameters):
         counts = numpy.zeros(4)
