@@ -351,7 +351,7 @@ V4S_IP = 0.032
 V4S_THRESHOLD = 84 # 84 with interval gets 2819 # 150.0 w/o interval gets 2841
 V4S_BEST = $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked
 
-V4S_OPT: optimize.py
+v4s_opt: optimize.py
 	python $< --records  $(APLUSNAMES) -- $@
 
 v4s_threshold.pdf: survey_power_threshold.py $(V4S_BEST)

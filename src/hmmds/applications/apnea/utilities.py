@@ -496,7 +496,7 @@ class HeartRate:
         # The loop assigned interval from first_i up to (not including) last_i
         interval[:first_i] = interval[first_i]
         interval[last_i:] = interval[last_i - 1]
-        assert interval.min() > -1
+        assert interval.min() > -1, f'{self.record_name=} {first_i=} {last_i=}'
         return interval
 
 

@@ -373,6 +373,53 @@ choose include:
 \item[Weighting power] 
 \end{description}
 
+\subsection{Optimization}
+\label{sec:optimization}
+
+Adjusting parameters by hand, I found a combination that yields 2819
+errors on a training set.  Then I wrote optimize.py which calls
+scipy.optimize.minimize(...,method=Powell).  To get that to run, I
+modified the Wishart prior after which the number of errors on the
+training set was 6020.  The result from the optimizer yields 6446
+errors.  Here is some output from running the code:
+\begin{verbatim}
+develop-shell$ time make v4s_opt 
+
+real	73m15.680s
+user	150m12.921s
+sys	1m52.714s
+
+Out[7]: 
+   direc: array([[1., 0., 0., 0., 0., 0., 0.],
+       [0., 1., 0., 0., 0., 0., 0.],
+       [0., 0., 1., 0., 0., 0., 0.],
+       [0., 0., 0., 1., 0., 0., 0.],
+       [0., 0., 0., 0., 1., 0., 0.],
+       [0., 0., 0., 0., 0., 1., 0.],
+       [0., 0., 0., 0., 0., 0., 1.]])
+     fun: 6446.0
+ message: 'Optimization terminated successfully.'
+    nfev: 176
+     nit: 1
+  status: 0
+ success: True
+       x: array([2.55190424e+03, 2.56446351e+01, 1.29448681e+01, 4.27630707e+00,
+       3.87486402e-01, 2.53354037e+00, 9.99999479e+01])
+
+In [3]: optimize.interpret('v4s_opt')
+cost_initial=6020.0 cost_final=6446.0
+threshold: 2551.9042424996564
+ar: 16
+fs: 5
+lpp: 25.644635128120633
+rc: 12.944868089602346
+rw: 4.276307070768515
+rs: 0.38748640179491545
+pt: 2.533540374809501
+vp: 1.0
+ip: 99.99994785700414
+\end{verbatim}
+
 \subsection{To Do}
 
 \begin{enumerate}
