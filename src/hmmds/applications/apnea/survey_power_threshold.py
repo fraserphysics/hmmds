@@ -119,9 +119,10 @@ def power_study(model_record_dict, powers, threshold):
     """
     result = {}
     for power in powers:
+        power_dict = {'hr_respiration': 1.0, 'interval':power,'class':1.0}
         counts = numpy.zeros(4, dtype=int)
         for _, model_record in model_record_dict.items():
-            model_record.classify(threshold, power)
+            model_record.classify(threshold, power_dict)
             counts += model_record.score()
         result[power] = {
             'N false alarm': counts[1],
@@ -145,7 +146,9 @@ def main(argv=None):
     fig, axeses = pyplot.subplots(nrows=2, figsize=(6, 8))
 
     min_threshold = args.threshold
-    min_power = args.power
+    keys = 'hr_respiration interval class'.split()
+    assert len(keys) == len(args.power)
+    min_power = dict((key,value) for key,value in zip(keys, args.power))
 
     def linspace(triple):
         return numpy.linspace(float(triple[0]), float(triple[1]),

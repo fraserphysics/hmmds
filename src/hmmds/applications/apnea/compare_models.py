@@ -91,8 +91,7 @@ def main(argv=None):
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     fig, axes = pyplot.subplots(nrows=1, figsize=(6, 4))
 
-    best_power = args.power
-    best_threshold = args.threshold
+    threshold = args.threshold
 
     if args.records is None:
         records = args.a_names
@@ -107,7 +106,7 @@ def main(argv=None):
         model_path = os.path.join(args.model_dir, model_name)
         for record_name in records:
             instance = utilities.ModelRecord(model_path, record_name)
-            instance.classify(best_threshold, best_power)
+            instance.classify(threshold)
             counts += instance.score()
         error_rates.append((counts[1] + counts[2]) / counts.sum())
         print(

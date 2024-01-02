@@ -15,6 +15,9 @@ ApneaCode = $(HMMDS)/applications/apnea
 MODELS = ${ROOT}/build/derived_data/apnea/models
 ECG = $(MODELS)/ECG
 
+# See hmmds/applications/apnea/ECG/Makefile for making files like
+# build/derived_data/ECG/a01_self_AR3/heart_rate
+
 # I made the Rtimes files using the script wfdb2Rtimes.py in my
 # project wfdb which imports PhysioNet's wfdb using its own shell.nix
 # that is incompatible with qt.  The script uses a qrs detector from

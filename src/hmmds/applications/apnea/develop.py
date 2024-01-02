@@ -163,6 +163,8 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
         """
         class_model = self.y_mod['class']
         del self.y_mod['class']
+        if power:
+            self.y_mod.power = power
         weights = self.weights(y)
         self.y_mod['class'] = class_model  # Restore for future use
 

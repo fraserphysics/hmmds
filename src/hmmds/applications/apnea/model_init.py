@@ -731,8 +731,8 @@ def four_state(args, rng):
     n_states = 4
     v_dim = 2
     tiny = 1.0e-30
-    small = 1.0e-5  # Sequential noise observations drive probability
-    # to zero exponentially at rate small
+    small = 1.0e-30  # Sequential noise observations drive probability
+    # of noise states to zero exponentially at the rate "small".
     ar_order = args.AR_order
     p_state_initial = numpy.ones(n_states) / n_states
     p_state_time_average = p_state_initial.copy()
@@ -768,8 +768,8 @@ def four_state(args, rng):
         nu[state] = _nu
 
     for state in (normal_noise_state, apnea_noise_state):
-        sigma[state, :, :] = numpy.eye(2) * 1.0e6
-        Psi[state, :, :] = numpy.array([[8000.0, 0], [0, 800.0]]) * _nu
+        sigma[state, :, :] = numpy.eye(2) * 1.0e7
+        Psi[state, :, :] = numpy.array([[1.0e8, 0], [0, 1.0e4]]) * _nu
         nu[state] = _nu
 
     pdf_tuple = (args.config.normal_pdf,) * 2 + (args.config.apnea_pdf,) * 2
