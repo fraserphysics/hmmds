@@ -153,15 +153,13 @@ class State:
         # subclass of hmm.base.IntegerObservation
 
 
-def dict2hmm(state_dict, ecg_model, rng, truncate=0):
+def dict2hmm(state_dict, ecg_model, rng):
     """Create an HMM based on state_dict for supervised training
 
     Args:
         state_dict: state_dict[state_name] is a State instance
         ecg_model: Observation model for raw ecg samples
         rng: A random number generator
-        truncate: Number of elements to drop from the beginning of each segment
-                  of class observations.
 
     """
 
@@ -211,8 +209,7 @@ def dict2hmm(state_dict, ecg_model, rng, truncate=0):
     y_model = hmm.base.JointObservation({
         "class": class_model,
         "ecg": ecg_model
-    },
-                                        truncate=truncate)
+    })
 
     # Create and return the hmm
     indices = tuple(numpy.array(untrainable_indices).T)
@@ -310,8 +307,7 @@ def masked_dict(args, rng):
 
     result, state_name2state_index = dict2hmm(state_dict,
                                               ecg_model,
-                                              rng,
-                                              truncate=args.AR_order)
+                                              rng)
     # Force the variance of the bad state to be special
     i_bad = state_name2state_index['bad']
     ecg_model.alpha[i_bad] = noise_alpha

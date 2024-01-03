@@ -191,12 +191,42 @@ def read_states(args, name):
     return states
 
 
+class JointSegment(hmm.base.JointSegment):
+    """Extension that supports padding of ecg component by AR order
+    """
+
+    def __init__(self: JointSegment, input_dict, ecg_pad):
+        assert isinstance(input_dict, dict)
+        self.ecg_pad = ecg_pad
+        super().__init__(input_dict)
+        self._length = len(self['ecg']) - ecg_pad
+    def __getitem__(self: JointSegment, val) -> JointSegment:
+        if not type(val) in (int, slice):
+            return dict.get(self, val)
+        new_dict = {}
+        for key, value in self.items():
+            if key == 'ecg' and isinstance(val, slice):
+                new_dict[key] = value[val.start:val.stop+self.ecg_pad]
+                continue
+            if key == 'ecg' and isinstance(val, int):
+                new_dict[key] = value[val + self.ecg_pad]
+                continue
+            new_dict[key] = value[val]
+        return self.__class__(new_dict, self.ecg_pad)
+
 def read_ecgs(args):
     ecgs = []
     for name in args.records:
         path = os.path.join(args.rtimes, name + '.ecg')
         with open(path, 'rb') as _file:
-            ecgs.append(pickle.load(_file)['raw'])
+            raw = pickle.load(_file)['raw']
+            if hasattr(args, 'AR_order'):
+                appendage = numpy.empty(len(raw) + args.AR_order)
+                appendage[:args.AR_order] = raw[0]
+                appendage[args.AR_order:] = raw
+            else:
+                appendage = raw
+            ecgs.append(appendage)
     if not args.tag_ecg:
         return ecgs
 
@@ -204,8 +234,12 @@ def read_ecgs(args):
     n_before, n_after, n_slow = args.before_after_slow
     tags = numpy.arange(2 + n_before + n_after, dtype=int)
     for ecg in ecgs:
-        class_ = numpy.zeros(len(ecg), dtype=int)
-        peaks, _ = scipy.signal.find_peaks(ecg / args.peak_scale,
+        if hasattr(args, 'AR_order'):
+            raw = ecg[args.AR_order:]
+        else:
+            raw = ecg
+        class_ = numpy.zeros(len(raw), dtype=int)
+        peaks, _ = scipy.signal.find_peaks(raw / args.peak_scale,
                                            height=1.0,
                                            distance=40)
         last_stop = 0
@@ -214,10 +248,10 @@ def read_ecgs(args):
             stop = peak + n_after + 2
             # Don't tag segments that overlap each other or the ends of
             # the data.
-            if start >= last_stop and stop <= len(ecg):
+            if start >= last_stop and stop <= len(raw):
                 class_[start:stop] = tags
                 last_stop = stop
-    result.append(hmm.base.JointSegment({"class": class_, "ecg": ecg}))
+        result.append(JointSegment({"class": class_, "ecg": ecg}, args.AR_order))
     return result
 
 

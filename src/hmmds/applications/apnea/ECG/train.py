@@ -6,6 +6,7 @@ python train.py --records a01 x02 b01 c05 --type ecg models/initial_ECG models/t
 The type selects one of the registered functions in this module.
 
 """
+from __future__ import annotations  # Enables, eg, self: RecordData
 import sys
 import os.path
 import pickle
@@ -69,7 +70,7 @@ class RecordData:
 
     """
 
-    def __init__(self, record_name, raw_data, model_path):
+    def __init__(self: RecordData, record_name, raw_data, model_path):
         self.name = record_name
         self.raw_data = raw_data
         self.n_data = len(raw_data)
@@ -81,7 +82,7 @@ class RecordData:
         with open(likelihood_path, 'rb') as _file:
             self.likelihood = pickle.load(_file)
 
-    def bad_spots(self):
+    def bad_spots(self: RecordData):
         bad_spots_ = numpy.nonzero((self.states == 0) |
                                    (self.likelihood < 1.0e-70))[0]
         bad_spots = numpy.empty(len(bad_spots_) + 2, dtype=int)
@@ -90,7 +91,7 @@ class RecordData:
         bad_spots[-1] = self.n_data - 1
         return bad_spots
 
-    def segments(self, shortest, longest):
+    def segments(self: RecordData, shortest, longest):
         """Return a list of segments
 
         """
@@ -112,7 +113,7 @@ class RecordData:
                 result.append(segment)
         return result
 
-    def segment(self, segment_length):
+    def segment(self: RecordData, segment_length):
         """Return a segment of length segment_length that is plausible for self
 
         """
