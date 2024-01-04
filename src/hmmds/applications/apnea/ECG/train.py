@@ -49,19 +49,47 @@ def register(func):
     return func
 
 
-def segment(data):
-    """Break ECG data into 15 minute segments for parallel processing
+def segment(data, ar_order):
+    """Break data into 15 minute segments for parallel processing
+
+    data is either a JointSegment or a numpy array.
 
     """
 
+    # ToDo: Improve this code
+    assert isinstance(
+        data,
+        (numpy.ndarray, hmmds.applications.apnea.ECG.utilities.JointSegment))
     f_pm = 60 * 100  # Samples per minute
     minutes_per_segment = 15
     samples_per_segment = minutes_per_segment * f_pm
 
+    def segment_ecg(ecg_data):
+        ecg_result = []
+        for first in range(ar_order, len(ecg_data), samples_per_segment):
+            # For each segment, the first likelihood will be
+            # p(y[first]|state,y[n_start:first])
+            n_start = first - ar_order
+            n_stop = min(first + samples_per_segment, len(ecg_data))
+            length = n_stop - first
+            if length < f_pm:  # Drop segment if shorter than 1 minute
+                continue
+            ecg_result.append(data[n_start:n_stop])
+        print(f'{len(ecg_result)=}')
+        assert len(ecg_result) > 0
+        return ecg_result
+
+    if isinstance(data, numpy.ndarray):
+        assert len(data.shape) == 1
+        return segment_ecg(data)
     result = []
     for n_start in range(0, len(data), samples_per_segment):
-        n_stop = n_start + samples_per_segment
+        n_stop = min(n_start + samples_per_segment, len(data))
+        if n_stop - n_start < f_pm:
+            continue
         result.append(data[n_start:n_stop])
+    print(f'{len(result)=}')
+    assert len(result) > 0
     return result
 
 
@@ -132,14 +160,19 @@ class RecordData:
 
 @register
 def segmented(args) -> list:
-    """Read raw ecg data specified by args.  Sample data with 15
+    """Read ecg data specified by args.  Segment the data with 15
     minute segments to enable parallel training.
 
     """
+    if hasattr(args, 'AR_order'):
+        ar_order = args.AR_order
+    else:
+        ar_order = 0
     data = hmmds.applications.apnea.ECG.utilities.read_ecgs(args)
+    # data is either a JointSegment or a numpy array
     result = []
     for data_record in data:
-        result.extend(segment(data_record))
+        result.extend(segment(data_record, ar_order))
     return result
 
 

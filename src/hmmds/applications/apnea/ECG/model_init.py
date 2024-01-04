@@ -305,9 +305,7 @@ def masked_dict(args, rng):
                                      alpha=numpy.ones(n_states) * alpha,
                                      beta=numpy.ones(n_states) * beta)
 
-    result, state_name2state_index = dict2hmm(state_dict,
-                                              ecg_model,
-                                              rng)
+    result, state_name2state_index = dict2hmm(state_dict, ecg_model, rng)
     # Force the variance of the bad state to be special
     i_bad = state_name2state_index['bad']
     ecg_model.alpha[i_bad] = noise_alpha

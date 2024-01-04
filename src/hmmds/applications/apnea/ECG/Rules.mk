@@ -78,7 +78,7 @@ $(ECG)/%_self_AR3/likelihood: $(ECGCode)/ecg_likelihood.py $(ECG)/%_self_AR3/unm
 $(ECG)/%_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/%_self_AR3/states $(ECG)/%_self_AR3/likelihood
 	python $< --r_state 35 --likelihood $(ECG)/$*_self_AR3/likelihood --censor 0.02 $(ECG)/$*_self_AR3/states $@
 
-#################### Special rules for models trained on a single record ########
+##### Special rules for records that don't work with models trained on a01 ########
 $(ECG)/a12_self_AR3/initial: model_init.py
 	mkdir -p  $(@D)
 	python $(ECGCode)/model_init.py --root ${ROOT} --records a12 \
@@ -96,27 +96,20 @@ $(ECG)/a12_self_AR3/unmasked_hmm: $(ECGCode)/declass.py $(ECG)/a12_self_AR3/mask
 $(ECG)/a12_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/a12_self_AR3/unmasked_hmm
 	python $< --records a12 --type segmented --iterations 20 $(@D)/unmasked_hmm $@ >  $@.log
 
-$(ECG)/c07_self_AR3/initial: model_init.py
-	mkdir -p  $(@D)
-	python $(ECGCode)/model_init.py --root ${ROOT} --records c07 \
---peak_scale .3 --tag_ecg --ecg_alpha_beta 1.0e3 1.0e2 \
---noise_parameters 1.0e6 1.0e8 1.0e-50 --before_after_slow 18 30 10 \
---AR_order 3 masked_dict $@
-
-$(ECG)/c07_self_AR3/masked_trained: $(ECGCode)/train.py $(ECG)/c07_self_AR3/initial
-	python $<  --records c07 --type segmented --iterations 5 \
-$(ECG)/c07_self_AR3/initial $@ >  $(ECG)/c07_self_AR3/masked.log
-
-$(ECG)/c07_self_AR3/unmasked_hmm: $(ECGCode)/declass.py $(ECG)/c07_self_AR3/masked_trained
-	python $^ $@
-
-$(ECG)/c07_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/c07_self_AR3/unmasked_hmm
-	python $< --records c07 --type segmented --iterations 20 $(@D)/unmasked_hmm $@ >  $@.log
+$(ECG)/c07_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/c10_self_AR3/unmasked_trained
+	python $< --records c07 --type segmented --iterations 20 $(ECG)/c10_self_AR3/unmasked_trained $@ >  $@.log
 
 ################################################################################
 all_selves = $(foreach X, unmasked_trained states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG)/$Y_self_AR3/, $X)))
 $(ECG)/all_selves: $(all_selves)
 	touch $@
+
+# $ time make ../../../../../build/derived_data/ECG/all_selves
+# real	183m36.882s
+# user	1390m39.927s
+# sys	38m11.636s
+
+# explore.py indicates that the model for x04 inserts extra beats.
 
 # Local Variables:
 # mode: makefile

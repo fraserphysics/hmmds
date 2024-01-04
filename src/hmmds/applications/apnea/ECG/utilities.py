@@ -200,19 +200,21 @@ class JointSegment(hmm.base.JointSegment):
         self.ecg_pad = ecg_pad
         super().__init__(input_dict)
         self._length = len(self['ecg']) - ecg_pad
+
     def __getitem__(self: JointSegment, val) -> JointSegment:
-        if not type(val) in (int, slice):
+        if not type(val) in (int, slice):  # val is a key.  Return self[key]
             return dict.get(self, val)
         new_dict = {}
         for key, value in self.items():
             if key == 'ecg' and isinstance(val, slice):
-                new_dict[key] = value[val.start:val.stop+self.ecg_pad]
+                new_dict[key] = value[val.start:val.stop + self.ecg_pad]
                 continue
             if key == 'ecg' and isinstance(val, int):
                 new_dict[key] = value[val + self.ecg_pad]
                 continue
             new_dict[key] = value[val]
         return self.__class__(new_dict, self.ecg_pad)
+
 
 def read_ecgs(args):
     ecgs = []
@@ -235,8 +237,10 @@ def read_ecgs(args):
     tags = numpy.arange(2 + n_before + n_after, dtype=int)
     for ecg in ecgs:
         if hasattr(args, 'AR_order'):
-            raw = ecg[args.AR_order:]
+            ar_order = args.AR_order
+            raw = ecg[ar_order:]
         else:
+            ar_order = 0
             raw = ecg
         class_ = numpy.zeros(len(raw), dtype=int)
         peaks, _ = scipy.signal.find_peaks(raw / args.peak_scale,
@@ -251,7 +255,7 @@ def read_ecgs(args):
             if start >= last_stop and stop <= len(raw):
                 class_[start:stop] = tags
                 last_stop = stop
-        result.append(JointSegment({"class": class_, "ecg": ecg}, args.AR_order))
+        result.append(JointSegment({"class": class_, "ecg": ecg}, ar_order))
     return result
 
 
