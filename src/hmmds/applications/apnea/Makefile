@@ -329,27 +329,29 @@ v2s_score.tex: score.py v2s_pass2.out
 
 # With VARG and interval: 4.8 N->A: 1748 A->N: 1071 N_error: 2819 P_error: 0.219
 
-# AutoRegressive order 18
+# AutoRegressive order
 V4S_AR = 16
-# Model sample frequency cpm 5
+# Model sample frequency cpm
 V4S_FS = 5
-# Low Pass Period seconds 35.0
+# Low Pass Period seconds
 V4S_LPP = 28.9
-# Respiration Center frequency cpm 13.4
+# Respiration Center frequency cpm
 V4S_RC = 14.1
-# Respiration Width cpm 4.6
+# Respiration Width cpm
 V4S_RW = 4.58
-# Filter for Respiration Smoothing in cpm. .449
+# Filter for Respiration Smoothing in cpm.
 V4S_RS = .449
-# Prominence Threshold 9.381
+# Prominence Threshold
 V4S_PT = 4.8
 # Exponential weight for varg component
 V4S_VP = 1.0
-# Exponential weight for interval component 0.046
+# Exponential weight for interval component
 V4S_IP = 0.045
 # Detection threshold
-V4S_THRESHOLD = 2427 # 84 with interval gets 2819 # 150.0 w/o interval gets 2841
+V4S_THRESHOLD = 2427
+
 V4S_BEST = $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked
+# Yields 3072 errors  Earlier got 2819
 
 v4s_opt: optimize.py
 	python $< --records  $(APLUSNAMES) -- $@
@@ -400,7 +402,7 @@ v4s_errors_vs_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MODELS))
 --parameter_name "Sample Frequency" $@ > v4s_errors_vs_fs.txt
 
 # Sensitivity to Low Pass Period in seconds.
-V4S_LPPs = 15 20 25 30 33 34 34.5 35 36 40 45
+V4S_LPPs = 2 5 10 15 20 25 30 33 34 34.5 35 36 40 45 50 60
 LPP_MODELS = $(addsuffix rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked, $(addprefix \
     varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp, \
     $(V4S_LPPs)))
@@ -410,7 +412,7 @@ v4s_errors_vs_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
 --parameter_name "Low Pass Period" $@ > v4s_errors_vs_lpp.txt
 
 # Sensitivity to Respiration Center frequency in cpm
-V4S_RCs = 12 12.8 13 13.2 13.4 13.6 13.8 14 15 16 17
+V4S_RCs = 11 12 12.8 13 13.2 13.4 13.6 13.8 14 15 16 17 18 19 25 30
 RC_MODELS = $(addsuffix rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked, $(addprefix \
     varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc, \
     $(V4S_RCs)))
@@ -420,7 +422,7 @@ v4s_errors_vs_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MODELS))
 --parameter_name "Center Frequency" $@ > v4s_errors_vs_rc.txt
 
 # Sensitivity to Respiration width frequency in cpm
-V4S_RWs = 4 4.3 4.4 4.5 4.52 4.54 4.56 4.58 4.6 4.62 4.64 4.7 5 5.1
+V4S_RWs = 3 4 4.3 4.4 4.5 4.52 4.54 4.56 4.58 4.6 4.62 4.64 4.7 5 5.1 6
 RW_MODELS = $(addsuffix rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked, $(addprefix \
     varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw, \
     $(V4S_RWs)))
