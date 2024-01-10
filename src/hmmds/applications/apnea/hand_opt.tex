@@ -1,0 +1,141 @@
+
+% Notes on modeling heart rate
+
+\documentclass[12pt]{article}
+\usepackage{graphicx,color}
+\usepackage{amsmath, amsfonts}
+\usepackage{placeins}
+\usepackage{verbatim}
+\usepackage{showlabels}
+
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\INTEGER}{\field{Z}}
+\newcommand{\REAL}{\field{R}}
+\newcommand{\COMPLEX}{\field{C}}
+\newcommand{\id}{\mathbb{I}}
+\newcommand{\variance}[1]{\field{V}\left[ #1 \right]}
+\newcommand{\normal}[2]{{\cal N}\left(#1,#2 \right)}
+\newcommand{\argmax}{\operatorname*{argmax}}
+\newcommand{\BestModel}{\emph{two\_ar5\_masked}}
+
+\title{Hand Optimization}
+\author{Andrew M.\ Fraser}
+
+\begin{document}
+\maketitle
+
+\newcommand{\StudyCaption}[2]{
+  \caption{Performance vs #1 on the \emph{a} records combined with and \emph{b} and
+    \emph{c} records that are close to the pass-1 boundary. The models
+    have #2.}
+  }
+  \newcommand{\StudyFigs}[2]{
+
+\begin{figure}
+  \centering
+  \resizebox{0.8\textwidth}{!}{\includegraphics{#1_threshold.pdf}}
+  \StudyCaption{detection threshold}{#2}
+  \label{fig:#1_threshold}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_pt.pdf}}
+    \StudyCaption{prominence threshold}{#2}
+  \label{fig:#1_prominence_study}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_ip.pdf}}
+    \StudyCaption{exponential weight of interval component}{#2}
+  \label{fig:#1_interval_weight_study}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_ar.pdf}}
+    \StudyCaption{autoregressive order}{#2}
+  \label{fig:#1_ar_order_study}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_fs.pdf}}
+    \StudyCaption{heart rate sample frequency}{#2}
+  \label{fig:#1_sample_frequency_study}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_lpp.pdf}}
+    \StudyCaption{cutoff period in seconds of low pass filter for heart rate}{#2}
+  \label{fig:#1_lpp_study}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_rc.pdf}}
+    \StudyCaption{center frequency in cpm for extracting respiration signal}{#2}
+  \label{fig:#1_rc_study}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_rw.pdf}}
+    \StudyCaption{width in cpm of filter for extracting respiration signal}{#2}
+  \label{fig:#1_rw_study}
+\end{figure}
+
+\begin{figure}
+  \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_rs.pdf}}
+    \StudyCaption{cutoff frequency in cpm for smoothing the
+      respiration signal}{#2}
+  \label{fig:#1_rs_study}
+\end{figure}
+
+\begin{table*}
+  \centering
+  \input{#1_score.tex}
+  \caption[Performance]{Performance of a
+    model that has #2.}
+  \label{tab:#1_score}
+\end{table*}}
+
+\subsection{Combining Intervals, Respiration and Heart Rate}
+\label{sec:combination}
+
+Next, I combine a vector heart rate and respiration signal with a four
+state state structure and interval modeling.  The parameters to choose
+include:
+\begin{description}
+\item[VARG parameters:] for the (Vector AutoRegressive Gaussian) model
+  of the 2-d vectors with components respiration and low-pass filtered
+  heart rate.  The parameters include:
+  \begin{description}
+  \item[AR order] % ar
+  \item[sample rate] % fs
+  \item[low pass width] 7.5 per minute % lpw
+  \item[respiration pass center] 15 per minute % rc
+  \item[respiration pass width] 3 per minute % rw
+  \item[envelope smooth] 1.5 per minute % es
+  \item[normalization] 
+  \item[$\psi$ and $\nu$] Priors for each state
+  \end{description}
+\item[Peak parameters] For finding peaks.  Note: The signal used is
+  from the low pass filter for the VARG signal.
+  \begin{description}
+  \item[minimum prominence] 
+  \item[distance] 0.417 minutes
+  \item[window length] 1.42 minutes
+  \end{description}
+\item[Detector threshold] 
+\item[Weighting power] 
+\end{description}
+
+\StudyFigs{v4s}{four states and the observation models combine
+  the likelihood of the interval between peaks with a vector
+  autoregressive model for heart rate and respiration}
+
+\end{document}

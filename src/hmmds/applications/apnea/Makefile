@@ -178,6 +178,13 @@ NORM_INCLUDES = $(addprefix norm, $(INCLUDE_LIST))
 heart_rate.pdf: heart_rate.tex  $(HR_INCLUDES) $(NORM_INCLUDES)
 	pdflatex $< ; pdflatex $<
 
+########################Build hand_opt.pdf####################################
+
+LIST_ERRORS = pt ip ar fs lpp rc rw rs
+v4sERRORS = $(addsuffix .pdf, $(addprefix v4s_errors_vs_, $(LIST_ERRORS)))
+hand_opt.pdf: hand_opt.tex $(v4sERRORS) v4s_threshold.pdf v4s_score.tex
+	pdflatex $< ; pdflatex $<
+
 ################################################################################
 
 # Lengths of time series for each training record
