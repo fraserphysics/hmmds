@@ -63,9 +63,9 @@ def log_plot(axes, results, xlabel=None):
     missed_detection = []
     for threshold, result in results.items():
         x.append(threshold)
-        false_alarm.append(result['P false alarm'])
-        missed_detection.append(result['P missed detection'])
-        error_rate.append(result['error rate'])
+        false_alarm.append(result['N false alarm'])
+        missed_detection.append(result['N missed detection'])
+        error_rate.append(result['error count'])
     axes.semilogx(x, false_alarm, label="false alarm")
     axes.semilogx(x, missed_detection, label="missed detection")
     axes.semilogx(x, error_rate, label="all errors")
@@ -81,9 +81,9 @@ def plot(axes, results, xlabel=None):
     missed_detection = []
     for threshold, result in results.items():
         x.append(threshold)
-        false_alarm.append(result['P false alarm'])
-        missed_detection.append(result['P missed detection'])
-        error_rate.append(result['error rate'])
+        false_alarm.append(result['N false alarm'])
+        missed_detection.append(result['N missed detection'])
+        error_rate.append(result['error count'])
     axes.plot(x, false_alarm, label="false alarm")
     axes.plot(x, missed_detection, label="missed detection")
     axes.plot(x, error_rate, label="all errors")
@@ -119,7 +119,7 @@ def power_study(model_record_dict, powers, threshold):
     """
     result = {}
     for power in powers:
-        power_dict = {'hr_respiration': 1.0, 'interval':power,'class':1.0}
+        power_dict = {'hr_respiration': 1.0, 'interval': power, 'class': 1.0}
         counts = numpy.zeros(4, dtype=int)
         for _, model_record in model_record_dict.items():
             model_record.classify(threshold, power_dict)
@@ -148,7 +148,7 @@ def main(argv=None):
     min_threshold = args.threshold
     keys = 'hr_respiration interval class'.split()
     assert len(keys) == len(args.power)
-    min_power = dict((key,value) for key,value in zip(keys, args.power))
+    min_power = dict((key, value) for key, value in zip(keys, args.power))
 
     def linspace(triple):
         return numpy.linspace(float(triple[0]), float(triple[1]),

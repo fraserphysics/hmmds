@@ -61,16 +61,16 @@ def print_summary(results):
 {result['error rate']:10.5f}")
 
 
-def _plot(axes, results, xlabel=None):
+def plot(axes, results, xlabel=None):
     x = []
     error_rate = []
     false_alarm = []
     missed_detection = []
-    for threshold, result in results.items():
-        x.append(threshold)
-        false_alarm.append(result['false alarm'])
-        missed_detection.append(result['missed detection'])
-        error_rate.append(result['error rate'])
+    for x_, result in results.items():
+        x.append(x_)
+        false_alarm.append(result['N false alarm'])
+        missed_detection.append(result['N missed detection'])
+        error_rate.append(result['error count'])
     axes.plot(x, false_alarm, label="false alarm")
     axes.plot(x, missed_detection, label="missed detection")
     axes.plot(x, error_rate, label="all errors")
@@ -100,7 +100,7 @@ def main(argv=None):
 
     assert len(args.models) == len(
         args.parameters), f'{args.models=} {args.parameters=}'
-    error_rates = []
+    error_rates = {}
     for model_name, parameter in zip(args.models, args.parameters):
         counts = numpy.zeros(4)
         model_path = os.path.join(args.model_dir, model_name)
@@ -108,13 +108,18 @@ def main(argv=None):
             instance = utilities.ModelRecord(model_path, record_name)
             instance.classify(threshold)
             counts += instance.score()
-        error_rates.append((counts[1] + counts[2]) / counts.sum())
+        error_rates[parameter] = {
+            'N false alarm': counts[1],
+            'N missed detection': counts[2],
+            'P false alarm': counts[1] / (counts[0] + counts[1]),
+            'P missed detection': counts[2] / (counts[2] + counts[3]),
+            'error count': counts[1] + counts[2],
+            'error rate': (counts[1] + counts[2]) / counts.sum(),
+        }
         print(
-            f'{parameter} N->A: {int(counts[1])} A->N: {int(counts[2])} N_error: {int(counts[1] + counts[2])} P_error: {error_rates[-1]:5.3f}'
+            f'{parameter} N->A: {int(counts[1])} A->N: {int(counts[2])} N_error: {int(counts[1] + counts[2])} P_error: {error_rates[parameter]["error rate"]:5.3f}'
         )
-    axes.plot(args.parameters, error_rates)
-    axes.set_xlabel(args.parameter_name)
-    axes.set_ylabel(r'$P_{\rm{Error}}$')
+    plot(axes, error_rates, args.parameter_name)
 
     fig.savefig(args.figure_path)
 

@@ -198,9 +198,9 @@ def main(argv=None):
 
     # For Nelder-Mead initial_simplex centered at zero with scale
     # bigger then bumps
-    initial_simplex = numpy.ones((dim_x+1, dim_x))/dim_x
+    initial_simplex = numpy.ones((dim_x + 1, dim_x)) / dim_x
     for i in range(dim_x):
-        initial_simplex[i+1,i] -= 1.1
+        initial_simplex[i + 1, i] -= 1.1
     initial_simplex *= .2
 
     lower_bounds = -numpy.ones(dim_x) * 2.0
@@ -221,10 +221,7 @@ def main(argv=None):
     eps = 0.2
     options = dict(gtol=gtol, norm=2, eps=eps)
 
-    nm_options = dict(
-        inital_simplex=initial_simplex,
-        xatol=0.001,
-        fatol=5)
+    nm_options = dict(inital_simplex=initial_simplex, xatol=0.001, fatol=5)
     result = scipy.optimize.minimize(objective,
                                      numpy.ones(dim_x),
                                      method='Nelder-Mead',
