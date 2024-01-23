@@ -147,6 +147,8 @@ def main(argv=None):
 
     min_threshold = args.threshold
     keys = 'hr_respiration interval class'.split()
+
+    # Set exponents (ie power) for weighting observation components
     assert len(keys) == len(args.power)
     min_power = dict((key, value) for key, value in zip(keys, args.power))
 
