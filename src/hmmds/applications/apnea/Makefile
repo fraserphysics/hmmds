@@ -124,16 +124,15 @@ norm_errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NORM_AR
     $(NORM_POWER_THRESHOLD) $@ > norm_errors_vs_ar_order.txt
 
 norm_power_threshold.pdf: survey_power_threshold.py $(NORM_MODEL)
-	python $< --powers 0.0 3.5 36 --components slow peak interval class \
-  --thresholds -20.0 20.0 21 --records $(APLUSNAMES) $(NORM_POWER_THRESHOLD) \
- $(NORM_MODEL) $@ > norm_power_threshold.txt
+	python $< --powers 0.0 3.5 36 --thresholds -20.0 20.0 21 --records $(APLUSNAMES) \
+ $(NORM_POWER_THRESHOLD) $(NORM_MODEL) $@ > norm_power_threshold.txt
 
 norm_score.tex: score.py norm_pass2.out
 	python score.py --tex $(NORM_POWER_THRESHOLD) norm_pass2.out $@
 
 norm_pass2.out: pass2.py pass1.out $(NORM_MODEL) $(MODELS)/c_model
 	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model \
-    $(NORM_MODEL) $(NORM_POWER_THRESHOLD)  --components slow peak interval class -- pass1.out temp
+    $(NORM_MODEL) $(NORM_POWER_THRESHOLD) -- pass1.out temp
 	cp temp $@
 
 # FixMe: Rename varg2chain to v2c
