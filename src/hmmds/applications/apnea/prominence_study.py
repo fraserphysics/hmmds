@@ -66,7 +66,7 @@ def _plot(axes, results, xlabel=None):
         axes.set_xlabel(xlabel)
 
 
-def calculate(model_record_dict, best_threshold, best_power):
+def calculate(model_record_dict, best_threshold, power_dict):
     """Calculate errors as a function of minimum prominence for peak detection
     """
 
@@ -75,7 +75,7 @@ def calculate(model_record_dict, best_threshold, best_power):
         counts = numpy.zeros(4, dtype=int)
         likelihoods = {}
         for record_name, model_record in dict_record.items():
-            model_record.classify(best_threshold, best_power)
+            model_record.classify(best_threshold, power_dict)
             likelihoods[record_name] = model_record.model.forward()
             counts += model_record.score()
         result[prominence] = {
@@ -148,7 +148,6 @@ def main(argv=None):
     fig.tight_layout()
 
     best_threshold = args.threshold
-    best_power = dict(zip('slow peak interval class'.split(), args.power))
     if args.records is None:
         records = args.a_names
     else:
@@ -162,7 +161,7 @@ def main(argv=None):
         for record_name in records:
             model_record_dict[float_key][record_name] = utilities.ModelRecord(
                 model_path, record_name)
-    results = calculate(model_record_dict, best_threshold, best_power)
+    results = calculate(model_record_dict, best_threshold, args.power_dict)
     if args.report_by_record:
         print_by_record(model_record_dict, results, sys.stdout)
     if args.latex is not None:

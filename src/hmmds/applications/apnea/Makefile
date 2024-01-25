@@ -33,10 +33,9 @@ APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
 
 ###########################Two Chain Unnormalized###############################
 POWER = 1.0
-# powers are for the observation components: slow peak interval class
-POWER_VECTOR = --power 1 1 $(POWER) 1
+POWER_DICT = --power_dict slow 1.0 peak 1.0 interval $(POWER) class 1.0
 LOG_THRESHOLD = -10
-POWER_THRESHOLD = $(POWER_VECTOR) --threshold 1.0e$(LOG_THRESHOLD)
+POWER_THRESHOLD = $(POWER_DICT) --threshold 1.0e$(LOG_THRESHOLD)
 AR_ORDER = 5
 PROM = 4
 BEST_MODEL = $(MODELS)/two_power$(POWER)threshold$(LOG_THRESHOLD)ar$(AR_ORDER)prom$(PROM)_masked
@@ -54,7 +53,8 @@ errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
 --parameter_name "AR order" --records $(APLUSNAMES) -- $@ > errors_vs_ar_order.txt
 
 power_threshold.pdf: survey_power_threshold.py $(BEST_MODEL)
-	python $< --powers 0.0 3.5 36 --thresholds -20.0 20.0 21 --records $(APLUSNAMES) -- $(BEST_MODEL) $@ > power_threshold.txt
+	python $< --powers 0.0 3.5 36 --thresholds -20.0 20.0 21 $(POWER_DICT) \
+ --records $(APLUSNAMES) -- $(BEST_MODEL) $@ > power_threshold.txt
 
 prominence_study.pdf: prominence_study.py $(PROMINENCE_MODELS)
 	python $< $(POWER_THRESHOLD) --prominences $(PROMINENCES) --template \
@@ -76,9 +76,9 @@ pass2.out: pass2.py pass1.out $(BEST_MODEL) $(MODELS)/c_model
 
 ###########################Two Chain Normalized#################################
 NORM_POWER = 1.5
-NORM_POWER_VECTOR = --power 1 1 $(NORM_POWER) 1
+NORM_POWER_DICT = --power_dict slow 1.0 peak 1.0 interval $(NORM_POWER) class 1
 NORM_LOG_THRESHOLD = -6
-NORM_POWER_THRESHOLD = $(NORM_POWER_VECTOR) --threshold 1.0e$(NORM_LOG_THRESHOLD)
+NORM_POWER_THRESHOLD = $(NORM_POWER_DICT) --threshold 1.0e$(NORM_LOG_THRESHOLD)
 NORM_AR = 6
 NORM_PROM = 3.3
 NORM_MODEL = $(MODELS)/norm_power$(NORM_POWER)threshold$(NORM_LOG_THRESHOLD)ar$(NORM_AR)prom$(NORM_PROM)_masked
@@ -124,15 +124,16 @@ norm_errors_vs_ar_order.pdf: compare_models.py $(addprefix $(MODELS)/, $(NORM_AR
     $(NORM_POWER_THRESHOLD) $@ > norm_errors_vs_ar_order.txt
 
 norm_power_threshold.pdf: survey_power_threshold.py $(NORM_MODEL)
-	python $< --powers 0.0 3.5 36 --thresholds -20.0 20.0 21 --records $(APLUSNAMES) \
-    $(NORM_POWER_THRESHOLD) $(NORM_MODEL) $@ > norm_power_threshold.txt
+	python $< --powers 0.0 3.5 36 --components slow peak interval class \
+  --thresholds -20.0 20.0 21 --records $(APLUSNAMES) $(NORM_POWER_THRESHOLD) \
+ $(NORM_MODEL) $@ > norm_power_threshold.txt
 
 norm_score.tex: score.py norm_pass2.out
 	python score.py --tex $(NORM_POWER_THRESHOLD) norm_pass2.out $@
 
 norm_pass2.out: pass2.py pass1.out $(NORM_MODEL) $(MODELS)/c_model
 	python $< --model_paths ../../../../build/derived_data/apnea/models/c_model \
-    $(NORM_MODEL) $(NORM_POWER_THRESHOLD) pass1.out temp
+    $(NORM_MODEL) $(NORM_POWER_THRESHOLD)  --components slow peak interval class -- pass1.out temp
 	cp temp $@
 
 # FixMe: Rename varg2chain to v2c
@@ -140,7 +141,7 @@ norm_pass2.out: pass2.py pass1.out $(NORM_MODEL) $(MODELS)/c_model
 # varg2chain% in which % describes a collection of parameters.
 x_varg2chain_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MODELS)/x_varg2chain_masked
 	python $< --model_paths $(MODELS)/c_model $(MODELS)/x_varg2chain_masked \
-    --power 1.0 0.0 0.0 1.0 --threshold 0.5 pass1.out temp
+    --power_dict slow 1.0 peak 0.0 interval 0.0 class 1.0 --threshold 0.5 pass1.out temp
 	cp temp $@
 
 x_varg2chain_score.tex: score.py x_varg2chain_pass2.out
@@ -226,12 +227,24 @@ $(MODELS)/c_model: model_init.py new_config.pkl
 $(MODELS)/two_%_initial: model_init.py config_stats.py make_init.py
 	python make_init.py two_intervals $* $@
 
-# EG If % were power1.5threshold-12ar5prom6.1, the code would issue
-# the following: python model_init.py --power 1 1 1.5 1 --threshold 1.5
-# 1.0e-12 --AR_order 5 norm_config6.1.pkl two_normalized
-# ../../../../build/derived_data/apnea/models/norm_power1.5threshold-12ar5prom6.1_initial
 $(MODELS)/norm_%_initial: model_init.py config_stats.py make_init.py
 	python make_init.py two_normalized $* $@
+
+$(MODELS)/varg2state_initial: model_init.py config4.pkl
+	python $< --model_sample_frequency 6 --low_pass_period 2 --band_pass_center  16 --band_pass_width 4 --AR_order 6 config4.pkl varg2state $@
+
+varg2state_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MODELS)/varg2state_masked
+	python $< --model_paths $(MODELS)/c_model $(MODELS)/varg2state_masked \
+    --power_dict hr_respiration 1.5 class 1.0 --threshold 0.5 pass1.out temp
+	cp temp $@
+
+varg2state_score.tex: score.py varg2state_pass2.out
+	python $^ $@  --tex
+
+varg_power_threshold.pdf: survey_power_threshold.py $(VARG_MODEL)
+	python $< --thresholds -80.0 0.0 21 --records $(APLUSNAMES) \
+    $(VARG_POWER_THRESHOLD) $(VARG_MODEL) $@ > varg_power_threshold.txt
+
 
 ###################### 2 states with only VARG observation, V2S ###########
 
@@ -366,8 +379,9 @@ v4s_opt: optimize.py
 COMPARE = python compare_models.py --n_apnea 6446 --records $(APLUSNAMES) --threshold $(V4S_THRESHOLD)
 
 v4s_threshold.pdf: survey_power_threshold.py $(V4S_BEST)
-	python $< --thresholds 1.5 2.5 21 --powers 0.3 0.4 21 --records $(APLUSNAMES) \
-    --power 1.0 $(V4S_IP) 1.0 --threshold $(V4S_THRESHOLD) $(V4S_BEST) $@ > v4s_threshold.txt
+	python $< --thresholds 1.5 2.5 21 --powers 0.3 0.4 21 \
+ --power_dict hr_respiration 1.0 interval $(V4S_IP) class 1.0 --records $(APLUSNAMES) \
+ --threshold $(V4S_THRESHOLD) $(V4S_BEST) $@ > v4s_threshold.txt
 
 # Sensitivity to PT, Prominence Threshold for detecting peaks
 V4S_PTs = 3.4 3.6 3.8 4.0 4.1 4.2 4.3 4.4 4.6 4.8 4.9 5.0 5.1 5.2 5.4 5.6 5.8 6.0 6.2 6.4 6.6 6.8 7.0

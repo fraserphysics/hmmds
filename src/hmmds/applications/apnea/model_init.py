@@ -97,7 +97,6 @@ def make_joint_slow_peak_interval_class(
     for state_index, key in enumerate(keys):
         py_state[state_index, :] = state_dict[key].observation['peak']
 
-    power = dict(zip('slow peak interval class'.split(), args.power))
     return hmm.base.JointObservation(
         {
             'slow':
@@ -114,7 +113,7 @@ def make_joint_slow_peak_interval_class(
             'class':
                 hmm.base.ClassObservation(class_index2state_indices),
         },
-        power=power)
+        power=args.power_dict)
 
 
 def make_joint_varg_peak_interval_class(
@@ -173,7 +172,6 @@ def make_joint_varg_peak_interval_class(
 
         class_index2state_indices[parameters['class']].append(state_index)
 
-    power = dict(zip('hr_respiration peak interval class'.split(), args.power))
     return hmm.base.JointObservation(
         {
             'hr_respiration':
@@ -186,7 +184,7 @@ def make_joint_varg_peak_interval_class(
             'class':
                 hmm.base.ClassObservation(class_index2state_indices),
         },
-        power=power)
+        power=args.power_dict)
 
 
 def dict2hmm(state_dict, make_observation_model, args, rng):
@@ -268,6 +266,53 @@ def read_slow(args, record_name):
     heart_rate = utilities.HeartRate(args, record_name, args.config)
     heart_rate.filter_hr()
     return heart_rate.dict(['slow'])
+
+
+def read_lphr_respiration_class(args, record_name):
+    """
+    """
+
+    keys = 'hr_respiration class'.split()
+    item_args = {'hr_respiration': {'pad': args.AR_order}}
+
+    # develop.HMM.read_y_with_class calls this with self.args, and
+    # apnea_train.main wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = utilities.HeartRate(args, record_name, args.config,
+                                      args.normalize)
+    hr_instance.read_expert()
+    resp_pass_center = args.band_pass_center
+    resp_pass_width = args.band_pass_width
+    low_pass_width = 1 / args.low_pass_period
+    hr_instance.filter_hr(resp_pass_center, resp_pass_width,
+                          args.respiration_smooth, low_pass_width)
+
+    return hr_instance.dict(keys, item_args)
+
+
+def read_lphr_respiration(args, record_name):
+    """
+    """
+
+    keys = ['hr_respiration']
+    item_args = {'hr_respiration': {'pad': args.AR_order}}
+
+    # develop.HMM.read_y_with_class calls this with self.args, and
+    # apnea_train.main wraps the result in hmm.base.JointSegment
+
+    assert args.config.normalize == args.normalize
+
+    hr_instance = utilities.HeartRate(args, record_name, args.config,
+                                      args.normalize)
+    resp_pass_center = args.band_pass_center
+    resp_pass_width = args.band_pass_width
+    low_pass_width = 1 / args.low_pass_period
+    hr_instance.filter_hr(resp_pass_center, resp_pass_width,
+                          args.respiration_smooth, low_pass_width)
+
+    return hr_instance.dict(keys, item_args)
 
 
 def read_lphr_respiration_interval_class(args, record_name):
@@ -773,8 +818,6 @@ def four_state(args, rng):
         nu[state] = _nu
 
     pdf_tuple = (args.config.normal_pdf,) * 2 + (args.config.apnea_pdf,) * 2
-    power = dict(zip('hr_respiration interval class'.split(), args.power))
-    assert len(power) == 3, f'{power=} {args.power=}'
     y_model = hmm.base.JointObservation(
         {
             'hr_respiration':
@@ -785,7 +828,7 @@ def four_state(args, rng):
             'class':
                 hmm.base.ClassObservation(class_index2state_indices),
         },
-        power=power)
+        power=args.power_dict)
 
     untrainable_indices = []
     untrainable_values = []

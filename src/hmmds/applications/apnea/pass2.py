@@ -23,6 +23,7 @@ b01
 import sys
 import argparse
 import pickle
+import os
 
 import numpy
 
@@ -103,11 +104,15 @@ def main(argv=None):
     model_paths = {'N': args.model_paths[0], 'A': args.model_paths[1]}
 
     for name in args.names:
-        analyze(name,
-                model_paths[pass1_dict[name]],
-                args.result,
-                power=args.power,
-                threshold=args.threshold)
+        model_path = model_paths[pass1_dict[name]]
+        if os.path.basename(model_path) == 'c_model':
+            analyze(name, model_path, args.result, threshold=args.threshold)
+        else:
+            analyze(name,
+                    model_path,
+                    args.result,
+                    power=args.power_dict,
+                    threshold=args.threshold)
 
     return 0
 

@@ -1,8 +1,7 @@
-"""test_score2.py  Study dependence of classification on
+"""survey_power_threshold.py  Study dependence of classification on
 parameters detection threshold and relative weight of interval
 component of observation
 
-python test_score2.py --show ../../../../build/derived_data/apnea/models/two_ar3_masked6.1
 
 """
 import sys
@@ -28,10 +27,6 @@ def parse_args(argv):
                         type=str,
                         nargs=3,
                         help='Start, stop, number for range to evaluate')
-    parser.add_argument('--record_name',
-                        type=str,
-                        default='a03',
-                        help="eg, a03")
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
@@ -92,14 +87,14 @@ def plot(axes, results, xlabel=None):
         axes.set_xlabel(xlabel)
 
 
-def threshold_study(model_record_dict, thresholds, power):
+def threshold_study(model_record_dict, thresholds, power_dict):
     """Calculate errors as a function of thresholds
     """
     result = {}
     for threshold in thresholds:
         counts = numpy.zeros(4, dtype=int)
         for _, model_record in model_record_dict.items():
-            model_record.classify(threshold, power)
+            model_record.classify(threshold, power_dict)
             counts += model_record.score()
         result[threshold] = {
             'N false alarm': counts[1],
@@ -112,14 +107,15 @@ def threshold_study(model_record_dict, thresholds, power):
     return result
 
 
-def power_study(model_record_dict, powers, threshold):
+def power_study(model_record_dict, powers, threshold, power_dict_in):
     """Calculate errors as a function of power on likelihood of
     interval component of observation
 
     """
     result = {}
+    power_dict = power_dict_in.copy()
     for power in powers:
-        power_dict = {'hr_respiration': 1.0, 'interval': power, 'class': 1.0}
+        power_dict['interval'] = power
         counts = numpy.zeros(4, dtype=int)
         for _, model_record in model_record_dict.items():
             model_record.classify(threshold, power_dict)
@@ -146,11 +142,6 @@ def main(argv=None):
     fig, axeses = pyplot.subplots(nrows=2, figsize=(6, 8))
 
     min_threshold = args.threshold
-    keys = 'hr_respiration interval class'.split()
-
-    # Set exponents (ie power) for weighting observation components
-    assert len(keys) == len(args.power)
-    min_power = dict((key, value) for key, value in zip(keys, args.power))
 
     def linspace(triple):
         return numpy.linspace(float(triple[0]), float(triple[1]),
@@ -170,14 +161,15 @@ def main(argv=None):
             args.model_path, record_name)
 
     threshold_results = threshold_study(model_record_dict, thresholds,
-                                        min_power)
+                                        args.power_dict)
     _print('threshold', threshold_results)
 
     log_plot(axeses[0], threshold_results, xlabel='threshold')
 
     if args.powers:
         powers = linspace(args.powers)
-        power_results = power_study(model_record_dict, powers, min_threshold)
+        power_results = power_study(model_record_dict, powers, min_threshold,
+                                    args.power_dict)
         _print('power', power_results)
         plot(axeses[1], power_results, xlabel='power')
 

@@ -56,11 +56,13 @@ def register(func):
 
 @register
 def two_intervals(args):
+    """ Observation components slow peak interval class
+    """
     d = parse_pattern(args.pattern, 'power threshold ar prom')
     make_config = f"make config{d['prom']}.pkl"
     run_model_init = f"""
       python model_init.py
-      --power 1 1 {d['power']} 1
+      --power_dict slow 1 peak 1 interval {d['power']} class 1
       --threshold 1.0e{d['threshold']}
       --AR_order {d['ar']}
       config{d['prom']}.pkl two_intervals {args.out}"""
@@ -69,11 +71,13 @@ def two_intervals(args):
 
 @register
 def two_normalized(args):
+    """ Observation components slow peak interval class
+    """
     d = parse_pattern(args.pattern, 'power threshold ar prom')
     make_config = f"make norm_config{d['prom']}.pkl"
     run_model_init = f"""
       python model_init.py
-      --power 1 1 {d['power']} 1
+      --power_dict slow 1 peak 1 interval {d['power']} class 1
       --threshold 1.0e{d['threshold']}
       --AR_order {d['ar']}
       norm_config{d['prom']}.pkl two_normalized {args.out}"""
@@ -117,7 +121,8 @@ def four_state(args):
     pt Prominence threshold
     vp power for varg component
     ip power for interval component
-    
+
+    Observation components: hr_respiration interval class
     """
     d = parse_pattern(args.pattern, 'ar fs lpp rc rw rs pt vp ip')
     make_config = f"make norm_config{d['pt']}.pkl"
@@ -129,19 +134,20 @@ def four_state(args):
       --band_pass_center {d['rc']}
       --band_pass_width {d['rw']}
       --respiration_smooth {d['rs']}
-      --power {d['vp']} {d['ip']} 1 --
+      --power_dict hr_respiration {d['vp']} interval {d['ip']} class 1 --
       norm_config{d['pt']}.pkl four_state {args.out}"""
     return make_config, run_model_init
 
 
 @register
 def varg2chain(args):
-    """ Observation components: varg, peak, interval, class
-        Variables:
+    """ Variables:
             pt: Prominence threshold
             ldt: Log detection threshold
             vp: Varg Power: Exponential weight of component
             ip: Interval Power: Exponential weight of component
+
+    Observation components: hr_respiration peak interval class
     """
     d = parse_pattern(args.pattern, 'pt ldt vp ip')
     threshold = 10.0**float(d['ldt'])
@@ -152,7 +158,7 @@ def varg2chain(args):
     make_config = f"make norm_config{d['pt']}.pkl"
     run_model_init = f"""
       python model_init.py
-      --power {d['vp']} 1 {d['ip']}  1
+      --power_dict hr_respiration {d['vp']} peak 1 interval {d['ip']} class 1
       --threshold {threshold}
       --AR_order {args.AR_order}
       --model_sample_frequency {sample_frequency}

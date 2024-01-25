@@ -79,10 +79,14 @@ def common_arguments(parser: argparse.ArgumentParser):
         default=1.0,
         help='Apnea detection threshold.  A positive in (,\infty)')
     parser.add_argument(
-        '--power',
-        type=float,
+        '--power_dict',
+        type=str,
         nargs='+',
         help='Observation components weighted by likelihood**power')
+    parser.add_argument('--components',
+                        type=str,
+                        nargs='+',
+                        help='Names of observation components')
     parser.add_argument(
         '--trim_start',
         type=int,
@@ -126,6 +130,12 @@ def join_common(args: argparse.Namespace):
     Join partial paths specified as defaults or on a command line.
 
     """
+
+    if args.power_dict:
+        assert len(args.power_dict) % 2 == 0
+        temp = dict((name, float(value)) for name, value in zip(
+            args.power_dict[0::2], args.power_dict[1::2]))
+        args.power_dict = temp
 
     # Add root prefix to paths in that directory
     args.derived_apnea_data = os.path.join(args.root, args.derived_apnea_data)
@@ -880,6 +890,10 @@ class ModelRecord:
 
         """
 
+        if power and set(self.model.y_mod.keys()) != set(power.keys()):
+            raise ValueError(f'''keys of y_mod do not match keys of power:
+{self.model.y_mod.keys()=}
+{power.keys()=} ''')
         self.class_from_model = self.model.class_estimate(
             self.y_raw_data, self.samples_per_minute, threshold, power)
 
