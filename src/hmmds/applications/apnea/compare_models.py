@@ -38,7 +38,6 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
-    parser.add_argument('--fig_path', type=str, help="path to result")
     parser.add_argument('--latex', type=str, help="resulting latex table")
     parser.add_argument('--result',
                         type=argparse.FileType('w', encoding='UTF-8'),

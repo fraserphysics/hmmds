@@ -817,7 +817,7 @@ class Pass1:
 
         """
 
-        return self.statistic_3(low, high) / self.statistic_2()
+        return self.bandpower(low, high) / self.statistic_2()
 
     def statistic_2(self: Pass1):
         """Power in frequencies higher than norm_channel
@@ -825,23 +825,15 @@ class Pass1:
         """
         return self.psd[self.norm_channel:].sum()
 
-    def statistic_3(self: Pass1, low=1.0, high=3.6) -> float:
+    def bandpower(self: Pass1, low: float, high: float) -> float:
         """Spectral power in band.  Range in cpm
 
         """
         # argmax finds first place inequality is true
-        channel_low = numpy.argmax(self.frequencies > low)
+        channel_low = max(0, numpy.argmax(self.frequencies > low))
         channel_high = numpy.argmax(self.frequencies > high)
-
-        return self.psd[channel_low:channel_high].sum()
-
-    def statistic_4(self: Pass1, low=12, high=18) -> float:
-        """Spectral power in respiration bands.  Range in cpm
-
-        """
-        # argmax finds first place inequality is true
-        channel_low = numpy.argmax(self.frequencies > low)
-        channel_high = numpy.argmax(self.frequencies > high)
+        if channel_high <= 0:
+            channel_high = len(self.frequencies)
 
         return self.psd[channel_low:channel_high].sum()
 
