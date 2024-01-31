@@ -372,8 +372,38 @@ V4S_THRESHOLD = 93
 V4S_BEST = $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked
 # Yields 3072 errors  Earlier got 2819
 
+shift_threshold.pdf: shift_threshold.py $(V4S_BEST)
+	python shift_threshold.py --records $(APLUSNAMES) -- $(V4S_BEST)
+
 v4s_opt: optimize.py
 	python $< --records  $(APLUSNAMES) -- $@
+
+TARGS = --powers 0.0 .8 21 --power_dict hr_respiration 1.0 interval $(V4S_IP) class 1.0 --threshold $(V4S_THRESHOLD) $(V4S_BEST)
+
+v4s_threshold_a01: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds -2 0 21  --records a01 $(TARGS) $@.pdf > $@.txt
+
+v4s_threshold_a03: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds 1 3 21  --records a03 $(TARGS) $@.pdf > $@.txt
+
+v4s_threshold_a07: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds -1 1 21  --records a07 $(TARGS) $@.pdf > $@.txt
+
+v4s_threshold_a10: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds 2 4 21  --records a10 $(TARGS) $@.pdf > $@.txt
+
+v4s_threshold_a11: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds 2 4 21  --records a11 $(TARGS) $@.pdf > $@.txt
+
+v4s_threshold_a12: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds -2 0 21  --records a12 $(TARGS) $@.pdf > $@.txt
+
+v4s_threshold_a19: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds 2 4 21  --records a19 $(TARGS) $@.pdf > $@.txt
+
+v4s_temp%.pdf: shift_threshold.py $(V4S_BEST)
+	python  $< --fig_path $@ $(V4S_BEST)
+
 
 COMPARE = python compare_models.py --n_apnea 6446 --records $(APLUSNAMES) --threshold $(V4S_THRESHOLD)
 

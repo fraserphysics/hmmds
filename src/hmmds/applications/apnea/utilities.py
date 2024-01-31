@@ -753,7 +753,7 @@ class IntervalObservation(hmm.base.BaseObservation):
         classes.
 
         """
-        self._likelihood *= 0.0
+        self._likelihood[:, :] = 0.0
         for i_state in range(self.n_states):
             self._likelihood[:, i_state] = (self.density_functions[i_state](
                 self._y.reshape(-1, 1), self.config)).reshape(-1)

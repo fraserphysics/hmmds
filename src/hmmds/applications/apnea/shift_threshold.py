@@ -92,10 +92,54 @@ def find_threshold(model_record: utilities.ModelRecord, n_apnea: int) -> float:
     return t_0, f_0
 
 
+def f_abcd(z, x_0, x_1, y_0=.6, y_1=1300):
+    if z < x_0:
+        return y_0
+    if z > x_1:
+        return y_1
+    slope = numpy.log(y_1 / y_0) / (x_1 - x_0)
+    log_result = (z - x_0) * slope + numpy.log(y_0)
+    return numpy.exp(log_result)
+
+
+def minimum_error(model_record):
+    """Find rough approximation of threshold that minimizes error for
+    a record.  Result is only used for plotting.
+
+    """
+    thresholds = numpy.geomspace(.6, 1500, 10)
+    result = numpy.zeros(len(thresholds), dtype=int)
+    for i, threshold in enumerate(thresholds):
+        model_record.classify(threshold=threshold)
+        counts = model_record.score()
+        result[i] = counts[1] + counts[2]
+    return thresholds[numpy.argmin(result)]
+
+
+def errors_abcd(a, b, c, d, model_records, statistics):
+    """Report number of errors for thresholds function a,b
+
+    Args:
+        a: Threshold = .1 for x < a
+        b: Threshold = 2000 for x > b
+        model_records: List of ModelRecord instances
+    """
+    counts = numpy.zeros(4, dtype=int)
+    for model_record in model_records.values():
+        z = statistics.analyze(model_record, 0, 60)[1]
+        threshold = f_abcd(-z, a, b, c, d)
+        model_record.classify(threshold=threshold)
+        counts += model_record.score()
+    return counts[1] + counts[2]
+
+
 class Statistics:
 
-    def __init__(self, record_names, args):
+    def __init__(self, model_records, args):
         """Calaulate characteristics of training data for setting thresholds
+
+        Args:
+            model_records: EG, model_records['a01'] is a ModelRecord instance
         """
         self.args = args
         self.pass1 = {}
@@ -107,12 +151,11 @@ class Statistics:
         sum_lt_psd = 0
         sum_psd = 0
         sum_psd_sq = 0
-        for record_name in record_names:
-            model_record = utilities.ModelRecord(args.model_path, record_name)
+        for model_record in model_records.values():
             pass1 = utilities.Pass1(model_record.record_name, args)
             n_a = model_record.class_from_expert.sum()
             log_t = numpy.log10(find_threshold(model_record, n_a)[0])
-            self.log_threshold[record_name] = log_t
+            self.log_threshold[model_record.record_name] = log_t
             psd = pass1.psd
 
             sum_lt += log_t
@@ -121,7 +164,7 @@ class Statistics:
             sum_psd += psd
             sum_psd_sq += psd * psd
 
-        n_records = len(record_names)
+        n_records = len(model_records)
         self.mean_lt = sum_lt / n_records
         self.dev_lt = numpy.sqrt(sum_lt_sq / n_records -
                                  self.mean_lt * self.mean_lt)
@@ -151,13 +194,20 @@ class Statistics:
 
         result = z_correlation[channel_low:channel_high].sum()
         #print(f'{model_record.record_name=} {result=}')
-        return result, z[channel_low:channel_high].sum()
+        return result, z[channel_low:channel_high].sum(), z
 
 
 def main(argv=None):
     """Plot best thresholds on training data against various statistics
 
     """
+
+    # Don't change b=1700.  Change d instead
+    a, b, c, d = -1500, 1700, 11, 680
+    a_s = numpy.linspace(-2000, -1000, 20)
+    b_s = numpy.linspace(1600, 1800, 10)
+    c_s = numpy.geomspace(1.0, 100, 20)
+    d_s = numpy.geomspace(1e2, 2.0e3, 20)
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]
@@ -169,34 +219,61 @@ def main(argv=None):
     else:
         records = args.records
 
-    not7 = set(records) - set(('a07',))
-    statistics = Statistics(records, args)
-    fig, axeses = pyplot.subplots(nrows=4, figsize=(6, 4), sharex=False)
+    model_records = dict((name, utilities.ModelRecord(args.model_path, name))
+                         for name in records)
 
-    bands = ((0, 60), (3, 60), (0, 50), (3, 50))
-    for name in records:
-        model_record = utilities.ModelRecord(args.model_path, name)
-        for axes, band in zip(axeses, bands):
-            f_psd, z = statistics.analyze(model_record, *band)
-            axes.plot(
-                f_psd,
-                statistics.log_threshold[name],
-                marker=f'${name}$',
-                markersize=14,
-                linestyle='None',
-                color='r',
-            )
-            axes.plot(
-                -z,
-                statistics.log_threshold[name],
-                marker=f'${name}$',
-                markersize=14,
-                linestyle='None',
-                color='b',
-            )
-            axes.set_xlabel(f'{band}')
-            axes.set_ylabel('Threshold')
+    statistics = Statistics(model_records, args)  # 11 seconds
 
+    errors = errors_abcd(a, b, c, d, model_records, statistics)
+    print(f'{errors=}')
+
+    fig, (min_axes, a_axes, b_axes, c_axes,
+          d_axes) = pyplot.subplots(nrows=5, figsize=(6, 12))
+
+    # Plot the function f_abcd
+    x = numpy.linspace(-5800, 2500, 100)
+    y = numpy.array(list(f_abcd(z, a, b, c, d) for z in x))
+    min_axes.semilogy(x, y)
+
+    for name, model_record in model_records.items():
+        f_psd, z_sum, z = statistics.analyze(model_record, 0, 60)
+        min_threshold = minimum_error(model_record)
+        min_axes.semilogy(
+            -z_sum,
+            min_threshold,
+            marker=f'${name}$',
+            markersize=14,
+            linestyle='None',
+        )
+        min_axes.set_xlabel('-z_sum')
+        min_axes.set_ylabel('Min Threshold')
+
+    errors = list(
+        errors_abcd(a_, b, c, d, model_records, statistics) for a_ in a_s)
+    a_axes.plot(a_s, errors)
+    a_axes.set_xlabel('a')
+    a_axes.set_ylabel('error count')
+
+    errors = list(
+        errors_abcd(a, b_, c, d, model_records, statistics) for b_ in b_s)
+    b_axes.plot(b_s, errors)
+    b_axes.set_xlabel('b')
+    b_axes.set_ylabel('error count')
+
+    errors = list(
+        errors_abcd(a, b, c_, d, model_records, statistics) for c_ in c_s)
+    c_axes.semilogx(c_s, errors)
+    c_axes.set_xlabel('c')
+    c_axes.set_ylabel('error count')
+
+    errors = list(
+        errors_abcd(a, b, c, d_, model_records, statistics) for d_ in d_s)
+    d_axes.semilogx(d_s, errors)
+    d_axes.set_xlabel('d')
+    d_axes.set_ylabel('error count')
+
+    # Put tight_layout after plots
+    fig.tight_layout()
     fig.savefig(args.fig_path)
 
     if args.show:
