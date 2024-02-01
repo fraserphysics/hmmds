@@ -83,6 +83,7 @@ def plot(axes, error_counts, xlabel=None):
     axes.legend()
     if xlabel:
         axes.set_xlabel(xlabel)
+    axes.set_ylabel('Number of errors')
 
 
 def plot_two(axeses, error_counts, thresholds, xlabel=None):
@@ -95,11 +96,13 @@ def plot_two(axeses, error_counts, thresholds, xlabel=None):
         error_rate.append(counts[1] + counts[2])
         threshold_list.append(thresholds[x_][0])
     error_axes.plot(x, error_rate, label="N errors")
+    error_axes.set_ylabel('N errors')
     error_axes.legend()
     threshold_axes.semilogy(x, threshold_list, label="threshold")
     threshold_axes.legend()
     if xlabel:
         threshold_axes.set_xlabel(xlabel)
+    threshold_axes.set_ylabel('Threshold')
 
 
 def for_threshold(threshold, record_dict, reference=6446):
@@ -210,6 +213,7 @@ def main(argv=None):
         plot(axes, error_counts, args.parameter_name)
     print_summary(error_counts)
 
+    fig.tight_layout()
     fig.savefig(args.figure_path)
 
     if args.show:

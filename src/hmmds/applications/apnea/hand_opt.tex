@@ -25,9 +25,11 @@
 \maketitle
 
 \newcommand{\StudyCaption}[2]{
-  \caption{Performance vs #1 on the \emph{a} records combined with and \emph{b} and
-    \emph{c} records that are close to the pass-1 boundary. The models
-    have #2.}
+  \caption{Performance vs #1 on the \emph{a} records combined with and
+    \emph{b} and \emph{c} records that are close to the pass-1
+    boundary appear in the upper plot. Thresholds that get the right
+    number of apnea minutes appear in the lower plot.  The models have
+    #2.}
   }
   \newcommand{\StudyFigs}[2]{
 
@@ -103,14 +105,14 @@
   \label{tab:#1_score}
 \end{table*}}
 
-\subsection{Combining Intervals, Respiration and Heart Rate}
+\section{Combining Intervals, Respiration and Heart Rate}
 \label{sec:combination}
 
 Next, I combine a vector heart rate and respiration signal with a four
 state state structure and interval modeling.  The parameters to choose
 include:
 \begin{description}
-\item[VARG parameters:] for the (Vector AutoRegressive Gaussian) model
+\item[VARG parameters:] for the (Vector Autoregressive Gaussian) model
   of the 2-d vectors with components respiration and low-pass filtered
   heart rate.  The parameters include:
   \begin{description}
@@ -138,4 +140,76 @@ include:
   the likelihood of the interval between peaks with a vector
   autoregressive model for heart rate and respiration}
 
+\clearpage % flush floats
+\section{Varying the Detector Threshold}
+\label{sec:threshold}
+
+Notice that in table~\ref{tab:v4s_score} only three records have 30\%
+of the classification errors.  Figures \ref{fig:v4s_threshold_a01}
+to\ref{fig:v4s_threshold_b02} show the dependence of the number of
+errors on the detector threshold, and the best threshold varies from
+about 0.13 to 3,500.  In the next section, \ref{sec:psd_threshold}, I
+describe a technique for customizing the detector threshold for each record.
+
+\newcommand{\ThresholdStudy}[2]{
+  \begin{figure}
+    \centering
+    \resizebox{0.8\textwidth}{!}{\includegraphics{v4s_threshold_#1.pdf}}
+    \caption{The number of classification errors as a function
+      detector threshold for record #1 appears in the upper plot.  The
+      best threshold for record #1 is about #2.}
+    \label{fig:v4s_threshold_#1}
+  \end{figure}
+}
+
+\ThresholdStudy{a01}{.16}
+\ThresholdStudy{a03}{100}
+\ThresholdStudy{a07}{3.0}
+\ThresholdStudy{a10}{2,000}
+\ThresholdStudy{a11}{1,300}
+\ThresholdStudy{a12}{0.13}
+\ThresholdStudy{a19}{2,000}
+\ThresholdStudy{b02}{3,500}
+
+\clearpage
+\subsection{Custom Thresholds}
+\label{sec:psd_threshold}
+
+I found Fourier Power Spectral Density estimates (PSDs) useful for
+classifying whole records for Pass1.  I've used PSDs again for
+customizing detector thresholds.  My PSD estimates are vectors with
+2,149 components.  I use the following 1-d statistic to set
+thresholds:
+\begin{equation}
+  \label{eq:z_sum}
+  z_{\text{sum}}(\text{record}) \equiv \sum_{i=0}^{2048}
+  \frac{\text{PSD}_i(\text{record}) - \mu_i}{\sigma_i}
+\end{equation}
+Figure~\ref{fig:shift_threshold} illustrates a four parameter function
+that maps PSDs to thresholds, and classification results using that
+function appear in Table~\ref{tab:abcd_score}.
+
+\begin{figure}
+  \centering
+  \resizebox{0.5\textwidth}{!}{\includegraphics{shift_threshold.pdf}}
+  \caption[A function of PSDs for varying detector thresholds.]{The
+    axes of the upper plot are the function of a PSD defined in
+    \eqref{eq:z_sum} and the detector threshold.  The markers for each
+    record are placed at the threshold that minimizes the number of
+    classification errors for that record.  The piecewise affine line
+    is a four parameter function that maps
+    $z_{\text{sum}}: \mapsto \text{threshold}$.  The parameters have
+    been optimized to minimize the classification errors over all of a
+    set of records.  The four lower plots illustrate the dependence of
+    the total number of errors on each of the four parameters.  }
+  \label{fig:shift_threshold}
+\end{figure}
+
+\begin{table*}
+  \centering
+  \input{abcd_score.tex}
+  \caption[Performance]{Classification performance when thresholds are
+  functions of PSDs}
+  \label{tab:abcd_score}
+\end{table*}
 \end{document}

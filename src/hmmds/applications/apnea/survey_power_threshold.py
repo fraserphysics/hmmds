@@ -67,6 +67,7 @@ def log_plot(axes, results, xlabel=None):
     axes.legend()
     if xlabel:
         axes.set_xlabel(xlabel)
+    axes.set_ylabel('Number of errors')
 
 
 def plot(axes, results, xlabel=None):
@@ -85,6 +86,7 @@ def plot(axes, results, xlabel=None):
     axes.legend()
     if xlabel:
         axes.set_xlabel(xlabel)
+    axes.set_ylabel('Number of errors')
 
 
 def threshold_study(model_record_dict, thresholds, power_dict):
@@ -175,6 +177,7 @@ def main(argv=None):
 
     if args.show:
         pyplot.show()
+    fig.tight_layout()
     fig.savefig(args.fig_path)
 
     return 0

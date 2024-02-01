@@ -29,6 +29,7 @@ import numpy
 
 import hmmds.applications.apnea.utilities
 import develop
+from shift_threshold import Statistics
 
 
 def parse_args(argv):
@@ -41,6 +42,13 @@ def parse_args(argv):
                         type=str,
                         nargs='+',
                         help='names of records to analyze')
+    parser.add_argument('--abcd',
+                        type=float,
+                        nargs=4,
+                        help='Parameters of map: PSD -> Threshold')
+    parser.add_argument('--shift_statistics',
+                        type=str,
+                        help='path to threshold shift statistics')
     parser.add_argument(
         '--model_paths',
         type=str,
@@ -63,7 +71,14 @@ def parse_args(argv):
     return args
 
 
-def analyze(name, model_path, report, debug=False, power=None, threshold=None):
+def analyze(name,
+            model_path,
+            report,
+            debug=False,
+            power=None,
+            threshold=None,
+            abcd=None,
+            statistics=None):
     """Writes to the open file report a string that has the same form as
         the expert file
 
@@ -71,11 +86,15 @@ def analyze(name, model_path, report, debug=False, power=None, threshold=None):
         name: Eg, 'a01'
         model_path: A pickled HMM
         report: A file open for writing
-
+        power: Dict of exponents for weighting components of observations
+        threshold: Threshold for detector
+        abcd: Parameters of threshold function
     """
 
     model_record = hmmds.applications.apnea.utilities.ModelRecord(
         model_path, name)
+    if abcd:
+        threshold = statistics.f_abcd(*abcd, model_record=model_record)
     model_record.classify(threshold, power)
     model_record.score()
 
@@ -101,18 +120,31 @@ def main(argv=None):
     if not args.names:
         args.names = args.all_names
 
+    if args.shift_statistics:
+        assert args.abcd is not None
+        with open(args.shift_statistics, 'rb') as _file:
+            shift_statistics = pickle.load(_file)
+
     model_paths = {'N': args.model_paths[0], 'A': args.model_paths[1]}
 
     for name in args.names:
         model_path = model_paths[pass1_dict[name]]
         if os.path.basename(model_path) == 'c_model':
             analyze(name, model_path, args.result, threshold=args.threshold)
-        else:
+            continue
+        if args.abcd:
             analyze(name,
                     model_path,
                     args.result,
                     power=args.power_dict,
-                    threshold=args.threshold)
+                    abcd=args.abcd,
+                    statistics=shift_statistics)
+            continue
+        analyze(name,
+                model_path,
+                args.result,
+                power=args.power_dict,
+                threshold=args.threshold)
 
     return 0
 

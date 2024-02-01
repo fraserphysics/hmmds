@@ -182,7 +182,9 @@ heart_rate.pdf: heart_rate.tex  $(HR_INCLUDES) $(NORM_INCLUDES)
 
 LIST_ERRORS = pt ip ar fs lpp rc rw rs
 v4sERRORS = $(addsuffix .pdf, $(addprefix v4s_errors_vs_, $(LIST_ERRORS)))
-hand_opt.pdf: hand_opt.tex $(v4sERRORS) v4s_threshold.pdf v4s_score.tex
+v4sTHRESHOLDS = $(addsuffix .pdf, $(addprefix v4s_threshold_, a01 a03 a07 a10 a11 a12 a19 b02))
+HANDOPT_FIGS = $(v4sERRORS) $(v4sTHRESHOLDS) v4s_threshold.pdf shift_threshold.pdf
+hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) v4s_score.tex abcd_score.tex
 	pdflatex $< ; pdflatex $<
 
 ################################################################################
@@ -372,6 +374,19 @@ V4S_THRESHOLD = 93
 V4S_BEST = $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked
 # Yields 3072 errors  Earlier got 2819
 
+write_shift_statistics.py: shift_threshold.py
+	ln -s $< $@
+shift_statistics.pkl: write_shift_statistics.py $(V4S_BEST)
+	python $< --records $(APLUSNAMES) --  $(V4S_BEST) $@
+
+abcd_pass2.out: pass2.py shift_statistics.pkl
+	python $< --model_paths $(MODELS)/c_model $(V4S_BEST) \
+    --abcd -1500 1700 11 680 --shift_statistics shift_statistics.pkl pass1.out temp
+	cp temp $@
+
+abcd_score.tex: score.py abcd_pass2.out
+	python $^ $@  --tex
+
 shift_threshold.pdf: shift_threshold.py $(V4S_BEST)
 	python shift_threshold.py --records $(APLUSNAMES) -- $(V4S_BEST)
 
@@ -380,26 +395,29 @@ v4s_opt: optimize.py
 
 TARGS = --powers 0.0 .8 21 --power_dict hr_respiration 1.0 interval $(V4S_IP) class 1.0 --threshold $(V4S_THRESHOLD) $(V4S_BEST)
 
-v4s_threshold_a01: survey_power_threshold.py $(V4S_BEST)
-	python $< --thresholds -2 0 21  --records a01 $(TARGS) $@.pdf > $@.txt
+v4s_threshold_a01.pdf: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds -2 0 21  --records a01 $(TARGS) $@
 
-v4s_threshold_a03: survey_power_threshold.py $(V4S_BEST)
-	python $< --thresholds 1 3 21  --records a03 $(TARGS) $@.pdf > $@.txt
+v4s_threshold_a03.pdf: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds 1 3 21  --records a03 $(TARGS) $@
 
-v4s_threshold_a07: survey_power_threshold.py $(V4S_BEST)
-	python $< --thresholds -1 1 21  --records a07 $(TARGS) $@.pdf > $@.txt
+v4s_threshold_a07.pdf: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds -1 1 21  --records a07 $(TARGS) $@
 
-v4s_threshold_a10: survey_power_threshold.py $(V4S_BEST)
-	python $< --thresholds 2 4 21  --records a10 $(TARGS) $@.pdf > $@.txt
+v4s_threshold_a10.pdf: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds 2 4 21  --records a10 $(TARGS) $@
 
-v4s_threshold_a11: survey_power_threshold.py $(V4S_BEST)
-	python $< --thresholds 2 4 21  --records a11 $(TARGS) $@.pdf > $@.txt
+v4s_threshold_a11.pdf: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds 2 4 21  --records a11 $(TARGS) $@
 
-v4s_threshold_a12: survey_power_threshold.py $(V4S_BEST)
-	python $< --thresholds -2 0 21  --records a12 $(TARGS) $@.pdf > $@.txt
+v4s_threshold_a12.pdf: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds -2 0 21  --records a12 $(TARGS) $@
 
-v4s_threshold_a19: survey_power_threshold.py $(V4S_BEST)
-	python $< --thresholds 2 4 21  --records a19 $(TARGS) $@.pdf > $@.txt
+v4s_threshold_a19.pdf: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds 2 4 21  --records a19 $(TARGS) $@
+
+v4s_threshold_b02.pdf: survey_power_threshold.py $(V4S_BEST)
+	python $< --thresholds 2.5 5 21  --records b02 $(TARGS) $@
 
 v4s_temp%.pdf: shift_threshold.py $(V4S_BEST)
 	python  $< --fig_path $@ $(V4S_BEST)

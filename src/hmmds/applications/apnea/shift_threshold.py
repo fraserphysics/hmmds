@@ -3,6 +3,8 @@
 python shift_threshold.py [options] model_name [record_names]
 
 """
+from __future__ import annotations
+
 import sys
 import argparse
 import typing
@@ -30,7 +32,7 @@ def parse_args(argv):
                         type=str,
                         help="path to result",
                         default="shift_threshold.pdf")
-    parser.add_argument('model_path', type=str, help="path to initial model")
+    parser.add_argument('model_path', type=str, help="path to model")
     args = parser.parse_args(argv)
     utilities.join_common(args)
     return args
@@ -92,16 +94,6 @@ def find_threshold(model_record: utilities.ModelRecord, n_apnea: int) -> float:
     return t_0, f_0
 
 
-def f_abcd(z, x_0, x_1, y_0=.6, y_1=1300):
-    if z < x_0:
-        return y_0
-    if z > x_1:
-        return y_1
-    slope = numpy.log(y_1 / y_0) / (x_1 - x_0)
-    log_result = (z - x_0) * slope + numpy.log(y_0)
-    return numpy.exp(log_result)
-
-
 def minimum_error(model_record):
     """Find rough approximation of threshold that minimizes error for
     a record.  Result is only used for plotting.
@@ -116,18 +108,21 @@ def minimum_error(model_record):
     return thresholds[numpy.argmin(result)]
 
 
-def errors_abcd(a, b, c, d, model_records, statistics):
-    """Report number of errors for thresholds function a,b
+def errors_abcd(a: float, b: float, c: float, d: float,
+                model_records: utilities.ModelRecord,
+                statistics: Statistics) -> int:
+    """Report number of errors for thresholds function
 
     Args:
-        a: Threshold = .1 for x < a
-        b: Threshold = 2000 for x > b
-        model_records: List of ModelRecord instances
+        a: Threshold = c for x < a
+        b: Threshold = d for x > b
+        c: See a
+        d: See b
+        model_records: Dict of ModelRecord instances
     """
     counts = numpy.zeros(4, dtype=int)
     for model_record in model_records.values():
-        z = statistics.analyze(model_record, 0, 60)[1]
-        threshold = f_abcd(-z, a, b, c, d)
+        threshold = statistics.f_abcd(a, b, c, d, model_record=model_record)
         model_record.classify(threshold=threshold)
         counts += model_record.score()
     return counts[1] + counts[2]
@@ -140,6 +135,7 @@ class Statistics:
 
         Args:
             model_records: EG, model_records['a01'] is a ModelRecord instance
+            args: Command line arguments
         """
         self.args = args
         self.pass1 = {}
@@ -175,8 +171,15 @@ class Statistics:
         self.correlation = (mean_lt_psd - self.mean_lt * self.mean_psd) / (
             self.dev_psd * self.dev_lt)
 
-    def analyze(self, model_record, low, high):
-        """
+    def analyze(self: Statistics, model_record: utilities.ModelRecord,
+                low: float, high: float):
+        """Map PSD to: Linear forecast; Sum over range; z vector
+
+        Args:
+            model_record:
+            low: Lower limit for sum in cycles per minute
+            high: Upper limit in cpm
+
         """
         # pass1.psd ranges from 1e2 to 1e-4
         # pass1.frequencies ranges from 0 to 60
@@ -195,6 +198,57 @@ class Statistics:
         result = z_correlation[channel_low:channel_high].sum()
         #print(f'{model_record.record_name=} {result=}')
         return result, z[channel_low:channel_high].sum(), z
+
+    def f_abcd(self: Statistics,
+               a: float,
+               b: float,
+               c: float,
+               d: float,
+               z=None,
+               model_record=None):
+        """Map function of PSD to threshold
+
+        Args:
+            a,b,c,d: Parameters of function
+            z: Statistic of PSD
+            model_record:
+
+        """
+        assert (z is None) ^ (model_record is None)
+        if model_record:
+            z = -self.analyze(model_record, 0, 60)[1]
+        if z < a:
+            return c
+        if z > b:
+            return d
+        slope = numpy.log(d / c) / (b - a)
+        log_result = (z - a) * slope + numpy.log(c)
+        return numpy.exp(log_result)
+
+
+def write_shift_statistics(argv=None):
+    """Alternative to main that creates and pickles a Statistics instance
+    """
+    # 19 seconds
+    if argv is None:  # Usual case
+        argv = sys.argv[1:]
+
+    parser = argparse.ArgumentParser(
+        "Pickle statistics for calculating thresholds")
+    utilities.common_arguments(parser)
+    parser.add_argument('model_path', type=str, help="path to model")
+    parser.add_argument('pickle', type=str, help="path to result")
+    args = parser.parse_args(argv)
+    utilities.join_common(args)
+
+    assert len(args.records) > 5
+
+    model_records = dict((name, utilities.ModelRecord(args.model_path, name))
+                         for name in args.records)
+    statistics = Statistics(model_records, args)
+    with open(args.pickle, 'wb') as _file:
+        pickle.dump(statistics, _file)
+    return 0
 
 
 def main(argv=None):
@@ -231,9 +285,9 @@ def main(argv=None):
           d_axes) = pyplot.subplots(nrows=5, figsize=(6, 12))
 
     # Plot the function f_abcd
-    x = numpy.linspace(-5800, 2500, 100)
-    y = numpy.array(list(f_abcd(z, a, b, c, d) for z in x))
-    min_axes.semilogy(x, y)
+    z_s = numpy.linspace(-5800, 2500, 100)
+    y = numpy.array(list(statistics.f_abcd(a, b, c, d, z=z) for z in z_s))
+    min_axes.semilogy(z_s, y)
 
     for name, model_record in model_records.items():
         f_psd, z_sum, z = statistics.analyze(model_record, 0, 60)
@@ -283,4 +337,6 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    if sys.argv[0] == "write_shift_statistics.py":
+        sys.exit(write_shift_statistics())
     sys.exit(main())
