@@ -15,6 +15,7 @@ import scipy.optimize
 
 import utilities
 import plotscripts.utilities
+from shift_threshold import Statistics
 
 
 def parse_args(argv):
@@ -43,6 +44,13 @@ def parse_args(argv):
                         type=argparse.FileType('w', encoding='UTF-8'),
                         default=sys.stdout,
                         help='Write result to this path')
+    parser.add_argument('--abcd',
+                        type=float,
+                        nargs=4,
+                        help='Parameters of map: PSD -> Threshold')
+    parser.add_argument('--shift_statistics',
+                        type=str,
+                        help='path to threshold shift statistics')
     parser.add_argument('figure_path',
                         nargs='?',
                         type=str,
@@ -120,6 +128,22 @@ def for_threshold(threshold, record_dict, reference=6446):
     return value, counts
 
 
+def abcd_counts(abcd, statistics, record_dict):
+    """Calculate classification counts with per record thresholds
+
+    Args:
+        abcd: Parameters of threshold function
+        statistics: statistics.f_abcd is the threshold function
+        record_dict: Keys are record names.  Values are ModelRecord instances
+    """
+    counts = numpy.zeros(4, dtype=int)
+    for name, model_record in record_dict.items():
+        threshold = statistics.f_abcd(*abcd, model_record=model_record)
+        model_record.classify(threshold)
+        counts += model_record.score()
+    return counts
+
+
 def find_threshold(record_dict, t_i, n_apnea):
     """ Solve for t: for_threshold(t,record_dict) = 0
 
@@ -183,6 +207,11 @@ def main(argv=None):
     assert len(args.models) == len(
         args.parameters), f'{args.models=} {args.parameters=}'
 
+    if args.shift_statistics:
+        assert args.abcd is not None
+        with open(args.shift_statistics, 'rb') as _file:
+            shift_statistics = pickle.load(_file)
+
     model_records = {}
     for model_name in args.models:
         model_path = os.path.join(args.model_dir, model_name)
@@ -206,8 +235,13 @@ def main(argv=None):
         plot_two(axeses, error_counts, thresholds, args.parameter_name)
     else:
         for model_name, parameter in zip(args.models, args.parameters):
-            error_counts[parameter] = for_threshold(
-                args.threshold, model_records[model_name])[1]
+            if args.abcd:
+                error_counts[parameter] = abcd_counts(args.abcd,
+                                                      shift_statistics,
+                                                      model_records[model_name])
+            else:
+                error_counts[parameter] = for_threshold(
+                    args.threshold, model_records[model_name])[1]
 
         fig, axes = pyplot.subplots(nrows=1, figsize=(6, 4))
         plot(axes, error_counts, args.parameter_name)

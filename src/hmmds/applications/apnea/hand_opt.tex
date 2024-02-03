@@ -212,4 +212,35 @@ function appear in Table~\ref{tab:abcd_score}.
   functions of PSDs}
   \label{tab:abcd_score}
 \end{table*}
+
+\clearpage
+
+\subsection{Further Optimization}
+\label{sec:further}
+
+I am pleased with the improvement from 18\%
+(Table~\ref{tab_v4s_score}) to \%14 (Table~\ref{tab:shift_threshold}).
+It's close to the error rate of 11.8\% that the models I describe in
+the first edition of the book obtained.  I expected that I could get
+some more improvement by revisiting parameter choices using threshold
+function \ref{fig:shift_threshold}, but when I used the threshold
+function, the optimal parameter values stayed the same.  See
+Fig.~\ref{fig:abcd}
+
+\begin{figure}
+  \centering
+  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_ip.pdf}}
+  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_pt.pdf}}\\
+  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_ar.pdf}}
+  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_fs.pdf}}\\
+  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_lpp.pdf}}
+  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_rc.pdf}}\\
+  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_rw.pdf}}
+  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_rs.pdf}}
+  \caption[Parameter sensitivity with variable thresholds.]{Survey of
+    8 parameters.}
+  \label{fig:abcd}
+\end{figure}
+
+
 \end{document}

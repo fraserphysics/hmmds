@@ -182,8 +182,9 @@ heart_rate.pdf: heart_rate.tex  $(HR_INCLUDES) $(NORM_INCLUDES)
 
 LIST_ERRORS = pt ip ar fs lpp rc rw rs
 v4sERRORS = $(addsuffix .pdf, $(addprefix v4s_errors_vs_, $(LIST_ERRORS)))
+abcdERRORS = $(addsuffix .pdf, $(addprefix abcd_, $(LIST_ERRORS)))
 v4sTHRESHOLDS = $(addsuffix .pdf, $(addprefix v4s_threshold_, a01 a03 a07 a10 a11 a12 a19 b02))
-HANDOPT_FIGS = $(v4sERRORS) $(v4sTHRESHOLDS) v4s_threshold.pdf shift_threshold.pdf
+HANDOPT_FIGS = $(v4sERRORS) $(abcdERRORS) $(v4sTHRESHOLDS) v4s_threshold.pdf shift_threshold.pdf
 hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) v4s_score.tex abcd_score.tex
 	pdflatex $< ; pdflatex $<
 
@@ -370,9 +371,13 @@ V4S_VP = 1.0
 V4S_IP = 0.34
 # Detection threshold
 V4S_THRESHOLD = 93
+ABCD = python compare_models.py --records $(APLUSNAMES) --abcd -1500 1700 11 680 --shift_statistics shift_statistics.pkl
 
 V4S_BEST = $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked
-# Yields 3072 errors  Earlier got 2819
+# Yields 3072 errors  Earlier got 2819.  With abcd threshold function 2278.
+
+$(MODELS)/default: $(V4S_BEST)
+	ln -s $< $@
 
 write_shift_statistics.py: shift_threshold.py
 	ln -s $< $@
@@ -381,7 +386,7 @@ shift_statistics.pkl: write_shift_statistics.py $(V4S_BEST)
 
 abcd_pass2.out: pass2.py shift_statistics.pkl
 	python $< --model_paths $(MODELS)/c_model $(V4S_BEST) \
-    --abcd -1500 1700 11 680 --shift_statistics shift_statistics.pkl pass1.out temp
+    $(ABCD) pass1.out temp
 	cp temp $@
 
 abcd_score.tex: score.py abcd_pass2.out
@@ -440,6 +445,11 @@ v4s_errors_vs_pt.pdf: compare_models.py $(addprefix $(MODELS)/, $(V4S_PT_MODELS)
 	$(COMPARE) --models $(V4S_PT_MODELS) --parameters $(V4S_PTs) \
     --parameter_name "Prominence Threshold" $(RPT_ARGS) $@ > v4s_errors_vs_pt.txt
 
+abcd_pt.pdf: compare_models.py $(addprefix $(MODELS)/, $(V4S_PT_MODELS))
+	$(ABCD) --models $(V4S_PT_MODELS) --parameters $(V4S_PTs) \
+    --parameter_name "Prominence Threshold" \
+    $@ > abcd_pt.txt
+
 # Sensitivity to IP, exponential Power for the Interval component
 V4S_IPs = 0.1 0.2 0.3 0.32 0.33 0.34 0.35 0.36 0.37 0.38 0.4 0.5
 V4S_IP_MODELS = $(addsuffix _masked, $(addprefix \
@@ -451,6 +461,11 @@ v4s_errors_vs_ip.pdf: compare_models.py $(addprefix $(MODELS)/, $(V4S_IP_MODELS)
     --parameter_name "Interval Weight" \
     $@ > v4s_errors_vs_ip.txt
 
+abcd_ip.pdf: compare_models.py $(addprefix $(MODELS)/, $(V4S_IP_MODELS))
+	$(ABCD) --models $(V4S_IP_MODELS) --parameters $(V4S_IPs) \
+    --parameter_name "Interval Weight" \
+    $@ > abcd_ip.txt
+
 # Sensitivity to AutoRegressive order
 V4S_ARs = 7 8 9 10 11 12 13
 VAR_MODELS = $(addsuffix fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked, \
@@ -459,6 +474,11 @@ VAR_MODELS = $(addsuffix fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_R
 v4s_errors_vs_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(VAR_MODELS))
 	$(COMPARE) --models $(VAR_MODELS) --parameters $(V4S_ARs) \
 --parameter_name "AR order" -- $@ > v4s_errors_vs_ar.txt
+
+abcd_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(VAR_MODELS))
+	$(ABCD) --models $(VAR_MODELS) --parameters $(V4S_ARs) \
+    --parameter_name "AR order" \
+    $@ > abcd_ar.txt
 
 # Sensitivity to Sample Frequency (7 not allowed)
 V4S_FSs = 3 4 5 6 8
@@ -469,6 +489,11 @@ v4s_errors_vs_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MODELS))
 	$(COMPARE) --models $(VFS_MODELS) --parameters $(V4S_FSs) \
 --parameter_name "Sample Frequency" $@ > v4s_errors_vs_fs.txt
 
+abcd_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MODELS))
+	$(ABCD) --models $(VFS_MODELS) --parameters $(V4S_FSs) \
+    --parameter_name "Sample Frequency" \
+    $@ > abcd_fs.txt
+
 # Sensitivity to Low Pass Period in seconds.
 V4S_LPPs = 56 57 57.5 58 58.5 59 59.5 60 60.5 61 62
 LPP_MODELS = $(addsuffix rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked, $(addprefix \
@@ -478,6 +503,11 @@ LPP_MODELS = $(addsuffix rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)
 v4s_errors_vs_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
 	$(COMPARE) --models $(LPP_MODELS) --parameters $(V4S_LPPs) \
 --parameter_name "Low Pass Period" $@ > v4s_errors_vs_lpp.txt
+
+abcd_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
+	$(ABCD) --models $(LPP_MODELS) --parameters $(V4S_LPPs) \
+    --parameter_name "Low Pass Period" \
+    $@ > abcd_lpp.txt
 
 # Exercise code
 V4S_FOOs = 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65
@@ -499,6 +529,11 @@ v4s_errors_vs_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MODELS))
 	$(COMPARE) --models $(RC_MODELS) --parameters $(V4S_RCs) \
 --parameter_name "Center Frequency" $@ > v4s_errors_vs_rc.txt
 
+abcd_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MODELS))
+	$(ABCD) --models $(RC_MODELS) --parameters $(V4S_RCs) \
+    --parameter_name "Center Frequency" \
+    $@ > abcd_rc.txt
+
 # Sensitivity to Respiration width frequency in cpm
 V4S_RWs = 4.8 4.81 4.82 4.83 4.84 4.85 4.852 4.854 4.856 4.858 4.86 4.865 4.87 4.875 4.88 4.89 4.9 4.91 4.92 4.94 4.96 4.98 5 5.5
 RW_MODELS = $(addsuffix rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked, $(addprefix \
@@ -508,6 +543,11 @@ RW_MODELS = $(addsuffix rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked, $(a
 v4s_errors_vs_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MODELS))
 	$(COMPARE) --models $(RW_MODELS) --parameters $(V4S_RWs) \
 --parameter_name "Frequency Width" $@ > v4s_errors_vs_rw.txt
+
+abcd_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MODELS))
+	$(ABCD) --models $(RW_MODELS) --parameters $(V4S_RWs) \
+    --parameter_name "Frequency Width" \
+    $@ > abcd_rw.txt
 
 # Sensitivity to Respiration Smoothing frequency in cpm
 V4S_RSs = .44 .45 .452 .454 .456 .458 .46 .462 .464
@@ -519,6 +559,11 @@ v4s_errors_vs_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MODELS))
 	$(COMPARE) --models $(RS_MODELS) --parameters $(V4S_RSs) \
     --parameter_name "Respiration Smoothing Filter" \
     $@ > v4s_errors_vs_rs.txt
+
+abcd_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MODELS))
+	$(ABCD) --models $(RS_MODELS) --parameters $(V4S_RSs) \
+    --parameter_name "Respiration Smoothing Filter" \
+    $@ > abcd_rs.txt
 
 # EG $(MODELS)/varg4state_ar16fs4lpp10rc17rw4.7rs.44_init
 
