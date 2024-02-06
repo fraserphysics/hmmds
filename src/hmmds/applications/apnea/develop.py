@@ -15,6 +15,7 @@ import typing
 import numpy
 import sortedcontainers
 import anytree
+import pygraphviz
 
 import hmm.base
 import hmm.C
@@ -38,8 +39,8 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
         rng : Numpy generator with state
 
     KWArgs:
-        untrainable_indices:
-        untrainable_values:
+        untrainable_indices: List of ordered node pairs
+        untrainable_values: Fixed transition probabilities
 
     Other variant features:
 
@@ -75,6 +76,73 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
         self.args = args
         self.untrainable_indices = untrainable_indices
         self.untrainable_values = untrainable_values
+
+    def viz(self: HMM, dot_path=None, pdf_path=None):
+        """Write graphviz representation of self to file[s]
+
+        """
+
+        n_states = len(self.p_state_initial)
+
+        class State:
+
+            def __init__(state, index):
+                state.index = index
+                if index in self.y_mod['class'].class2state[0]:
+                    state.class_ = 'Normal'
+                    state.color = 'blue'
+                else:
+                    state.class_ = 'Apnea'
+                    state.color = 'red'
+                state.label = f'''<<table>
+<tr> <td> State: {index} </td> </tr>
+<tr> <td> Prob: {self.p_state_time_average[index]:6.4f} </td> </tr>
+</table>>'''
+                state.successors = []
+                for state_f in range(n_states):
+                    p_tran = self.p_state2state[index, state_f]
+                    if p_tran <= 0.0:
+                        continue
+                    text = f'{p_tran:5.3g}'
+                    if p_tran < 0.01:
+                        text = f'{p_tran:7.1e}'
+                    state.successors.append((state_f, text))
+
+        state_dict = dict((index, State(index)) for index in range(n_states))
+
+        graph = pygraphviz.AGraph(directed=True,
+                                  strict=True,
+                                  nodesep=1.5,
+                                  ranksep=1.5)
+        state_dict = {}
+        for index in range(n_states):
+            state_dict[index] = state = State(index)
+            graph.add_node(index, shape='rectangle', label=state.label)
+        graph.add_subgraph(self.y_mod['class'].class2state[0],
+                           cluster=True,
+                           label='Normal')
+        graph.add_subgraph(self.y_mod['class'].class2state[1],
+                           cluster=True,
+                           label='Apnea')
+        for state in state_dict.values():
+            for state_f, text in state.successors:
+                if (state.index,
+                        state_f) in list(zip(*self.untrainable_indices)):
+                    color = 'black'
+                else:
+                    color = state.color
+                graph.add_edge(state.index,
+                               state_f,
+                               color=color,
+                               fontcolor=color,
+                               taillabel=text,
+                               labelfontsize=12)
+        if dot_path:
+            assert dot_path[-4:] == '.dot'
+            graph.write(dot_path)
+        if pdf_path:
+            assert pdf_path[-4:] == '.pdf'
+            graph.draw(pdf_path, prog='dot')
 
     # The self.args argument for the read functions was defined when
     # the HMM instance was created.  The only information propagated

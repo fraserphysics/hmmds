@@ -376,6 +376,12 @@ ABCD = python compare_models.py --records $(APLUSNAMES) --abcd -1500 1700 11 680
 V4S_BEST = $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked
 # Yields 3072 errors  Earlier got 2819.  With abcd threshold function 2278.
 
+v4s_viz.pdf: model_viz.py $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked
+	python $^ $@
+
+v4s_viz.dot: model_viz.py $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)pt$(V4S_PT)vp$(V4S_VP)ip$(V4S_IP)_masked
+	python $^ $@
+
 $(MODELS)/default: $(V4S_BEST)
 	ln -s $< $@
 
