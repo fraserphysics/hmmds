@@ -367,8 +367,8 @@ class HeartRate:
         if prominence is None:
             prominence = self.config.min_prominence
         s_f_hz = self.hr_sample_frequency.to('Hz').magnitude
-        distance_samples = distance.to('seconds').magnitude * s_f_hz
-        wlen_samples = wlen.to('seconds').magnitude * s_f_hz
+        distance_samples = int(distance.to('seconds').magnitude * s_f_hz)
+        wlen_samples = int(wlen.to('seconds').magnitude * s_f_hz)
 
         self.peaks, properties = scipy.signal.find_peaks(
             self.slow,

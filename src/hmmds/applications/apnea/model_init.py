@@ -775,13 +775,12 @@ def four_state(args, rng):
 
     n_states = 4
     v_dim = 2
-    tiny = 1.0e-30
-    small = 1.0e-30  # Sequential noise observations drive probability
-    # of noise states to zero exponentially at the rate "small".
+    small = 1.0e-50
     ar_order = args.AR_order
     p_state_initial = numpy.ones(n_states) / n_states
     p_state_time_average = p_state_initial.copy()
-    p_state2state = hmm.simple.Prob(numpy.ones((n_states, n_states)) * tiny)
+    p_state2state = hmm.simple.Prob(
+        numpy.ones((n_states, n_states)) * small * small)
     p_state2state[normal_noise_state, normal_noise_state] = small
     p_state2state[apnea_noise_state, apnea_noise_state] = small
 
@@ -804,16 +803,21 @@ def four_state(args, rng):
     Psi = numpy.empty((n_states, v_dim, v_dim))
     nu = numpy.empty(n_states)
 
+    # I chose initial sigma to get convergence in 7 training
+    # iterations.  I believe that the model structure is so simple
+    # that the result of training to convergence gets a unique result
+    # that is independent of variations in the initial model.
+    sigma_0 = numpy.array([[1.0, 0], [0, 1.0e-4]])
     # Noise states visited about 200 times.  Regular states visited
     # about 25,000 times
     _nu = 500.0
     for state in (normal_state, apnea_state):
-        sigma[state, :, :] = numpy.eye(2) * 1.0e4
+        sigma[state, :, :] = sigma_0 * 1.0e3
         Psi[state, :, :] = numpy.array([[50.0, 0], [0, .001]]) * _nu
         nu[state] = _nu
 
     for state in (normal_noise_state, apnea_noise_state):
-        sigma[state, :, :] = numpy.eye(2) * 1.0e7
+        sigma[state, :, :] = sigma_0 * 1.0e8
         Psi[state, :, :] = numpy.array([[1.0e8, 0], [0, 1.0e4]]) * _nu
         nu[state] = _nu
 
@@ -834,11 +838,15 @@ def four_state(args, rng):
     untrainable_values = []
     for from_state in range(n_states):
         for to_state in (normal_noise_state, apnea_noise_state):
-            untrainable_indices.append((from_state, to_state))
             if from_state == to_state:
-                untrainable_values.append(small)
-            else:
-                untrainable_values.append(tiny)
+                continue
+            untrainable_indices.append((from_state, to_state))
+            untrainable_values.append(small)
+    for from_state, to_state in ((normal_noise_state, apnea_state),
+                                 (apnea_noise_state, normal_state)):
+        untrainable_indices.append((from_state, to_state))
+        untrainable_values.append(small)
+
     # Create and return the hmm
     hmm_ = develop.HMM(p_state_initial,
                        p_state_time_average,

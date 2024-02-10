@@ -88,16 +88,32 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
 
             def __init__(state, index):
                 state.index = index
+                y_mod = self.y_mod
                 if index in self.y_mod['class'].class2state[0]:
                     state.class_ = 'Normal'
                     state.color = 'blue'
                 else:
                     state.class_ = 'Apnea'
                     state.color = 'red'
+                varg = y_mod["hr_respiration"]
+                covariance = numpy.linalg.inv(varg.inverse_sigma[index])
+                save = numpy.get_printoptions()['precision']
+                numpy.set_printoptions(precision=3)
+                analysis = numpy.linalg.eigh(covariance)
+                print(f'''state {index} eigenvalues: {analysis.eigenvalues}
+eigenvectors:
+{analysis.eigenvectors}
+''')
+                Psi = varg.Psi[index]
+                nu = varg.nu[index]
                 state.label = f'''<<table>
 <tr> <td> State: {index} </td> </tr>
 <tr> <td> Prob: {self.p_state_time_average[index]:6.4f} </td> </tr>
+<tr> <td> Sigma: {covariance} </td> </tr>
+<tr> <td> Psi: {Psi} </td> </tr>
+<tr> <td> nu: {nu} </td> </tr>
 </table>>'''
+                numpy.set_printoptions(precision=save)
                 state.successors = []
                 for state_f in range(n_states):
                     p_tran = self.p_state2state[index, state_f]
@@ -107,8 +123,6 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
                     if p_tran < 0.01:
                         text = f'{p_tran:7.1e}'
                     state.successors.append((state_f, text))
-
-        state_dict = dict((index, State(index)) for index in range(n_states))
 
         graph = pygraphviz.AGraph(directed=True,
                                   strict=True,
@@ -165,6 +179,7 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
                 self.untrainable_indices) == 0:
             return
         self.p_state2state[self.untrainable_indices] = self.untrainable_values
+        self.p_state2state.normalize()
         return
 
     def likelihood(self: HMM, y) -> numpy.ndarray:
