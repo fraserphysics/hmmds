@@ -9,7 +9,6 @@ import sys
 import argparse
 import typing
 import pickle
-import os.path
 
 import numpy
 import scipy.optimize
@@ -36,62 +35,6 @@ def parse_args(argv):
     args = parser.parse_args(argv)
     utilities.join_common(args)
     return args
-
-
-def for_threshold(threshold: float, model_record: utilities.ModelRecord,
-                  reference: int):
-    """Calculate and return (N_Apnea - reference) and counts
-    Args:
-        threshold: Detection threshold
-        model_record: ModelRecord instance
-        reference: Number of actual minutes marked apnea
-    """
-    model_record.classify(threshold)
-    counts = model_record.score()
-    value = counts[1] + counts[3] - reference
-    return value, counts
-
-
-def find_threshold(model_record: utilities.ModelRecord, n_apnea: int) -> float:
-    """Find and return threshold that gets the correct number of
-    apnea classifications
-
-    """
-
-    t_i = 1.0
-    # Exponential search for bracket of f = 0
-    f_1 = for_threshold(t_i, model_record, n_apnea)[0]
-    if f_1 == 0:
-        return t_i, 0
-    elif f_1 > 0:  # too much apnea; increase threshold
-        factor = 2.0
-    else:
-        factor = 1.0 / 2.0
-    for i in range(100):
-        t_2 = t_i * factor**i
-        f_2 = for_threshold(t_2, model_record, n_apnea)[0]
-        if f_2 * f_1 < 0:
-            break
-
-    # Set up and call brentq
-    t_a = min(t_2 / factor, t_2)
-    t_b = max(t_2 / factor, t_2)
-
-    def f(log, args_0, args_1):
-        """args_0 and args_1 are record_dict and n_apnea
-        respectively.
-
-        """
-        return for_threshold(10**log, args_0, args_1)[0]
-
-    l_0 = scipy.optimize.brentq(f,
-                                numpy.log10(t_a),
-                                numpy.log10(t_b),
-                                args=(model_record, n_apnea),
-                                rtol=5.0e-5)
-    t_0 = 10**l_0
-    f_0 = for_threshold(t_0, model_record, n_apnea)[0]
-    return t_0, f_0
 
 
 def minimum_error(model_record):
@@ -130,7 +73,7 @@ def errors_abcd(a: float, b: float, c: float, d: float,
 
 class Statistics:
 
-    def __init__(self, model_records, args):
+    def __init__(self: Statistics, model_records, args):
         """Calaulate characteristics of training data for setting thresholds
 
         Args:
@@ -149,8 +92,7 @@ class Statistics:
         sum_psd_sq = 0
         for model_record in model_records.values():
             pass1 = utilities.Pass1(model_record.record_name, args)
-            n_a = model_record.class_from_expert.sum()
-            log_t = numpy.log10(find_threshold(model_record, n_a)[0])
+            log_t = numpy.log10(minimum_error(model_record))
             self.log_threshold[model_record.record_name] = log_t
             psd = pass1.psd
 
