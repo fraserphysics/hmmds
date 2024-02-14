@@ -75,7 +75,6 @@ def analyze(name,
             model_path,
             report,
             debug=False,
-            power=None,
             threshold=None,
             abcd=None,
             statistics=None):
@@ -86,7 +85,6 @@ def analyze(name,
         name: Eg, 'a01'
         model_path: A pickled HMM
         report: A file open for writing
-        power: Dict of exponents for weighting components of observations
         threshold: Threshold for detector
         abcd: Parameters of threshold function
     """
@@ -95,7 +93,7 @@ def analyze(name,
         model_path, name)
     if abcd:
         threshold = statistics.f_abcd(*abcd, model_record=model_record)
-    model_record.classify(threshold, power)
+    model_record.classify(threshold)
     model_record.score()
 
     model_record.formatted_result(report, expert=False)
@@ -136,15 +134,10 @@ def main(argv=None):
             analyze(name,
                     model_path,
                     args.result,
-                    power=args.power_dict,
                     abcd=args.abcd,
                     statistics=shift_statistics)
             continue
-        analyze(name,
-                model_path,
-                args.result,
-                power=args.power_dict,
-                threshold=args.threshold)
+        analyze(name, model_path, args.result, threshold=args.threshold)
 
     return 0
 

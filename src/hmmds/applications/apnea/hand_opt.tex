@@ -30,28 +30,15 @@
     boundary appear in the upper plot. Thresholds that get the right
     number of apnea minutes appear in the lower plot.  The models have
     #2.}
-  }
-  \newcommand{\StudyFigs}[2]{
+}
+
+\newcommand{\StudyFigs}[2]{
 
 \begin{figure}
   \centering
   \resizebox{0.8\textwidth}{!}{\includegraphics{#1_threshold.pdf}}
   \StudyCaption{detection threshold}{#2}
   \label{fig:#1_threshold}
-\end{figure}
-
-\begin{figure}
-  \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_pt.pdf}}
-    \StudyCaption{prominence threshold}{#2}
-  \label{fig:#1_prominence_study}
-\end{figure}
-
-\begin{figure}
-  \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_ip.pdf}}
-    \StudyCaption{exponential weight of interval component}{#2}
-  \label{fig:#1_interval_weight_study}
 \end{figure}
 
 \begin{figure}
@@ -105,11 +92,11 @@
   \label{tab:#1_score}
 \end{table*}}
 
-\section{Combining Intervals, Respiration and Heart Rate}
+\section{Combining Respiration and Heart Rate}
 \label{sec:combination}
 
-Next, I combine a vector heart rate and respiration signal with a four
-state state structure and interval modeling.  The parameters to choose
+Here I combine a vector heart rate and respiration signal with a four
+state state structure.  The parameters to choose
 include:
 \begin{description}
 \item[VARG parameters:] for the (Vector Autoregressive Gaussian) model
@@ -125,55 +112,77 @@ include:
   \item[normalization] 
   \item[$\psi$ and $\nu$] Priors for each state
   \end{description}
-\item[Peak parameters] For finding peaks.  Note: The signal used is
-  from the low pass filter for the VARG signal.
-  \begin{description}
-  \item[minimum prominence] 
-  \item[distance] 0.417 minutes
-  \item[window length] 1.42 minutes
-  \end{description}
-\item[Detector threshold] 
-\item[Weighting power] 
+\item[Detector threshold]
 \end{description}
+In the following figures I've plotted the number of classification
+errors in a set of records that I call \emph{a-plus} against each of
+those parameters.  The a-plus records are the \emph{a} records and the
+\emph{b} and \emph{c} records near the boundary of my pass-1
+classification step\footnote{Specifically the records \emph{b01, b02,
+    b03, b04, c08} and \emph{c10}}.
 
-\StudyFigs{v4s}{four states and the observation models combine
-  the likelihood of the interval between peaks with a vector
-  autoregressive model for heart rate and respiration}
+\StudyFigs{v4s}{four states and the observation models are vector
+  autoregressive models for heart rate and respiration}
 
 \clearpage % flush floats
 \section{Varying the Detector Threshold}
 \label{sec:threshold}
 
-Notice that in table~\ref{tab:v4s_score} only three records have 30\%
-of the classification errors.  Figures \ref{fig:v4s_threshold_a01}
-to\ref{fig:v4s_threshold_b02} show the dependence of the number of
-errors on the detector threshold, and the best threshold varies from
-about 0.13 to 3,500.  In the next section, \ref{sec:psd_threshold}, I
-describe a technique for customizing the detector threshold for each record.
+Notice that in table~\ref{tab:v4s_score} the five records a02 a09 a12
+a18 a20 have 44\% of the classification errors.  Figures
+\ref{fig:v4s_threshold_a02} to\ref{fig:v4s_threshold_a20} show the
+dependence of the number of errors on the detector threshold for
+those records.  While the best overall threshold is about 1.0 the best
+thresholds for those records varies from about 0.005 to 0.014.  On the
+other hand, Fig.~\ref{fig:v4s_threshold_c10} indicates that the best
+threshold for record c10 is about 1,600.  In the next section,
+\ref{sec:custom_threshold}, I describe a technique for customizing the
+detector threshold for each record.
 
 \newcommand{\ThresholdStudy}[2]{
   \begin{figure}
     \centering
     \resizebox{0.8\textwidth}{!}{\includegraphics{v4s_threshold_#1.pdf}}
     \caption{The number of classification errors as a function
-      detector threshold for record #1 appears in the upper plot.  The
+      detector threshold for record #1.  The
       best threshold for record #1 is about #2.}
     \label{fig:v4s_threshold_#1}
   \end{figure}
 }
 
-\ThresholdStudy{a01}{.16}
-\ThresholdStudy{a03}{100}
-\ThresholdStudy{a07}{3.0}
-\ThresholdStudy{a10}{2,000}
-\ThresholdStudy{a11}{1,300}
-\ThresholdStudy{a12}{0.13}
-\ThresholdStudy{a19}{2,000}
-\ThresholdStudy{b02}{3,500}
+\ThresholdStudy{a02}{0.01}
+\ThresholdStudy{a09}{0.0006}
+\ThresholdStudy{a12}{0.008}
+\ThresholdStudy{a18}{0.005}
+\ThresholdStudy{a20}{0.016}
+\ThresholdStudy{c10}{700}
 
 \clearpage
 \subsection{Custom Thresholds}
-\label{sec:psd_threshold}
+\label{sec:custom_threshold}
+
+Supposing that I can find a function from heart rate time series to
+thresholds, I seek parameter values that minimize detection errors
+when I use the best threshold for each record in the a-plus set of
+records.  Figure~\ref{fig:cheat} illustrates that search.  I was
+surprised to see that the optimal parameter values were close to those
+I found using a fixed threshold.  2754  3016 at .45 or 3052 .44
+
+\begin{figure}
+  \centering
+  \resizebox{0.4\textwidth}{!}{\includegraphics{cheat_ar.pdf}}
+  \resizebox{0.4\textwidth}{!}{\includegraphics{cheat_fs.pdf}}\\
+  \resizebox{0.4\textwidth}{!}{\includegraphics{cheat_lpp.pdf}}
+  \resizebox{0.4\textwidth}{!}{\includegraphics{cheat_rc.pdf}}\\
+  \resizebox{0.4\textwidth}{!}{\includegraphics{cheat_rw.pdf}}
+  \resizebox{0.4\textwidth}{!}{\includegraphics{cheat_rs.pdf}}
+  \caption[Parameter sensitivity with variable thresholds.]{Survey of
+    6 parameters.  The code considers 10 threshold values for each
+    parameter value and uses the threshold value that minimizes the
+    number of classification errors.}
+  \label{fig:cheat}
+\end{figure}
+
 
 I found Fourier Power Spectral Density estimates (PSDs) useful for
 classifying whole records for Pass1.  I've used PSDs again for
@@ -227,20 +236,20 @@ function \ref{fig:shift_threshold}, but when I used the threshold
 function, the optimal parameter values stayed the same.  See
 Fig.~\ref{fig:abcd}
 
-\begin{figure}
-  \centering
-  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_ip.pdf}}
-  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_pt.pdf}}\\
-  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_ar.pdf}}
-  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_fs.pdf}}\\
-  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_lpp.pdf}}
-  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_rc.pdf}}\\
-  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_rw.pdf}}
-  \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_rs.pdf}}
-  \caption[Parameter sensitivity with variable thresholds.]{Survey of
-    8 parameters.}
-  \label{fig:abcd}
-\end{figure}
+% \begin{figure}
+%   \centering
+%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_ip.pdf}}
+%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_pt.pdf}}\\
+%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_ar.pdf}}
+%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_fs.pdf}}\\
+%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_lpp.pdf}}
+%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_rc.pdf}}\\
+%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_rw.pdf}}
+%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_rs.pdf}}
+%   \caption[Parameter sensitivity with variable thresholds.]{Survey of
+%     8 parameters.}
+%   \label{fig:abcd}
+% \end{figure}
 
 
 \end{document}

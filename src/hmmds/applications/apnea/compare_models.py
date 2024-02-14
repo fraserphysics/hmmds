@@ -15,7 +15,7 @@ import scipy.optimize
 
 import utilities
 import plotscripts.utilities
-from shift_threshold import Statistics
+import threshold_statistics
 
 
 def parse_args(argv):
@@ -32,13 +32,13 @@ def parse_args(argv):
                         type=float,
                         nargs='+',
                         help="eg, 3.0 4.0 5.0 6.0")
-    parser.add_argument('--n_apnea',
-                        type=int,
-                        help='obtain by shifting threshold')
     parser.add_argument('--parameter_name', type=str, default='parameter')
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
+    parser.add_argument('--cheat',
+                        action='store_true',
+                        help="Use best threshold for each record")
     parser.add_argument('--latex', type=str, help="resulting latex table")
     parser.add_argument('--result',
                         type=argparse.FileType('w', encoding='UTF-8'),
@@ -113,19 +113,17 @@ def plot_two(axeses, error_counts, thresholds, xlabel=None):
     threshold_axes.set_ylabel('Threshold')
 
 
-def for_threshold(threshold, record_dict, reference=6446):
-    """Calculate and return (N_Apnea - reference) and counts
+def for_threshold(threshold, record_dict):
+    """Calculate and return counts
     Args:
         threshold: Detection threshold
         record_dict:  keys are record names, values are ModelRecord instances
-        reference: Number of actual minutes marked apnea
     """
     counts = numpy.zeros(4, dtype=int)
     for model_record in record_dict.values():
         model_record.classify(threshold)
         counts += model_record.score()
-    value = counts[1] + counts[3] - reference
-    return value, counts
+    return counts
 
 
 def abcd_counts(abcd, statistics, record_dict):
@@ -144,48 +142,16 @@ def abcd_counts(abcd, statistics, record_dict):
     return counts
 
 
-def find_threshold(record_dict, t_i, n_apnea):
-    """ Solve for t: for_threshold(t,record_dict) = 0
+def cheat_counts(record_dict):
+    """Calculate classification counts with per record thresholds
 
     Args:
-        record_dict: Keys are record names and values are ModelRecord instances.
-        t_i: Initial guess for threshold
-        n_apnea:
+        record_dict: Keys are record names.  Values are ModelRecord instances
     """
-
-    # Exponential search for bracket of f = 0
-    f_1 = for_threshold(t_i, record_dict, n_apnea)[0]
-    if f_1 == 0:
-        return t_i, 0
-    elif f_1 > 0:  # too much apnea; increase threshold
-        factor = 2.0
-    else:
-        factor = 1.0 / 2.0
-    for i in range(100):
-        t_2 = t_i * factor**i
-        f_2 = for_threshold(t_2, record_dict, n_apnea)[0]
-        if f_2 * f_1 < 0:
-            break
-
-    # Set up and call brentq
-    t_a = min(t_2 / factor, t_2)
-    t_b = max(t_2 / factor, t_2)
-
-    def f(log, args_0, args_1):
-        """args_0 and args_1 are record_dict and n_apnea
-        respectively.
-
-        """
-        return for_threshold(10**log, args_0, args_1)[0]
-
-    l_0 = scipy.optimize.brentq(f,
-                                numpy.log10(t_a),
-                                numpy.log10(t_b),
-                                args=(record_dict, n_apnea),
-                                rtol=5.0e-5)
-    t_0 = 10**l_0
-    f_0 = for_threshold(t_0, record_dict, n_apnea)[0]
-    return t_0, f_0
+    counts = numpy.zeros(4, dtype=int)
+    for name, model_record in record_dict.items():
+        counts += threshold_statistics.minimum_error(model_record)[1]
+    return counts
 
 
 def main(argv=None):
@@ -221,30 +187,19 @@ def main(argv=None):
                 model_path, record_name)
 
     error_counts = {}
-    if args.n_apnea:
-        thresholds = {}
-        t_0 = 1.0
-        for model_name, parameter in zip(args.models, args.parameters):
-            t_0, f_0 = find_threshold(model_records[model_name], t_0,
-                                      args.n_apnea)
-            thresholds[parameter] = (t_0, f_0)
-            error_counts[parameter] = for_threshold(
-                t_0, model_records[model_name])[1]
+    for model_name, parameter in zip(args.models, args.parameters):
+        if args.abcd:
+            error_counts[parameter] = abcd_counts(args.abcd, shift_statistics,
+                                                  model_records[model_name])
+            continue
+        if args.cheat:
+            error_counts[parameter] = cheat_counts(model_records[model_name])
+            continue
+        error_counts[parameter] = for_threshold(args.threshold,
+                                                model_records[model_name])
 
-        fig, axeses = pyplot.subplots(nrows=2, figsize=(6, 4), sharex=True)
-        plot_two(axeses, error_counts, thresholds, args.parameter_name)
-    else:
-        for model_name, parameter in zip(args.models, args.parameters):
-            if args.abcd:
-                error_counts[parameter] = abcd_counts(args.abcd,
-                                                      shift_statistics,
-                                                      model_records[model_name])
-            else:
-                error_counts[parameter] = for_threshold(
-                    args.threshold, model_records[model_name])[1]
-
-        fig, axes = pyplot.subplots(nrows=1, figsize=(6, 4))
-        plot(axes, error_counts, args.parameter_name)
+    fig, axes = pyplot.subplots(nrows=1, figsize=(6, 4))
+    plot(axes, error_counts, args.parameter_name)
     print_summary(error_counts)
 
     fig.tight_layout()

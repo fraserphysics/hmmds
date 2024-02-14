@@ -53,7 +53,6 @@ def minimum_error(model_record):
     return thresholds[best_i], counts[best_i]
 
 
-
 def main(argv=None):
     """Plot best thresholds on training data against various statistics
 

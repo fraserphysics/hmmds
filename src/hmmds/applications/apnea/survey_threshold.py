@@ -1,6 +1,5 @@
-"""survey_power_threshold.py  Study dependence of classification on
-parameters detection threshold and relative weight of interval
-component of observation
+"""survey_threshold.py  Study dependence of classification on
+detection threshold.
 
 
 """
@@ -19,10 +18,6 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Map (model,data):-> class sequence")
     utilities.common_arguments(parser)
-    parser.add_argument('--powers',
-                        type=str,
-                        nargs=3,
-                        help='Start, stop, number for range to evaluate')
     parser.add_argument('--thresholds',
                         type=str,
                         nargs=3,
@@ -109,30 +104,6 @@ def threshold_study(model_record_dict, thresholds, power_dict):
     return result
 
 
-def power_study(model_record_dict, powers, threshold, power_dict_in):
-    """Calculate errors as a function of power on likelihood of
-    interval component of observation
-
-    """
-    result = {}
-    power_dict = power_dict_in.copy()
-    for power in powers:
-        power_dict['interval'] = power
-        counts = numpy.zeros(4, dtype=int)
-        for _, model_record in model_record_dict.items():
-            model_record.classify(threshold, power_dict)
-            counts += model_record.score()
-        result[power] = {
-            'N false alarm': counts[1],
-            'N missed detection': counts[2],
-            'P false alarm': counts[1] / (counts[0] + counts[1]),
-            'P missed detection': counts[2] / (counts[2] + counts[3]),
-            'error count': counts[1] + counts[2],
-            'error rate': (counts[1] + counts[2]) / counts.sum(),
-        }
-    return result
-
-
 def main(argv=None):
     """
     """
@@ -141,9 +112,7 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
-    fig, axeses = pyplot.subplots(nrows=2, figsize=(6, 8))
-
-    min_threshold = args.threshold
+    fig, axes = pyplot.subplots(nrows=1, figsize=(6, 4))
 
     def linspace(triple):
         return numpy.linspace(float(triple[0]), float(triple[1]),
@@ -166,14 +135,7 @@ def main(argv=None):
                                         args.power_dict)
     _print('threshold', threshold_results)
 
-    log_plot(axeses[0], threshold_results, xlabel='threshold')
-
-    if args.powers:
-        powers = linspace(args.powers)
-        power_results = power_study(model_record_dict, powers, min_threshold,
-                                    args.power_dict)
-        _print('power', power_results)
-        plot(axeses[1], power_results, xlabel='power')
+    log_plot(axes, threshold_results, xlabel='threshold')
 
     if args.show:
         pyplot.show()

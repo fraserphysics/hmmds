@@ -1,12 +1,10 @@
 """make_init.py Use parameters in first argument to craft call to
 model_init.py
 
-EG: $ python make_init.py power0.9threshold-12ar5prom6.1 \
-norm_power0.9threshold-12ar5prom6.1_masked
+EG: $ python make_init.py FixMe
 
-This script calls make in a subprocess to make config6.1.pkl, and then
-calls python in a second subprocess to run model_init.py to make
-norm_power0.9threshold-12ar5prom6.1_masked
+This script calls make in a subprocess to run model_init.py to make
+FixMe
 
 I wrote this ugly hack to use in a Makefile because make doesn't
 support multiple free parameters in a rule.
@@ -55,61 +53,6 @@ def register(func):
 
 
 @register
-def two_intervals(args):
-    """ Observation components slow peak interval class
-    """
-    d = parse_pattern(args.pattern, 'power threshold ar prom')
-    make_config = f"make config{d['prom']}.pkl"
-    run_model_init = f"""
-      python model_init.py
-      --power_dict slow 1 peak 1 interval {d['power']} class 1
-      --threshold 1.0e{d['threshold']}
-      --AR_order {d['ar']}
-      config{d['prom']}.pkl two_intervals {args.out}"""
-    return make_config, run_model_init
-
-
-@register
-def two_normalized(args):
-    """ Observation components slow peak interval class
-    """
-    d = parse_pattern(args.pattern, 'power threshold ar prom')
-    make_config = f"make norm_config{d['prom']}.pkl"
-    run_model_init = f"""
-      python model_init.py
-      --power_dict slow 1 peak 1 interval {d['power']} class 1
-      --threshold 1.0e{d['threshold']}
-      --AR_order {d['ar']}
-      norm_config{d['prom']}.pkl two_normalized {args.out}"""
-    return make_config, run_model_init
-
-
-@register
-def varg2state(args):
-    """
-    ar AR_order
-    fs model_sample_frequency  samples per minute
-    lpp low_pass_period        seconds
-    rc band_pass_center        cycles per minute
-    rw band_pass_width         cycles per minute
-    rs respiration_smooth      cycles per minute
-    
-    """
-    d = parse_pattern(args.pattern, 'ar fs lpp rc rw rs')
-    make_config = f"make norm_config4.pkl"
-    run_model_init = f"""
-      python model_init.py
-      --AR_order {d['ar']}
-      --model_sample_frequency {d['fs']}
-      --low_pass_period {d['lpp']}
-      --band_pass_center {d['rc']}
-      --band_pass_width {d['rw']}
-      --respiration_smooth {d['rs']}
-      norm_config4.pkl varg2state {args.out}"""
-    return make_config, run_model_init
-
-
-@register
 def four_state(args):
     """
     ar AR_order
@@ -118,14 +61,10 @@ def four_state(args):
     rc band_pass_center        cycles per minute
     rw band_pass_width         cycles per minute
     rs respiration_smooth      cycles per minute
-    pt Prominence threshold
-    vp power for varg component
-    ip power for interval component
 
-    Observation components: hr_respiration interval class
+    Observation components: hr_respiration class
     """
-    d = parse_pattern(args.pattern, 'ar fs lpp rc rw rs pt vp ip')
-    make_config = f"make norm_config{d['pt']}.pkl"
+    d = parse_pattern(args.pattern, 'ar fs lpp rc rw rs')
     run_model_init = f"""
       python model_init.py
       --AR_order {d['ar']}
@@ -134,39 +73,8 @@ def four_state(args):
       --band_pass_center {d['rc']}
       --band_pass_width {d['rw']}
       --respiration_smooth {d['rs']}
-      --power_dict hr_respiration {d['vp']} interval {d['ip']} class 1 --
-      norm_config{d['pt']}.pkl four_state {args.out}"""
-    return make_config, run_model_init
-
-
-@register
-def varg2chain(args):
-    """ Variables:
-            pt: Prominence threshold
-            ldt: Log detection threshold
-            vp: Varg Power: Exponential weight of component
-            ip: Interval Power: Exponential weight of component
-
-    Observation components: hr_respiration peak interval class
-    """
-    d = parse_pattern(args.pattern, 'pt ldt vp ip')
-    threshold = 10.0**float(d['ldt'])
-    low_pass_period = int(args.low_pass_period.to('second').magnitude)
-    sample_frequency = int(args.model_sample_frequency.to('1/minute').magnitude)
-    band_pass_center = args.band_pass_center.to('1/minute').magnitude
-    band_pass_width = args.band_pass_width.to('1/minute').magnitude
-    make_config = f"make norm_config{d['pt']}.pkl"
-    run_model_init = f"""
-      python model_init.py
-      --power_dict hr_respiration {d['vp']} peak 1 interval {d['ip']} class 1
-      --threshold {threshold}
-      --AR_order {args.AR_order}
-      --model_sample_frequency {sample_frequency}
-      --low_pass_period {low_pass_period}
-      --band_pass_center {band_pass_center}
-      --band_pass_width {band_pass_width} 
-      norm_config{d['pt']}.pkl varg2chain {args.out}"""
-    return make_config, run_model_init
+    four_state {args.out}"""
+    return (run_model_init,)
 
 
 def parse_pattern(pattern, key_string):

@@ -199,7 +199,7 @@ class HeartRate:
     def __init__(self: HeartRate,
                  args,
                  record_name: str,
-                 config,
+                 config=None,
                  normalize=False):
 
         self.args = args
