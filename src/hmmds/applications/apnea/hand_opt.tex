@@ -103,16 +103,15 @@ include:
   of the 2-d vectors with components respiration and low-pass filtered
   heart rate.  The parameters include:
   \begin{description}
-  \item[AR order] % ar
-  \item[sample rate] % fs
-  \item[low pass width] 7.5 per minute % lpw
-  \item[respiration pass center] 15 per minute % rc
-  \item[respiration pass width] 3 per minute % rw
-  \item[envelope smooth] 1.5 per minute % es
-  \item[normalization] 
+  \item[AR order] 5 % ar
+  \item[sample rate] 4 % fs
+  \item[low pass period] 70 seconds % lpp
+  \item[respiration pass center] 16.5 per minute % rc
+  \item[respiration pass width] 3.5 per minute % rw
+  \item[envelope smooth] .49 per minute % rs
   \item[$\psi$ and $\nu$] Priors for each state
   \end{description}
-\item[Detector threshold]
+\item[Detector threshold] 1.0
 \end{description}
 In the following figures I've plotted the number of classification
 errors in a set of records that I call \emph{a-plus} against each of

@@ -129,9 +129,9 @@ abcd_score.tex: score.py abcd_pass2.out
 shift_threshold.pdf: shift_threshold.py $(V4S_BEST)
 	python shift_threshold.py --records $(APLUSNAMES) -- $(V4S_BEST)
 
+# FixMe: Look at c_model and fit it to c data
 threshold_statistics.pdf: threshold_statistics.py c_model default
-	echo "Not implemented"
-	python $^ $@ $(APLUSNAMES)
+	python $^ $@ --show $(APLUSNAMES)
 
 v4s_opt: optimize.py
 	python $< --records  $(APLUSNAMES) -- $@

@@ -116,6 +116,9 @@ def import_and_parse(parse_args, argv):
     Args:
         parse_args: Function that parses argv
         args: The command line
+
+    Return: args, matplotlib, pyplot
+
     """
     import matplotlib  # pylint: disable=import-outside-toplevel
 
