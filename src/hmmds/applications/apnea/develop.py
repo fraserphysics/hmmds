@@ -140,8 +140,8 @@ eigenvectors:
                            label='Apnea')
         for state in state_dict.values():
             for state_f, text in state.successors:
-                if (state.index,
-                        state_f) in list(zip(*self.untrainable_indices)):
+                if self.untrainable_indices and (state.index, state_f) in list(
+                        zip(*self.untrainable_indices)):
                     color = 'black'
                 else:
                     color = state.color

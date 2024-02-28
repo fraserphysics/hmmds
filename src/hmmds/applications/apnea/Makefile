@@ -72,11 +72,17 @@ EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # Save the initial files for debugging
 .PRECIOUS: $(MODELS)/%_initial $(MODELS)/%_masked
 
-$(MODELS)/c_model: model_init.py
-	python $< --model_sample_frequency 12 c_model $@
+$(MODELS)/c_model_init: model_init.py
+	python $< --model_sample_frequency 12 --AR_order 5 c_model $@
+
+$(MODELS)/c_model: apnea_train.py $(MODELS)/c_model_init
+	python $< --records $(CNAMES) --iterations 3 $(MODELS)/c_model_init $@
 
 c_model: $(MODELS)/c_model
 	ln -sf $< $@
+
+c_model_viz.pdf: model_viz.py c_model
+	python $^ $@
 
 ########### 4 states with VARG and no interval observation, V4S ###########
 
@@ -101,10 +107,10 @@ COMPARE_CHEAT = python compare_models.py --records $(APLUSNAMES) --cheat
 V4S_BEST = $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked
 # Yields 3072 errors  Earlier got 2819.  With abcd threshold function 2278.
 
-v4s_viz.pdf: model_viz.py $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked
+v4s_viz.pdf: model_viz.py $(V4S_BEST)
 	python $^ $@
 
-v4s_viz.dot: model_viz.py $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked
+v4s_viz.dot: model_viz.py $(V4S_BEST)
 	python $^ $@
 
 $(MODELS)/default: $(V4S_BEST)
