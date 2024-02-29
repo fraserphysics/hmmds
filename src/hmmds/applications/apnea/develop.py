@@ -82,6 +82,10 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
 
         """
 
+        index2key = [None] * self.n_states
+        for key, index in self.args.state_key2state_index.items():
+            index2key[index] = key
+
         n_states = len(self.p_state_initial)
 
         class State:
@@ -107,7 +111,7 @@ eigenvectors:
                 Psi = varg.Psi[index]
                 nu = varg.nu[index]
                 state.label = f'''<<table>
-<tr> <td> State: {index} </td> </tr>
+<tr> <td> State {index}: {index2key[index]} </td> </tr>
 <tr> <td> Prob: {self.p_state_time_average[index]:6.4f} </td> </tr>
 <tr> <td> Sigma: {covariance} </td> </tr>
 <tr> <td> Psi: {Psi} </td> </tr>

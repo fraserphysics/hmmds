@@ -40,6 +40,58 @@ def parse_args(argv):
     return args
 
 
+def dict2hmm(state_dict, make_observation_model, args, rng):
+    """Create an HMM based on state_dict for supervised training
+
+    Args:
+        state_dict: state_dict[state_key] is a State instance
+        make_observation_model: Function
+        args: 
+        rng: A random number generator
+
+    Return: hmm, state_key2state_index
+
+    """
+
+    n_states = len(state_dict)
+    p_state_initial = numpy.ones(n_states) / n_states
+    p_state_time_average = numpy.ones(n_states) / n_states
+    p_state2state = hmm.simple.Prob(numpy.zeros((n_states, n_states)))
+    state_key2state_index = {}
+    state_keys = []
+    untrainable_indices = []
+    untrainable_values = []
+
+    # Build state_key2state_index, p_state2state and state_keys
+    for state_index, state_key in enumerate(state_dict.keys()):
+        state_key2state_index[state_key] = state_index
+        state_keys.append(state_key)
+    for state_key in state_keys:
+        state = state_dict[state_key]
+        state_index = state_key2state_index[state_key]
+        for successor_key, probability, trainable in zip(
+                state.successors, state.probabilities, state.trainable):
+            successor_index = state_key2state_index[successor_key]
+            p_state2state[state_index, successor_index] = probability
+            if not trainable:
+                untrainable_indices.append((state_index, successor_index))
+                untrainable_values.append(probability)
+    p_state2state.normalize()
+
+    # Create and return the hmm
+    return develop.HMM(p_state_initial,
+                       p_state_time_average,
+                       p_state2state,
+                       make_observation_model(state_dict, state_keys, rng,
+                                              args),
+                       args,
+                       rng,
+                       untrainable_indices=tuple(
+                           numpy.array(untrainable_indices).T),
+                       untrainable_values=numpy.array(
+                           untrainable_values)), state_key2state_index
+
+
 MODELS = {}  # Is populated by @register decorated functions.  The keys
 # are function names, and the values are functions
 
@@ -272,6 +324,123 @@ def four_state(args, rng):
     state_dict = {}
 
     return hmm_, state_dict, state_key2state_index
+
+
+def make_varg(state_dict: dict, keys: list, rng,
+              args) -> hmm.base.JointObservation:
+    """Return a JointObservation instance with components "hr_respiration" and "class"
+
+    Args:
+        state_dict: Parameters for s in state_dict[s].observation
+        keys: Establishes order for state_dict
+        rng: numpy random number generator
+        args: Command line arguments
+
+    Return: result with
+
+    result["hr_respiration"] is a VARG instance
+    result['class'] is a hmm.base.ClassObservation instance
+
+    """
+
+    n_states = len(keys)
+    assert n_states == len(state_dict)
+    y_dim = 2
+    ar_order = args.AR_order
+    coefficient_shape = (n_states, y_dim, y_dim * ar_order + 1)
+    # Mean of inverse Wishart without data is psi/nu
+
+    ar_coefficients = numpy.zeros(coefficient_shape)
+
+    sigma = numpy.empty((n_states, y_dim, y_dim))
+    psi = numpy.empty((n_states, y_dim, y_dim))
+    nu = numpy.empty(n_states)
+
+    class_index2state_indices = {0: [], 1: []}
+
+    for state_index, (key, parameters) in enumerate(
+        (key, state_dict[key].observation) for key in keys):
+
+        varg = parameters['hr_respiration']
+        ar_coefficients[state_index] = varg['coefficients']
+        sigma[state_index] = varg['sigma']
+        psi[state_index] = varg['psi']
+        nu[state_index] = varg['nu']
+
+        class_index2state_indices[parameters['class']].append(state_index)
+
+    print(f'{class_index2state_indices=}')
+    return hmm.base.JointObservation(
+        {
+            'hr_respiration':
+                hmm.observe_float.VARG(
+                    ar_coefficients, sigma, rng, Psi=psi, nu=nu),
+            'class':
+                hmm.base.ClassObservation(class_index2state_indices),
+        },
+        power=args.power_dict)
+
+
+@register  # VARG for low pass heart rate and derived respiration
+def multi_state(args, rng):
+    """Fully connected HMM with VARG models for respiration and heart rate
+
+    """
+
+    args.read_y_class = hmmds.applications.apnea.model_init.read_lphr_respiration_class
+    args.read_raw_y = hmmds.applications.apnea.model_init.read_lphr_respiration
+    observation_args = {  # Default values for apnea not noise
+        'hr_respiration': {
+            'sigma': numpy.eye(2) * 1.0e4,
+            'psi': numpy.array([[3.0, 0.0], [0.0, 0.006]]) * 1.0e3,
+            'nu': 1.0e3
+        },
+        'class': 1,  # Default is apnea
+    }
+
+    small = 1.0e-30
+    v_dim = 2  # Dimension of varg observation
+    state_dict = {}
+    state_keys = '''
+    normal_noise
+    apnea_noise
+    normal_0
+    apnea_0
+    apnea_1'''.split()
+    n_states = len(state_keys)
+    for state_index, state_key in enumerate(state_keys):
+        p_successors = numpy.ones(n_states) / (n_states - 2)
+        trainable = [True] * n_states
+        for successor_index, successor_key in enumerate(state_keys):
+            if successor_key.find(
+                    'noise') > 0 and successor_index != state_index:
+                p_successors[successor_index] = small
+                trainable[successor_index] = False
+
+        # Observation parameters for state
+        observation_copy = copy.deepcopy(observation_args)
+
+        temp = numpy.zeros((v_dim, v_dim * args.AR_order + 1))
+        temp[0, :] = rng.uniform(.8, 1.2)  # Break symmetry
+        observation_copy['hr_respiration']['coefficients'] = temp
+
+        if state_key.find('normal') >= 0:
+            observation_copy['class'] = 0
+
+        # psi/nu is covariance without data
+        if state_key.find('noise') >= 0:
+            observation_copy['hr_respiration']['sigma'] = numpy.eye(2) * 1.0e8
+            observation_copy['hr_respiration']['psi'] = numpy.eye(2) * 1.0e6
+            observation_copy['hr_respiration']['nu'] = 1.0e4
+        state_dict[state_key] = State(state_keys,
+                                      p_successors,
+                                      observation_copy,
+                                      trainable=trainable)
+
+    result_hmm, state_key2state_index = dict2hmm(state_dict, make_varg, args,
+                                                 rng)
+
+    return result_hmm, state_dict, state_key2state_index
 
 
 def main(argv=None):

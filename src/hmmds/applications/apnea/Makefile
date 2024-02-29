@@ -104,6 +104,14 @@ ABCD = --abcd -1500 1700 11 680 --shift_statistics shift_statistics.pkl
 COMPARE_ABCD = python compare_models.py --records $(APLUSNAMES) $(ABCD)
 COMPARE_CHEAT = python compare_models.py --records $(APLUSNAMES) --cheat
 
+MULTI_BEST = $(MODELS)/varg_multi_state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked
+
+$(MODELS)/varg_multi%_masked: apnea_train.py $(MODELS)/varg_multi%_init
+	python $< --records $(APLUSNAMES) --iterations 20 $(MODELS)/varg_multi$*_init $@
+
+multi_viz.pdf: model_viz.py $(MULTI_BEST)
+	python $^ $@
+
 V4S_BEST = $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked
 # Yields 3072 errors  Earlier got 2819.  With abcd threshold function 2278.
 
@@ -326,6 +334,9 @@ cheat_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MODELS))
     $@ > cheat_rs.txt
 
 # EG $(MODELS)/varg4state_ar16fs4lpp10rc17rw4.7rs.44_init
+
+$(MODELS)/varg_multi_state_%_init: make_init.py model_init.py
+	python $< multi_state $* $@
 
 $(MODELS)/varg4state_%_init: make_init.py model_init.py
 	python $< four_state $* $@
