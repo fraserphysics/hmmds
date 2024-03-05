@@ -151,9 +151,6 @@ detector threshold for each record.
 
 \ThresholdStudy{a02}{0.01}
 \ThresholdStudy{a09}{0.0006}
-\ThresholdStudy{a12}{0.008}
-\ThresholdStudy{a18}{0.005}
-\ThresholdStudy{a20}{0.016}
 \ThresholdStudy{c10}{700}
 
 \clearpage
@@ -165,7 +162,8 @@ thresholds, I seek parameter values that minimize detection errors
 when I use the best threshold for each record in the a-plus set of
 records.  Figure~\ref{fig:cheat} illustrates that search.  I was
 surprised to see that the optimal parameter values were close to those
-I found using a fixed threshold.  2754  3016 at .45 or 3052 .44
+I found using a fixed threshold.
+% I don't know what these numbers are: 2754  3016 at .45 or 3052 .44
 
 \begin{figure}
   \centering
@@ -186,8 +184,8 @@ I found using a fixed threshold.  2754  3016 at .45 or 3052 .44
 I found Fourier Power Spectral Density estimates (PSDs) useful for
 classifying whole records for Pass1.  I've used PSDs again for
 customizing detector thresholds.  My PSD estimates are vectors with
-2,149 components.  I use the following 1-d statistic to set
-thresholds:
+2,149 components.  I use \marginpar{Sort of.} the following 1-d
+statistic to set thresholds:
 \begin{equation}
   \label{eq:z_sum}
   z_{\text{sum}}(\text{record}) \equiv \sum_{i=0}^{2048}

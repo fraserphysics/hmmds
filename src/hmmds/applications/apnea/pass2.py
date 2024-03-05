@@ -38,14 +38,11 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Create and write pass2_report")
     hmmds.applications.apnea.utilities.common_arguments(parser)
+    # FixMe: Why not use --records in utilities.py
     parser.add_argument('--names',
                         type=str,
                         nargs='+',
                         help='names of records to analyze')
-    parser.add_argument('--abcd',
-                        type=float,
-                        nargs=4,
-                        help='Parameters of map: PSD -> Threshold')
     parser.add_argument('--shift_statistics',
                         type=str,
                         help='path to threshold shift statistics')

@@ -42,7 +42,7 @@ def minimum_error(model_record):
     a record.  Result is only used for plotting.
 
     """
-    thresholds = numpy.geomspace(.6, 1500, 10)
+    thresholds = numpy.geomspace(.001, 250, 10)
     result = numpy.zeros(len(thresholds), dtype=int)
     for i, threshold in enumerate(thresholds):
         model_record.classify(threshold=threshold)
@@ -158,7 +158,7 @@ class Statistics:
         """
         assert (z is None) ^ (model_record is None)
         if model_record:
-            z = -self.analyze(model_record, 0, 60)[1]
+            z = self.analyze(model_record, 1.0, 3.6)[1]
         if z < a:
             return c
         if z > b:
@@ -168,48 +168,22 @@ class Statistics:
         return numpy.exp(log_result)
 
 
-def write_shift_statistics(argv=None):
-    """Alternative to main that creates and pickles a Statistics instance
-    """
-    # 19 seconds
-    if argv is None:  # Usual case
-        argv = sys.argv[1:]
-
-    parser = argparse.ArgumentParser(
-        "Pickle statistics for calculating thresholds")
-    utilities.common_arguments(parser)
-    parser.add_argument('model_path', type=str, help="path to model")
-    parser.add_argument('pickle', type=str, help="path to result")
-    args = parser.parse_args(argv)
-    utilities.join_common(args)
-
-    assert len(args.records) > 5
-
-    model_records = dict((name, utilities.ModelRecord(args.model_path, name))
-                         for name in args.records)
-    statistics = Statistics(model_records, args)
-    with open(args.pickle, 'wb') as _file:
-        pickle.dump(statistics, _file)
-    return 0
-
-
 def main(argv=None):
     """Plot best thresholds on training data against various statistics
 
     """
 
-    # Don't change b=1700.  Change d instead
-    a, b, c, d = -1500, 1700, 11, 680
-    a_s = numpy.linspace(-2000, -1000, 20)
-    b_s = numpy.linspace(1600, 1800, 10)
-    c_s = numpy.geomspace(1.0, 100, 20)
-    d_s = numpy.geomspace(1e2, 2.0e3, 20)
+    a_s = numpy.linspace(-90, -85, 11)
+    b_s = numpy.linspace(-25, -24.6, 10)
+    c_s = numpy.geomspace(0.0072, 0.00726, 10)
+    d_s = numpy.geomspace(1.012, 1.017, 40)
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
+    a, b, c, d = args.abcd
     if args.records is None:
         records = args.a_names
     else:
@@ -227,21 +201,21 @@ def main(argv=None):
           d_axes) = pyplot.subplots(nrows=5, figsize=(6, 12))
 
     # Plot the function f_abcd
-    z_s = numpy.linspace(-5800, 2500, 100)
+    z_s = numpy.linspace(-100, 225, 100)
     y = numpy.array(list(statistics.f_abcd(a, b, c, d, z=z) for z in z_s))
     min_axes.semilogy(z_s, y)
 
     for name, model_record in model_records.items():
-        f_psd, z_sum, z = statistics.analyze(model_record, 0, 60)
+        f_psd, z_sum, z = statistics.analyze(model_record, 1.0, 3.6)
         min_threshold = minimum_error(model_record)
         min_axes.semilogy(
-            -z_sum,
+            z_sum,
             min_threshold,
             marker=f'${name}$',
             markersize=14,
             linestyle='None',
         )
-        min_axes.set_xlabel('-z_sum')
+        min_axes.set_xlabel('z_sum')
         min_axes.set_ylabel('Min Threshold')
 
     errors = list(
@@ -275,6 +249,31 @@ def main(argv=None):
     if args.show:
         pyplot.show()
 
+    return 0
+
+
+def write_shift_statistics(argv=None):
+    """Alternative to main that creates and pickles a Statistics instance
+    """
+    # 19 seconds
+    if argv is None:  # Usual case
+        argv = sys.argv[1:]
+
+    parser = argparse.ArgumentParser(
+        "Pickle statistics for calculating thresholds")
+    utilities.common_arguments(parser)
+    parser.add_argument('model_path', type=str, help="path to model")
+    parser.add_argument('pickle', type=str, help="path to result")
+    args = parser.parse_args(argv)
+    utilities.join_common(args)
+
+    assert len(args.records) > 5
+
+    model_records = dict((name, utilities.ModelRecord(args.model_path, name))
+                         for name in args.records)
+    statistics = Statistics(model_records, args)
+    with open(args.pickle, 'wb') as _file:
+        pickle.dump(statistics, _file)
     return 0
 
 
