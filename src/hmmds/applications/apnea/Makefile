@@ -99,7 +99,7 @@ V4S_RW = 3.5
 # Filter for Respiration Smoothing in cpm.
 V4S_RS = .49
 # Detection threshold
-V4S_THRESHOLD = 1.0
+V4S_THRESHOLD = 0.5
 ABCD = --abcd  -87 -24.75 .00722 1.01525
 COMPARE_ABCD = python compare_models.py --records $(APLUSNAMES) $(ABCD) --shift_statistics shift_statistics.pkl
 COMPARE_CHEAT = python compare_models.py --records $(APLUSNAMES) --cheat
@@ -334,7 +334,7 @@ $(MODELS)/varg4state%_masked: apnea_train.py $(MODELS)/varg4state%_init
 
 v4s_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(V4S_BEST)
 	python $< --model_paths $(MODELS)/c_model $(V4S_BEST) \
-    --threshold 150.0 pass1.out temp
+    --threshold $(V4S_THRESHOLD) pass1.out temp
 	cp temp $@
 
 v4s_score.tex: score.py v4s_pass2.out

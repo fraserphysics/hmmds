@@ -27,8 +27,7 @@
 \newcommand{\StudyCaption}[2]{
   \caption{Performance vs #1 on the \emph{a} records combined with and
     \emph{b} and \emph{c} records that are close to the pass-1
-    boundary appear in the upper plot. Thresholds that get the right
-    number of apnea minutes appear in the lower plot.  The models have
+    boundary.  The models have
     #2.}
 }
 
@@ -87,8 +86,7 @@
 \begin{table*}
   \centering
   \input{#1_score.tex}
-  \caption[Performance]{Performance of a
-    model that has #2.}
+  \caption[Performance]{Performance of a model that has #2.}
   \label{tab:#1_score}
 \end{table*}}
 
@@ -111,8 +109,16 @@ include:
   \item[envelope smooth] .49 per minute % rs
   \item[$\psi$ and $\nu$] Priors for each state
   \end{description}
-\item[Detector threshold] 1.0
+\item[Detector threshold] 0.5
 \end{description}
+
+In the foregoing list, I chose the values of the VARG parameters to
+get the best performance when the threshold for each record was set to
+maximize performance.  Then I chose the overall detector threshold to
+maximize overall performance.  In later sections I will consider
+methods of setting custom thresholds for each record that don't use
+the expert classification data.
+
 In the following figures I've plotted the number of classification
 errors in a set of records that I call \emph{a-plus} against each of
 those parameters.  The a-plus records are the \emph{a} records and the
@@ -127,14 +133,13 @@ classification step\footnote{Specifically the records \emph{b01, b02,
 \section{Varying the Detector Threshold}
 \label{sec:threshold}
 
-Notice that in table~\ref{tab:v4s_score} the five records a02 a09 a12
-a18 a20 have 44\% of the classification errors.  Figures
-\ref{fig:v4s_threshold_a02} to\ref{fig:v4s_threshold_a20} show the
+Notice that in Table~\ref{tab:v4s_score} the records a02 a09 a18 have
+39\% of the classification errors.  Figures
+\ref{fig:v4s_threshold_a02} to\ref{fig:v4s_threshold_c10} show the
 dependence of the number of errors on the detector threshold for
-those records.  While the best overall threshold is about 1.0 the best
-thresholds for those records varies from about 0.005 to 0.014.  On the
-other hand, Fig.~\ref{fig:v4s_threshold_c10} indicates that the best
-threshold for record c10 is about 1,600.  In the next section,
+selected records.  While the best overall threshold is about 0.5 there
+is a best threshold for each record and that varies over a factor of
+$10^5$ depending on the record.  In the next section,
 \ref{sec:custom_threshold}, I describe a technique for customizing the
 detector threshold for each record.
 
@@ -163,7 +168,6 @@ when I use the best threshold for each record in the a-plus set of
 records.  Figure~\ref{fig:cheat} illustrates that search.  I was
 surprised to see that the optimal parameter values were close to those
 I found using a fixed threshold.
-% I don't know what these numbers are: 2754  3016 at .45 or 3052 .44
 
 \begin{figure}
   \centering
@@ -224,14 +228,17 @@ function appear in Table~\ref{tab:abcd_score}.
 \subsection{Further Optimization}
 \label{sec:further}
 
-I am pleased with the improvement from 18\%
-(Table~\ref{tab_v4s_score}) to \%14 (Table~\ref{tab:shift_threshold}).
-It's close to the error rate of 11.8\% that the models I describe in
-the first edition of the book obtained.  I expected that I could get
-some more improvement by revisiting parameter choices using threshold
-function \ref{fig:shift_threshold}, but when I used the threshold
-function, the optimal parameter values stayed the same.  See
-Fig.~\ref{fig:abcd}
+The function plotted in Figure~\ref{fig:shift_threshold} improves
+performance from 2790 errors, 17\% (Table~\ref{tab:v4s_score}) to 2162
+errors, 13\% (Table~\ref{tab:abcd_score}).  However it is not as good
+as 1952 errors\footnote{That performance use a bogus class decoding
+  idea.} that the models I describe in the first edition of the book
+obtained.
+
+% Perhaps I can get some more improvement by revisiting parameter
+% choices using threshold function \ref{fig:shift_threshold}, but when I
+% used the threshold function, the optimal parameter values stayed the
+% same.  See Fig.~\ref{fig:abcd}
 
 % \begin{figure}
 %   \centering
@@ -248,5 +255,18 @@ Fig.~\ref{fig:abcd}
 %   \label{fig:abcd}
 % \end{figure}
 
+Here are some ideas for further improvements:
+\begin{description}
+\item[Better Thresholds] Perhaps a better function for setting per
+  record thresholds would help.  Before searching for such a function,
+  I will write code to cheat and use the best threshold for each
+  record.
+\item[More States] I will try using more states.
+\end{description}
 
 \end{document}
+
+In the book, I got to error rate of .1176 on the training data, or
+1952 errors.
+
+Next
