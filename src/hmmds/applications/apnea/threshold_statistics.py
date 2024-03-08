@@ -37,30 +37,12 @@ def parse_args(argv):
     return args
 
 
-def minimum_error(model_record):
-    """Find rough approximation of threshold that minimizes error for
-    a record.
-
-    """
-    # 10 -> 1000 decreases the number of errors 1,444 -> 1,363
-    thresholds = numpy.geomspace(.001, 250, 10)
-    objective_values = numpy.zeros(len(thresholds), dtype=int)
-    counts = numpy.empty((len(thresholds), 4), dtype=int)
-    for i, threshold in enumerate(thresholds):
-        model_record.classify(threshold=threshold)
-        counts[i, :] = model_record.score()
-        objective_values[i] = counts[i, 1] + counts[i, 2]
-    best_i = numpy.argmin(objective_values)
-    #print(f'{model_record.record_name} {thresholds[best_i]}')
-    return thresholds[best_i], counts[best_i]
-
-
 class ModelRecord(utilities.ModelRecord):
 
     def __init__(self: ModelRecord, model_path: str, record_name: str):
         utilities.ModelRecord.__init__(self, model_path, record_name)
         self.pass1 = utilities.Pass1(record_name, self.model.args).statistic_1()
-        self.threshold, self.counts = minimum_error(self)
+        self.threshold, self.counts = self.best_threshold()
 
     def log_likelihood(self: ModelRecord):
         """ Calculate log P(data|model)

@@ -37,20 +37,6 @@ def parse_args(argv):
     return args
 
 
-def minimum_error(model_record):
-    """Find rough approximation of threshold that minimizes error for
-    a record.  Result is only used for plotting.
-
-    """
-    thresholds = numpy.geomspace(.001, 250, 10)
-    result = numpy.zeros(len(thresholds), dtype=int)
-    for i, threshold in enumerate(thresholds):
-        model_record.classify(threshold=threshold)
-        counts = model_record.score()
-        result[i] = counts[1] + counts[2]
-    return thresholds[numpy.argmin(result)]
-
-
 def errors_abcd(a: float, b: float, c: float, d: float,
                 model_records: utilities.ModelRecord,
                 statistics: Statistics) -> int:
@@ -92,7 +78,7 @@ class Statistics:
         sum_psd_sq = 0
         for model_record in model_records.values():
             pass1 = utilities.Pass1(model_record.record_name, args)
-            log_t = numpy.log10(minimum_error(model_record))
+            log_t = numpy.log10(model_record.best_threshold()[0])
             self.log_threshold[model_record.record_name] = log_t
             psd = pass1.psd
 
@@ -207,7 +193,7 @@ def main(argv=None):
 
     for name, model_record in model_records.items():
         f_psd, z_sum, z = statistics.analyze(model_record, 1.0, 3.6)
-        min_threshold = minimum_error(model_record)
+        min_threshold = model_record.best_threshold()[0]
         min_axes.semilogy(
             z_sum,
             min_threshold,

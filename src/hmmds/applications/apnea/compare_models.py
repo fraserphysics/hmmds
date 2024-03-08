@@ -44,10 +44,6 @@ def parse_args(argv):
                         type=argparse.FileType('w', encoding='UTF-8'),
                         default=sys.stdout,
                         help='Write result to this path')
-    parser.add_argument('--abcd',
-                        type=float,
-                        nargs=4,
-                        help='Parameters of map: PSD -> Threshold')
     parser.add_argument('--shift_statistics',
                         type=str,
                         help='path to threshold shift statistics')
@@ -150,7 +146,7 @@ def cheat_counts(record_dict):
     """
     counts = numpy.zeros(4, dtype=int)
     for name, model_record in record_dict.items():
-        counts += threshold_statistics.minimum_error(model_record)[1]
+        counts += model_record.best_threshold()[1]
     return counts
 
 

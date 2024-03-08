@@ -39,7 +39,7 @@ abcdERRORS = $(addsuffix .pdf, $(addprefix abcd_, $(LIST_ERRORS)))
 cheatERRORS = $(addsuffix .pdf, $(addprefix cheat_, $(LIST_ERRORS)))
 v4sTHRESHOLDS = $(addsuffix .pdf, $(addprefix v4s_threshold_, a02 a09 c10))
 HANDOPT_FIGS = $(v4sERRORS) $(v4sTHRESHOLDS) $(cheatERRORS) shift_threshold.pdf v4s_threshold.pdf
-hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) v4s_score.tex abcd_score.tex
+hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) v4s_score.tex abcd_score.tex cheat_score.tex
 	pdflatex $< ; pdflatex $<
 
 ################################################################################
@@ -124,12 +124,20 @@ write_shift_statistics.py: shift_threshold.py
 shift_statistics.pkl: write_shift_statistics.py $(V4S_BEST)
 	python $< --records $(APLUSNAMES) --  $(V4S_BEST) $@
 
-abcd_pass2.out: pass2.py shift_statistics.pkl
+abcd_pass2.out: pass2.py pass1.out shift_statistics.pkl
 	python $< --model_paths $(MODELS)/c_model $(V4S_BEST) \
     $(ABCD) --shift_statistics shift_statistics.pkl pass1.out temp
 	cp temp $@
 
 abcd_score.tex: score.py abcd_pass2.out
+	python $^ $@  --tex
+
+cheat_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(V4S_BEST)
+	python $< --model_paths $(MODELS)/c_model $(V4S_BEST) \
+  --cheat pass1.out temp
+	cp temp $@
+
+cheat_score.tex: score.py cheat_pass2.out
 	python $^ $@  --tex
 
 shift_threshold.pdf: shift_threshold.py $(V4S_BEST)

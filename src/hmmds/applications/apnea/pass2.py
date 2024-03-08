@@ -43,6 +43,9 @@ def parse_args(argv):
                         type=str,
                         nargs='+',
                         help='names of records to analyze')
+    parser.add_argument('--cheat',
+                        action='store_true',
+                        help='Use best threshold for each record')
     parser.add_argument('--shift_statistics',
                         type=str,
                         help='path to threshold shift statistics')
@@ -73,6 +76,7 @@ def analyze(name,
             report,
             debug=False,
             threshold=None,
+            cheat=None,
             abcd=None,
             statistics=None):
     """Writes to the open file report a string that has the same form as
@@ -83,6 +87,7 @@ def analyze(name,
         model_path: A pickled HMM
         report: A file open for writing
         threshold: Threshold for detector
+        cheat: Use threshold that roughly minimizes error
         abcd: Parameters of threshold function
     """
 
@@ -90,8 +95,13 @@ def analyze(name,
         model_path, name)
     if abcd:
         threshold = statistics.f_abcd(*abcd, model_record=model_record)
-    model_record.classify(threshold)
+    if cheat:
+        cheat_threshold = model_record.cheat()
+    else:
+        model_record.classify(threshold)
     model_record.score()
+    if abcd and cheat:
+        print(f'{name} {threshold} {cheat_threshold}')
 
     model_record.formatted_result(report, expert=False)
     if not debug:
@@ -127,6 +137,14 @@ def main(argv=None):
         if os.path.basename(model_path) == 'c_model':
             analyze(name, model_path, args.result, threshold=args.threshold)
             continue
+        if args.abcd and args.cheat:
+            analyze(name,
+                    model_path,
+                    args.result,
+                    abcd=args.abcd,
+                    cheat=args.cheat,
+                    statistics=shift_statistics)
+            continue
         if args.abcd:
             analyze(name,
                     model_path,
@@ -134,7 +152,11 @@ def main(argv=None):
                     abcd=args.abcd,
                     statistics=shift_statistics)
             continue
-        analyze(name, model_path, args.result, threshold=args.threshold)
+        analyze(name,
+                model_path,
+                args.result,
+                cheat=args.cheat,
+                threshold=args.threshold)
 
     return 0
 

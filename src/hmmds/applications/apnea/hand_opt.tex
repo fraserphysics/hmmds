@@ -258,15 +258,25 @@ obtained.
 Here are some ideas for further improvements:
 \begin{description}
 \item[Better Thresholds] Perhaps a better function for setting per
-  record thresholds would help.  Before searching for such a function,
-  I will write code to cheat and use the best threshold for each
-  record.
+  record thresholds would help.  Since cheating to use the best
+  threshold for each record yields 1410 errors (See
+  Table~\ref{tab:cheat_score}), I think I need more discriminating
+  models.
 \item[More States] I will try using more states.
 \end{description}
 
+
+\begin{table*}
+  \centering
+  \input{cheat_score.tex}
+  \caption[Performance]{Classification performance with best threshold
+  for each record by cheating.}
+  \label{tab:cheat_score}
+\end{table*}
 \end{document}
 
 In the book, I got to error rate of .1176 on the training data, or
-1952 errors.
+1952 errors.  Cheating by peaking at the expert data to set thresholds
+I got 1410 errors with the v4s models.
 
 Next
