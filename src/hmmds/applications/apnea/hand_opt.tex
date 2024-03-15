@@ -273,10 +273,42 @@ Here are some ideas for further improvements:
   for each record by cheating.}
   \label{tab:cheat_score}
 \end{table*}
+
+\subsection{More States}
+\label{sec:more_states}
+
+\begin{figure}
+  \centering
+  \resizebox{0.4\textwidth}{!}{\includegraphics{multi_cheat_ar.pdf}}
+  \resizebox{0.4\textwidth}{!}{\includegraphics{multi_cheat_fs.pdf}}\\
+  \resizebox{0.4\textwidth}{!}{\includegraphics{multi_cheat_lpp.pdf}}
+  \resizebox{0.4\textwidth}{!}{\includegraphics{multi_cheat_rc.pdf}}\\
+  \resizebox{0.4\textwidth}{!}{\includegraphics{multi_cheat_rw.pdf}}
+  \resizebox{0.4\textwidth}{!}{\includegraphics{multi_cheat_rs.pdf}}
+  \caption[Parameter sensitivity with variable thresholds.]{Survey of
+    6 parameters.  The code considers 10 threshold values for each
+    parameter value and uses the threshold value that minimizes the
+    number of classification errors.}
+  \label{fig:multi_cheat}
+\end{figure}
+
+
+\begin{table*}
+  \centering
+  \input{multi_score.tex}
+  \caption[Performance]{Classification performance of multi-state
+    model with best threshold for each record by cheating.}
+  \label{tab:multi_score}
+\end{table*}
+
 \end{document}
 
 In the book, I got to error rate of .1176 on the training data, or
 1952 errors.  Cheating by peaking at the expert data to set thresholds
 I got 1410 errors with the v4s models.
 
-Next
+Performance of multi models with cheating:
+
+       A->N   N->A  N_error
+       3A 2N  787   705   1492
+       3A 3N  651   638   1289  (changed psi & nu)

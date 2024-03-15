@@ -392,8 +392,8 @@ def multi_state(args, rng):
     observation_args = {  # Default values for apnea not noise
         'hr_respiration': {
             'sigma': numpy.eye(2) * 1.0e4,
-            'psi': numpy.array([[3.0, 0.0], [0.0, 0.006]]) * 1.0e3,
-            'nu': 1.0e3
+            'psi': numpy.array([[0.4, 0.0], [0.0, 0.00006]]) * 1.0e4,
+            'nu': 1.0e4
         },
         'class': 1,  # Default is apnea
     }
@@ -405,8 +405,10 @@ def multi_state(args, rng):
     normal_noise
     apnea_noise
     normal_0
+    normal_1
     apnea_0
-    apnea_1'''.split()
+    apnea_1
+    '''.split()
     n_states = len(state_keys)
     for state_index, state_key in enumerate(state_keys):
         p_successors = numpy.ones(n_states) / (n_states - 2)

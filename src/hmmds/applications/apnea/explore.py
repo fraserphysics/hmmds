@@ -145,13 +145,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                 hr_plot.plot(pen=pyqtgraph.mkPen(color=(255, 128, 128),
                                                  width=2),
                              name='slow'),
-                hr_plot.plot(
-                    pen=None,
-                    symbol='+',
-                    symbolSize=15,
-                    symbolBrush=('b'),
-                    name='peaks',
-                ),
             ]
         }
 
@@ -303,10 +296,14 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.r_times = numpy.nonzero(states == 32)[0]
 
         # Read heart rate
+        if 'config' in self.model.args:
+            config = self.model.args.config
+        else:
+            config = None
         self.hr_instance = utilities.HeartRate(
             self.args,
             self.record_box.text(),
-            self.model.args.config,
+            config,
             False  # normalize
         )  # Sets: hr_sample_frequency, raw_hr
         if self.record_box.text()[0] != 'x':
@@ -314,8 +311,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             self.hr_instance.read_expert()
         # Set slow, notch, respiration, envelope
         self.hr_instance.filter_hr()
-        # Set peaks and prominences
-        peak_times = self.hr_instance.find_peaks()
         self.hr_signal = self.hr_instance.raw_hr
         self.slow = self.hr_instance.slow
         self.hr_times = numpy.arange(len(
@@ -328,8 +323,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             'envelope': self.hr_instance.envelope,
             'respiration': self.hr_instance.respiration,
         }
-        self.hr_peaks = self.slow[peak_times]
-        self.hr_peak_times = peak_times / self.hr_instance.hr_sample_frequency
 
         # Get observations for apnea model
         read_y = self.model.read_y_no_class(self.record_box.text())
@@ -365,7 +358,6 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.hr_dict['signals'] = [
             (self.hr_times, self.hr_signal),
             (self.filters['times'], self.slow),
-            (self.hr_peak_times, self.hr_peaks),
         ]
         self.plot_window(**self.hr_dict)
 
