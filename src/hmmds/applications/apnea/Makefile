@@ -138,9 +138,6 @@ cheat_score.tex: score.py cheat_pass2.out
 shift_threshold.pdf: shift_threshold.py $(V4S_BEST)
 	python shift_threshold.py --records $(APLUSNAMES) $(ABCD) $(V4S_BEST)
 
-threshold_statistics.pdf: threshold_statistics.py c_model default
-	python $^ $@ --show $(APLUSNAMES)
-
 v4s_opt: optimize.py
 	python $< --records  $(APLUSNAMES) -- $@
 
@@ -481,6 +478,24 @@ multi_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MULTI_BEST)
 multi_score.tex: score.py multi_pass2.out
 	python $^ $@  --tex
 
+threshold_statistics.pkl: threshold_statistics.py $(MODELS)/c_model $(MULTI_BEST)
+	python $^ $@ $(APLUSNAMES) --resolution 1e-4 1e4 100
+
+threshold_statistics.pdf: plot_threshold_statistics.py threshold_statistics.pkl
+	python $^ $@
+
+FIT_MB = --mb 0.94 0.006
+
+fit2threshold.pdf: fit2threshold.py $(MULTI_BEST) threshold_statistics.pkl
+	python $^ --show --records $(APLUSNAMES) $(FIT_MB)
+
+fit_mb_pass2.out: pass2.py pass1.out threshold_statistics.pkl
+	python $< --model_paths $(MODELS)/c_model $(MULTI_BEST) \
+    $(FIT_MB) --shift_statistics threshold_statistics.pkl pass1.out temp
+	cp temp $@
+
+fit_mb_score.tex: score.py fit_mb_pass2.out
+	python $^ $@  --tex
 ## yapf                          : Force google format on all python code
 .PHONY : yapf
 yapf :

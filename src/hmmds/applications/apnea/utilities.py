@@ -53,6 +53,10 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=float,
                         nargs=4,
                         help='Parameters of map: PSD -> Threshold')
+    parser.add_argument('--mb',
+                        type=float,
+                        nargs=2,
+                        help='Parameters of map: Record -> Threshold')
     # Group that are relative to derived_apnea
     parser.add_argument('--rtimes',
                         type=str,
