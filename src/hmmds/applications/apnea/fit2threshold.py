@@ -117,10 +117,12 @@ def main(argv=None):
 
     """
 
+    # For detail of minimum
     m_s = numpy.linspace(.93, .95, 21)  # Slope m
     b_s = numpy.linspace(0.003, 0.01, 30)  # y intercept b
-    m_s = numpy.linspace(.93, 1.03, 21)  # Slope m
-    b_s = numpy.linspace(0.0, 0.01, 21)  # y intercept b
+    # For ~ quadratic looking minima
+    #m_s = numpy.linspace(0.5, 1.5, 21)  # Slope m
+    #b_s = numpy.linspace(-1, 1, 21)  # y intercept b
 
     if argv is None:  # Usual case
         argv = sys.argv[1:]

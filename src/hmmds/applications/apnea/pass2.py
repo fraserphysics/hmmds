@@ -30,6 +30,8 @@ import numpy
 import hmmds.applications.apnea.utilities
 import develop
 from shift_threshold import Statistics
+from threshold_statistics import Fit
+import fit2threshold
 
 
 def parse_args(argv):
@@ -49,6 +51,9 @@ def parse_args(argv):
     parser.add_argument('--shift_statistics',
                         type=str,
                         help='path to threshold shift statistics')
+    parser.add_argument('--statistics_path',
+                        type=str,
+                        help='path to threshold statistics')
     parser.add_argument(
         '--model_paths',
         type=str,
@@ -78,6 +83,7 @@ def analyze(name,
             threshold=None,
             cheat=None,
             abcd=None,
+            mb=None,
             statistics=None):
     """Writes to the open file report a string that has the same form as
         the expert file
@@ -89,12 +95,16 @@ def analyze(name,
         threshold: Threshold for detector
         cheat: Use threshold that roughly minimizes error
         abcd: Parameters of threshold function
+        mb: Parameters of threshold function
+        statistics: Parameters of threshold function
     """
 
     model_record = hmmds.applications.apnea.utilities.ModelRecord(
         model_path, name)
     if abcd:
         threshold = statistics.f_abcd(*abcd, model_record=model_record)
+    if mb:
+        threshold = statistics.f_mb_name(*mb, model_record.record_name)
     if cheat:
         cheat_threshold = model_record.cheat()
     else:
@@ -125,10 +135,13 @@ def main(argv=None):
     if not args.names:
         args.names = args.all_names
 
-    if args.shift_statistics:
-        assert args.abcd is not None
+    if args.shift_statistics and args.abcd:
         with open(args.shift_statistics, 'rb') as _file:
             shift_statistics = pickle.load(_file)
+
+    if args.statistics_path:
+        args.records = args.names  # FixMe: Use args.records instead of args.names
+        statistics = fit2threshold.Statistics(args)
 
     model_paths = {'N': args.model_paths[0], 'A': args.model_paths[1]}
 
@@ -151,6 +164,13 @@ def main(argv=None):
                     args.result,
                     abcd=args.abcd,
                     statistics=shift_statistics)
+            continue
+        if args.mb:
+            analyze(name,
+                    model_path,
+                    args.result,
+                    mb=args.mb,
+                    statistics=statistics)
             continue
         analyze(name,
                 model_path,

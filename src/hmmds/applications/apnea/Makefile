@@ -40,7 +40,7 @@ cheatERRORS = $(addsuffix .pdf, $(addprefix cheat_, $(LIST_ERRORS)))
 MultiCheatERRORS = $(addsuffix .pdf, $(addprefix multi_cheat_, $(LIST_ERRORS)))
 v4sTHRESHOLDS = $(addsuffix .pdf, $(addprefix v4s_threshold_, a02 a09 c10))
 HANDOPT_FIGS = $(v4sERRORS) $(v4sTHRESHOLDS) $(cheatERRORS) $(MultiCheatERRORS) shift_threshold.pdf v4s_threshold.pdf
-hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) v4s_score.tex abcd_score.tex cheat_score.tex multi_score.tex
+hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) v4s_score.tex abcd_score.tex cheat_score.tex multi_score.tex fit_mb_score.tex
 	pdflatex $< ; pdflatex $<
 
 ################################################################################
@@ -484,6 +484,7 @@ threshold_statistics.pkl: threshold_statistics.py $(MODELS)/c_model $(MULTI_BEST
 threshold_statistics.pdf: plot_threshold_statistics.py threshold_statistics.pkl
 	python $^ $@
 
+#FIT_MB = --mb 1.0 0.0
 FIT_MB = --mb 0.94 0.006
 
 fit2threshold.pdf: fit2threshold.py $(MULTI_BEST) threshold_statistics.pkl
@@ -491,7 +492,7 @@ fit2threshold.pdf: fit2threshold.py $(MULTI_BEST) threshold_statistics.pkl
 
 fit_mb_pass2.out: pass2.py pass1.out threshold_statistics.pkl
 	python $< --model_paths $(MODELS)/c_model $(MULTI_BEST) \
-    $(FIT_MB) --shift_statistics threshold_statistics.pkl pass1.out temp
+    $(FIT_MB) --statistics_path threshold_statistics.pkl pass1.out temp
 	cp temp $@
 
 fit_mb_score.tex: score.py fit_mb_pass2.out

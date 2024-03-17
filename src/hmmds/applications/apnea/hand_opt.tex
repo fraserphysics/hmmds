@@ -292,13 +292,21 @@ Here are some ideas for further improvements:
   \label{fig:multi_cheat}
 \end{figure}
 
-
 \begin{table*}
   \centering
   \input{multi_score.tex}
   \caption[Performance]{Classification performance of multi-state
     model with best threshold for each record by cheating.}
   \label{tab:multi_score}
+\end{table*}
+
+\begin{table*}
+  \centering
+  \input{fit_mb_score.tex}
+  \caption[Performance]{Classification performance of multi-state
+    model with thresholds set by function of three statistics: PSD
+    and log likelihoods of two HMMs.}
+  \label{tab:mb_score}
 \end{table*}
 
 \end{document}
@@ -312,3 +320,9 @@ Performance of multi models with cheating:
        A->N   N->A  N_error
        3A 2N  787   705   1492
        3A 3N  651   638   1289  (changed psi & nu)
+
+Performance without cheating
+
+3 normal states, 3 apnea states, threshold based on Pass1,
+log_likelihoods of 6 state model with classes trained on APLUSNAMES
+and c_model.  2094 errors.
