@@ -866,9 +866,10 @@ class ModelRecord:
         self.record_name = record_name
         with open(model_path, 'rb') as _file:
             self.model = pickle.load(_file)
+        self.has_class = 'class' in self.model.y_mod
         self.samples_per_minute = int(
             self.model.args.model_sample_frequency.to('1/minute').magnitude)
-        if record_name[0] == 'x':
+        if record_name[0] == 'x' or not self.has_class:
             self.y_class_data = None
             self.class_from_expert = None
         else:

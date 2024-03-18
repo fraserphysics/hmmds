@@ -88,17 +88,22 @@ class HMM(hmm.C.HMM):  #hmm.C.HMM or hmm.base.HMM
 
         n_states = len(self.p_state_initial)
 
+        has_class = 'class' in self.y_mod
+
         class State:
 
             def __init__(state, index):
                 state.index = index
                 y_mod = self.y_mod
-                if index in self.y_mod['class'].class2state[0]:
-                    state.class_ = 'Normal'
-                    state.color = 'blue'
+                if has_class:
+                    if index in self.y_mod['class'].class2state[0]:
+                        state.class_ = 'Normal'
+                        state.color = 'blue'
+                    else:
+                        state.class_ = 'Apnea'
+                        state.color = 'red'
                 else:
-                    state.class_ = 'Apnea'
-                    state.color = 'red'
+                    state.color = 'blue'
                 varg = y_mod["hr_respiration"]
                 covariance = numpy.linalg.inv(varg.inverse_sigma[index])
                 save = numpy.get_printoptions()['precision']
@@ -136,12 +141,13 @@ eigenvectors:
         for index in range(n_states):
             state_dict[index] = state = State(index)
             graph.add_node(index, shape='rectangle', label=state.label)
-        graph.add_subgraph(self.y_mod['class'].class2state[0],
-                           cluster=True,
-                           label='Normal')
-        graph.add_subgraph(self.y_mod['class'].class2state[1],
-                           cluster=True,
-                           label='Apnea')
+        if has_class:
+            graph.add_subgraph(self.y_mod['class'].class2state[0],
+                               cluster=True,
+                               label='Normal')
+            graph.add_subgraph(self.y_mod['class'].class2state[1],
+                               cluster=True,
+                               label='Apnea')
         for state in state_dict.values():
             for state_f, text in state.successors:
                 if self.untrainable_indices and (state.index, state_f) in list(

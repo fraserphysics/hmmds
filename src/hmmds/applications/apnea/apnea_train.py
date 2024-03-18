@@ -43,11 +43,14 @@ def main(argv=None):
     with open(args.initial_path, 'rb') as _file:
         model = pickle.load(_file)
 
+    if 'class' in model.y_mod:
+        reader = model.read_y_with_class
+    else:
+        reader = model.read_y_no_class
     y_data = list(
         # model.read_y_with_class calls
         # self.args.read_y_class(self.args, record_name)
-        hmm.base.JointSegment(model.read_y_with_class(record))
-        for record in args.records)
+        hmm.base.JointSegment(reader(record)) for record in args.records)
 
     model.multi_train(y_data, args.iterations)
 

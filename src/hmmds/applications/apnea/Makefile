@@ -357,6 +357,23 @@ MULTI_RS = .455
 # Detection threshold
 MULTI_THRESHOLD = 1.0
 
+################### For calculating threshold #######################
+HIGH_THRESHOLD_RECORDS = a03 a07 a08 b01 b02 b03 b04 c08 c10  a08 a08
+LOW_THRESHOLD_RECORDS =  a02 a04 a05 a09 a11 a12 a18 a20   a18 a18
+
+$(MODELS)/classless_init: model_init.py
+	python $< --model_sample_frequency 4 --AR_order 12 classless $@
+
+$(MODELS)/high_classless: apnea_train.py $(MODELS)/classless_init
+	python $^ $@ --records $(HIGH_THRESHOLD_RECORDS) --iterations 100
+
+$(MODELS)/low_classless: apnea_train.py $(MODELS)/classless_init
+	python $^ $@ --records $(LOW_THRESHOLD_RECORDS) --iterations 100
+
+%_model_viz.pdf: model_viz.py $(MODELS)/%_classless
+	python $^ $@
+####################################################################
+
 $(MODELS)/multi_%_init: make_init.py model_init.py
 	python $< multi_state $* $@
 
@@ -478,14 +495,14 @@ multi_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MULTI_BEST)
 multi_score.tex: score.py multi_pass2.out
 	python $^ $@  --tex
 
-threshold_statistics.pkl: threshold_statistics.py $(MODELS)/c_model $(MULTI_BEST)
+threshold_statistics.pkl: threshold_statistics.py $(MULTI_BEST) $(MODELS)/high_classless $(MODELS)/low_classless
 	python $^ $@ $(APLUSNAMES) --resolution 1e-4 1e4 100
 
 threshold_statistics.pdf: plot_threshold_statistics.py threshold_statistics.pkl
 	python $^ $@
 
 #FIT_MB = --mb 1.0 0.0
-FIT_MB = --mb 0.94 0.006
+FIT_MB = --mb 0.797 -.0937
 
 fit2threshold.pdf: fit2threshold.py $(MULTI_BEST) threshold_statistics.pkl
 	python $^ --show --records $(APLUSNAMES) $(FIT_MB)

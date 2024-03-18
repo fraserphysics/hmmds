@@ -323,6 +323,11 @@ Performance of multi models with cheating:
 
 Performance without cheating
 
-3 normal states, 3 apnea states, threshold based on Pass1,
+2024-03-17: 3 normal states, 3 apnea states, threshold based on Pass1,
 log_likelihoods of 6 state model with classes trained on APLUSNAMES
-and c_model.  2094 errors.
+and c_model.  2094 errors on all training data.
+
+2024-03-18: Improve on yesterday by using models low_classless and
+high_classless instead of c_model and $(MULTI_BEST) for threshold
+calculations.  1940 errors on all training data.
+

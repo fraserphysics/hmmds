@@ -356,7 +356,9 @@ def make_varg(state_dict: dict, keys: list, rng,
     psi = numpy.empty((n_states, y_dim, y_dim))
     nu = numpy.empty(n_states)
 
-    class_index2state_indices = {0: [], 1: []}
+    has_class = 'class' in state_dict[keys[0]].observation
+    if has_class:
+        class_index2state_indices = {0: [], 1: []}
 
     for state_index, (key, parameters) in enumerate(
         (key, state_dict[key].observation) for key in keys):
@@ -367,16 +369,25 @@ def make_varg(state_dict: dict, keys: list, rng,
         psi[state_index] = varg['psi']
         nu[state_index] = varg['nu']
 
-        class_index2state_indices[parameters['class']].append(state_index)
+        if has_class:
+            class_index2state_indices[parameters['class']].append(state_index)
 
-    print(f'{class_index2state_indices=}')
+    if has_class:
+        return hmm.base.JointObservation(
+            {
+                'hr_respiration':
+                    hmm.observe_float.VARG(
+                        ar_coefficients, sigma, rng, Psi=psi, nu=nu),
+                'class':
+                    hmm.base.ClassObservation(class_index2state_indices),
+            },
+            power=args.power_dict)
+
     return hmm.base.JointObservation(
         {
             'hr_respiration':
                 hmm.observe_float.VARG(
-                    ar_coefficients, sigma, rng, Psi=psi, nu=nu),
-            'class':
-                hmm.base.ClassObservation(class_index2state_indices),
+                    ar_coefficients, sigma, rng, Psi=psi, nu=nu)
         },
         power=args.power_dict)
 
@@ -438,6 +449,43 @@ def multi_state(args, rng):
                                       p_successors,
                                       observation_copy,
                                       trainable=trainable)
+
+    result_hmm, state_key2state_index = dict2hmm(state_dict, make_varg, args,
+                                                 rng)
+
+    return result_hmm, state_dict, state_key2state_index
+
+
+@register  # Like multi_state, but for estimating threshold
+def classless(args, rng):
+    """Fully connected HMM with VARG models for respiration and heart rate
+
+    """
+
+    args.read_raw_y = hmmds.applications.apnea.model_init.read_lphr_respiration
+    observation_args = {
+        'hr_respiration': {
+            'sigma': numpy.eye(2) * 1.0e4,
+            'psi': numpy.array([[100.0, 0.0], [0.0, 2.0]]) * 1.0e2,
+            'nu': 1.0e2
+        }
+    }
+
+    v_dim = 2  # Dimension of varg observation
+    state_dict = {}
+    state_keys = '''state_0 state_1 state_2 state_3'''.split()
+    n_states = len(state_keys)
+    for state_key in state_keys:
+        p_successors = numpy.ones(n_states) / n_states
+
+        # Observation parameters for state
+        observation_copy = copy.deepcopy(observation_args)
+        temp = numpy.zeros((v_dim, v_dim * args.AR_order + 1))
+        temp[0, :] = rng.uniform(.8, 1.2)  # Break symmetry
+        observation_copy['hr_respiration']['coefficients'] = temp
+
+        state_dict[state_key] = State(state_keys, p_successors,
+                                      observation_copy)
 
     result_hmm, state_key2state_index = dict2hmm(state_dict, make_varg, args,
                                                  rng)
