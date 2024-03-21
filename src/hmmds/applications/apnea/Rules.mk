@@ -39,6 +39,8 @@ CNAMES = c01 c02 c03 c04 c05 c06 c07 c08 c09 c10
 
 NAMES = $(ANAMES) $(BNAMES) $(CNAMES) $(XNAMES)
 
+TRAIN_NAMES = $(ANAMES) $(BNAMES) $(CNAMES)
+
 # Local Variables:
 # mode: makefile
 # End:

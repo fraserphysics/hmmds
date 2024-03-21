@@ -470,22 +470,39 @@ def classless(args, rng):
             'nu': 1.0e2
         }
     }
+    noise_args = {
+        'hr_respiration': {
+            'sigma': numpy.array([[1.0e6, 0.0], [0.0, 1.0e4]]),
+            'psi': numpy.array([[1.0e6, 0.0], [0.0, 1.0e4]]) * 1.0e4,
+            'nu': 1.0e4
+        }
+    }
 
     v_dim = 2  # Dimension of varg observation
     state_dict = {}
-    state_keys = '''state_0 state_1 state_2 state_3'''.split()
+    state_keys = '''noise state_0 state_1 state_2 state_3'''.split()
     n_states = len(state_keys)
     for state_key in state_keys:
-        p_successors = numpy.ones(n_states) / n_states
+        p_successors = numpy.ones(n_states) / (n_states - 1)
+        trainable = [True] * n_states
+        for successor_index, successor_key in enumerate(state_keys):
+            if successor_key == 'noise':
+                p_successors[successor_index] = 1.0e-30
+                trainable[successor_index] = False
 
         # Observation parameters for state
-        observation_copy = copy.deepcopy(observation_args)
+        if state_key == 'noise':
+            observation_copy = copy.deepcopy(noise_args)
+        else:
+            observation_copy = copy.deepcopy(observation_args)
         temp = numpy.zeros((v_dim, v_dim * args.AR_order + 1))
         temp[0, :] = rng.uniform(.8, 1.2)  # Break symmetry
         observation_copy['hr_respiration']['coefficients'] = temp
 
-        state_dict[state_key] = State(state_keys, p_successors,
-                                      observation_copy)
+        state_dict[state_key] = State(state_keys,
+                                      p_successors,
+                                      observation_copy,
+                                      trainable=trainable)
 
     result_hmm, state_key2state_index = dict2hmm(state_dict, make_varg, args,
                                                  rng)

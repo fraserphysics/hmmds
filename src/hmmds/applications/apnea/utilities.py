@@ -917,7 +917,10 @@ class ModelRecord:
                         self.class_from_model[i]] += 1
         return self.counts.copy()
 
-    def best_threshold(self, minimum=0.001, maximum=250, levels=10):
+    def best_threshold(self: ModelRecord,
+                       minimum=0.001,
+                       maximum=250,
+                       levels=10):
         """Find rough approximation of threshold that minimizes error
 
         Args:
