@@ -357,9 +357,38 @@ MULTI_RS = .455
 # Detection threshold
 MULTI_THRESHOLD = 1.0
 
+# a18 1.0e-04
+# a09 1.0e-03
+# a12 1.0e-03
+# a02 1.0e-02
+# a11 1.0e-02
+# a20 1.0e-02
+# a04 1.0e-01
+# a05 1.0e-01
+# a06 1.0e-01
+# a15 1.0e-01
+# a01 1.0e+00
+# a10 1.0e+00
+# a13 1.0e+00
+# a16 1.0e+00
+# a17 1.0e+00
+# a19 1.0e+00
+# a07 1.0e+01
+# a08 1.0e+01
+# a14 1.0e+01
+# b02 1.0e+01
+# b03 1.0e+01
+# a03 1.0e+02
+# b01 1.0e+03
+# b04 1.0e+04
+# c08 1.0e+04
+# c10 1.0e+04
+
 ################### For calculating threshold #######################
 HIGH_THRESHOLD_RECORDS = a03 a07 a08 b01 b02 b03 b04 c08 c10  a08 a08
 LOW_THRESHOLD_RECORDS =  a02 a04 a05 a09 a11 a12 a18 a20   a18 a18
+#HIGH_THRESHOLD_RECORDS = a01 a10 a13 a16 a17 a19 a07 a08 a14 b02 b03 a03 b01 b04 c08 c10
+#LOW_THRESHOLD_RECORDS =  a18 a09 a12 a02 a11 a20 a04 a05 a06 a15 a01 a10 a13 a16 a17 a19
 
 $(MODELS)/classless_init: model_init.py
 	python $< --AR_order $(MULTI_AR) --model_sample_frequency $(MULTI_FS) --low_pass_period $(MULTI_LPP) --band_pass_center $(MULTI_RC) --band_pass_width $(MULTI_RW) --respiration_smooth $(MULTI_RS) classless $@

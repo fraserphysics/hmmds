@@ -1,9 +1,6 @@
-"""record_thresholds.py Best threshold for models for single records.
+"""record_thresholds.py Print best threshold for models for single records.
 
-python record_thresholds.py $(MULTI_BEST) $(MODELS)/class record_thresholds.pkl
-
-# record_thresholds['a01']() = best threshold for classifying data[a01] using
-# class[a01], $(MULTI_BEST)
+python record_thresholds.py $(MULTI_BEST)
 
 """
 from __future__ import annotations
@@ -11,10 +8,6 @@ from __future__ import annotations
 import sys
 import argparse
 import typing
-import pickle
-import os
-
-import numpy
 
 import utilities
 
@@ -32,8 +25,6 @@ def parse_args(argv):
                         default=(1.0e-4, 1.0e4, 10),
                         help="geometric range of thresholds")
     parser.add_argument('best_model', type=str, help="path to model")
-    parser.add_argument('class_model_dir', type=str, help="path to models")
-    parser.add_argument('result_path', type=str, help="path to pickle file")
     args = parser.parse_args(argv)
     utilities.join_common(args)
     args.low = float(args.resolution[0])
@@ -43,8 +34,7 @@ def parse_args(argv):
 
 
 def main(argv=None):
-    """Calculate various statistics and parameters for f(record) ->
-    threshold, and write to a pickle file
+    """Calculate best threshold for each record in APLUSNAMES
 
     """
 
@@ -53,36 +43,19 @@ def main(argv=None):
 
     args = parse_args(argv)
 
-    model_names = os.listdir(args.class_model_dir)
-    assert len(model_names) > 1
+    record_names = args.a_names + 'b01 b02 b03 b04 c08 c10'.split()
 
     result = {}
-    for model_name in model_names:
-        model_path = os.path.join(args.class_model_dir, model_name)
-        model_record = utilities.ModelRecord(model_path, model_name)
-        threshold_self = model_record.best_threshold(args.low, args.high,
-                                                     args.levels)
+    for record_name in record_names:
 
-        model_record = utilities.ModelRecord(args.best_model, model_name)
-        threshold_best_model = model_record.best_threshold(
-            args.low, args.high, args.levels)
+        model_record = utilities.ModelRecord(args.best_model, record_name)
+        result[record_name] = model_record.best_threshold(
+            args.low, args.high, args.levels)[0]
 
-        result[model_name] = (threshold_self, threshold_best_model)
+    record_names.sort(key=lambda x: result[x])
 
-        def print_one(pair):
-            print(f'{pair[0]:8.2e} ', end='')
-            for count in pair[1]:
-                print(f'{count:3d} ', end='')
-            print(f'{pair[1][1]+pair[1][2]:3d}# ', end='')
-
-        print(f'{model_name} ', end='')
-        print_one(threshold_self)
-        print_one(threshold_best_model)
-        print('')
-
-    with open(args.result_path, 'wb') as _file:
-        pickle.dump(result, _file)
-
+    for record_name in record_names:
+        print(f'{record_name} {result[record_name]:.1e}')
     return 0
 
 
