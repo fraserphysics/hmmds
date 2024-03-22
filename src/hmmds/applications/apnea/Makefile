@@ -357,41 +357,15 @@ MULTI_RS = .455
 # Detection threshold
 MULTI_THRESHOLD = 1.0
 
-# a18 1.0e-04
-# a09 1.0e-03
-# a12 1.0e-03
-# a02 1.0e-02
-# a11 1.0e-02
-# a20 1.0e-02
-# a04 1.0e-01
-# a05 1.0e-01
-# a06 1.0e-01
-# a15 1.0e-01
-# a01 1.0e+00
-# a10 1.0e+00
-# a13 1.0e+00
-# a16 1.0e+00
-# a17 1.0e+00
-# a19 1.0e+00
-# a07 1.0e+01
-# a08 1.0e+01
-# a14 1.0e+01
-# b02 1.0e+01
-# b03 1.0e+01
-# a03 1.0e+02
-# b01 1.0e+03
-# b04 1.0e+04
-# c08 1.0e+04
-# c10 1.0e+04
-
 ################### For calculating threshold #######################
-HIGH_THRESHOLD_RECORDS = a03 a07 a08 b01 b02 b03 b04 c08 c10  a08 a08
-LOW_THRESHOLD_RECORDS =  a02 a04 a05 a09 a11 a12 a18 a20   a18 a18
-#HIGH_THRESHOLD_RECORDS = a01 a10 a13 a16 a17 a19 a07 a08 a14 b02 b03 a03 b01 b04 c08 c10
-#LOW_THRESHOLD_RECORDS =  a18 a09 a12 a02 a11 a20 a04 a05 a06 a15 a01 a10 a13 a16 a17 a19
+HIGH_THRESHOLD_RECORDS = a01 a10 a13 a16 a17 a19 a07 a08 a14 b02 b03 a03 b01 b04 c08 c10
+LOW_THRESHOLD_RECORDS =  a18 a09 a12 a02 a11 a20 a04 a05 a06 a15 a01 a10 a13 a16 a17 a19
 
+# Defaults in utilities.py: AR none, FS 6, LPP 8.0, RC 16.0, RW 4.0, RS 1.5
+# Values for MULTI             12       4      65      13       3       .455
 $(MODELS)/classless_init: model_init.py
-	python $< --AR_order $(MULTI_AR) --model_sample_frequency $(MULTI_FS) --low_pass_period $(MULTI_LPP) --band_pass_center $(MULTI_RC) --band_pass_width $(MULTI_RW) --respiration_smooth $(MULTI_RS) classless $@
+	python $< --AR_order 12 --model_sample_frequency 4 --low_pass_period 9.0 \
+  --band_pass_center 12 --band_pass_width 3.3 --respiration_smooth 1.5 classless $@
 
 $(MODELS)/high_classless: apnea_train.py $(MODELS)/classless_init
 	python $^ $@ --records $(HIGH_THRESHOLD_RECORDS) --iterations 100
@@ -531,7 +505,7 @@ threshold_statistics.pdf: plot_threshold_statistics.py threshold_statistics.pkl
 	python $^ $@
 
 #FIT_MB = --mb 1.0 0.0
-FIT_MB = --mb 0.797 -.0937
+FIT_MB = --mb 0.927 0.0305
 
 fit2threshold.pdf: fit2threshold.py $(MULTI_BEST) threshold_statistics.pkl
 	python $^ --show --records $(APLUSNAMES) $(FIT_MB)
@@ -543,48 +517,6 @@ fit_mb_pass2.out: pass2.py pass1.out threshold_statistics.pkl
 
 fit_mb_score.tex: score.py fit_mb_pass2.out
 	python $^ $@  --tex
-
-
-####################################################################
-BARE_LIKELIHOODS = $(ApneaDerivedData)/bare_likelihoods.pkl
-RECORD_THRESHOLDS = $(ApneaDerivedData)/record_thresholds.pkl
-bare: $(addprefix $(MODELS)/bare/, $(NAMES))
-	touch $@
-# Because records c01, c03, c04, and c08 have no apnea minutes,
-# training them from $(MULTI_BEST) crashes.
-class: $(addprefix $(MODELS)/class/, $(ANAMES) $(BNAMES))
-	touch $@
-
-$(MODELS)/bare/%: apnea_train.py $(MODELS)/classless_init
-	mkdir -p $(@D)
-	python $^ $@ --records $* --iterations 20
-$(MODELS)/class/%: apnea_train.py $(MULTI_BEST)
-	mkdir -p $(@D)
-	python $^ $@ --records $* --iterations 200
-
-# bare_likelihoods['a01']['a02'] = log(prob(data[a02]|bare[a01]))
-
-# record_thresholds['a01']() = best threshold for classifying data[a01] using
-# class[a01], $(MULTI_BEST)
-$(BARE_LIKELIHOODS): bare_likelihoods.py bare
-	python bare_likelihoods.py $(MODELS)/bare $@
-
-# 5 levels -> 0m10.270s.  20 levels -> 0m35.700s
-$(RECORD_THRESHOLDS): record_thresholds.py class
-	python record_thresholds.py --resolution 1.0e-3 1.0e3 50 $(MULTI_BEST) $(MODELS)/class $@
-
-neighbors_pass2.out: neighbors_pass2.py pass1.out $(BARE_LIKELIHOODS) $(RECORD_THRESHOLDS)
-	#python $^ $(MODELS)/class temp
-	python $^ $(MULTI_BEST) temp
-	cp temp $@
-
-neighbors_score.tex: score.py neighbors_pass2.out
-	python $^ $@  --tex
-####################################################################
-####################################################################
-####################################################################
-####################################################################
-
 ## yapf                          : Force google format on all python code
 .PHONY : yapf
 yapf :
@@ -597,8 +529,8 @@ clean:
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo BARE: $(BARE)
-	@echo CLASS: $(CLASS)
+	@echo VAR_MULTI: $(VAR_MULTI)
+	@echo MULTI_ARs: $(MULTI_ARs)
 	@echo V4S_BEST: $(V4S_BEST)
 	@echo MULTI_BEST: $(MULTI_BEST)
 

@@ -118,8 +118,8 @@ def main(argv=None):
     """
 
     # For detail of minimum
-    #m_s = numpy.linspace(.795, 0.802, 50)  # Slope m
-    #b_s = numpy.linspace(-0.097, -.092, 50)  # y intercept b
+    # m_s = numpy.linspace(0.925, .928, 50)  # Slope m
+    # b_s = numpy.linspace(0.028, .034, 50)  # y intercept b
     # For ~ quadratic looking minima
     m_s = numpy.linspace(0.5, 1.5, 21)  # Slope m
     b_s = numpy.linspace(-1, 1, 21)  # y intercept b
