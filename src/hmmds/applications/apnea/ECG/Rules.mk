@@ -76,7 +76,50 @@ $(ECG)/%_self_AR3/states: $(ECGCode)/ecg_decode.py $(ECG)/%_self_AR3/unmasked_tr
 $(ECG)/%_self_AR3/likelihood: $(ECGCode)/ecg_likelihood.py $(ECG)/%_self_AR3/unmasked_trained
 	python $^ $* $@
 $(ECG)/%_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/%_self_AR3/states $(ECG)/%_self_AR3/likelihood
-	python $< --r_state 35 --likelihood $(ECG)/$*_self_AR3/likelihood --censor 0.02 $(ECG)/$*_self_AR3/states $@
+	python $< --r_state 35 --likelihood $(ECG)/$*_self_AR3/likelihood 0.02 $(ECG)/$*_self_AR3/states $@
+
+##########Special rules for records with arrhythmia#############################
+$(ECG)/x11_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/x11_self_AR3/states $(ECG)/x11_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG)/x11_self_AR3/likelihood 0.01 \
+--ecg_peaks x11 0.03 --hr_dips 55 $(ECG)/x11_self_AR3/states $@
+
+$(ECG)/x13_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/x13_self_AR3/states $(ECG)/x13_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG)/x13_self_AR3/likelihood 0.02 \
+--ecg_peaks x13 -0.05 $(ECG)/x13_self_AR3/states $@
+
+$(ECG)/x19_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/x19_self_AR3/states $(ECG)/x19_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG)/x19_self_AR3/likelihood 0.1 \
+$(ECG)/x19_self_AR3/states $@
+
+# Special model for x26.  alpha and beta force variance 0.016 for all normal states.  Otherwise noisy ecg between beats gets assigned to R part of cycle.
+$(ECG)/x26_self_AR3/initial: $(ECGCode)/model_init.py
+	mkdir -p  $(@D)
+	python $(ECGCode)/model_init.py --root ${ROOT} --records x26 --tag_ecg \
+--ecg_alpha_beta 1.0e8 0.016e8 --noise_parameters 1.0e6 1.0e8 1.0e-50 \
+--before_after_slow 18 30 10 --AR_order 3 masked_dict $@
+
+$(ECG)/x26_self_AR3/masked_trained: $(ECGCode)/train.py $(ECG)/x26_self_AR3/initial
+	python $< --records x26 --type segmented --iterations 5 \
+$(ECG)/x26_self_AR3/initial $@ >  $(ECG)/x26_self_AR3/masked.log
+$(ECG)/x26_self_AR3/unmasked_hmm: $(ECGCode)/declass.py $(ECG)/x26_self_AR3/masked_trained
+	python $^ $@
+$(ECG)/x26_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/x26_self_AR3/unmasked_hmm
+	mkdir -p $(@D)
+	python $< --records x26 --type segmented --iterations 10 $(ECG)/x26_self_AR3/unmasked_hmm $@ >  $@.log
+
+$(ECG)/x26_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/x26_self_AR3/states $(ECG)/x26_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG)/x26_self_AR3/likelihood 0.03 \
+--ecg_peaks x26 -0.03 --hr_dips 48 $(ECG)/x26_self_AR3/states $@
+
+$(ECG)/%_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/a01_trained_AR3/unmasked_trained
+	mkdir -p $(@D)
+	python $< --records $* --type segmented --iterations 10 $(ECG)/a01_trained_AR3/unmasked_trained $@ >  $@.log
+$(ECG)/%_self_AR3/states: $(ECGCode)/ecg_decode.py $(ECG)/%_self_AR3/unmasked_trained
+	python $^ $* $@
+$(ECG)/%_self_AR3/likelihood: $(ECGCode)/ecg_likelihood.py $(ECG)/%_self_AR3/unmasked_trained
+	python $^ $* $@
+$(ECG)/%_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/%_self_AR3/states $(ECG)/%_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG)/$*_self_AR3/likelihood 0.02 $(ECG)/$*_self_AR3/states $@
 
 ##### Special rules for records that don't work with models trained on a01 ########
 $(ECG)/a12_self_AR3/initial: model_init.py

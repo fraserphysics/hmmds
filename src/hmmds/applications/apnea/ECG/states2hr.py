@@ -14,6 +14,8 @@ import pint
 import numpy
 import numpy.fft
 
+import hmmds.applications.apnea.ECG.utilities
+
 PINT = pint.UnitRegistry()
 
 
@@ -23,12 +25,19 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser(
         description='Calculate heart rate from decoded states')
-    parser.add_argument('--likelihood',
+    hmmds.applications.apnea.ECG.utilities.common_arguments(parser)
+    parser.add_argument(
+        '--likelihood',
+        type=str,
+        nargs=2,
+        help='[path to p(y[t]|y[:t]),  fraction of data to censor]')
+    parser.add_argument('--ecg_peaks',
                         type=str,
-                        help='path to time series of p(y[t]|y[:t]).')
-    parser.add_argument('--censor',
+                        nargs=2,
+                        help='[path to ecg,  fraction of data to censor]')
+    parser.add_argument('--hr_dips',
                         type=float,
-                        help='Fraction of data to censor')
+                        help='Drop long interbeat intervals')
     parser.add_argument('--samples_per_minute', type=int, default=10)
     parser.add_argument('--r_state',
                         type=int,
@@ -42,41 +51,48 @@ def parse_args(argv):
     parser.add_argument('heart_rate_file',
                         type=str,
                         help='Path to heart rate data')
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    hmmds.applications.apnea.ECG.utilities.join_common(args)
+    return args
 
 
-def find_beats_and_periods(states: numpy.ndarray,
-                           r_state=35,
-                           outlier_state=0,
-                           likelihood=None,
-                           censor_fraction=0):
+def find_beats_and_periods(states: numpy.ndarray, r_state=35, outlier_state=0):
     """Args:
         states: State sequence from Viterbi decoding
         r_state: Defines beat time
         outlier_state: The state for ECG samples that are implausible.
-        likelihood: p(y[t]|y[:t])
-        censor_fraction: Fraction of intervals to reject based on likelihood
 
     Return: The pair (array of integer times and periods, set of bad
     intervals)
 
-    Bad intervals contain atypical or implausible signal segments.
-    Integer beat times at the start of such intervals tracks the set.
+    bad_intervals indicate atypical or implausible signal segments.
+    Elements of bad_intervals are integer beat times at the start such
+    segments.
 
     """
     bad_intervals = set()
 
     r_indices = numpy.nonzero(states == r_state)[0]
     time_period = numpy.empty((len(r_indices) - 1, 2), dtype=int)
-    time_period[:, 0] = r_indices[:-1]
-    time_period[:, 1] = r_indices[1:] - r_indices[:-1]
+    time_period[:, 0] = r_indices[:-1]  # The times
+    time_period[:, 1] = r_indices[1:] - r_indices[:-1]  # The periods
+
+    # If outlier_state occurs in an interval, it is bad
     for (time, period) in time_period:
         if numpy.count_nonzero(states[time:time + period] == outlier_state) > 0:
             bad_intervals.add(time)
-    if likelihood is None:
-        assert censor_fraction == 0
-        return time_period, bad_intervals
+    return time_period, bad_intervals
 
+
+def censor_likelihood(time_period, bad_intervals, likelihood, censor_fraction):
+    """Censor times with low likelihood
+
+    Args:
+        time_period: time_period[i,0] = integer time of beat, time_period[i,1] is period
+        bad_itervals: Set of integer times to censor
+        likelihood: p(y[t]|y[:t])
+        censor_fraction: Fraction of intervals to reject based on likelihood
+    """
     period_likelihood = numpy.empty(len(time_period))
     for i, (time, period) in enumerate(time_period):
         period_likelihood[i] = likelihood[time:time + period].min()
@@ -85,6 +101,42 @@ def find_beats_and_periods(states: numpy.ndarray,
     threshold = sorted_[int(censor_fraction * len(sorted_))]
     bad_intervals.update(
         time_period[numpy.nonzero(period_likelihood < threshold)[0], 0])
+    return time_period, bad_intervals
+
+
+def censor_peak(time_period, bad_intervals, ecg, peak_fraction):
+    """Censor times with bad prominence
+
+    Args:
+        time_period: time_period[i,0] = integer time of beat, time_period[i,1] = period
+        bad_itervals: Set of integer times to censor
+        ecg: Time series
+        peak_fraction: Fraction of intervals to reject based on peak
+    """
+    if peak_fraction < 0:
+        ecg = ecg.copy() * -1
+        peak_fraction *= -1
+
+    peak = numpy.array([ecg[t:t + d].max() for t, d in time_period])
+    pointers = numpy.argsort(peak)
+    threshold = peak[pointers[int((1 - peak_fraction) * len(pointers))]]
+
+    indices = numpy.nonzero(peak > threshold)[0]
+    bad_intervals.update(time_period[indices, 0])
+    return time_period, bad_intervals
+
+
+def censor_dips(time_period, bad_intervals, min_hr):
+    """Censor times with long periods
+
+    Args:
+        time_period: time_period[i,0] = integer time of beat, time_period[i,1] is period
+        bad_itervals: Set of integer times to censor
+        min_hr: Minimum heart rate in beats per minute
+    """
+    max_period = 60 * 100 / min_hr
+    indices = numpy.nonzero(time_period[:, 1] > max_period)[0]
+    bad_intervals.update(time_period[indices, 0])
     return time_period, bad_intervals
 
 
@@ -187,14 +239,33 @@ def main(argv=None):
     args = parse_args(argv)
     with open(args.states_file, 'rb') as _file:
         states = pickle.load(_file)
-    with open(args.likelihood, 'rb') as _file:
-        likelihood = pickle.load(_file)
 
     input_sample_frequency = 100 * PINT('Hz')
     time_out = len(states) / input_sample_frequency
 
-    time_period, bad_intervals = find_beats_and_periods(
-        states, likelihood=likelihood, censor_fraction=args.censor)
+    time_period, bad_intervals = find_beats_and_periods(states, args.r_state)
+
+    if args.likelihood:
+        with open(args.likelihood[0], 'rb') as _file:
+            likelihood = pickle.load(_file)
+        fraction = float(args.likelihood[1])
+        time_period, bad_intervals = censor_likelihood(time_period,
+                                                       bad_intervals,
+                                                       likelihood, fraction)
+
+    if args.ecg_peaks:
+        ecg_path = os.path.join(args.rtimes, args.ecg_peaks[0] + ".ecg")
+        with open(ecg_path, 'rb') as _file:
+            _dict = pickle.load(_file)
+        ecg = _dict["raw"]
+        fraction = float(args.ecg_peaks[1])
+        time_period, bad_intervals = censor_peak(time_period, bad_intervals,
+                                                 ecg, fraction)
+
+    if args.hr_dips:
+        time_period, bad_intervals = censor_dips(time_period, bad_intervals,
+                                                 args.hr_dips)
+
     hr_dict = calculate(time_period, bad_intervals, time_out)
     with open(args.heart_rate_file, 'wb') as _file:
         pickle.dump(hr_dict, _file)
