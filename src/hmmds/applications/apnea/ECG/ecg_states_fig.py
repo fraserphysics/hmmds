@@ -63,12 +63,8 @@ def main(argv=None):
     ecg_axes.plot(times, ecg[n_start:n_stop])
     states_axes.plot(times, states[n_start:n_stop])
 
-    # Legends for all axes
-    for axis in (ecg_axes, states_axes):
-        axis.legend()
-
     # Force matching ticks
-    ecg_axes.get_shared_x_axes().join(ecg_axes, states_axes)
+    ecg_axes.sharex(states_axes)
 
     # Drop tick labels
     ecg_axes.set_xticklabels([])

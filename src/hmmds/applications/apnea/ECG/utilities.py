@@ -150,19 +150,25 @@ def read_train_log(path: str) -> numpy.ndarray:
 
     """
 
-    def parse_line(line):
-        result = {}
-        parts = line.split()
-        for i, key in enumerate(parts):
-            if (key[0] == 'L' and len(key) > 1) or key in 'prior U/n'.split():
-                result[key] = float(parts[i + 1])
-        return result
+    def parse_lines(lines):
+        results = []
+        for line in lines:
+            parts = line.split()
+            if len(parts) == 0 or not parts[0].isdigit():
+                continue
+            result = {}
+            for i, key in enumerate(parts):
+                if (key[0] == 'L' and
+                        len(key) > 1) or key in 'prior U/n'.split():
+                    result[key] = float(parts[i + 1])
+            results.append(result)
+        return results
 
-    with open(path, 'r') as log_file:
+    with open(path, encoding='utf-8', mode='r') as log_file:
         lines = log_file.readlines()
-    column_dict = {key: [value] for key, value in parse_line(lines[0]).items()}
-    for line in lines[1:]:
-        _dict = parse_line(line)
+    parsed = parse_lines(lines)
+    column_dict = {key: [value] for key, value in parsed[0].items()}
+    for _dict in parsed[1:]:
         for key, value in _dict.items():
             column_dict[key].append(value)
     for key, value in column_dict.items():
