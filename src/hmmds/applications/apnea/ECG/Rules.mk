@@ -111,6 +111,8 @@ $(ECG)/x26_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/x26_self_AR3/stat
 	python $< --r_state 35 --likelihood $(ECG)/x26_self_AR3/likelihood 0.03 \
 --ecg_peaks x26 -0.03 --hr_dips 48 $(ECG)/x26_self_AR3/states $@
 
+
+
 $(ECG)/%_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/a01_trained_AR3/unmasked_trained
 	mkdir -p $(@D)
 	python $< --records $* --type segmented --iterations 10 $(ECG)/a01_trained_AR3/unmasked_trained $@ >  $@.log
@@ -124,10 +126,9 @@ $(ECG)/%_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/%_self_AR3/states $
 ##### Special rules for records that don't work with models trained on a01 ########
 $(ECG)/a12_self_AR3/initial: model_init.py
 	mkdir -p  $(@D)
-	python $(ECGCode)/model_init.py --root ${ROOT} --records a12 \
---peak_scale -.2 --tag_ecg --ecg_alpha_beta 1.0e3 1.0e2 \
---noise_parameters 1.0e6 1.0e8 1.0e-50 --before_after_slow 18 30 2 \
---AR_order 3 masked_dict $@
+	python $(ECGCode)/model_init.py --root ${ROOT} --records a12 --tag_ecg \
+--ecg_alpha_beta 1.0e8 0.016e8 --noise_parameters 1.0e6 1.0e8 1.0e-50 \
+--before_after_slow 18 30 10 --AR_order 3 masked_dict $@
 
 $(ECG)/a12_self_AR3/masked_trained: $(ECGCode)/train.py $(ECG)/a12_self_AR3/initial
 	python $<  --records a12 --type segmented --iterations 5 \
@@ -138,6 +139,10 @@ $(ECG)/a12_self_AR3/unmasked_hmm: $(ECGCode)/declass.py $(ECG)/a12_self_AR3/mask
 
 $(ECG)/a12_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/a12_self_AR3/unmasked_hmm
 	python $< --records a12 --type segmented --iterations 20 $(@D)/unmasked_hmm $@ >  $@.log
+
+$(ECG)/a12_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/a12_self_AR3/states $(ECG)/a12_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG)/a12_self_AR3/likelihood 0.03 \
+--ecg_peaks a12 -0.03 --hr_dips 48 $(ECG)/a12_self_AR3/states $@
 
 $(ECG)/c07_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/c10_self_AR3/unmasked_trained
 	python $< --records c07 --type segmented --iterations 20 $(ECG)/c10_self_AR3/unmasked_trained $@ >  $@.log

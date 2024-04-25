@@ -6,8 +6,9 @@ ABSROOT = $(abspath $(ROOT))
 HMMDS = $(ROOT)/src/hmmds
 BUILD = $(ROOT)/build
 
-# Default target
-ds23.pdf:
+# Default target.  Note: ecg.pdf depends indirectly on
+# $(ECG)/all_selves, and building $(ECG)/all_selves builds the heart
+# rate files that I use for apnea detection.
 ecg.pdf:
 
 include Rules.mk
