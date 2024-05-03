@@ -110,7 +110,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
             ('fine T', -50, 50, 0),
                 # From .1 second to 9 hours in minutes
             ('Delta T', numpy.log(.1 / 60), numpy.log(540), numpy.log(540)),
-            ('Specific', numpy.log(1.0e-20), numpy.log(1.0e20), numpy.log(1)),
+            ('Threshold', -4, 4, 0),
         ):
             self.variable[name] = Variable(name, minimum, maximum, initial,
                                            self)
@@ -136,6 +136,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         hr = pyqtgraph.GraphicsLayoutWidget(title="Heart Rate")
         hr_plot = hr.addPlot()
+        hr_plot.setYRange(40, 120)
         hr_plot.addLegend()
         self.hr_dict = {
             'curves': [
@@ -150,6 +151,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         filter = pyqtgraph.GraphicsLayoutWidget(title="Filtered HR")
         filter_plot = filter.addPlot()
+        filter_plot.setYRange(-10, 10)
         filter_plot.addLegend()
         self.filter_dict = {
             'curves': [
@@ -245,7 +247,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         if signals is None:
             print(f'No signals to plot.')
             return
-        start = self.variable['T']() + self.variable['fine T']() / 50
+        start = self.variable['T']() + self.variable['fine T']() / 5
         stop = start + numpy.exp(self.variable['Delta T']())
         window = [start, stop]
         for curve, signal in zip(curves, signals):
@@ -387,7 +389,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
     ):
         self.model_record = utilities.ModelRecord(self.model_box.text(),
                                                   self.record_box.text())
-        self.model_record.classify(numpy.exp(self.variable['Specific']()))
+        self.model_record.classify(10**self.variable['Threshold']())
         self.model_record.score()
         self.plot_classification()
 
@@ -482,7 +484,7 @@ class Variable(PyQt5.QtWidgets.QWidget):
         self.spin.disconnect()  # Avoid loop with setValue
         self.spin.setValue(self.x)
         self.spin.valueChanged.connect(self.spin_changed)
-        if self.label.text() == 'Specific':
+        if self.label.text() == 'Threshold':
             self.main_window.new_classification()
         self.main_window.update_plots()
 
