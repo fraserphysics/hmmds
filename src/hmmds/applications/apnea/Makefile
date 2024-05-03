@@ -29,7 +29,10 @@ DEFAULT_ARGS = --root $(ROOT) \
 
 # Optimize pass2 parameters over these files classified as A or near
 # boundary by pass1.
-APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
+APLUSNAMES = $(ANAMES) b01 b02 c02 c09 c10
+
+event-2-answers:
+	wget --no-check-certificate https://www.physionet.org/files/challenge-2000/1.0.0/event-2-answers
 
 ########################Build hand_opt.pdf####################################
 
@@ -37,7 +40,7 @@ LIST_ERRORS = ar fs lpp rc rw rs
 v4sERRORS = $(addsuffix .pdf, $(addprefix v4s_errors_vs_, $(LIST_ERRORS)))
 abcdERRORS = $(addsuffix .pdf, $(addprefix abcd_, $(LIST_ERRORS)))
 cheatERRORS = $(addsuffix .pdf, $(addprefix cheat_, $(LIST_ERRORS)))
-MultiCheatERRORS = $(addsuffix .pdf, $(addprefix multi_cheat_, $(LIST_ERRORS)))
+MultiCheatERRORS = $(addsuffix .pdf, $(addprefix multi_cheat_, $(LIST_ERRORS)) fit2threshold)
 v4sTHRESHOLDS = $(addsuffix .pdf, $(addprefix v4s_threshold_, a02 a09 c10))
 HANDOPT_FIGS = $(v4sERRORS) $(v4sTHRESHOLDS) $(cheatERRORS) $(MultiCheatERRORS) shift_threshold.pdf v4s_threshold.pdf
 hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) v4s_score.tex abcd_score.tex cheat_score.tex multi_score.tex fit_mb_score.tex
@@ -45,6 +48,9 @@ hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) v4s_score.tex abcd_score.tex cheat_sc
 
 ################################################################################
 
+# FixMe: What should best_model be?
+
+BEST_MODEL = default
 # Lengths of time series for each training record
 lengths.txt: test_alignment.py $(BEST_MODEL)
 	python $< --model $(BEST_MODEL) > $@
@@ -84,6 +90,9 @@ c_model: $(MODELS)/c_model
 
 c_model_viz.pdf: model_viz.py c_model
 	python $^ $@
+
+pass1.out: pass1.py
+	python $< --trim 20 --border .36 $@
 
 ########### 4 states with VARG and no interval observation, V4S ###########
 
@@ -358,8 +367,8 @@ MULTI_RS = .455
 MULTI_THRESHOLD = 1.0
 
 ################### For calculating threshold #######################
-HIGH_THRESHOLD_RECORDS = a01 a10 a13 a16 a17 a19 a07 a08 a14 b02 b03 a03 b01 b04 c08 c10
-LOW_THRESHOLD_RECORDS =  a18 a09 a12 a02 a11 a20 a04 a05 a06 a15 a01 a10 a13 a16 a17 a19
+HIGH_THRESHOLD_RECORDS = a01 a08 a13 a14 a17 b02 a03 a07 c02 b01 c09 c10
+LOW_THRESHOLD_RECORDS = a18 a02 a09 a11 a12 a20 a04 a05 a06 a10 a15 a16 a19
 
 # Defaults in utilities.py: AR none, FS 6, LPP 8.0, RC 16.0, RW 4.0, RS 1.5
 # Values for MULTI             12       4      65      13       3       .455
@@ -505,10 +514,10 @@ threshold_statistics.pdf: plot_threshold_statistics.py threshold_statistics.pkl
 	python $^ $@
 
 #FIT_MB = --mb 1.0 0.0
-FIT_MB = --mb 0.927 0.0305
+FIT_MB = --mb 0.9547 -0.217
 
 fit2threshold.pdf: fit2threshold.py $(MULTI_BEST) threshold_statistics.pkl
-	python $^ --show --records $(APLUSNAMES) $(FIT_MB)
+	python $^ --records $(APLUSNAMES) $(FIT_MB) --fig_path $@
 
 fit_mb_pass2.out: pass2.py pass1.out threshold_statistics.pkl
 	python $< --model_paths $(MODELS)/c_model $(MULTI_BEST) \
@@ -533,7 +542,7 @@ variables:
 	@echo MULTI_ARs: $(MULTI_ARs)
 	@echo V4S_BEST: $(V4S_BEST)
 	@echo MULTI_BEST: $(MULTI_BEST)
-
+	@echo MultiCheatERRORS: $(MultiCheatERRORS)
 ## help                           : Print comments on targets from makefile
 .PHONY : help
 help : Makefile

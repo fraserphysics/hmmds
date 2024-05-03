@@ -117,19 +117,20 @@ def main(argv=None):
 
     """
 
-    # For detail of minimum
-    # m_s = numpy.linspace(0.925, .928, 50)  # Slope m
-    # b_s = numpy.linspace(0.028, .034, 50)  # y intercept b
-    # For ~ quadratic looking minima
-    m_s = numpy.linspace(0.5, 1.5, 21)  # Slope m
-    b_s = numpy.linspace(-1, 1, 21)  # y intercept b
-
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
     m, b = args.mb
+
+    # For ~ quadratic looking minima
+    m_s = numpy.linspace(m - 1, m + 1, 21)  # Slope m
+    b_s = numpy.linspace(b - 1.5, b + 1.5, 21)  # y intercept b
+    # For detail of minimum
+    #m_s = numpy.linspace(m-.002, m+.002, 50)  # Slope m
+    #b_s = numpy.linspace(b-.002, b+.002, 50)  # y intercept b
+
     if args.records is None:
         args.records = args.a_names
 
@@ -151,6 +152,7 @@ def main(argv=None):
     # Scatter plot of records
     for name, model_record in model_records.items():
         min_threshold = model_record.best_threshold()[0]
+        print(f'{name} {numpy.log10(min_threshold):5.2f}')
         log_fit = statistics.record[name].log_fit
         min_axes.semilogy(
             log_fit,

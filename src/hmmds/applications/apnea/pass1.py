@@ -41,11 +41,6 @@ def parse_args(argv):
         type=float,
         default=0.36,
         help='Border between normal and apnea for whole records')
-    parser.add_argument(
-        '--model',
-        type=str,
-        default='../../../../build/derived_data/apnea/models/two_ar3_masked6',
-        help='Path to model')
     parser.add_argument('--format',
                         type=str,
                         default='{0}/{1}_self_AR3/heart_rate',

@@ -292,6 +292,18 @@ Here are some ideas for further improvements:
   \label{fig:multi_cheat}
 \end{figure}
 
+\begin{figure}
+  \centering
+  \resizebox{0.9\textwidth}{!}{\includegraphics{fit2threshold.pdf}}
+  \caption[Functions from record statistics to threshold.]{The best
+  threshold for each training record is plotted against a naive fit
+  $x=\text{log\_fit}$ in the top plot.  The line in the top
+  plot is the function $f(x) = m\cdot x +b$ for thresholds that
+  minimizes error on the training set.  Error counts versus parameters
+  $m$ and $b$ appear in the lower plots}
+  \label{fig:fit2threshold}
+\end{figure}
+
 \begin{table*}
   \centering
   \input{multi_score.tex}
@@ -340,3 +352,127 @@ have generalized to the x-files.  It didn't work well at all.
 \$(MODELS)/low_classless that give statistics for the threshold
 function.  1805 errors on all training data.  N_minutes = 6457 + 10155
 = 16612.  Error fraction is 1805/16612 = 0.109.
+
+2024-03-23: Found deadline for submission to SciPy-24 was Feb 27 and
+that meeting will be in Tacoma.  I won't go.  I'm ready to move beyond
+tinkering with models for the apnea data.  I wrote to PhysioNet asking
+how to score classification of testing data.
+
+2024-04-29 Changed training set from: APLUSNAMES =
+$(ANAMES) b01 b02 b03 b04 c08 c10 to: APLUSNAMES = $(ANAMES) b01 b02
+c02 c09 c10 because the derived heart rates for c08, b03, and b04 have
+unsatisfactory spikes.  After modifying the training set performance
+in Table 4 (multi state with cheat threshold) dropped to 1424, 0.09,
+and the values in Table 5 (uses the best m and b values) were 2337
+0.14.  The optimum parameter values stayed the same
+
+Plan:
+
+1. Review x-files and consider modifying QRS code to address failures.
+
+2. View x-files and estimate best threshold for each.
+
+3. Create submission file based on thresholds from code.
+
+4. Create submission file based on thresholds from viewing data.
+
+5. If possible score test data using cheat best threshold for each
+file.
+
+6. Combine heart_rate.tex and hand_opt.tex into document that reports
+on interesting or valuable lessons from my work on the apnea data.
+
+7. Rewrite last chapter of the book.
+
+8. Revise software including build of book.
+
+9. Start asking for help.
+
+Here are notes on the apnea data:
+
+Guesses about which x-files are ``Normal'' (like c-files) based on:
+
+Pass1   Visual
+x04     x04
+x06     x06
+x11     x11
+x17     x17
+x22     x22
+x24     x24
+x29     x29
+x33     x33
+x34     x34
+x35     x35
+
+x11 has atypical beats, but my QRS code tracks and provides OK heart
+rate
+
+x29 has alternans.  I think it's a ``Normal'' record
+
+x26 Has atypical beats and my QRS code occasionally also fails for
+normal beats.  I think that the atypical beats queers the training and
+leads to the failures on normal beats.
+
+Here are the thresholds to use for the x-files (first column from
+python printfit.py default threshold_statistics.pkl ):
+
+Record  Fit    Visual  QRS OK?
+x01     0.42    -1.7   yes
+x02     2.19     1.0   yes
+x03     1.15     1.1   yes
+x04     2.81     3.4   extra beats
+x05     0.55     0.0   yes
+x06     0.94     2.8   yes
+x07    -1.64    -1.0   yes
+x08     0.92    -0.4   yes
+x09    -2.00     0.3   yes
+x10    -0.26     0.0   yes    
+x11    -1.39           Arrhythmia ?PVC distorts resp
+x12     1.12     0.4   yes
+x13    -1.66    -0.3   Arrhythmia, negative ecg spikes
+x14    -1.92    -0.7   yes
+x15     0.49    -0.6   yes
+x16    -0.06     0.2   yes
+x17     1.48           yes  c?
+x18     0.95    -2.3   yes
+x19     3.73     0.4   yes Some arrhythmia, but ok
+x20     0.19    -0.7   yes
+x21     0.10           yes
+x22     0.22           yes
+x23    -1.48           yes
+x24     3.75           yes
+x25     0.04           yes
+x26    -1.46     0.0   arrhythmia and extra beats
+x27    -0.68           yes
+x28    -0.86           yes
+x29    10.66           yes But serious arrhythima
+x30    -0.58     0.8   yes
+x31     5.00           yes
+x32     2.08           yes
+x33     0.19           yes
+x34     0.22           yes
+x35     0.08           yes
+
+X33 and x34 are shifted measurements of the same event.
+
+x04 OK after about t=88
+
+x11 QRS-HMM is OK.  Easy to see PVC peaks in ECG.  At coarse time
+scale, I can't separate PVC peaks from low frequency excursions.
+Solution: Mask positive peaks 3\%, low likelihood 1\%, and long
+inter-beat periods (hr=55bpm)
+
+x13 QRS-HMM is OK.  Easy to see PVC valleys in ECG.  Solution: Mask on
+negative peaks 5\% and low likelihood 1\%.
+
+x19 QRS-HMM is OK, but Arrhythmia may cause high fit threshold that
+throws off classification.  Solution: Mask on low likelihood 10\% and
+set threshold to 1.2
+
+x26 QRS-HMM inserts extra beats.  Arrhythmia missing R.  Solution:
+Custom alpha-beta variance prior.  Mask on negative peaks 3\%, low
+likelihood 3\%, and long inter-beat periods (48 bpm).
+
+x29 QRS-HMM is OK.  Episodes of arrhythmia with frequent premature
+beats.  Sometimes every 5th beat is premature.  Solution: Mark this
+record as normal and don't fix the derived signals.

@@ -110,8 +110,10 @@ def analyze(name,
     else:
         model_record.classify(threshold)
     model_record.score()
-    if abcd and cheat:
-        print(f'{name} {threshold} {cheat_threshold}')
+    if mb and cheat:
+        print(
+            f'{name} {numpy.log10(threshold):7.3f} {numpy.log10(cheat_threshold):7.3f}'
+        )
 
     model_record.formatted_result(report, expert=False)
     if not debug:
@@ -150,13 +152,13 @@ def main(argv=None):
         if os.path.basename(model_path) == 'c_model':
             analyze(name, model_path, args.result, threshold=args.threshold)
             continue
-        if args.abcd and args.cheat:
+        if args.mb and args.cheat:
             analyze(name,
                     model_path,
                     args.result,
-                    abcd=args.abcd,
+                    mb=args.mb,
                     cheat=args.cheat,
-                    statistics=shift_statistics)
+                    statistics=statistics)
             continue
         if args.abcd:
             analyze(name,

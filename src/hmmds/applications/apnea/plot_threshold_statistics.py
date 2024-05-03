@@ -35,6 +35,15 @@ def parse_args(argv):
     return args
 
 
+def print_thresholds(statistics):
+    """Print list of records and best thresholds sorted by threshold
+    """
+    names = list(statistics.keys())
+    names.sort(key=lambda x: statistics[x][5])
+    for name in names:
+        print(f'{name} {statistics[name][5]}')
+
+
 def main(argv=None):
     """Plot best thresholds on training data against various statistics
 
@@ -48,6 +57,7 @@ def main(argv=None):
     with open(args.parameter_path, 'rb') as _file:
         record_names, fit, statistics = pickle.load(_file)
 
+    # print_thresholds(statistics)
     fig, (pass1_axes, like_a_axes, like_c_axes,
           fit_axes) = pyplot.subplots(nrows=4, ncols=1, figsize=(8, 12))
 

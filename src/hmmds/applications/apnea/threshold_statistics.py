@@ -1,6 +1,6 @@
 """threshold_statistics.py Calculate statistics of records for map to threshold
 
-python threshold_statistics.py c_model default result.pkl a01 a02 ...
+python threshold_statistics.py default hight_classless low_classless result.pkl a01 a02 ...
 
 """
 from __future__ import annotations
