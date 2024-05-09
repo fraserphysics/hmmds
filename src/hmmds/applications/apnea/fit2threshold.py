@@ -152,8 +152,9 @@ def main(argv=None):
     # Scatter plot of records
     for name, model_record in model_records.items():
         min_threshold = model_record.best_threshold()[0]
-        print(f'{name} {numpy.log10(min_threshold):5.2f}')
         log_fit = statistics.record[name].log_fit
+        log_best = numpy.log10(min_threshold)
+        print(f'{name} {log_best:5.2f} {log_fit:5.2f} {log_best-log_fit:5.2f}')
         min_axes.semilogy(
             log_fit,
             min_threshold,

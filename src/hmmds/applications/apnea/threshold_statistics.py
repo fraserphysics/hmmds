@@ -43,6 +43,12 @@ def parse_args(argv):
 class ModelRecord(utilities.ModelRecord):
 
     def __init__(self: ModelRecord, model_path: str, record_name: str):
+        """Assign values of statistics to self.
+
+        Args:
+            model_path: Path to HMM.  Observation models include 'class'
+            record_name: EG, 'a01'
+        """
         utilities.ModelRecord.__init__(self, model_path, record_name)
 
         # Calculate statistics
@@ -51,9 +57,11 @@ class ModelRecord(utilities.ModelRecord):
         if self.has_class:
             class_model = self.model.y_mod['class']  # Save
             del self.model.y_mod['class']
+            #self.weights = self.model.weights(self.y_raw_data).sum(axis=0)
             p_yt_steps = self.model.likelihood(self.y_raw_data[0])
             self.model.y_mod['class'] = class_model  # Restore for future use
         else:
+            #self.weights = self.model.weights(self.y_raw_data).sum(axis=0)
             p_yt_steps = self.model.likelihood(self.y_raw_data[0])
         self.log_likelihood = numpy.log(p_yt_steps).sum()
 
@@ -77,6 +85,7 @@ class Fit:
         Use numpy.linalg.lstsq(a,b) to compute the vector x that
         approximately solves the equation a @ x = b where
 
+        #a[i,j] is for record i and j = [Pass1, @p_states]
         a[i,j] is for record i and j = [Pass1, log_like_a, log_like_c, 1]
 
         b[i] is log(best_threshold) for record i
@@ -93,6 +102,16 @@ class Fit:
             b[i] = numpy.log(a_model_record[name].get_threshold(
                 low, high, levels))
         self.coefficients = numpy.linalg.lstsq(a, b, rcond=None)[0]
+
+    def model_record2a(self, model_record):
+        """
+        """
+        result = numpy.empty(self.n_states + 1)
+        weights = model_record.weights
+        assert weights.shape == (self.n_states,)
+        result[1:] = weights/weights.sum()
+        result[0] = model_record.pass1
+        return result
 
     def threshold(self, a_model_record, high_model_record, low_model_record):
         """Calculate estimated threshold as affine function of

@@ -48,7 +48,7 @@ def main(argv=None):
     if args.records:
         record_names = args.records
     else:
-        record_names = args.a_names + 'b01 b02 c02 c09 c10'.split()
+        record_names = args.a_names + 'b01 b02 b03 b04 c08 c10'.split()
 
     result = {}
     for record_name in record_names:

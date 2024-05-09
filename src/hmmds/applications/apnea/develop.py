@@ -291,6 +291,33 @@ eigenvectors:
         result = weights_apnea > weights_normal * threshold
         return result
 
+    def estimate_missing(self: HMM,
+                         y: list,
+                         missing: str,
+                         power: dict = None) -> list:
+        """ Estimate a sequence of missing data
+        Args:
+            y: List with single element that is a time series of measurements
+            missing: key for missing component of y
+            power: Exponential weights of observation components
+
+        Returns:
+            Time series of estimated values of missing data
+
+        Derived from class_estimate.
+        """
+        missing_model = self.y_mod[missing]
+        del self.y_mod[missing]
+        if power:
+            self.y_mod.power = power
+        weights = self.weights(y)
+        self.y_mod[missing] = missing_model  # Restore for future use
+
+        result = []
+        for weight in weights:
+            result.append(numpy.dot(self.y_mod[missing].mu, weight))
+        return numpy.array(result)
+
 
 class ItemScoreT:
     """For list that is sorted by a function of score and t

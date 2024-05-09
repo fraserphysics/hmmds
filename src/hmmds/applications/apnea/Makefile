@@ -352,17 +352,17 @@ v4s_score.tex: score.py v4s_pass2.out
 ########### MULTI: Like V4S but more states ###########
 
 # AutoRegressive order
-MULTI_AR = 12
+MULTI_AR = 7
 # Model sample frequency cpm
 MULTI_FS = 4
 # Low Pass Period seconds
 MULTI_LPP = 65
 # Respiration Center frequency cpm
-MULTI_RC = 13
+MULTI_RC = 15
 # Respiration Width cpm
 MULTI_RW = 3.0
 # Filter for Respiration Smoothing in cpm.
-MULTI_RS = .455
+MULTI_RS = .44
 # Detection threshold
 MULTI_THRESHOLD = 1.0
 
@@ -434,12 +434,12 @@ multi_errors_vs_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MULTI))
 --parameter_name "Sample Frequency" $@ > multi_errors_vs_fs.txt
 
 multi_cheat_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MULTI))
-	$(COMPARE_CHEAT) --models $(VFS_MULTI) --parameters $(V4S_FSs) \
+	$(COMPARE_CHEAT) --models $(VFS_MULTI) --parameters $(MULTI_FSs) \
     --parameter_name "Sample Frequency" \
     $@ > multi_cheat_fs.txt
 
 # Sensitivity to Low Pass Period in seconds.
-MULTI_LPPs = 55 57.5 60 65 70 75 85
+MULTI_LPPs = 45 50 55 57.5 60 65 70 75 85
 LPP_MULTI = $(addsuffix rc$(MULTI_RC)rw$(MULTI_RW)rs$(MULTI_RS)_masked, $(addprefix \
     multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp, \
     $(MULTI_LPPs)))
@@ -454,7 +454,7 @@ multi_cheat_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MULTI))
     $@ > multi_cheat_lpp.txt
 
 # Sensitivity to Respiration Center frequency in cpm
-MULTI_RCs = 10 11 11.5 12 12.5 13 14 15 16
+MULTI_RCs = 12 13 14 14.5 15 15.5 16 16.5 17
 RC_MULTI = $(addsuffix rw$(MULTI_RW)rs$(MULTI_RS)_masked, $(addprefix \
     multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc, \
     $(MULTI_RCs)))
@@ -469,7 +469,7 @@ multi_cheat_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MULTI))
     $@ > multi_cheat_rc.txt
 
 # Sensitivity to Respiration width frequency in cpm
-MULTI_RWs = 1.0 2.0 2.9 3.0 3.1 3.5 3.7 3.9 4.0
+MULTI_RWs = 2.5 2.6 2.6 2.8 2.9 3.0 3.1 3.5 3.7 3.9 4.0 4.1 4.2
 RW_MULTI = $(addsuffix rs$(MULTI_RS)_masked, $(addprefix \
     multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc$(MULTI_RC)rw, \
     $(MULTI_RWs)))
@@ -484,7 +484,7 @@ multi_cheat_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MULTI))
     $@ > multi_cheat_rw.txt
 
 # Sensitivity to Respiration Smoothing frequency in cpm
-MULTI_RSs = .41 .42 .43 .44 .445 .45 .455 .46 .47 .48
+MULTI_RSs = .42 .43 .435 .44 .445 .45 .46
 RS_MULTI = $(addsuffix _masked, $(addprefix \
     multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc$(MULTI_RC)rw$(MULTI_RW)rs, \
     $(MULTI_RSs)))
