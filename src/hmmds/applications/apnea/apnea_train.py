@@ -52,6 +52,7 @@ def main(argv=None):
         # self.args.read_y_class(self.args, record_name)
         hmm.base.JointSegment(reader(record)) for record in args.records)
 
+    numpy.seterr(divide='raise', invalid='raise')
     model.multi_train(y_data, args.iterations)
 
     model.strip()

@@ -527,6 +527,8 @@ def read_expert(path: str, name: str) -> numpy.ndarray:
     Returns:
         array with array[t] = 0 for normal, and array[t] = 1 for apnea
 
+    The sample frequency of the result is 1/minute.
+
     """
     mark_dict = {'N': 0, 'A': 1}
     with open(path, encoding='utf-8', mode='r') as data_file:

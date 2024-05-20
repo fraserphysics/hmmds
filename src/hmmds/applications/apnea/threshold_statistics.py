@@ -109,7 +109,7 @@ class Fit:
         result = numpy.empty(self.n_states + 1)
         weights = model_record.weights
         assert weights.shape == (self.n_states,)
-        result[1:] = weights/weights.sum()
+        result[1:] = weights / weights.sum()
         result[0] = model_record.pass1
         return result
 

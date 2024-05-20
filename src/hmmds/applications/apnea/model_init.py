@@ -30,6 +30,9 @@ def parse_args(argv):
                         nargs=2,
                         default=(5.0e1, 1.0e1),
                         help="Paramters of inverse gamma prior for variance")
+    parser.add_argument("--reference_model",
+                        type=str,
+                        help="Path to model for calculating thresholds")
     parser.add_argument(
         'key',
         type=str,
@@ -155,6 +158,26 @@ def read_lphr_respiration(args, record_name):
                           args.respiration_smooth, low_pass_width)
 
     return hr_instance.dict(keys, item_args)
+
+
+def read_lphr_respiration_threshold(args, record_name):
+    """
+    """
+
+    keys = 'hr_respiration'.split()
+    item_args = {'hr_respiration': {'pad': args.AR_order}}
+
+    hr_instance = utilities.HeartRate(args, record_name)
+    resp_pass_center = args.band_pass_center
+    resp_pass_width = args.band_pass_width
+    low_pass_width = 1 / args.low_pass_period
+    hr_instance.filter_hr(resp_pass_center, resp_pass_width,
+                          args.respiration_smooth, low_pass_width)
+
+    _dict = hr_instance.dict(keys, item_args)
+    _dict['threshold'] = numpy.ones(
+        hr_instance.n_model) * args.name2threshold[record_name]
+    return _dict
 
 
 @register  # Model for "c" records
@@ -328,7 +351,8 @@ def four_state(args, rng):
 
 def make_varg(state_dict: dict, keys: list, rng,
               args) -> hmm.base.JointObservation:
-    """Return a JointObservation instance with components "hr_respiration" and "class"
+    """Return a JointObservation instance with components
+    "hr_respiration" and "class" or "threshold"
 
     Args:
         state_dict: Parameters for s in state_dict[s].observation
@@ -339,7 +363,8 @@ def make_varg(state_dict: dict, keys: list, rng,
     Return: result with
 
     result["hr_respiration"] is a VARG instance
-    result['class'] is a hmm.base.ClassObservation instance
+    option: result['class'] is a hmm.base.ClassObservation instance
+    option: result['threshold'] is a hmm.observe_float.GaussMAP instance
 
     """
 
@@ -360,6 +385,13 @@ def make_varg(state_dict: dict, keys: list, rng,
     if has_class:
         class_index2state_indices = {0: [], 1: []}
 
+    has_threshold = 'threshold' in state_dict[keys[0]].observation
+    if has_threshold:
+        mu = numpy.empty(n_states)
+        variance = numpy.empty(n_states)
+        alpha = numpy.empty(n_states)
+        beta = numpy.empty(n_states)
+
     for state_index, (key, parameters) in enumerate(
         (key, state_dict[key].observation) for key in keys):
 
@@ -372,6 +404,12 @@ def make_varg(state_dict: dict, keys: list, rng,
         if has_class:
             class_index2state_indices[parameters['class']].append(state_index)
 
+        if has_threshold:
+            mu[state_index] = parameters['threshold']['mu']
+            variance[state_index] = parameters['threshold']['variance']
+            alpha[state_index] = parameters['threshold']['alpha']
+            beta[state_index] = parameters['threshold']['beta']
+
     if has_class:
         return hmm.base.JointObservation(
             {
@@ -380,6 +418,17 @@ def make_varg(state_dict: dict, keys: list, rng,
                         ar_coefficients, sigma, rng, Psi=psi, nu=nu),
                 'class':
                     hmm.base.ClassObservation(class_index2state_indices),
+            },
+            power=args.power_dict)
+
+    if has_threshold:
+        return hmm.base.JointObservation(
+            {
+                'hr_respiration':
+                    hmm.observe_float.VARG(
+                        ar_coefficients, sigma, rng, Psi=psi, nu=nu),
+                'threshold':
+                    hmm.observe_float.GaussMAP(mu, variance, rng, alpha, beta)
             },
             power=args.power_dict)
 
@@ -508,6 +557,93 @@ def classless(args, rng):
                                                  rng)
 
     return result_hmm, state_dict, state_key2state_index
+
+
+@register  # Has threshold as component of observation
+def threshold(args, rng):
+    """Fully connected HMM with VARG models for respiration and heart
+    rate and Gaussian models for threshold
+
+    """
+
+    v_dim = 2  # Dimension of varg observation
+    coefficients = numpy.zeros((v_dim, v_dim * args.AR_order + 1))
+    coefficients[0, :] = 1.0
+
+    args.read_raw_y = hmmds.applications.apnea.model_init.read_lphr_respiration_threshold
+    observation_args = {
+        'hr_respiration': {
+            'sigma': numpy.eye(2) * 1.0e4,
+            'psi': numpy.array([[0.4, 0.0], [0.0, 0.00006]]) * 1.0e4,
+            'nu': 1.0e4,
+            'coefficients': coefficients
+        },
+        'threshold': {
+            'mu': 0.0,
+            'variance': 1.0,
+            'alpha': 1e4,
+            'beta': 1e4
+        }
+    }
+    noise_args = {
+        'hr_respiration': {
+            'sigma': numpy.eye(2) * 1.0e8,
+            'psi': numpy.eye(2) * 1.0e10,
+            'nu': 1.0e6,
+            'coefficients': coefficients
+        },
+        'threshold': {
+            'mu': 0.0,
+            'variance': 9.0,
+            'alpha': 1e4,
+            'beta': 1e5
+        }
+    }
+
+    state_dict = {}
+    key_mu = [(f'state{x}', x) for x in numpy.arange(-3, 3.1, .5)
+             ] + [('noise', .1)]
+    state_keys = [x[0] for x in key_mu]
+    n_states = len(state_keys)
+    for state_key, mu in key_mu:
+        p_successors = numpy.ones(n_states) / (n_states - 1)
+        trainable = [True] * n_states
+        for successor_index, successor_key in enumerate(state_keys):
+            if successor_key == 'noise':
+                p_successors[successor_index] = 1.0e-30
+                trainable[successor_index] = False
+
+        # Observation parameters for state
+        if state_key == 'noise':
+            observation_copy = copy.deepcopy(noise_args)
+        else:
+            observation_copy = copy.deepcopy(observation_args)
+            observation_copy['threshold']['mu'] = mu
+
+        state_dict[state_key] = State(state_keys,
+                                      p_successors,
+                                      observation_copy,
+                                      trainable=trainable)
+
+    args.name2threshold = name2threshold(args, levels=10)
+    result_hmm, state_key2state_index = dict2hmm(state_dict, make_varg, args,
+                                                 rng)
+
+    return result_hmm, state_dict, state_key2state_index
+
+
+def name2threshold(args, levels=50):
+    """Calculate best thresholds for each training record
+    """
+
+    result = {}
+    for record_name in args.a_names + args.b_names + args.c_names:
+        model_record = utilities.ModelRecord(args.reference_model, record_name)
+        result[record_name] = numpy.log10(
+            model_record.best_threshold(minimum=1.0e-3,
+                                        maximum=250,
+                                        levels=levels)[0])
+    return result
 
 
 def main(argv=None):

@@ -29,7 +29,7 @@ DEFAULT_ARGS = --root $(ROOT) \
 
 # Optimize pass2 parameters over these files classified as A or near
 # boundary by pass1.
-APLUSNAMES = $(ANAMES) b01 b02 c02 c09 c10
+APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
 
 event-2-answers:
 	wget --no-check-certificate https://www.physionet.org/files/challenge-2000/1.0.0/event-2-answers
@@ -352,23 +352,30 @@ v4s_score.tex: score.py v4s_pass2.out
 ########### MULTI: Like V4S but more states ###########
 
 # AutoRegressive order
-MULTI_AR = 7
+MULTI_AR = 12
 # Model sample frequency cpm
 MULTI_FS = 4
 # Low Pass Period seconds
 MULTI_LPP = 65
 # Respiration Center frequency cpm
-MULTI_RC = 15
+MULTI_RC = 13
 # Respiration Width cpm
 MULTI_RW = 3.0
 # Filter for Respiration Smoothing in cpm.
-MULTI_RS = .44
+MULTI_RS = .455
 # Detection threshold
 MULTI_THRESHOLD = 1.0
 
 ################### For calculating threshold #######################
-HIGH_THRESHOLD_RECORDS = a01 a08 a13 a14 a17 b02 a03 a07 c02 b01 c09 c10
-LOW_THRESHOLD_RECORDS = a18 a02 a09 a11 a12 a20 a04 a05 a06 a10 a15 a16 a19
+HIGH_THRESHOLD_RECORDS = a01 a10 a13 a16 a17 a19 a07 a08 a14 b02 b03 a03 b01 b04 c08 c10
+LOW_THRESHOLD_RECORDS =  a18 a09 a12 a02 a11 a20 a04 a05 a06 a15 a01 a10 a13 a16 a17 a19
+
+$(MODELS)/threshold_init: model_init.py $(MULTI_BEST)
+	python $< --AR_order $(MULTI_AR) --model_sample_frequency $(MULTI_FS) --low_pass_period $(MULTI_LPP) \
+  --band_pass_center $(MULTI_RC) --band_pass_width $(MULTI_RW) --respiration_smooth $(MULTI_RS) --reference_model $(MULTI_BEST) threshold $@
+
+$(MODELS)/threshold: apnea_train.py $(MODELS)/threshold_init
+	python $^ $@ --records $(APLUSNAMES) --iterations 100
 
 # Defaults in utilities.py: AR none, FS 6, LPP 8.0, RC 16.0, RW 4.0, RS 1.5
 # Values for MULTI             12       4      65      13       3       .455
@@ -439,7 +446,7 @@ multi_cheat_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MULTI))
     $@ > multi_cheat_fs.txt
 
 # Sensitivity to Low Pass Period in seconds.
-MULTI_LPPs = 45 50 55 57.5 60 65 70 75 85
+MULTI_LPPs = 55 57.5 60 65 70 75 85
 LPP_MULTI = $(addsuffix rc$(MULTI_RC)rw$(MULTI_RW)rs$(MULTI_RS)_masked, $(addprefix \
     multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp, \
     $(MULTI_LPPs)))
@@ -454,7 +461,7 @@ multi_cheat_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MULTI))
     $@ > multi_cheat_lpp.txt
 
 # Sensitivity to Respiration Center frequency in cpm
-MULTI_RCs = 12 13 14 14.5 15 15.5 16 16.5 17
+MULTI_RCs = 10 11 11.5 12 12.5 13 14 15 16
 RC_MULTI = $(addsuffix rw$(MULTI_RW)rs$(MULTI_RS)_masked, $(addprefix \
     multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc, \
     $(MULTI_RCs)))
@@ -469,7 +476,7 @@ multi_cheat_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MULTI))
     $@ > multi_cheat_rc.txt
 
 # Sensitivity to Respiration width frequency in cpm
-MULTI_RWs = 2.5 2.6 2.6 2.8 2.9 3.0 3.1 3.5 3.7 3.9 4.0 4.1 4.2
+MULTI_RWs = 1.0 2.0 2.9 3.0 3.1 3.5 3.7 3.9 4.0
 RW_MULTI = $(addsuffix rs$(MULTI_RS)_masked, $(addprefix \
     multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc$(MULTI_RC)rw, \
     $(MULTI_RWs)))
@@ -484,7 +491,7 @@ multi_cheat_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MULTI))
     $@ > multi_cheat_rw.txt
 
 # Sensitivity to Respiration Smoothing frequency in cpm
-MULTI_RSs = .42 .43 .435 .44 .445 .45 .46
+MULTI_RSs = .41 .42 .43 .44 .445 .45 .455 .46 .47 .48
 RS_MULTI = $(addsuffix _masked, $(addprefix \
     multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc$(MULTI_RC)rw$(MULTI_RW)rs, \
     $(MULTI_RSs)))
@@ -514,7 +521,7 @@ threshold_statistics.pdf: plot_threshold_statistics.py threshold_statistics.pkl
 	python $^ $@
 
 #FIT_MB = --mb 1.0 0.0
-FIT_MB = --mb 0.9547 -0.217
+FIT_MB = --mb 0.927 0.0305
 
 fit2threshold.pdf: fit2threshold.py $(MULTI_BEST) threshold_statistics.pkl
 	python $^ --records $(APLUSNAMES) $(FIT_MB) --fig_path $@

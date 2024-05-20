@@ -295,7 +295,7 @@ eigenvectors:
                          y: list,
                          missing: str,
                          power: dict = None) -> list:
-        """ Estimate a sequence of missing data
+        """Estimate a sequence of missing data
         Args:
             y: List with single element that is a time series of measurements
             missing: key for missing component of y
@@ -304,7 +304,9 @@ eigenvectors:
         Returns:
             Time series of estimated values of missing data
 
-        Derived from class_estimate.
+        Derived from class_estimate.  I wrote this to estimate the
+        best threshold for a record.
+
         """
         missing_model = self.y_mod[missing]
         del self.y_mod[missing]
