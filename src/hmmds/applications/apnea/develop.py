@@ -291,6 +291,29 @@ eigenvectors:
         result = weights_apnea > weights_normal * threshold
         return result
 
+    def weights_missing(self: HMM,
+                         y: list,
+                         missing: str,
+                         power: dict = None) -> numpy.ndarray:
+        """Calculate state probabilities for observations that are missing a component
+        Args:
+            y: List with single element that is a time series of measurements
+            missing: key for missing component of y
+            power: Exponential weights of observation components
+
+        Returns:
+            Time series w[t,i] = Prob state[t] = i given y
+
+
+        """
+        missing_model = self.y_mod[missing]
+        del self.y_mod[missing]
+        if power:
+            self.y_mod.power = power
+        weights = self.weights(y)
+        self.y_mod[missing] = missing_model  # Restore for future use
+        return weights
+
     def estimate_missing(self: HMM,
                          y: list,
                          missing: str,
@@ -299,6 +322,7 @@ eigenvectors:
         Args:
             y: List with single element that is a time series of measurements
             missing: key for missing component of y
+            coefficients: Optional replacement for means
             power: Exponential weights of observation components
 
         Returns:
@@ -308,12 +332,7 @@ eigenvectors:
         best threshold for a record.
 
         """
-        missing_model = self.y_mod[missing]
-        del self.y_mod[missing]
-        if power:
-            self.y_mod.power = power
-        weights = self.weights(y)
-        self.y_mod[missing] = missing_model  # Restore for future use
+        weights = self.weights_missing(y, missing, power)
 
         result = []
         for weight in weights:

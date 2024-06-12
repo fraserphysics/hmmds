@@ -371,11 +371,12 @@ HIGH_THRESHOLD_RECORDS = a01 a10 a13 a16 a17 a19 a07 a08 a14 b02 b03 a03 b01 b04
 LOW_THRESHOLD_RECORDS =  a18 a09 a12 a02 a11 a20 a04 a05 a06 a15 a01 a10 a13 a16 a17 a19
 
 $(MODELS)/threshold_init: model_init.py $(MULTI_BEST)
-	python $< --AR_order $(MULTI_AR) --model_sample_frequency $(MULTI_FS) --low_pass_period $(MULTI_LPP) \
-  --band_pass_center $(MULTI_RC) --band_pass_width $(MULTI_RW) --respiration_smooth $(MULTI_RS) --reference_model $(MULTI_BEST) threshold $@
+	python $< --AR_order 2 --model_sample_frequency 2 --low_pass_period $(MULTI_LPP) \
+ --band_pass_center $(MULTI_RC) --band_pass_width $(MULTI_RW) --respiration_smooth $(MULTI_RS) \
+ --power_dict hr_respiration .25 threshold 4 --reference_model $(MULTI_BEST) threshold $@
 
 $(MODELS)/threshold: apnea_train.py $(MODELS)/threshold_init
-	python $^ $@ --records $(APLUSNAMES) --iterations 100
+	python $^ $@ --records $(APLUSNAMES) --iterations 300
 
 # Defaults in utilities.py: AR none, FS 6, LPP 8.0, RC 16.0, RW 4.0, RS 1.5
 # Values for MULTI             12       4      65      13       3       .455
@@ -514,7 +515,7 @@ multi_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MULTI_BEST)
 multi_score.tex: score.py multi_pass2.out
 	python $^ $@  --tex
 
-threshold_statistics.pkl: threshold_statistics.py $(MULTI_BEST) $(MODELS)/high_classless $(MODELS)/low_classless
+threshold_statistics.pkl: threshold_statistics.py $(MODELS)/threshold
 	python $^ $@ $(APLUSNAMES) --resolution 1e-4 1e4 100
 
 threshold_statistics.pdf: plot_threshold_statistics.py threshold_statistics.pkl
@@ -523,6 +524,8 @@ threshold_statistics.pdf: plot_threshold_statistics.py threshold_statistics.pkl
 #FIT_MB = --mb 1.0 0.0
 FIT_MB = --mb 0.927 0.0305
 
+# Make scatter plot of thresholds for selected records (best vs fit).
+# Also print fit and best thresholds
 fit2threshold.pdf: fit2threshold.py $(MULTI_BEST) threshold_statistics.pkl
 	python $^ --records $(APLUSNAMES) $(FIT_MB) --fig_path $@
 
