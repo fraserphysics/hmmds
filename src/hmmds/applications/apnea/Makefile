@@ -5,6 +5,7 @@
 ROOT = ../../../..
 HMMDS = $(ROOT)/src/hmmds
 BUILD = $(ROOT)/build
+DERIVED_APNEA_DATA = $(BUILD)/derived_data/apnea
 
 # default target
 heart_rate.pdf:
@@ -63,8 +64,11 @@ report.ps: report.txt
 like_table.tex: like_table.py $(MODELS)/unmasked_all_ac
 	python like_table.py --trim_start 25 $@
 
-statistics.pdf: statistic_plots.py $(BEST_MODEL)
-	python statistic_plots.py --trim 20 --model $(BEST_MODEL) $@
+$(DERIVED_APNEA_DATA)/statistics%.pkl: threshold_statistics.py
+	python $< --resolution -3 3 100 --trim 20 --fft_width $* --result_path $@ $(MULTI_BEST) $(ANAMES) b01 b02 b03 b04 c01 c02 c03 c05 c07 c08 c09 c10
+
+statistics.pdf: statistic_plots.py $(DERIVED_APNEA_DATA)/statistics64.pkl $(DERIVED_APNEA_DATA)/statistics2048.pkl
+	python $^ --fig_path $@ > statistics.txt
 
 ## test                           : Run tests defined in test.py
 .PHONY : test
@@ -77,7 +81,7 @@ SmallSlow = a06 a09
 #          14  15  12  18  10  13  14  16  12  12  15  16
 EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
 # Save the initial files for debugging
-.PRECIOUS: $(MODELS)/%_initial $(MODELS)/%_masked
+.PRECIOUS: $(MODELS)/%_initial $(MODELS)/%_masked $(DERIVED_APNEA_DATA)/statistics%.pkl
 
 $(MODELS)/c_model_init: model_init.py
 	python $< --model_sample_frequency 12 --AR_order 5 c_model $@
@@ -401,7 +405,7 @@ MULTI_BEST = $(MODELS)/multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc$(MULTI_
 
 
 $(MODELS)/default: $(MULTI_BEST)
-	ln -s $< $@
+	ln -sf $< $@
 
 default: $(MULTI_BEST)
 	ln -sf $< $@
@@ -536,6 +540,10 @@ fit_mb_pass2.out: pass2.py pass1.out threshold_statistics.pkl
 
 fit_mb_score.tex: score.py fit_mb_pass2.out
 	python $^ $@  --tex
+
+%score.tex: score.py %pass2.out
+	python $^ $@  --tex
+
 ## yapf                          : Force google format on all python code
 .PHONY : yapf
 yapf :
