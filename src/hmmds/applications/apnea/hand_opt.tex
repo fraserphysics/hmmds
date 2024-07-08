@@ -340,7 +340,7 @@ log_likelihoods of 6 state model with classes trained on APLUSNAMES
 and c_model.  2094 errors on all training data.
 
 2024-03-18: Improve on yesterday by using models low_classless and
-high_classless instead of c_model and $(MULTI_BEST) for threshold
+high_classless instead of c_model and \$(MULTI_BEST) for threshold
 calculations.  1940 errors on all training data.
 
 2024-03-20: Finished attempt to use one model for each training
@@ -390,19 +390,25 @@ on interesting or valuable lessons from my work on the apnea data.
 
 Here are notes on the apnea data:
 
+x-files with untrimmed beginnings: 01, 04, 06, 18, 22, 24, 26, 28, 29,
+35
+
 Guesses about which x-files are ``Normal'' (like c-files) based on:
 
-Pass1   Visual
-x04     x04
+Pass1   Visual 64   128 1024 2048 4096
+                    x03            x03
+x04     x04    x04  x04  x04  x04  x04
 x06     x06
-x11     x11
-x17     x17
-x22     x22
-x24     x24
-x29     x29
-x33     x33
-x34     x34
-x35     x35
+x11     x11              x11  x11  x11
+                                   x15
+x17     x17              x17
+                    x18  x18  x18
+x22     x22    x22  x22  x22  x22  x22
+x24     x24              x24  x24  x24
+x29     x29    x29       x29  x29  x29
+x33     x33    x33  x33  x33  x33  x33
+x34     x34    x34  x34  x34  x34  x34
+x35     x35    x35  x35  x35  x35  x35
 
 x11 has atypical beats, but my QRS code tracks and provides OK heart
 rate
@@ -453,7 +459,8 @@ x33     0.19           yes
 x34     0.22           yes
 x35     0.08           yes
 
-X33 and x34 are shifted measurements of the same event.
+X33 and x34 are shifted measurements of the same event, as are c05 and
+c06.
 
 x04 OK after about t=88
 
@@ -507,3 +514,59 @@ b04  2.40  3.26 -0.86
 c08  2.40  3.17 -0.77
 c10  2.40  0.34  2.06
      best  fit   difference
+
+2024-06-15 Start on HMM called ``threshold'' for estimating thresholds
+delta threshold = .12 n_states = 42
+
+errors=1294
+a01 -1.00 -0.31 -0.69
+a02 -2.33 -2.72  0.39 [...]
+
+2024-06-21 But with 42 degrees of freedom, one can fit 26 thresholds
+exactly.
+
+Changes: (1) Limit rank of SVD to 8; (2) VARG covariance the same for
+all states except noise;  (3) Use 100 steps between -3 and +3 for
+calculating the best thresholds.
+
+Makefile says --power_dict hr_respiration .25 threshold 4
+
+Rank = 8, delta mu = .2, variance = .49 n_states = 26
+errors=1926
+    best  fit   difference  in qxfit2threshold
+a01 -0.03 -0.62  0.59
+a02 -2.21 -1.45 -0.76 [...]
+
+Why is minimum of fit thresholds -1.45?
+
+delta mu = .2, variance = 0.04, n_states = 26
+***Training failed***
+
+delta mu = .2, variance = 0.09, n_states = 26
+errors=2120
+    best  fit   difference  in qxfit2threshold
+a01 -0.03  0.19 -0.22
+a02 -2.21  0.11 -2.32
+
+delta mu = .1, variance = 0.09, n_states = 50
+***Training failed***
+
+delta mu = .1, variance = 0.25, n_states = 50, rank = 8
+errors=2038
+    best  fit   difference  in qxfit2threshold
+a01 -0.03 -0.83  0.80
+a02 -2.21 -0.33 -1.89
+
+delta mu = .1, variance = 1.0, n_states = 50, rank = 8
+errors=2136
+    best  fit   difference  in qxfit2threshold
+a01 -0.03 -0.69  0.66
+a02 -2.21 -1.08 -1.13
+minimum of fit is -1.08 occurs for 8 records
+
+delta mu = .05, variance = 1.0, n_states = 98, rank = 9
+errors=2047
+    best  fit   difference  in qxfit2threshold
+a01 -0.03 -0.03 -0.00
+a02 -2.21 -1.45 -0.76
+minimum of fit is -1.45 occurs for 7 records

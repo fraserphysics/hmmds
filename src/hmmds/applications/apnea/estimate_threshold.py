@@ -48,7 +48,9 @@ def main(argv=None):
     for record in args.records:
         y_data = [hmm.base.JointSegment(reader(args, record))]
         estimate = model.estimate_missing(y_data, 'threshold')
-        print(f'{record} {estimate.mean():5.2f} {estimate.min()=:5.2f} {estimate.max()=:5.2f}')
+        print(
+            f'{record} {estimate.mean():5.2f} {estimate.min()=:5.2f} {estimate.max()=:5.2f}'
+        )
 
     return 0
 

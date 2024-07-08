@@ -292,9 +292,9 @@ eigenvectors:
         return result
 
     def weights_missing(self: HMM,
-                         y: list,
-                         missing: str,
-                         power: dict = None) -> numpy.ndarray:
+                        y: list,
+                        missing: str,
+                        power: dict = None) -> numpy.ndarray:
         """Calculate state probabilities for observations that are missing a component
         Args:
             y: List with single element that is a time series of measurements
