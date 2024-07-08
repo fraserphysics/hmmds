@@ -919,21 +919,18 @@ class ModelRecord:
                         self.class_from_model[i]] += 1
         return self.counts.copy()
 
-    def best_threshold(self: ModelRecord,
-                       minimum=0.001,
-                       maximum=250,
-                       levels=10):
+    def best_threshold(self: ModelRecord, minimum=-3.0, maximum=3.0, levels=10):
         """Find rough approximation of threshold that minimizes error
 
         Args:
-            minimum: Bottom of range of thresholds
-            maximum: Top of range of thresholds
+            minimum: Bottom of range of log_10 thresholds
+            maximum: Top of range of log_10 thresholds
             levels: Number of thresholds considered
 
         Return: (best_threshold, class_counts)
 
         """
-        thresholds = numpy.geomspace(minimum, maximum, levels)
+        thresholds = numpy.geomspace(10**minimum, 10**maximum, levels)
         objective_values = numpy.zeros(levels, dtype=int)
         counts = numpy.empty((levels, 4), dtype=int)
         for i, threshold in enumerate(thresholds):
@@ -941,7 +938,7 @@ class ModelRecord:
             counts[i, :] = self.score()
             objective_values[i] = counts[i, 1] + counts[i, 2]
         best_i = numpy.argmin(objective_values)
-        return thresholds[best_i], counts[best_i]
+        return numpy.log10(thresholds[best_i]), counts[best_i]
 
     def cheat(self: ModelRecord):
         """ classify using expert to find best threshold
