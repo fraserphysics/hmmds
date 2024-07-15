@@ -64,12 +64,6 @@ report.ps: report.txt
 like_table.tex: like_table.py $(MODELS)/unmasked_all_ac
 	python like_table.py --trim_start 25 $@
 
-$(DERIVED_APNEA_DATA)/statistics%.pkl: threshold_statistics.py
-	python $< --resolution -3 3 100 --trim 20 --fft_width $* --result_path $@ $(MULTI_BEST) $(ANAMES) b01 b02 b03 b04 c01 c02 c03 c05 c07 c08 c09 c10
-
-statistics.pdf: statistic_plots.py $(DERIVED_APNEA_DATA)/statistics64.pkl $(DERIVED_APNEA_DATA)/statistics2048.pkl
-	python $^ --fig_path $@ > statistics.txt
-
 ## test                           : Run tests defined in test.py
 .PHONY : test
 test:
@@ -409,6 +403,13 @@ $(MODELS)/default: $(MULTI_BEST)
 
 default: $(MULTI_BEST)
 	ln -sf $< $@
+
+$(DERIVED_APNEA_DATA)/statistics%.pkl: threshold_statistics.py $(MULTI_BEST)
+	python $< --resolution -3 3 100 --trim 20 --fft_width $* --result_path $@ \
+ $(MULTI_BEST) $(ANAMES) b01 b02 b03 b04 c01 c02 c03 c05 c07 c08 c09 c10
+
+statistics.pdf: statistic_plots.py $(DERIVED_APNEA_DATA)/statistics64.pkl $(DERIVED_APNEA_DATA)/statistics2048.pkl
+	python $^ --fig_path $@ > statistics.txt
 
 $(MODELS)/multi%_masked: apnea_train.py $(MODELS)/multi%_init
 	python $< --records $(APLUSNAMES) --iterations 40 $(MODELS)/multi$*_init $@
