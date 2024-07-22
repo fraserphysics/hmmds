@@ -40,9 +40,10 @@ def parse_args(argv):
                         type=float,
                         default=4.0,
                         help='Threshold to make all N')
-    parser.add_argument('--cheat',
-                        action='store_true',
-                        help='Use best threshold for each record')
+    parser.add_argument(
+        '--viterbi',
+        action='store_true',
+        help='Use Viterbi decoding instead of state probabilities')
     parser.add_argument(
         '--model_paths',
         type=str,
@@ -94,7 +95,7 @@ def analyze(name,
     model_record = hmmds.applications.apnea.utilities.ModelRecord(
         model_path, name)
     if viterbi:
-        raise RuntimeError('Not implemented')
+        model_record.decode()
     else:
         model_record.classify(threshold)
     model_record.score()
@@ -134,7 +135,12 @@ def main(argv=None):
         psd = numpy.log10(statistics['psds'][name])
         log = min(2.5, max(-2.5, numpy.dot(coefficients, psd)))
         print(f'{name} {pass1_dict[name]} {log:5.2f}')
-        analyze(name, model_path, args.result, threshold=10**log, debug=False)
+        analyze(name,
+                model_path,
+                args.result,
+                threshold=10**log,
+                viterbi=args.viterbi,
+                debug=False)
 
     return 0
 

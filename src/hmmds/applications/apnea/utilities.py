@@ -907,6 +907,28 @@ class ModelRecord:
             self.class_from_expert = numpy.zeros(len(self.class_from_model),
                                                  dtype=int)
 
+    def decode(self: ModelRecord):
+        """Viterbi decode to estimate apnea or normal for each minute of data
+
+        """
+
+        class_model = self.model.y_mod['class']
+        del self.model.y_mod['class']
+        states = self.model.decode(self.y_raw_data)
+        self.model.y_mod['class'] = class_model  # Restore for future use
+
+        classes = numpy.array(
+            list(state in self.model.y_mod['class'].class2state[1]
+                 for state in states))
+        # -(-) to get rounding up
+        n_minutes = -(-len(states) // self.samples_per_minute)
+        self.class_from_model = numpy.zeros(n_minutes, dtype=int)
+        for minute in range(n_minutes):
+            start = minute * self.samples_per_minute
+            stop = min(start + self.samples_per_minute, len(states))
+            if classes[start:stop].sum() > (stop - start) // 2:
+                self.class_from_model[minute] = 1
+
     def score(self: ModelRecord):
         """For each minute compare class estimate from model to expert
 

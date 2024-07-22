@@ -498,6 +498,10 @@ multi_cheat_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MULTI))
     --parameter_name "Respiration Smoothing Filter" \
     $@ > multi_cheat_rs.txt
 
+viterbi_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MULTI_BEST)
+	python $< --viterbi --model_paths $(MODELS)/c_model $(MULTI_BEST) pass1.out temp
+	cp temp $@
+
 multi_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MULTI_BEST)
 	python $< --model_paths $(MODELS)/c_model $(MULTI_BEST) pass1.out temp
 	cp temp $@
