@@ -1,6 +1,6 @@
 """pass2.py Makes a file that looks like the expert, ie,
 
-python pass2.py --pass1 pass1.out --names a01 b01 c01 x01
+python pass2.py --records a01 b01 c01 x01 --statistics ../../../../build/derived_data/apnea/statistics64.pkl pass1.out pass2.out
 
 
 a01
@@ -28,10 +28,6 @@ import os
 import numpy
 
 import hmmds.applications.apnea.utilities
-import develop
-from shift_threshold import Statistics
-from threshold_statistics import Fit
-import fit2threshold
 
 
 def parse_args(argv):
@@ -40,27 +36,29 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser("Create and write pass2_report")
     hmmds.applications.apnea.utilities.common_arguments(parser)
-    # FixMe: Why not use --records in utilities.py
-    parser.add_argument('--names',
-                        type=str,
-                        nargs='+',
-                        help='names of records to analyze')
+    parser.add_argument('--c_threshold',
+                        type=float,
+                        default=4.0,
+                        help='Threshold to make all N')
     parser.add_argument('--cheat',
                         action='store_true',
                         help='Use best threshold for each record')
-    parser.add_argument('--shift_statistics',
-                        type=str,
-                        help='path to threshold shift statistics')
-    parser.add_argument('--statistics_path',
-                        type=str,
-                        help='path to threshold statistics')
     parser.add_argument(
         '--model_paths',
         type=str,
         nargs=2,
-        default=('../../../../build/derived_data/apnea/models/c_model',
-                 '../../../../build/derived_data/apnea/models/two_ar6_masked6'),
-        help='paths to model for records classified as N and A by pass1')
+        default=
+        ('../../../../build/derived_data/apnea/models/c_model',
+         '../../../../build/derived_data/apnea/models/multi_ar12fs4lpp65rc13rw3.0rs.455_masked'
+        ),
+        help=
+        'paths to models for records classified as N and A respectively by pass1'
+    )
+    parser.add_argument(
+        '--statistics',
+        type=argparse.FileType('rb'),
+        default='../../../../build/derived_data/apnea/statistics64.pkl',
+        help='Path to statistics for threshold')
     parser.add_argument('pass1',
                         nargs='?',
                         type=argparse.FileType('rb'),
@@ -81,10 +79,7 @@ def analyze(name,
             report,
             debug=False,
             threshold=None,
-            cheat=None,
-            abcd=None,
-            mb=None,
-            statistics=None):
+            viterbi=False):
     """Writes to the open file report a string that has the same form as
         the expert file
 
@@ -93,32 +88,21 @@ def analyze(name,
         model_path: A pickled HMM
         report: A file open for writing
         threshold: Threshold for detector
-        cheat: Use threshold that roughly minimizes error
-        abcd: Parameters of threshold function
-        mb: Parameters of threshold function
-        statistics: Parameters of threshold function
+        viterbi: Use viterbi decoding
     """
 
     model_record = hmmds.applications.apnea.utilities.ModelRecord(
         model_path, name)
-    if abcd:
-        threshold = statistics.f_abcd(*abcd, model_record=model_record)
-    if mb:
-        threshold = statistics.f_mb_name(*mb, model_record.record_name)
-    if cheat:
-        cheat_threshold = model_record.cheat()
+    if viterbi:
+        raise RuntimeError('Not implemented')
     else:
         model_record.classify(threshold)
     model_record.score()
-    if mb and cheat:
-        print(
-            f'{name} {numpy.log10(threshold):7.3f} {numpy.log10(cheat_threshold):7.3f}'
-        )
 
     model_record.formatted_result(report, expert=False)
     if not debug:
         return
-    print('HMM')
+    print(f'HMM {threshold=}')
     model_record.formatted_result(sys.stdout, expert=False)
     print('Expert')
     model_record.formatted_result(sys.stdout, expert=True)
@@ -133,52 +117,24 @@ def main(argv=None):
     args = parse_args(argv)
 
     pass1_dict = pickle.load(args.pass1)
+    statistics = pickle.load(args.statistics)
+    coefficients = statistics['threshold_coefficients']
 
-    if not args.names:
-        args.names = args.all_names
-
-    if args.shift_statistics and args.abcd:
-        with open(args.shift_statistics, 'rb') as _file:
-            shift_statistics = pickle.load(_file)
-
-    if args.statistics_path:
-        args.records = args.names  # FixMe: Use args.records instead of args.names
-        statistics = fit2threshold.Statistics(args)
+    if not args.records:
+        args.records = args.test_names
 
     model_paths = {'N': args.model_paths[0], 'A': args.model_paths[1]}
 
-    for name in args.names:
+    for name in args.records:
         model_path = model_paths[pass1_dict[name]]
         if os.path.basename(model_path) == 'c_model':
-            analyze(name, model_path, args.result, threshold=args.threshold)
+            print(f'{name} {pass1_dict[name]}')
+            analyze(name, model_path, args.result, threshold=args.c_threshold)
             continue
-        if args.mb and args.cheat:
-            analyze(name,
-                    model_path,
-                    args.result,
-                    mb=args.mb,
-                    cheat=args.cheat,
-                    statistics=statistics)
-            continue
-        if args.abcd:
-            analyze(name,
-                    model_path,
-                    args.result,
-                    abcd=args.abcd,
-                    statistics=shift_statistics)
-            continue
-        if args.mb:
-            analyze(name,
-                    model_path,
-                    args.result,
-                    mb=args.mb,
-                    statistics=statistics)
-            continue
-        analyze(name,
-                model_path,
-                args.result,
-                cheat=args.cheat,
-                threshold=args.threshold)
+        psd = numpy.log10(statistics['psds'][name])
+        log = min(2.5, max(-2.5, numpy.dot(coefficients, psd)))
+        print(f'{name} {pass1_dict[name]} {log:5.2f}')
+        analyze(name, model_path, args.result, threshold=10**log, debug=False)
 
     return 0
 

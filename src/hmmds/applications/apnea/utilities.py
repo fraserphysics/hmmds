@@ -164,8 +164,11 @@ def join_common(args: argparse.Namespace):
     args.a_names = [f'a{i:02d}' for i in range(1, 21)]
     args.b_names = [f'b{i:02d}' for i in range(1, 5)]  #b05 is no good
     args.c_names = [f'c{i:02d}' for i in range(1, 11)]
+    args.c_names.remove('c04')  # c04 has arrhythmia
+    args.c_names.remove('c06')  # c06 is the same as c05
     args.x_names = [f'x{i:02d}' for i in range(1, 36)]
     args.all_names = args.a_names + args.b_names + args.c_names + args.x_names
+    args.test_names = args.a_names + args.b_names + args.c_names
 
 
 def parse_args(argv):

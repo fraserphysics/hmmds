@@ -89,8 +89,8 @@ c_model: $(MODELS)/c_model
 c_model_viz.pdf: model_viz.py c_model
 	python $^ $@
 
-pass1.out: pass1.py
-	python $< --trim 20 --border .36 $@
+pass1.out: pass1.py ../../../../build/derived_data/apnea/statistics2048.pkl 
+	python $^ $@ > pass1.txt
 
 ########### 4 states with VARG and no interval observation, V4S ###########
 
@@ -126,21 +126,10 @@ write_shift_statistics.py: shift_threshold.py
 shift_statistics.pkl: write_shift_statistics.py $(V4S_BEST)
 	python $< --records $(APLUSNAMES) --  $(V4S_BEST) $@
 
-abcd_pass2.out: pass2.py pass1.out shift_statistics.pkl
-	python $< --model_paths $(MODELS)/c_model $(V4S_BEST) \
-    $(ABCD) --shift_statistics shift_statistics.pkl pass1.out temp
-	cp temp $@
-
-abcd_score.tex: score.py abcd_pass2.out
-	python $^ $@  --tex
-
 cheat_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(V4S_BEST)
 	python $< --model_paths $(MODELS)/c_model $(V4S_BEST) \
   --cheat pass1.out temp
 	cp temp $@
-
-cheat_score.tex: score.py cheat_pass2.out
-	python $^ $@  --tex
 
 shift_threshold.pdf: shift_threshold.py $(V4S_BEST)
 	python shift_threshold.py --records $(APLUSNAMES) $(ABCD) $(V4S_BEST)
@@ -344,9 +333,6 @@ v4s_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(V4S_BEST)
     --threshold $(V4S_THRESHOLD) pass1.out temp
 	cp temp $@
 
-v4s_score.tex: score.py v4s_pass2.out
-	python $^ $@  --tex
-
 ########### MULTI: Like V4S but more states ###########
 
 # AutoRegressive order
@@ -513,12 +499,8 @@ multi_cheat_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MULTI))
     $@ > multi_cheat_rs.txt
 
 multi_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MULTI_BEST)
-	python $< --model_paths $(MODELS)/c_model $(MULTI_BEST) \
-    --cheat pass1.out temp
+	python $< --model_paths $(MODELS)/c_model $(MULTI_BEST) pass1.out temp
 	cp temp $@
-
-multi_score.tex: score.py multi_pass2.out
-	python $^ $@  --tex
 
 threshold_statistics.pkl: threshold_statistics.py $(MODELS)/threshold
 	python $^ $@ $(APLUSNAMES) --resolution 1e-4 1e4 100
@@ -538,9 +520,6 @@ fit_mb_pass2.out: pass2.py pass1.out threshold_statistics.pkl
 	python $< --model_paths $(MODELS)/c_model $(MULTI_BEST) \
     $(FIT_MB) --statistics_path threshold_statistics.pkl pass1.out temp
 	cp temp $@
-
-fit_mb_score.tex: score.py fit_mb_pass2.out
-	python $^ $@  --tex
 
 %score.tex: score.py %pass2.out
 	python $^ $@  --tex
