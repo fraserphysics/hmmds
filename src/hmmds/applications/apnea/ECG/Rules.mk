@@ -154,6 +154,7 @@ $(ECG)/a12_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/a12_self_AR3/stat
 --ecg_peaks a12 -0.03 --hr_dips 48 $(ECG)/a12_self_AR3/states $@
 
 $(ECG)/c07_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/c10_self_AR3/unmasked_trained
+	mkdir -p $(@D)
 	python $< --records c07 --type segmented --iterations 20 $(ECG)/c10_self_AR3/unmasked_trained $@ >  $@.log
 
 ################################################################################
