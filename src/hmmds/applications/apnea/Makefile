@@ -506,6 +506,13 @@ multi_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MULTI_BEST)
 	python $< --model_paths $(MODELS)/c_model $(MULTI_BEST) pass1.out temp
 	cp temp $@
 
+test_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MULTI_BEST)
+	python $< --records $(XNAMES) --model_paths $(MODELS)/c_model $(MULTI_BEST) pass1.out temp
+	cp temp $@
+
+test_score.tex: score.py test_pass2.out
+	python $^ $@ $(XNAMES) --expert src/hmmds/applications/apnea/event-2-answers
+
 threshold_statistics.pkl: threshold_statistics.py $(MODELS)/threshold
 	python $^ $@ $(APLUSNAMES) --resolution 1e-4 1e4 100
 
