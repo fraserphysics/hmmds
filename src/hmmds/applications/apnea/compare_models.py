@@ -15,7 +15,6 @@ import scipy.optimize
 
 import utilities
 import plotscripts.utilities
-import threshold_statistics
 
 
 def parse_args(argv):
@@ -36,17 +35,11 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
-    parser.add_argument('--cheat',
-                        action='store_true',
-                        help="Use best threshold for each record")
     parser.add_argument('--latex', type=str, help="resulting latex table")
     parser.add_argument('--result',
                         type=argparse.FileType('w', encoding='UTF-8'),
                         default=sys.stdout,
                         help='Write result to this path')
-    parser.add_argument('--shift_statistics',
-                        type=str,
-                        help='path to threshold shift statistics')
     parser.add_argument('figure_path',
                         nargs='?',
                         type=str,
@@ -90,25 +83,6 @@ def plot(axes, error_counts, xlabel=None):
     axes.set_ylabel('Number of errors')
 
 
-def plot_two(axeses, error_counts, thresholds, xlabel=None):
-    error_axes, threshold_axes = axeses
-    x = []
-    error_rate = []
-    threshold_list = []
-    for x_, counts in error_counts.items():
-        x.append(float(x_))
-        error_rate.append(counts[1] + counts[2])
-        threshold_list.append(thresholds[x_][0])
-    error_axes.plot(x, error_rate, label="N errors")
-    error_axes.set_ylabel('N errors')
-    error_axes.legend()
-    threshold_axes.semilogy(x, threshold_list, label="threshold")
-    threshold_axes.legend()
-    if xlabel:
-        threshold_axes.set_xlabel(xlabel)
-    threshold_axes.set_ylabel('Threshold')
-
-
 def for_threshold(threshold, record_dict):
     """Calculate and return counts
     Args:
@@ -119,34 +93,6 @@ def for_threshold(threshold, record_dict):
     for model_record in record_dict.values():
         model_record.classify(threshold)
         counts += model_record.score()
-    return counts
-
-
-def abcd_counts(abcd, statistics, record_dict):
-    """Calculate classification counts with per record thresholds
-
-    Args:
-        abcd: Parameters of threshold function
-        statistics: statistics.f_abcd is the threshold function
-        record_dict: Keys are record names.  Values are ModelRecord instances
-    """
-    counts = numpy.zeros(4, dtype=int)
-    for name, model_record in record_dict.items():
-        threshold = statistics.f_abcd(*abcd, model_record=model_record)
-        model_record.classify(threshold)
-        counts += model_record.score()
-    return counts
-
-
-def cheat_counts(record_dict):
-    """Calculate classification counts with per record thresholds
-
-    Args:
-        record_dict: Keys are record names.  Values are ModelRecord instances
-    """
-    counts = numpy.zeros(4, dtype=int)
-    for name, model_record in record_dict.items():
-        counts += model_record.best_threshold()[1]
     return counts
 
 
@@ -169,11 +115,6 @@ def main(argv=None):
     assert len(args.models) == len(
         args.parameters), f'{args.models=} {args.parameters=}'
 
-    if args.shift_statistics:
-        assert args.abcd is not None
-        with open(args.shift_statistics, 'rb') as _file:
-            shift_statistics = pickle.load(_file)
-
     model_records = {}
     for model_name in args.models:
         model_path = os.path.join(args.model_dir, model_name)
@@ -184,13 +125,6 @@ def main(argv=None):
 
     error_counts = {}
     for model_name, parameter in zip(args.models, args.parameters):
-        if args.abcd:
-            error_counts[parameter] = abcd_counts(args.abcd, shift_statistics,
-                                                  model_records[model_name])
-            continue
-        if args.cheat:
-            error_counts[parameter] = cheat_counts(model_records[model_name])
-            continue
         error_counts[parameter] = for_threshold(args.threshold,
                                                 model_records[model_name])
 

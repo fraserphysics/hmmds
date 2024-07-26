@@ -12,25 +12,7 @@ heart_rate.pdf:
 
 include Rules.mk
 
-# Defaults copied from utilities.py
-DEFAULT_ARGS = --root $(ROOT) \
---derived_apnea_data build/derived_data/apnea \
---model_dir build/derived_data/apnea/models \
---heart_rate_path_format build/derived_data/ECG/{0}_self_AR3/heart_rate \
---rtimes raw_data/Rtimes \
---expert raw_data/apnea/summary_of_training \
---iterations 10 \
---heart_rate_sample_frequency 120  \
---trim_start 0 \
---fft_width 4096 \
---low_pass_period 8.0 \
---band_pass_center 14.0
-
 # In model_init.py alpha_beta = 50 10
-
-# Optimize pass2 parameters over these files classified as A or near
-# boundary by pass1.
-APLUSNAMES = $(ANAMES) b01 b02 b03 b04 c08 c10
 
 event-2-answers:
 	wget --no-check-certificate https://www.physionet.org/files/challenge-2000/1.0.0/event-2-answers
@@ -38,13 +20,9 @@ event-2-answers:
 ########################Build hand_opt.pdf####################################
 
 LIST_ERRORS = ar fs lpp rc rw rs
-v4sERRORS = $(addsuffix .pdf, $(addprefix v4s_errors_vs_, $(LIST_ERRORS)))
-abcdERRORS = $(addsuffix .pdf, $(addprefix abcd_, $(LIST_ERRORS)))
-cheatERRORS = $(addsuffix .pdf, $(addprefix cheat_, $(LIST_ERRORS)))
-MultiCheatERRORS = $(addsuffix .pdf, $(addprefix multi_cheat_, $(LIST_ERRORS)) fit2threshold)
-v4sTHRESHOLDS = $(addsuffix .pdf, $(addprefix v4s_threshold_, a02 a09 c10))
-HANDOPT_FIGS = $(v4sERRORS) $(v4sTHRESHOLDS) $(cheatERRORS) $(MultiCheatERRORS) shift_threshold.pdf v4s_threshold.pdf
-hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) v4s_score.tex abcd_score.tex cheat_score.tex multi_score.tex fit_mb_score.tex
+ERRORS = $(addsuffix .pdf, $(addprefix multi_errors_vs_, $(LIST_ERRORS)))
+HANDOPT_FIGS = $(ERRORS) multi_threshold.pdf
+hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) multi_score.tex test_score.tex
 	pdflatex $< ; pdflatex $<
 
 ################################################################################
@@ -69,310 +47,23 @@ like_table.tex: like_table.py $(MODELS)/unmasked_all_ac
 test:
 	py.test test.py
 
-HardSlow = a08 a10 a11 a16 a18 a20
-SmallSlow = a06 a09
-# Cycles in 10 minutes (2.3):
-#          14  15  12  18  10  13  14  16  12  12  15  16
-EasySlow = a01 a02 a03 a04 a05 a07 a12 a13 a14 a15 a17 a19
-# Save the initial files for debugging
-.PRECIOUS: $(MODELS)/%_initial $(MODELS)/%_masked $(DERIVED_APNEA_DATA)/statistics%.pkl
 
-$(MODELS)/c_model_init: model_init.py
-	python $< --model_sample_frequency 12 --AR_order 5 c_model $@
-
-$(MODELS)/c_model: apnea_train.py $(MODELS)/c_model_init
-	python $< --records $(CNAMES) --iterations 3 $(MODELS)/c_model_init $@
-
-c_model: $(MODELS)/c_model
-	ln -sf $< $@
-
-c_model_viz.pdf: model_viz.py c_model
-	python $^ $@
-
-pass1.out: pass1.py ../../../../build/derived_data/apnea/statistics2048.pkl 
-	python $^ $@ > pass1.txt
-
-########### 4 states with VARG and no interval observation, V4S ###########
+########### MULTI: More states ###########
 
 # AutoRegressive order
-V4S_AR = 5
-# Model sample frequency cpm
-V4S_FS = 4
-# Low Pass Period seconds
-V4S_LPP = 70
-# Respiration Center frequency cpm
-V4S_RC = 16.5
-# Respiration Width cpm
-V4S_RW = 3.5
-# Filter for Respiration Smoothing in cpm.
-V4S_RS = .49
-# Detection threshold
-V4S_THRESHOLD = 0.5
-ABCD = --abcd  -87 -24.75 .00722 1.01525
-COMPARE_ABCD = python compare_models.py --records $(APLUSNAMES) $(ABCD) --shift_statistics shift_statistics.pkl
-COMPARE_CHEAT = python compare_models.py --records $(APLUSNAMES) --cheat
-
-V4S_BEST = $(MODELS)/varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked
-# Yields 3072 errors  Earlier got 2819.  With abcd threshold function 2278.
-
-v4s_viz.pdf: model_viz.py $(V4S_BEST)
-	python $^ $@
-
-v4s_viz.dot: model_viz.py $(V4S_BEST)
-	python $^ $@
-
-write_shift_statistics.py: shift_threshold.py
-	ln -s $< $@
-shift_statistics.pkl: write_shift_statistics.py $(V4S_BEST)
-	python $< --records $(APLUSNAMES) --  $(V4S_BEST) $@
-
-cheat_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(V4S_BEST)
-	python $< --model_paths $(MODELS)/c_model $(V4S_BEST) \
-  --cheat pass1.out temp
-	cp temp $@
-
-shift_threshold.pdf: shift_threshold.py $(V4S_BEST)
-	python shift_threshold.py --records $(APLUSNAMES) $(ABCD) $(V4S_BEST)
-
-v4s_opt: optimize.py
-	python $< --records  $(APLUSNAMES) -- $@
-
-TARGS = --threshold $(V4S_THRESHOLD) $(V4S_BEST)
-
-v4s_threshold_a01.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds -2 0 21  --records a01 $(TARGS) $@
-
-v4s_threshold_a02.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds -3 -1 21  --records a02 $(TARGS) $@
-
-v4s_threshold_a03.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds 2 4 21  --records a03 $(TARGS) $@
-
-v4s_threshold_a07.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds -1 1 21  --records a07 $(TARGS) $@
-
-
-v4s_threshold_a09.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds -4 -1.5 41  --records a09 $(TARGS) $@
-
-v4s_threshold_a10.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds -1 1 21  --records a10 $(TARGS) $@
-
-v4s_threshold_a11.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds -3 -1 21  --records a11 $(TARGS) $@
-
-v4s_threshold_a12.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds -3 -1 21  --records a12 $(TARGS) $@
-
-v4s_threshold_a18.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds -3 -1 21  --records a18 $(TARGS) $@
-
-v4s_threshold_a19.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds -1 1 21  --records a19 $(TARGS) $@
-
-v4s_threshold_a20.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds -2.5 -.5 21  --records a20 $(TARGS) $@
-
-v4s_threshold_b02.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds 0 2 21  --records b02 $(TARGS) $@
-
-v4s_threshold_c08.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds 1.5 3.5 21  --records c08 $(TARGS) $@
-
-v4s_threshold_c10.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --thresholds 1.5 3.5 21  --records c10 $(TARGS) $@
-
-v4s_temp%.pdf: shift_threshold.py $(V4S_BEST)
-	python  $< $(ABCD) --fig_path $@ $(V4S_BEST)
-
-
-COMPARE = python compare_models.py --records $(APLUSNAMES) --threshold $(V4S_THRESHOLD)
-
-v4s_threshold.pdf: survey_threshold.py $(V4S_BEST)
-	python $< --records $(APLUSNAMES) --thresholds -1.5 1.5 21 \
- $(V4S_BEST) $@ > v4s_threshold.txt
-
-# Sensitivity to AutoRegressive order
-V4S_ARs = 1 2 3 4 5 6 7 8 9 10 11
-VAR_MODELS = $(addsuffix fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked, $(addprefix varg4state_ar, $(V4S_ARs)))
-
-v4s_errors_vs_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(VAR_MODELS))
-	$(COMPARE) --models $(VAR_MODELS) --parameters $(V4S_ARs) \
---parameter_name "AR order" -- $@ > v4s_errors_vs_ar.txt
-
-abcd_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(VAR_MODELS))
-	$(COMPARE_ABCD) --models $(VAR_MODELS) --parameters $(V4S_ARs) \
-    --parameter_name "AR order" \
-    $@ > abcd_ar.txt
-
-cheat_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(VAR_MODELS))
-	$(COMPARE_CHEAT) --models $(VAR_MODELS) --parameters $(V4S_ARs) \
-    --parameter_name "AR order" \
-    $@ > cheat_ar.txt
-
-# Sensitivity to Sample Frequency (7 not allowed)
-V4S_FSs = 2 3 4 5 6 8 10
-VFS_MODELS = $(addsuffix lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked, \
-    $(addprefix varg4state_ar$(V4S_AR)fs, $(V4S_FSs)))
-
-v4s_errors_vs_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MODELS))
-	$(COMPARE) --models $(VFS_MODELS) --parameters $(V4S_FSs) \
---parameter_name "Sample Frequency" $@ > v4s_errors_vs_fs.txt
-
-abcd_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MODELS))
-	$(COMPARE_ABCD) --models $(VFS_MODELS) --parameters $(V4S_FSs) \
-    --parameter_name "Sample Frequency" \
-    $@ > abcd_fs.txt
-
-cheat_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MODELS))
-	$(COMPARE_CHEAT) --models $(VFS_MODELS) --parameters $(V4S_FSs) \
-    --parameter_name "Sample Frequency" \
-    $@ > cheat_fs.txt
-
-# Sensitivity to Low Pass Period in seconds.
-V4S_LPPs = 10 20 30 40 50 60 70 80
-LPP_MODELS = $(addsuffix rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked, $(addprefix \
-    varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp, \
-    $(V4S_LPPs)))
-
-v4s_errors_vs_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
-	$(COMPARE) --models $(LPP_MODELS) --parameters $(V4S_LPPs) \
---parameter_name "Low Pass Period" $@ > v4s_errors_vs_lpp.txt
-
-abcd_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
-	$(COMPARE_ABCD) --models $(LPP_MODELS) --parameters $(V4S_LPPs) \
-    --parameter_name "Low Pass Period" \
-    $@ > abcd_lpp.txt
-
-cheat_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
-	$(COMPARE_CHEAT) --models $(LPP_MODELS) --parameters $(V4S_LPPs) \
-    --parameter_name "Low Pass Period" \
-    $@ > cheat_lpp.txt
-
-# Exercise code
-V4S_FOOs = 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65
-FOO_MODELS = $(addsuffix rc$(V4S_RC)rw$(V4S_RW)rs$(V4S_RS)_masked, $(addprefix \
-    varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp, \
-    $(V4S_FOOs)))
-
-foo.pdf: compare_models.py $(addprefix $(MODELS)/, $(FOO_MODELS))
-	$(COMPARE) --n_apnea 6446 --models $(FOO_MODELS) --parameters $(V4S_FOOs) \
---parameter_name "Low Pass Period" $@ > foo.txt
-
-# Sensitivity to Respiration Center frequency in cpm
-V4S_RCs = 13 14 15 15.5 16 16.5 17 17.5 18 19 20 21
-RC_MODELS = $(addsuffix rw$(V4S_RW)rs$(V4S_RS)_masked, $(addprefix \
-    varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc, \
-    $(V4S_RCs)))
-
-v4s_errors_vs_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MODELS))
-	$(COMPARE) --models $(RC_MODELS) --parameters $(V4S_RCs) \
---parameter_name "Center Frequency" $@ > v4s_errors_vs_rc.txt
-
-abcd_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MODELS))
-	$(COMPARE_ABCD) --models $(RC_MODELS) --parameters $(V4S_RCs) \
-    --parameter_name "Center Frequency" \
-    $@ > abcd_rc.txt
-
-cheat_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MODELS))
-	$(COMPARE_CHEAT) --models $(RC_MODELS) --parameters $(V4S_RCs) \
-    --parameter_name "Center Frequency" \
-    $@ > cheat_rc.txt
-
-# Sensitivity to Respiration width frequency in cpm
-V4S_RWs = 1.0 2.0 2.5 3.0 3.5 4.0 4.5 5.0 6.0
-RW_MODELS = $(addsuffix rs$(V4S_RS)_masked, $(addprefix \
-    varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw, \
-    $(V4S_RWs)))
-
-v4s_errors_vs_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MODELS))
-	$(COMPARE) --models $(RW_MODELS) --parameters $(V4S_RWs) \
---parameter_name "Frequency Width" $@ > v4s_errors_vs_rw.txt
-
-abcd_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MODELS))
-	$(COMPARE_ABCD) --models $(RW_MODELS) --parameters $(V4S_RWs) \
-    --parameter_name "Frequency Width" \
-    $@ > abcd_rw.txt
-
-cheat_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MODELS))
-	$(COMPARE_CHEAT) --models $(RW_MODELS) --parameters $(V4S_RWs) \
-    --parameter_name "Frequency Width" \
-    $@ > cheat_rw.txt
-
-# Sensitivity to Respiration Smoothing frequency in cpm
-V4S_RSs = .45 .46 .47 .48 .49 .50 .51 .52 .53 .54 .55
-RS_MODELS = $(addsuffix _masked, $(addprefix \
-    varg4state_ar$(V4S_AR)fs$(V4S_FS)lpp$(V4S_LPP)rc$(V4S_RC)rw$(V4S_RW)rs, \
-    $(V4S_RSs)))
-
-v4s_errors_vs_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MODELS))
-	$(COMPARE) --models $(RS_MODELS) --parameters $(V4S_RSs) \
-    --parameter_name "Respiration Smoothing Filter" \
-    $@ > v4s_errors_vs_rs.txt
-
-abcd_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MODELS))
-	$(COMPARE_ABCD) --models $(RS_MODELS) --parameters $(V4S_RSs) \
-    --parameter_name "Respiration Smoothing Filter" \
-    $@ > abcd_rs.txt
-
-cheat_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MODELS))
-	$(COMPARE_CHEAT) --models $(RS_MODELS) --parameters $(V4S_RSs) \
-    --parameter_name "Respiration Smoothing Filter" \
-    $@ > cheat_rs.txt
-
-# EG $(MODELS)/varg4state_ar16fs4lpp10rc17rw4.7rs.44_init
-
-$(MODELS)/varg4state_%_init: make_init.py model_init.py
-	python $< four_state $* $@
-
-$(MODELS)/varg4state%_masked: apnea_train.py $(MODELS)/varg4state%_init
-	python $< --records $(APLUSNAMES) --iterations 10 $(MODELS)/varg4state$*_init $@
-
-v4s_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(V4S_BEST)
-	python $< --model_paths $(MODELS)/c_model $(V4S_BEST) \
-    --threshold $(V4S_THRESHOLD) pass1.out temp
-	cp temp $@
-
-########### MULTI: Like V4S but more states ###########
-
-# AutoRegressive order
-MULTI_AR = 12
+MULTI_AR = 8
 # Model sample frequency cpm
 MULTI_FS = 4
 # Low Pass Period seconds
 MULTI_LPP = 65
 # Respiration Center frequency cpm
-MULTI_RC = 13
+MULTI_RC = 12
 # Respiration Width cpm
-MULTI_RW = 3.0
+MULTI_RW = 3.6
 # Filter for Respiration Smoothing in cpm.
-MULTI_RS = .455
+MULTI_RS = .47
 # Detection threshold
-MULTI_THRESHOLD = 1.0
-
-################### For calculating threshold #######################
-HIGH_THRESHOLD_RECORDS = a01 a10 a13 a16 a17 a19 a07 a08 a14 b02 b03 a03 b01 b04 c08 c10
-LOW_THRESHOLD_RECORDS =  a18 a09 a12 a02 a11 a20 a04 a05 a06 a15 a01 a10 a13 a16 a17 a19
-
-$(MODELS)/threshold_init: model_init.py $(MULTI_BEST)
-	python $< --AR_order 2 --model_sample_frequency 2 --low_pass_period $(MULTI_LPP) \
- --band_pass_center $(MULTI_RC) --band_pass_width $(MULTI_RW) --respiration_smooth $(MULTI_RS) \
- --power_dict hr_respiration .25 threshold 4 --reference_model $(MULTI_BEST) threshold $@
-
-$(MODELS)/threshold: apnea_train.py $(MODELS)/threshold_init
-	python $^ $@ --records $(APLUSNAMES) --iterations 300
-
-# Defaults in utilities.py: AR none, FS 6, LPP 8.0, RC 16.0, RW 4.0, RS 1.5
-# Values for MULTI             12       4      65      13       3       .455
-$(MODELS)/classless_init: model_init.py
-	python $< --AR_order 12 --model_sample_frequency 4 --low_pass_period 9.0 \
-  --band_pass_center 12 --band_pass_width 3.3 --respiration_smooth 1.5 classless $@
-
-$(MODELS)/high_classless: apnea_train.py $(MODELS)/classless_init
-	python $^ $@ --records $(HIGH_THRESHOLD_RECORDS) --iterations 100
-
-$(MODELS)/low_classless: apnea_train.py $(MODELS)/classless_init
-	python $^ $@ --records $(LOW_THRESHOLD_RECORDS) --iterations 100
+MULTI_THRESHOLD = 0.7
 
 %_model_viz.pdf: model_viz.py $(MODELS)/%_classless
 	python $^ $@
@@ -390,41 +81,28 @@ $(MODELS)/default: $(MULTI_BEST)
 default: $(MULTI_BEST)
 	ln -sf $< $@
 
-$(DERIVED_APNEA_DATA)/statistics%.pkl: threshold_statistics.py $(MULTI_BEST)
-	python $< --resolution -3 3 100 --trim 20 --fft_width $* --result_path $@ \
- $(MULTI_BEST) $(ANAMES) b01 b02 b03 b04 c01 c02 c03 c05 c07 c08 c09 c10
-
-statistics.pdf: statistic_plots.py $(DERIVED_APNEA_DATA)/statistics64.pkl $(DERIVED_APNEA_DATA)/statistics2048.pkl
-	python $^ --fig_path $@ > statistics.txt
-
 $(MODELS)/multi%_masked: apnea_train.py $(MODELS)/multi%_init
-	python $< --records $(APLUSNAMES) --iterations 40 $(MODELS)/multi$*_init $@
+	python $< --records $(TRAIN_NAMES) --iterations 40 $(MODELS)/multi$*_init $@
 
 multi_viz.pdf: model_viz.py $(MULTI_BEST)
 	python $^ $@
 
-COMPARE_CHEAT = python compare_models.py --records $(APLUSNAMES) --cheat
-
-COMPARE = python compare_models.py --records $(APLUSNAMES) --threshold $(MULTI_THRESHOLD)
+COMPARE = python compare_models.py --records $(TRAIN_NAMES) --threshold $(MULTI_THRESHOLD)
 
 multi_threshold.pdf: survey_threshold.py $(MULTI_BEST)
-	python $< --records $(APLUSNAMES) --thresholds 1.5 3.5 21 \
+	python $< --records $(TRAIN_NAMES) --thresholds -0.3 0.3 21 \
  $(MULTI_BEST) $@ > multi_threshold.txt
 
 # Sensitivity to AutoRegressive order
-MULTI_ARs = 6 7 8 9 10 11 12 13 14 15 16
+MULTI_ARs = 5 6 7 8 9 10 11 12
 VAR_MULTI = $(addsuffix fs$(MULTI_FS)lpp$(MULTI_LPP)rc$(MULTI_RC)rw$(MULTI_RW)rs$(MULTI_RS)_masked, $(addprefix multi_ar, $(MULTI_ARs)))
 
 multi_errors_vs_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(VAR_MULTI))
 	$(COMPARE) --models $(VAR_MULTI) --parameters $(MULTI_ARs) \
 --parameter_name "AR order" -- $@ > multi_errors_vs_ar.txt
 
-multi_cheat_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(VAR_MULTI))
-	$(COMPARE_CHEAT) --models $(VAR_MULTI)  \
-   --parameters $(MULTI_ARs) --parameter_name "AR order" $@ > multi_cheat_ar.txt
-
 # Sensitivity to Sample Frequency (7 not allowed)
-MULTI_FSs = 2 3 4 5 6 8 10
+MULTI_FSs = 2 3 4 5 6 8
 VFS_MULTI = $(addsuffix lpp$(MULTI_LPP)rc$(MULTI_RC)rw$(MULTI_RW)rs$(MULTI_RS)_masked, \
     $(addprefix multi_ar$(MULTI_AR)fs, $(MULTI_FSs)))
 
@@ -432,13 +110,8 @@ multi_errors_vs_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MULTI))
 	$(COMPARE) --models $(VFS_MULTI) --parameters $(MULTI_FSs) \
 --parameter_name "Sample Frequency" $@ > multi_errors_vs_fs.txt
 
-multi_cheat_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MULTI))
-	$(COMPARE_CHEAT) --models $(VFS_MULTI) --parameters $(MULTI_FSs) \
-    --parameter_name "Sample Frequency" \
-    $@ > multi_cheat_fs.txt
-
 # Sensitivity to Low Pass Period in seconds.
-MULTI_LPPs = 55 57.5 60 65 70 75 85
+MULTI_LPPs = 55 60 65 68 70 72 75 85
 LPP_MULTI = $(addsuffix rc$(MULTI_RC)rw$(MULTI_RW)rs$(MULTI_RS)_masked, $(addprefix \
     multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp, \
     $(MULTI_LPPs)))
@@ -447,13 +120,8 @@ multi_errors_vs_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MULTI))
 	$(COMPARE) --models $(LPP_MULTI) --parameters $(MULTI_LPPs) \
 --parameter_name "Low Pass Period" $@ > multi_errors_vs_lpp.txt
 
-multi_cheat_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MULTI))
-	$(COMPARE_CHEAT) --models $(LPP_MULTI) --parameters $(MULTI_LPPs) \
-    --parameter_name "Low Pass Period" \
-    $@ > multi_cheat_lpp.txt
-
 # Sensitivity to Respiration Center frequency in cpm
-MULTI_RCs = 10 11 11.5 12 12.5 13 14 15 16
+MULTI_RCs = 11 11.5 11.8 12 12.2 12.5 13 14
 RC_MULTI = $(addsuffix rw$(MULTI_RW)rs$(MULTI_RS)_masked, $(addprefix \
     multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc, \
     $(MULTI_RCs)))
@@ -462,13 +130,8 @@ multi_errors_vs_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MULTI))
 	$(COMPARE) --models $(RC_MULTI) --parameters $(MULTI_RCs) \
 --parameter_name "Center Frequency" $@ > multi_errors_vs_rc.txt
 
-multi_cheat_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MULTI))
-	$(COMPARE_CHEAT) --models $(RC_MULTI) --parameters $(MULTI_RCs) \
-    --parameter_name "Center Frequency" \
-    $@ > multi_cheat_rc.txt
-
 # Sensitivity to Respiration width frequency in cpm
-MULTI_RWs = 1.0 2.0 2.9 3.0 3.1 3.5 3.7 3.9 4.0
+MULTI_RWs = 3.3 3.4 3.5 3.6 3.7 4.0
 RW_MULTI = $(addsuffix rs$(MULTI_RS)_masked, $(addprefix \
     multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc$(MULTI_RC)rw, \
     $(MULTI_RWs)))
@@ -477,13 +140,8 @@ multi_errors_vs_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MULTI))
 	$(COMPARE) --models $(RW_MULTI) --parameters $(MULTI_RWs) \
 --parameter_name "Frequency Width" $@ > multi_errors_vs_rw.txt
 
-multi_cheat_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MULTI))
-	$(COMPARE_CHEAT) --models $(RW_MULTI) --parameters $(MULTI_RWs) \
-    --parameter_name "Frequency Width" \
-    $@ > multi_cheat_rw.txt
-
 # Sensitivity to Respiration Smoothing frequency in cpm
-MULTI_RSs = .41 .42 .43 .44 .445 .45 .455 .46 .47 .48
+MULTI_RSs = .46 .465 .47 .475 .48
 RS_MULTI = $(addsuffix _masked, $(addprefix \
     multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc$(MULTI_RC)rw$(MULTI_RW)rs, \
     $(MULTI_RSs)))
@@ -493,47 +151,23 @@ multi_errors_vs_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MULTI))
     --parameter_name "Respiration Smoothing Filter" \
     $@ > multi_errors_vs_rs.txt
 
-multi_cheat_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MULTI))
-	$(COMPARE_CHEAT) --models $(RS_MULTI) --parameters $(MULTI_RSs) \
-    --parameter_name "Respiration Smoothing Filter" \
-    $@ > multi_cheat_rs.txt
-
 viterbi_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MULTI_BEST)
 	python $< --viterbi --model_paths $(MODELS)/c_model $(MULTI_BEST) pass1.out temp
 	cp temp $@
 
-multi_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MULTI_BEST)
-	python $< --model_paths $(MODELS)/c_model $(MULTI_BEST) pass1.out temp
+multi_pass2.out: pass2.py $(MULTI_BEST)
+	python $^ temp --records $(TRAIN_NAMES) --threshold 0.7
 	cp temp $@
 
-test_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MULTI_BEST)
-	python $< --records $(XNAMES) --model_paths $(MODELS)/c_model $(MULTI_BEST) pass1.out temp
-	cp temp $@
-
-test_score.tex: score.py test_pass2.out
-	python $^ $@ $(XNAMES) --expert src/hmmds/applications/apnea/event-2-answers
-
-threshold_statistics.pkl: threshold_statistics.py $(MODELS)/threshold
-	python $^ $@ $(APLUSNAMES) --resolution 1e-4 1e4 100
-
-threshold_statistics.pdf: plot_threshold_statistics.py threshold_statistics.pkl
-	python $^ $@
-
-#FIT_MB = --mb 1.0 0.0
-FIT_MB = --mb 0.927 0.0305
-
-# Make scatter plot of thresholds for selected records (best vs fit).
-# Also print fit and best thresholds
-fit2threshold.pdf: fit2threshold.py $(MULTI_BEST) threshold_statistics.pkl
-	python $^ --records $(APLUSNAMES) $(FIT_MB) --fig_path $@
-
-fit_mb_pass2.out: pass2.py pass1.out threshold_statistics.pkl
-	python $< --model_paths $(MODELS)/c_model $(MULTI_BEST) \
-    $(FIT_MB) --statistics_path threshold_statistics.pkl pass1.out temp
+test_pass2.out: pass2.py $(MULTI_BEST)
+	python $^ temp --records $(XNAMES) --threshold 0.7
 	cp temp $@
 
 %score.tex: score.py %pass2.out
 	python $^ $@  --tex
+
+test_score.tex: score.py test_pass2.out
+	python $^ $@ $(XNAMES) --expert src/hmmds/applications/apnea/event-2-answers --tex
 
 ## yapf                          : Force google format on all python code
 .PHONY : yapf
@@ -549,9 +183,7 @@ clean:
 variables:
 	@echo VAR_MULTI: $(VAR_MULTI)
 	@echo MULTI_ARs: $(MULTI_ARs)
-	@echo V4S_BEST: $(V4S_BEST)
 	@echo MULTI_BEST: $(MULTI_BEST)
-	@echo MultiCheatERRORS: $(MultiCheatERRORS)
 ## help                           : Print comments on targets from makefile
 .PHONY : help
 help : Makefile

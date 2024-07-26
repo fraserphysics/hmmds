@@ -25,10 +25,9 @@
 \maketitle
 
 \newcommand{\StudyCaption}[2]{
-  \caption{Performance vs #1 on the \emph{a} records combined with and
-    \emph{b} and \emph{c} records that are close to the pass-1
-    boundary.  The models have
-    #2.}
+  \caption{Performance vs #1 on the training records (\emph{a} \emph{b}
+    and \emph{c} records excluding defective records).  The models
+    have #2.}
 }
 
 \newcommand{\StudyFigs}[2]{
@@ -93,238 +92,60 @@
 \section{Combining Respiration and Heart Rate}
 \label{sec:combination}
 
-Here I combine a vector heart rate and respiration signal with a four
-state state structure.  The parameters to choose
-include:
+Here I combine a vector heart rate and respiration signal with a
+multiple state state structure.  The parameters to choose include:
 \begin{description}
-\item[VARG parameters:] for the (Vector Autoregressive Gaussian) model
+\item[Parameters:] for the (Vector Autoregressive Gaussian) model
   of the 2-d vectors with components respiration and low-pass filtered
   heart rate.  The parameters include:
   \begin{description}
-  \item[AR order] 5 % ar
-  \item[sample rate] 4 % fs
-  \item[low pass period] 70 seconds % lpp
-  \item[respiration pass center] 16.5 per minute % rc
-  \item[respiration pass width] 3.5 per minute % rw
-  \item[envelope smooth] .49 per minute % rs
+  \item[AR order] 8 % MULTI_AR
+  \item[sample rate] 4 % MULTI_FS
+  \item[low pass period] 65 seconds % MULTI_LPP
+  \item[respiration pass center] 12 per minute % MULTI_RC
+  \item[respiration pass width] 3.6 per minute % MULTI_RW
+  \item[envelope smooth] .47 per minute % MULTI_RS
   \item[$\psi$ and $\nu$] Priors for each state
   \end{description}
-\item[Detector threshold] 0.5
+\item[Detector threshold] 0.7 % MULTI_THRESHOLD
 \end{description}
 
-In the foregoing list, I chose the values of the VARG parameters to
-get the best performance when the threshold for each record was set to
-maximize performance.  Then I chose the overall detector threshold to
-maximize overall performance.  In later sections I will consider
-methods of setting custom thresholds for each record that don't use
-the expert classification data.
+I chose the parameter values in foregoing list to get the best
+performance\footnote{AR order 10 reduces the error count from 2,270 to
+  2,260.  I chose AR order 8 to reduce over fitting.} on the training
+data.
 
 In the following figures I've plotted the number of classification
-errors in a set of records that I call \emph{a-plus} against each of
-those parameters.  The a-plus records are the \emph{a} records and the
-\emph{b} and \emph{c} records near the boundary of my pass-1
-classification step\footnote{Specifically the records \emph{b01, b02,
-    b03, b04, c08} and \emph{c10}}.
+errors on the training data against each of those parameters.  The
+training records are the \emph{a} records and the \emph{b} and
+\emph{c} except \emph{b05, c04,} and \emph{c06} which are
+defective\footnote{The ECG for b05 is not usable.  c04 has an
+  arrhythmia in which the interval between beats is very short as
+  frequently as every third beat.  And c06 is a shifted version of
+  c05.}.
 
-\StudyFigs{v4s}{four states and the observation models are vector
-  autoregressive models for heart rate and respiration}
-
-\clearpage % flush floats
-\section{Varying the Detector Threshold}
-\label{sec:threshold}
-
-Notice that in Table~\ref{tab:v4s_score} the records a02 a09 a18 have
-39\% of the classification errors.  Figures
-\ref{fig:v4s_threshold_a02} to\ref{fig:v4s_threshold_c10} show the
-dependence of the number of errors on the detector threshold for
-selected records.  While the best overall threshold is about 0.5 there
-is a best threshold for each record and that varies over a factor of
-$10^5$ depending on the record.  In the next section,
-\ref{sec:custom_threshold}, I describe a technique for customizing the
-detector threshold for each record.
-
-\newcommand{\ThresholdStudy}[2]{
-  \begin{figure}
-    \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{v4s_threshold_#1.pdf}}
-    \caption{The number of classification errors as a function
-      detector threshold for record #1.  The
-      best threshold for record #1 is about #2.}
-    \label{fig:v4s_threshold_#1}
-  \end{figure}
-}
-
-\ThresholdStudy{a02}{0.01}
-\ThresholdStudy{a09}{0.0006}
-\ThresholdStudy{c10}{700}
-
-\clearpage
-\subsection{Custom Thresholds}
-\label{sec:custom_threshold}
-
-Supposing that I can find a function from heart rate time series to
-thresholds, I seek parameter values that minimize detection errors
-when I use the best threshold for each record in the a-plus set of
-records.  Figure~\ref{fig:cheat} illustrates that search.  I was
-surprised to see that the optimal parameter values were close to those
-I found using a fixed threshold.
-
-\begin{figure}
-  \centering
-  \resizebox{0.4\textwidth}{!}{\includegraphics{cheat_ar.pdf}}
-  \resizebox{0.4\textwidth}{!}{\includegraphics{cheat_fs.pdf}}\\
-  \resizebox{0.4\textwidth}{!}{\includegraphics{cheat_lpp.pdf}}
-  \resizebox{0.4\textwidth}{!}{\includegraphics{cheat_rc.pdf}}\\
-  \resizebox{0.4\textwidth}{!}{\includegraphics{cheat_rw.pdf}}
-  \resizebox{0.4\textwidth}{!}{\includegraphics{cheat_rs.pdf}}
-  \caption[Parameter sensitivity with variable thresholds.]{Survey of
-    6 parameters.  The code considers 10 threshold values for each
-    parameter value and uses the threshold value that minimizes the
-    number of classification errors.}
-  \label{fig:cheat}
-\end{figure}
-
-
-I found Fourier Power Spectral Density estimates (PSDs) useful for
-classifying whole records for Pass1.  I've used PSDs again for
-customizing detector thresholds.  My PSD estimates are vectors with
-2,149 components.  I use \marginpar{Sort of.} the following 1-d
-statistic to set thresholds:
-\begin{equation}
-  \label{eq:z_sum}
-  z_{\text{sum}}(\text{record}) \equiv \sum_{i=0}^{2048}
-  \frac{\text{PSD}_i(\text{record}) - \mu_i}{\sigma_i}
-\end{equation}
-Figure~\ref{fig:shift_threshold} illustrates a four parameter function
-that maps PSDs to thresholds, and classification results using that
-function appear in Table~\ref{tab:abcd_score}.
-
-\begin{figure}
-  \centering
-  \resizebox{0.5\textwidth}{!}{\includegraphics{shift_threshold.pdf}}
-  \caption[A function of PSDs for varying detector thresholds.]{The
-    axes of the upper plot are the function of a PSD defined in
-    \eqref{eq:z_sum} and the detector threshold.  The markers for each
-    record are placed at the threshold that minimizes the number of
-    classification errors for that record.  The piecewise affine line
-    is a four parameter function that maps
-    $z_{\text{sum}}: \mapsto \text{threshold}$.  The parameters have
-    been optimized to minimize the classification errors over all of a
-    set of records.  The four lower plots illustrate the dependence of
-    the total number of errors on each of the four parameters.  }
-  \label{fig:shift_threshold}
-\end{figure}
+\StudyFigs{multi}{multiple states and the observation models are
+  vector autoregressive models for heart rate and respiration}
 
 \begin{table*}
   \centering
-  \input{abcd_score.tex}
-  \caption[Performance]{Classification performance when thresholds are
-  functions of PSDs}
-  \label{tab:abcd_score}
-\end{table*}
-
-\clearpage
-
-\subsection{Further Optimization}
-\label{sec:further}
-
-The function plotted in Figure~\ref{fig:shift_threshold} improves
-performance from 2790 errors, 17\% (Table~\ref{tab:v4s_score}) to 2162
-errors, 13\% (Table~\ref{tab:abcd_score}).  However it is not as good
-as 1952 errors\footnote{That performance use a bogus class decoding
-  idea.} that the models I describe in the first edition of the book
-obtained.
-
-% Perhaps I can get some more improvement by revisiting parameter
-% choices using threshold function \ref{fig:shift_threshold}, but when I
-% used the threshold function, the optimal parameter values stayed the
-% same.  See Fig.~\ref{fig:abcd}
-
-% \begin{figure}
-%   \centering
-%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_ip.pdf}}
-%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_pt.pdf}}\\
-%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_ar.pdf}}
-%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_fs.pdf}}\\
-%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_lpp.pdf}}
-%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_rc.pdf}}\\
-%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_rw.pdf}}
-%   \resizebox{0.4\textwidth}{!}{\includegraphics{abcd_rs.pdf}}
-%   \caption[Parameter sensitivity with variable thresholds.]{Survey of
-%     8 parameters.}
-%   \label{fig:abcd}
-% \end{figure}
-
-Here are some ideas for further improvements:
-\begin{description}
-\item[Better Thresholds] Perhaps a better function for setting per
-  record thresholds would help.  Since cheating to use the best
-  threshold for each record yields 1410 errors (See
-  Table~\ref{tab:cheat_score}), I think I need more discriminating
-  models.
-\item[More States] I will try using more states.
-\end{description}
-
-
-\begin{table*}
-  \centering
-  \input{cheat_score.tex}
-  \caption[Performance]{Classification performance with best threshold
-  for each record by cheating.}
-  \label{tab:cheat_score}
-\end{table*}
-
-\subsection{More States}
-\label{sec:more_states}
-
-\begin{figure}
-  \centering
-  \resizebox{0.4\textwidth}{!}{\includegraphics{multi_cheat_ar.pdf}}
-  \resizebox{0.4\textwidth}{!}{\includegraphics{multi_cheat_fs.pdf}}\\
-  \resizebox{0.4\textwidth}{!}{\includegraphics{multi_cheat_lpp.pdf}}
-  \resizebox{0.4\textwidth}{!}{\includegraphics{multi_cheat_rc.pdf}}\\
-  \resizebox{0.4\textwidth}{!}{\includegraphics{multi_cheat_rw.pdf}}
-  \resizebox{0.4\textwidth}{!}{\includegraphics{multi_cheat_rs.pdf}}
-  \caption[Parameter sensitivity with variable thresholds.]{Survey of
-    6 parameters.  The code considers 10 threshold values for each
-    parameter value and uses the threshold value that minimizes the
-    number of classification errors.}
-  \label{fig:multi_cheat}
-\end{figure}
-
-\begin{figure}
-  \centering
-  \resizebox{0.9\textwidth}{!}{\includegraphics{fit2threshold.pdf}}
-  \caption[Functions from record statistics to threshold.]{The best
-  threshold for each training record is plotted against a naive fit
-  $x=\text{log\_fit}$ in the top plot.  The line in the top
-  plot is the function $f(x) = m\cdot x +b$ for thresholds that
-  minimizes error on the training set.  Error counts versus parameters
-  $m$ and $b$ appear in the lower plots}
-  \label{fig:fit2threshold}
-\end{figure}
-
-\begin{table*}
-  \centering
-  \input{multi_score.tex}
-  \caption[Performance]{Classification performance of multi-state
-    model with best threshold for each record by cheating.}
-  \label{tab:multi_score}
-\end{table*}
-
-\begin{table*}
-  \centering
-  \input{fit_mb_score.tex}
-  \caption[Performance]{Classification performance of multi-state
-    model with thresholds set by function of three statistics: PSD
-    and log likelihoods of two HMMs.}
-  \label{tab:mb_score}
+  \input{test_score.tex}
+  \caption[Performance]{Performance on the test data.}
+  \label{tab:test_score}
 \end{table*}
 
 \end{document}
 
+#1_threshold.pdf
+#1_errors_vs_ar.pdf
+#1_errors_vs_lpp.pdf
+#1_errors_vs_rc.pdf
+#1_errors_vs_rw.pdf
+#1_errors_vs_rs.pdf
+#1_score.tex
+
 In the book, I got to error rate of .1176 on the training data (1952
-errors) and .1305 (2253 errors) on the test data Cheating by peaking
+errors) and .1305 (2253 errors) on the test data.  Cheating by peaking
 at the expert data to set thresholds I got 1410 errors with the v4s
 models.
 

@@ -32,12 +32,12 @@ ANAMES = a01 a02 a03 a04 a05 a06 a07 a08 a09 a10 \
 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20
 
 BNAMES = b01 b02 b03 b04
-
 # b05 is a mess
 
-CNAMES = c01 c02 c03 c04 c05 c06 c07 c08 c09 c10
+CNAMES = c01 c02 c03 c05 c07 c08 c09 c10
+# c04 has arrhythmia, and c06 is the same as c05
 
-NAMES = $(ANAMES) $(BNAMES) $(CNAMES) $(XNAMES)
+ALL_NAMES = $(ANAMES) $(BNAMES) $(CNAMES) $(XNAMES)
 
 TRAIN_NAMES = $(ANAMES) $(BNAMES) $(CNAMES)
 
