@@ -19,7 +19,6 @@ import pint
 
 import hmm.C
 import utilities
-import develop
 
 PINT = pint.UnitRegistry()
 

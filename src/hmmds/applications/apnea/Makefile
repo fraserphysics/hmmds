@@ -62,6 +62,8 @@ $(MODELS)/%_init: make_init.py model_init.py
 	python $< multi_state $* $@
 
 BEST = $(MODELS)/ar$(AR)fs$(FS)lpp$(LPP)rc$(RC)rw$(RW)rs$(RS)_masked
+$(MODELS)/default: $(BEST)
+	ln -s $< $@
 
 $(MODELS)/%_masked: apnea_train.py $(MODELS)/%_init
 	python $< --records $(TRAIN_NAMES) --iterations 40 $(MODELS)/$*_init $@

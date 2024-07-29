@@ -1,6 +1,9 @@
 """model_init.py Create initial HMM models with apnea observations
 
 """
+
+from __future__ import annotations  # Enables, eg, (self: HMM,
+
 import sys
 import os.path
 import pickle
@@ -12,8 +15,6 @@ import numpy
 import hmm.base
 import hmm.simple
 
-import hmm.C
-import develop
 import utilities
 from utilities import State
 import hmmds.applications.apnea.model_init
@@ -82,17 +83,17 @@ def dict2hmm(state_dict, make_observation_model, args, rng):
     p_state2state.normalize()
 
     # Create and return the hmm
-    return develop.HMM(p_state_initial,
-                       p_state_time_average,
-                       p_state2state,
-                       make_observation_model(state_dict, state_keys, rng,
-                                              args),
-                       args,
-                       rng,
-                       untrainable_indices=tuple(
-                           numpy.array(untrainable_indices).T),
-                       untrainable_values=numpy.array(
-                           untrainable_values)), state_key2state_index
+    return utilities.HMM(p_state_initial,
+                         p_state_time_average,
+                         p_state2state,
+                         make_observation_model(state_dict, state_keys, rng,
+                                                args),
+                         args,
+                         rng,
+                         untrainable_indices=tuple(
+                             numpy.array(untrainable_indices).T),
+                         untrainable_values=numpy.array(
+                             untrainable_values)), state_key2state_index
 
 
 MODELS = {}  # Is populated by @register decorated functions.  The keys
