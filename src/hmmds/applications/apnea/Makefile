@@ -20,27 +20,17 @@ event-2-answers:
 ########################Build hand_opt.pdf####################################
 
 LIST_ERRORS = ar fs lpp rc rw rs
-ERRORS = $(addsuffix .pdf, $(addprefix multi_errors_vs_, $(LIST_ERRORS)))
-HANDOPT_FIGS = $(ERRORS) multi_threshold.pdf
-hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) multi_score.tex test_score.tex
+ERRORS = $(addsuffix .pdf, $(addprefix errors_vs_, $(LIST_ERRORS)))
+HANDOPT_FIGS = $(ERRORS) threshold.pdf viz.pdf
+hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) score.tex test_score.tex
 	pdflatex $< ; pdflatex $<
 
 ################################################################################
 
-# FixMe: What should best_model be?
-
-BEST_MODEL = default
 # Lengths of time series for each training record
-lengths.txt: test_alignment.py $(BEST_MODEL)
-	python $< --model $(BEST_MODEL) > $@
+lengths.txt: test_alignment.py $(BEST)
+	python $< --model $(BEST) > $@
 
-report.txt: cross_score.py $(MODELS)/masked_all_a
-	python $< --specific 1.0 > $@
-#enscript -B -r -f Courier12 report.txt
-report.ps: report.txt
-	enscript -B -r -f Courier12 --media letter -p $@ report.txt
-like_table.tex: like_table.py $(MODELS)/unmasked_all_ac
-	python like_table.py --trim_start 25 $@
 
 ## test                           : Run tests defined in test.py
 .PHONY : test
@@ -51,123 +41,111 @@ test:
 ########### MULTI: More states ###########
 
 # AutoRegressive order
-MULTI_AR = 8
+AR = 8
 # Model sample frequency cpm
-MULTI_FS = 4
+FS = 4
 # Low Pass Period seconds
-MULTI_LPP = 65
+LPP = 65
 # Respiration Center frequency cpm
-MULTI_RC = 12
+RC = 12
 # Respiration Width cpm
-MULTI_RW = 3.6
+RW = 3.6
 # Filter for Respiration Smoothing in cpm.
-MULTI_RS = .47
+RS = .47
 # Detection threshold
-MULTI_THRESHOLD = 0.7
+THRESHOLD = 0.7
 
-%_model_viz.pdf: model_viz.py $(MODELS)/%_classless
-	python $^ $@
 ####################################################################
 
-$(MODELS)/multi_%_init: make_init.py model_init.py
+$(MODELS)/%_init: make_init.py model_init.py
+	mkdir -p  $(@D)
 	python $< multi_state $* $@
 
-MULTI_BEST = $(MODELS)/multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc$(MULTI_RC)rw$(MULTI_RW)rs$(MULTI_RS)_masked
+BEST = $(MODELS)/ar$(AR)fs$(FS)lpp$(LPP)rc$(RC)rw$(RW)rs$(RS)_masked
 
+$(MODELS)/%_masked: apnea_train.py $(MODELS)/%_init
+	python $< --records $(TRAIN_NAMES) --iterations 40 $(MODELS)/$*_init $@
 
-$(MODELS)/default: $(MULTI_BEST)
-	ln -sf $< $@
-
-default: $(MULTI_BEST)
-	ln -sf $< $@
-
-$(MODELS)/multi%_masked: apnea_train.py $(MODELS)/multi%_init
-	python $< --records $(TRAIN_NAMES) --iterations 40 $(MODELS)/multi$*_init $@
-
-multi_viz.pdf: model_viz.py $(MULTI_BEST)
+viz.pdf: model_viz.py $(BEST)
 	python $^ $@
 
-COMPARE = python compare_models.py --records $(TRAIN_NAMES) --threshold $(MULTI_THRESHOLD)
+COMPARE = python compare_models.py --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
 
-multi_threshold.pdf: survey_threshold.py $(MULTI_BEST)
+threshold.pdf: survey_threshold.py $(BEST)
 	python $< --records $(TRAIN_NAMES) --thresholds -0.3 0.3 21 \
- $(MULTI_BEST) $@ > multi_threshold.txt
+ $(BEST) $@ > threshold.txt
 
 # Sensitivity to AutoRegressive order
-MULTI_ARs = 5 6 7 8 9 10 11 12
-VAR_MULTI = $(addsuffix fs$(MULTI_FS)lpp$(MULTI_LPP)rc$(MULTI_RC)rw$(MULTI_RW)rs$(MULTI_RS)_masked, $(addprefix multi_ar, $(MULTI_ARs)))
+ARs = 5 6 7 8 9 10 11 12
+AR_MODELS = $(addsuffix fs$(FS)lpp$(LPP)rc$(RC)rw$(RW)rs$(RS)_masked, $(addprefix ar, $(ARs)))
 
-multi_errors_vs_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(VAR_MULTI))
-	$(COMPARE) --models $(VAR_MULTI) --parameters $(MULTI_ARs) \
---parameter_name "AR order" -- $@ > multi_errors_vs_ar.txt
+errors_vs_ar.pdf: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
+	$(COMPARE) --models $(AR_MODELS) --parameters $(ARs) \
+--parameter_name "AR order" -- $@ > errors_vs_ar.txt
 
 # Sensitivity to Sample Frequency (7 not allowed)
-MULTI_FSs = 2 3 4 5 6 8
-VFS_MULTI = $(addsuffix lpp$(MULTI_LPP)rc$(MULTI_RC)rw$(MULTI_RW)rs$(MULTI_RS)_masked, \
-    $(addprefix multi_ar$(MULTI_AR)fs, $(MULTI_FSs)))
+FSs = 2 3 4 5 6 8
+FS_MODELS = $(addsuffix lpp$(LPP)rc$(RC)rw$(RW)rs$(RS)_masked, \
+    $(addprefix ar$(AR)fs, $(FSs)))
 
-multi_errors_vs_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(VFS_MULTI))
-	$(COMPARE) --models $(VFS_MULTI) --parameters $(MULTI_FSs) \
---parameter_name "Sample Frequency" $@ > multi_errors_vs_fs.txt
+errors_vs_fs.pdf: compare_models.py $(addprefix $(MODELS)/, $(FS_MODELS))
+	$(COMPARE) --models $(FS_MODELS) --parameters $(FSs) \
+--parameter_name "Sample Frequency" $@ > errors_vs_fs.txt
 
 # Sensitivity to Low Pass Period in seconds.
-MULTI_LPPs = 55 60 65 68 70 72 75 85
-LPP_MULTI = $(addsuffix rc$(MULTI_RC)rw$(MULTI_RW)rs$(MULTI_RS)_masked, $(addprefix \
-    multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp, \
-    $(MULTI_LPPs)))
+LPPs = 55 60 65 68 70 72 75 85
+LPP_MODELS = $(addsuffix rc$(RC)rw$(RW)rs$(RS)_masked, $(addprefix \
+    ar$(AR)fs$(FS)lpp, \
+    $(LPPs)))
 
-multi_errors_vs_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MULTI))
-	$(COMPARE) --models $(LPP_MULTI) --parameters $(MULTI_LPPs) \
---parameter_name "Low Pass Period" $@ > multi_errors_vs_lpp.txt
+errors_vs_lpp.pdf: compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
+	$(COMPARE) --models $(LPP_MODELS) --parameters $(LPPs) \
+--parameter_name "Low Pass Period" $@ > errors_vs_lpp.txt
 
 # Sensitivity to Respiration Center frequency in cpm
-MULTI_RCs = 11 11.5 11.8 12 12.2 12.5 13 14
-RC_MULTI = $(addsuffix rw$(MULTI_RW)rs$(MULTI_RS)_masked, $(addprefix \
-    multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc, \
-    $(MULTI_RCs)))
+RCs = 11 11.5 11.8 12 12.2 12.5 13 14
+RC_MODELS = $(addsuffix rw$(RW)rs$(RS)_masked, $(addprefix \
+    ar$(AR)fs$(FS)lpp$(LPP)rc, \
+    $(RCs)))
 
-multi_errors_vs_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MULTI))
-	$(COMPARE) --models $(RC_MULTI) --parameters $(MULTI_RCs) \
---parameter_name "Center Frequency" $@ > multi_errors_vs_rc.txt
+errors_vs_rc.pdf: compare_models.py $(addprefix $(MODELS)/, $(RC_MODELS))
+	$(COMPARE) --models $(RC_MODELS) --parameters $(RCs) \
+--parameter_name "Center Frequency" $@ > errors_vs_rc.txt
 
 # Sensitivity to Respiration width frequency in cpm
-MULTI_RWs = 3.3 3.4 3.5 3.6 3.7 4.0
-RW_MULTI = $(addsuffix rs$(MULTI_RS)_masked, $(addprefix \
-    multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc$(MULTI_RC)rw, \
-    $(MULTI_RWs)))
+RWs = 3.3 3.4 3.5 3.6 3.7 4.0
+RW_MODELS = $(addsuffix rs$(RS)_masked, $(addprefix \
+    ar$(AR)fs$(FS)lpp$(LPP)rc$(RC)rw, \
+    $(RWs)))
 
-multi_errors_vs_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MULTI))
-	$(COMPARE) --models $(RW_MULTI) --parameters $(MULTI_RWs) \
---parameter_name "Frequency Width" $@ > multi_errors_vs_rw.txt
+errors_vs_rw.pdf: compare_models.py $(addprefix $(MODELS)/, $(RW_MODELS))
+	$(COMPARE) --models $(RW_MODELS) --parameters $(RWs) \
+--parameter_name "Frequency Width" $@ > errors_vs_rw.txt
 
 # Sensitivity to Respiration Smoothing frequency in cpm
-MULTI_RSs = .46 .465 .47 .475 .48
-RS_MULTI = $(addsuffix _masked, $(addprefix \
-    multi_ar$(MULTI_AR)fs$(MULTI_FS)lpp$(MULTI_LPP)rc$(MULTI_RC)rw$(MULTI_RW)rs, \
-    $(MULTI_RSs)))
+RSs = .46 .465 .47 .475 .48
+RS_MODELS = $(addsuffix _masked, $(addprefix \
+    ar$(AR)fs$(FS)lpp$(LPP)rc$(RC)rw$(RW)rs, \
+    $(RSs)))
 
-multi_errors_vs_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MULTI))
-	$(COMPARE) --models $(RS_MULTI) --parameters $(MULTI_RSs) \
+errors_vs_rs.pdf: compare_models.py $(addprefix $(MODELS)/, $(RS_MODELS))
+	$(COMPARE) --models $(RS_MODELS) --parameters $(RSs) \
     --parameter_name "Respiration Smoothing Filter" \
-    $@ > multi_errors_vs_rs.txt
+    $@ > errors_vs_rs.txt
 
-viterbi_pass2.out: pass2.py pass1.out $(MODELS)/c_model $(MULTI_BEST)
-	python $< --viterbi --model_paths $(MODELS)/c_model $(MULTI_BEST) pass1.out temp
-	cp temp $@
-
-multi_pass2.out: pass2.py $(MULTI_BEST)
+pass2.out: pass2.py $(BEST)
 	python $^ temp --records $(TRAIN_NAMES) --threshold 0.7
 	cp temp $@
 
-test_pass2.out: pass2.py $(MULTI_BEST)
+test_pass2.out: pass2.py $(BEST)
 	python $^ temp --records $(XNAMES) --threshold 0.7
 	cp temp $@
 
-%score.tex: score.py %pass2.out
+score.tex: score.py pass2.out
 	python $^ $@  --tex
 
 test_score.tex: score.py test_pass2.out
-	python $^ $@ $(XNAMES) --expert src/hmmds/applications/apnea/event-2-answers --tex
+	python $^ $@ $(XNAMES) --expert raw_data/apnea/event-2-answers --tex
 
 ## yapf                          : Force google format on all python code
 .PHONY : yapf
@@ -181,9 +159,8 @@ clean:
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo VAR_MULTI: $(VAR_MULTI)
-	@echo MULTI_ARs: $(MULTI_ARs)
-	@echo MULTI_BEST: $(MULTI_BEST)
+	@echo ARs: $(ARs)
+	@echo BEST: $(BEST)
 ## help                           : Print comments on targets from makefile
 .PHONY : help
 help : Makefile

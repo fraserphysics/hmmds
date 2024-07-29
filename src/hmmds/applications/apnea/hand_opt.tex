@@ -30,102 +30,149 @@
     have #2.}
 }
 
-\newcommand{\StudyFigs}[2]{
+\newcommand{\StudyFigs}[1]{
 
 \begin{figure}
   \centering
-  \resizebox{0.8\textwidth}{!}{\includegraphics{#1_threshold.pdf}}
-  \StudyCaption{detection threshold}{#2}
-  \label{fig:#1_threshold}
+  \resizebox{0.8\textwidth}{!}{\includegraphics{threshold.pdf}}
+  \StudyCaption{detection threshold}{#1}
+  \label{fig:threshold}
 \end{figure}
 
 \begin{figure}
   \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_ar.pdf}}
-    \StudyCaption{autoregressive order}{#2}
-  \label{fig:#1_ar_order_study}
+    \resizebox{0.8\textwidth}{!}{\includegraphics{errors_vs_ar.pdf}}
+    \StudyCaption{autoregressive order}{#1}
+  \label{fig:ar_order_study}
 \end{figure}
 
 \begin{figure}
   \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_fs.pdf}}
-    \StudyCaption{heart rate sample frequency}{#2}
-  \label{fig:#1_sample_frequency_study}
+    \resizebox{0.8\textwidth}{!}{\includegraphics{errors_vs_fs.pdf}}
+    \StudyCaption{heart rate sample frequency}{#1}
+  \label{fig:sample_frequency_study}
 \end{figure}
 
 \begin{figure}
   \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_lpp.pdf}}
-    \StudyCaption{cutoff period in seconds of low pass filter for heart rate}{#2}
-  \label{fig:#1_lpp_study}
+    \resizebox{0.8\textwidth}{!}{\includegraphics{errors_vs_lpp.pdf}}
+    \StudyCaption{cutoff period in seconds of low pass filter for heart rate}{#1}
+  \label{fig:lpp_study}
 \end{figure}
 
 \begin{figure}
   \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_rc.pdf}}
-    \StudyCaption{center frequency in cpm for extracting respiration signal}{#2}
-  \label{fig:#1_rc_study}
+    \resizebox{0.8\textwidth}{!}{\includegraphics{errors_vs_rc.pdf}}
+    \StudyCaption{center frequency in cpm for extracting respiration signal}{#1}
+  \label{fig:rc_study}
 \end{figure}
 
 \begin{figure}
   \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_rw.pdf}}
-    \StudyCaption{width in cpm of filter for extracting respiration signal}{#2}
-  \label{fig:#1_rw_study}
+    \resizebox{0.8\textwidth}{!}{\includegraphics{errors_vs_rw.pdf}}
+    \StudyCaption{width in cpm of filter for extracting respiration signal}{#1}
+  \label{fig:rw_study}
 \end{figure}
 
 \begin{figure}
   \centering
-    \resizebox{0.8\textwidth}{!}{\includegraphics{#1_errors_vs_rs.pdf}}
+    \resizebox{0.8\textwidth}{!}{\includegraphics{errors_vs_rs.pdf}}
     \StudyCaption{cutoff frequency in cpm for smoothing the
-      respiration signal}{#2}
-  \label{fig:#1_rs_study}
+      respiration signal}{#1}
+  \label{fig:rs_study}
 \end{figure}
 
 \begin{table*}
   \centering
-  \input{#1_score.tex}
-  \caption[Performance]{Performance of a model that has #2.}
-  \label{tab:#1_score}
+  \input{score.tex}
+  \caption[Performance]{Performance of a model that has #1.}
+  \label{tab:score}
 \end{table*}}
+
+\section{Introduction}
+\label{sec:introduction}
+
+Here I document how I fit the model I used for task 2 of the CINC2000
+event.
+
+Initially I had hoped to re-win the competition.
+
+For the first edition of the book I developed code for doing Viterbi
+decoding on classes.  When I implemented testing, I discovered that
+the algorithm failed to calculate the maximum likelihood sequence of
+classes, and in fact sometimes failed to run.  I was just lucky that
+the code ran and produced a plausible estimate.
+
+McNames won the competition by looking at periodograms of the
+data and classifying each minute by hand.  I ended up looking at the
+test data and trying to get models to match classification that I did by
+hand.  I was not entirely successful.  I ultimately decided that the
+goal was pointless and chose to use a single fairly simple model to do
+the classification.  The result did not re-win the competition, but it
+is simple and I believe satisfactory.
 
 \section{Combining Respiration and Heart Rate}
 \label{sec:combination}
 
-Here I combine a vector heart rate and respiration signal with a
-multiple state state structure.  The parameters to choose include:
+I use an HMM with six discrete states and observation models that
+combine a vector heart rate and respiration signal.  There are three
+states for the apnea class and three states for the normal class.  For
+each class one state is reserved for \emph{noise}.  The prior for the
+variance for the noise states is $\psi, \nu = 10^6, 10^4$, and the
+prior for the non-noise states is
+\begin{equation*}
+  \psi, \nu =
+  \begin{bmatrix}
+    4,000 & 0 \\ 0 & 0.6 
+  \end{bmatrix}, 10,000. 
+\end{equation*}
+I optimize the model with 40 Baum Welch iterations.  A summary of the
+result appears in Fig.~\ref{fig:viz}.
+
+\begin{figure}
+  \centering
+  \resizebox{1.0\textwidth}{!}{\includegraphics{viz.pdf}}
+  \caption{Topology of the HMM used for task-2 classification.}
+  \label{fig:viz}
+\end{figure}
+
+The parameters to choose include:
 \begin{description}
 \item[Parameters:] for the (Vector Autoregressive Gaussian) model
   of the 2-d vectors with components respiration and low-pass filtered
   heart rate.  The parameters include:
   \begin{description}
-  \item[AR order] 8 % MULTI_AR
-  \item[sample rate] 4 % MULTI_FS
-  \item[low pass period] 65 seconds % MULTI_LPP
-  \item[respiration pass center] 12 per minute % MULTI_RC
-  \item[respiration pass width] 3.6 per minute % MULTI_RW
-  \item[envelope smooth] .47 per minute % MULTI_RS
-  \item[$\psi$ and $\nu$] Priors for each state
+  \item[AR order] 8 % AR
+  \item[sample rate] 4 % FS
+  \item[low pass period] 65 seconds % LPP
+  \item[respiration pass center] 12 per minute % RC
+  \item[respiration pass width] 3.6 per minute % RW
+  \item[envelope smooth] .47 per minute % RS
+  \item[$\psi$ and $\nu$] Priors for variance in the observation model
+    for each state
   \end{description}
-\item[Detector threshold] 0.7 % MULTI_THRESHOLD
+\item[Detector threshold] 0.7 % THRESHOLD
 \end{description}
-
 I chose the parameter values in foregoing list to get the best
 performance\footnote{AR order 10 reduces the error count from 2,270 to
   2,260.  I chose AR order 8 to reduce over fitting.} on the training
 data.
 
-In the following figures I've plotted the number of classification
-errors on the training data against each of those parameters.  The
-training records are the \emph{a} records and the \emph{b} and
-\emph{c} except \emph{b05, c04,} and \emph{c06} which are
+Figures \ref{fig:threshold} --- \ref{fig:rs_study}
+illustrate the effects of varying several parameters.  I've plotted
+the number of classification errors on the training data against the
+parameters.  The training records are the \emph{a} records and the
+\emph{b} and \emph{c} except \emph{b05, c04,} and \emph{c06} which are
 defective\footnote{The ECG for b05 is not usable.  c04 has an
   arrhythmia in which the interval between beats is very short as
   frequently as every third beat.  And c06 is a shifted version of
   c05.}.
 
-\StudyFigs{multi}{multiple states and the observation models are
+\StudyFigs{multiple states and the observation models are
   vector autoregressive models for heart rate and respiration}
+
+\section{Test Results}
+\label{sec:results}
 
 \begin{table*}
   \centering
@@ -134,103 +181,35 @@ defective\footnote{The ECG for b05 is not usable.  c04 has an
   \label{tab:test_score}
 \end{table*}
 
+One could explore how performance on the training data and the test
+data varies with the number of states in the HMM.
+
 \end{document}
 
-#1_threshold.pdf
-#1_errors_vs_ar.pdf
-#1_errors_vs_lpp.pdf
-#1_errors_vs_rc.pdf
-#1_errors_vs_rw.pdf
-#1_errors_vs_rs.pdf
-#1_score.tex
-
 In the book, I got to error rate of .1176 on the training data (1952
-errors) and .1305 (2253 errors) on the test data.  Cheating by peaking
-at the expert data to set thresholds I got 1410 errors with the v4s
-models.
+errors) and .1305 (2253 errors) on the test data.
 
-Performance of multi models with cheating:
-
-       A->N   N->A  N_error
-       3A 2N  787   705   1492
-       3A 3N  651   638   1289  (changed psi & nu)
-
-Performance without cheating
-
-2024-03-17: 3 normal states, 3 apnea states, threshold based on Pass1,
-log_likelihoods of 6 state model with classes trained on APLUSNAMES
-and c_model.  2094 errors on all training data.
-
-2024-03-18: Improve on yesterday by using models low_classless and
-high_classless instead of c_model and \$(MULTI_BEST) for threshold
-calculations.  1940 errors on all training data.
-
-2024-03-20: Finished attempt to use one model for each training
-record.  I'd hoped to use likelihood's to define nearest neighbors and
-then use the neighbor's model to classify a record's data.  That would
-have generalized to the x-files.  It didn't work well at all.
-
-2024-03-21: Focus on parameter of models \$(MODELS)/high_classless and
-\$(MODELS)/low_classless that give statistics for the threshold
-function.  1805 errors on all training data.  N_minutes = 6457 + 10155
-= 16612.  Error fraction is 1805/16612 = 0.109.
-
-2024-03-23: Found deadline for submission to SciPy-24 was Feb 27 and
-that meeting will be in Tacoma.  I won't go.  I'm ready to move beyond
-tinkering with models for the apnea data.  I wrote to PhysioNet asking
-how to score classification of testing data.
-
-2024-04-29 Changed training set from: APLUSNAMES =
-$(ANAMES) b01 b02 b03 b04 c08 c10 to: APLUSNAMES = $(ANAMES) b01 b02
-c02 c09 c10 because the derived heart rates for c08, b03, and b04 have
-unsatisfactory spikes.  After modifying the training set performance
-in Table 4 (multi state with cheat threshold) dropped to 1424, 0.09,
-and the values in Table 5 (uses the best m and b values) were 2337
-0.14.  The optimum parameter values stayed the same
-
-Plan:
-
-1. Review x-files and consider modifying QRS code to address failures.
-
-2. View x-files and estimate best threshold for each.
-
-3. Create submission file based on thresholds from code.
-
-4. Create submission file based on thresholds from viewing data.
-
-5. If possible score test data using cheat best threshold for each
-file.
-
-6. Combine heart_rate.tex and hand_opt.tex into document that reports
-on interesting or valuable lessons from my work on the apnea data.
-
-7. Rewrite last chapter of the book.
-
-8. Revise software including build of book.
-
-9. Start asking for help.
+Here a single model gets 2270 errors (rate .1449) on training data and
+2741 errors (rate .1587) on the test data.
 
 Here are notes on the apnea data:
 
 x-files with untrimmed beginnings: 01, 04, 06, 18, 22, 24, 26, 28, 29,
 35
 
-Guesses about which x-files are ``Normal'' (like c-files) based on:
+Guesses about which x-files are ``Normal'' based on looking at results
+of explore.py
 
-Pass1   Visual 64   128 1024 2048 4096
-                    x03            x03
-x04     x04    x04  x04  x04  x04  x04
-x06     x06
-x11     x11              x11  x11  x11
-                                   x15
-x17     x17              x17
-                    x18  x18  x18
-x22     x22    x22  x22  x22  x22  x22
-x24     x24              x24  x24  x24
-x29     x29    x29       x29  x29  x29
-x33     x33    x33  x33  x33  x33  x33
-x34     x34    x34  x34  x34  x34  x34
-x35     x35    x35  x35  x35  x35  x35
+x04
+x06
+x11 
+x17
+x22
+x24
+x29
+x33
+x34
+x35
 
 x11 has atypical beats, but my QRS code tracks and provides OK heart
 rate
@@ -240,46 +219,6 @@ x29 has alternans.  I think it's a ``Normal'' record
 x26 Has atypical beats and my QRS code occasionally also fails for
 normal beats.  I think that the atypical beats queers the training and
 leads to the failures on normal beats.
-
-Here are the thresholds to use for the x-files (first column from
-python printfit.py default threshold_statistics.pkl ):
-
-Record  Fit    Visual  QRS OK?
-x01     0.42    -1.7   yes
-x02     2.19     1.0   yes
-x03     1.15     1.1   yes
-x04     2.81     3.4   extra beats
-x05     0.55     0.0   yes
-x06     0.94     2.8   yes
-x07    -1.64    -1.0   yes
-x08     0.92    -0.4   yes
-x09    -2.00     0.3   yes
-x10    -0.26     0.0   yes    
-x11    -1.39           Arrhythmia ?PVC distorts resp
-x12     1.12     0.4   yes
-x13    -1.66    -0.3   Arrhythmia, negative ecg spikes
-x14    -1.92    -0.7   yes
-x15     0.49    -0.6   yes
-x16    -0.06     0.2   yes
-x17     1.48           yes  c?
-x18     0.95    -2.3   yes
-x19     3.73     0.4   yes Some arrhythmia, but ok
-x20     0.19    -0.7   yes
-x21     0.10           yes
-x22     0.22           yes
-x23    -1.48           yes
-x24     3.75           yes
-x25     0.04           yes
-x26    -1.46     0.0   arrhythmia and extra beats
-x27    -0.68           yes
-x28    -0.86           yes
-x29    10.66           yes But serious arrhythima
-x30    -0.58     0.8   yes
-x31     5.00           yes
-x32     2.08           yes
-x33     0.19           yes
-x34     0.22           yes
-x35     0.08           yes
 
 X33 and x34 are shifted measurements of the same event, as are c05 and
 c06.
@@ -305,93 +244,6 @@ likelihood 3\%, and long inter-beat periods (48 bpm).
 x29 QRS-HMM is OK.  Episodes of arrhythmia with frequent premature
 beats.  Sometimes every 5th beat is premature.  Solution: Mark this
 record as normal and don't fix the derived signals.
-
-
-python fit2threshold.py ../../../../build/derived_data/apnea/models/multi_ar12fs4lpp65rc13rw3.0rs.455_masked threshold_statistics.pkl --records a01 a02 a03 a04 a05 a06 a07 a08 a09 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 b01 b02 b03 b04 c08 c10 --mb 0.927 0.0305 --fig_path fit2threshold.pdf
-errors=1841
-a01 -0.00  0.82 -0.82
-a02 -1.80 -1.05 -0.75
-a03  2.40  2.73 -0.34
-a04 -0.60 -0.67  0.06
-a05 -0.60 -1.09  0.49
-a06 -1.20 -0.63 -0.57
-a07  1.20  0.57  0.63
-a08  1.20  0.03  1.17
-a09 -2.40 -1.58 -0.82
-a10 -0.00 -0.75  0.75
-a11 -2.40 -0.61 -1.79
-a12 -1.20 -1.23  0.03
-a13 -0.00 -0.02  0.02
-a14 -0.00  1.72 -1.72
-a15 -0.60 -0.73  0.13
-a16  0.60  0.26  0.34
-a17 -0.00 -0.83  0.83
-a18 -2.40 -0.61 -1.79
-a19 -0.00  0.35 -0.35
-a20 -1.20 -0.79 -0.41
-b01  2.40  0.18  2.22
-b02  1.80  0.08  1.72
-b03  1.20  0.81  0.39
-b04  2.40  3.26 -0.86
-c08  2.40  3.17 -0.77
-c10  2.40  0.34  2.06
-     best  fit   difference
-
-2024-06-15 Start on HMM called ``threshold'' for estimating thresholds
-delta threshold = .12 n_states = 42
-
-errors=1294
-a01 -1.00 -0.31 -0.69
-a02 -2.33 -2.72  0.39 [...]
-
-2024-06-21 But with 42 degrees of freedom, one can fit 26 thresholds
-exactly.
-
-Changes: (1) Limit rank of SVD to 8; (2) VARG covariance the same for
-all states except noise;  (3) Use 100 steps between -3 and +3 for
-calculating the best thresholds.
-
-Makefile says --power_dict hr_respiration .25 threshold 4
-
-Rank = 8, delta mu = .2, variance = .49 n_states = 26
-errors=1926
-    best  fit   difference  in qxfit2threshold
-a01 -0.03 -0.62  0.59
-a02 -2.21 -1.45 -0.76 [...]
-
-Why is minimum of fit thresholds -1.45?
-
-delta mu = .2, variance = 0.04, n_states = 26
-***Training failed***
-
-delta mu = .2, variance = 0.09, n_states = 26
-errors=2120
-    best  fit   difference  in qxfit2threshold
-a01 -0.03  0.19 -0.22
-a02 -2.21  0.11 -2.32
-
-delta mu = .1, variance = 0.09, n_states = 50
-***Training failed***
-
-delta mu = .1, variance = 0.25, n_states = 50, rank = 8
-errors=2038
-    best  fit   difference  in qxfit2threshold
-a01 -0.03 -0.83  0.80
-a02 -2.21 -0.33 -1.89
-
-delta mu = .1, variance = 1.0, n_states = 50, rank = 8
-errors=2136
-    best  fit   difference  in qxfit2threshold
-a01 -0.03 -0.69  0.66
-a02 -2.21 -1.08 -1.13
-minimum of fit is -1.08 occurs for 8 records
-
-delta mu = .05, variance = 1.0, n_states = 98, rank = 9
-errors=2047
-    best  fit   difference  in qxfit2threshold
-a01 -0.03 -0.03 -0.00
-a02 -2.21 -1.45 -0.76
-minimum of fit is -1.45 occurs for 7 records
 
 2024-07-23 Errors on test data: 3704 21\%.  Not satisfactory given the
 complexity of the effort.  Next, I will try to get close to 80\% with

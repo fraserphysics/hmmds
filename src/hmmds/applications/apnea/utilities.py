@@ -12,7 +12,6 @@ import scipy.signal
 import pint
 
 import hmm.base
-import density_ratio
 
 PINT = pint.UnitRegistry()
 
@@ -28,6 +27,11 @@ def common_arguments(parser: argparse.ArgumentParser):
     and testing.
 
     """
+    parser.add_argument('--records',
+                        type=str,
+                        nargs='+',
+                        help='eg, --records a01 x02 -- ')
+    # Paths
     parser.add_argument('--root',
                         type=str,
                         default='../../../../',
@@ -45,19 +49,6 @@ def common_arguments(parser: argparse.ArgumentParser):
         type=str,
         default='build/derived_data/ECG/{0}_self_AR3/heart_rate',
         help='path from root to heart rate data')
-    parser.add_argument('--records',
-                        type=str,
-                        nargs='+',
-                        help='eg, --records a01 x02 -- ')
-    parser.add_argument('--abcd',
-                        type=float,
-                        nargs=4,
-                        help='Parameters of map: PSD -> Threshold')
-    parser.add_argument('--mb',
-                        type=float,
-                        nargs=2,
-                        help='Parameters of map: Record -> Threshold')
-    # Group that are relative to derived_apnea
     parser.add_argument('--rtimes',
                         type=str,
                         default='raw_data/Rtimes',
@@ -66,6 +57,7 @@ def common_arguments(parser: argparse.ArgumentParser):
                         type=str,
                         default='raw_data/apnea/summary_of_training',
                         help='path from root to expert annotations')
+    # Parameters
     parser.add_argument('--iterations',
                         type=int,
                         default=10,
@@ -100,11 +92,6 @@ def common_arguments(parser: argparse.ArgumentParser):
         type=int,
         default=0,
         help='Number of minutes to drop from the beginning of each record')
-    parser.add_argument(
-        '--fft_width',
-        type=int,
-        default=4096,
-        help='Number of samples for each fft for pass1 statistic')
     parser.add_argument(
         '--low_pass_period',
         type=float,
@@ -693,7 +680,7 @@ def hr_2_respiration(
     }
 
 
-# I put this in utilities enable apnea_train.py to run.
+# Putting this in utilities lets apnea_train.py run.
 class State:
     """For defining HMM graph
 
@@ -739,116 +726,6 @@ class State:
             result.append(
                 f'{successor:15s} {probability:11.3g} {trainable:9b}\n')
         return ''.join(result)
-
-
-class IntervalObservation(hmm.base.BaseObservation):
-    _parameter_keys = 'density_functions n_states'.split()
-
-    def __init__(self: IntervalObservation, density_functions: tuple, args):
-        r"""Output of state is a float.  The density is 1.0 if the
-        state is an apnea state, and if the state is normal the
-        density is given by a density ratio."
-
-        Args:
-            density_functions: density_functions[s] is a callable: float -> float
-            config: Parameters for density_functions
-
-        """
-        self.n_states = len(density_functions)
-        self.density_functions = density_functions
-        self.config = args.config
-
-    def reestimate(self: IntervalObservation, w: numpy.ndarray):
-        pass
-
-    def calculate(self: IntervalObservation) -> numpy.ndarray:
-        """Return likelihoods of states given self._y, a sequence of
-        classes.
-
-        """
-        self._likelihood[:, :] = 0.0
-        for i_state in range(self.n_states):
-            self._likelihood[:, i_state] = (self.density_functions[i_state](
-                self._y.reshape(-1, 1), self.config)).reshape(-1)
-        return self._likelihood
-
-
-# FixMe: Test this
-def interval_hmm_likelihood(model_path: str, record_name: str):
-    """Calculate log likelihood of model wrt data for a record
-    """
-    with open(model_path, 'rb') as _file:
-        model = pickle.load(_file)
-    del model.y_mod['class']
-
-    y_data = [
-        hmm.base.JointSegment(read_slow_peak_interval(model.args, record_name))
-    ]
-    t_seg = model.y_mod.observe(y_data)
-    n_times = model.y_mod.n_times
-    assert t_seg[-1] == n_times
-
-    model.alpha = numpy.empty((n_times, model.n_states))
-    model.gamma_inv = numpy.empty((n_times,))
-    model.state_likelihood = model.y_mod.calculate()
-    assert model.state_likelihood[0, :].sum() > 0.0
-    log_likelihood = model.forward()
-    return log_likelihood
-
-
-class Pass1:
-    """Holds statistics of a record for pass1 classification, ie, normal or apnea
-    """
-
-    def __init__(self, name, args, norm_frequency=0.3):
-        """Read heart rate data and attach some analysis results to self
-
-        Args:
-            name: EG "a01"
-            args:
-            norm_frequency: Divide PSD by sum of channels above this frequency (in cpm)
-
-        """
-
-        self.name = name
-        with open(args.heart_rate_path_format.format(name), 'rb') as _file:
-            _dict = pickle.load(_file)
-            sample_frequency = _dict['sample_frequency'].to(
-                '1/minutes').magnitude
-            hr = _dict['hr']
-            trim = int(sample_frequency *
-                       args.trim_start.to('minutes').magnitude)
-        heart_rate = _dict['hr'].to('1/minute').magnitude[trim:]
-        self.frequencies, self.psd = scipy.signal.welch(heart_rate,
-                                                        fs=sample_frequency,
-                                                        nperseg=args.fft_width)
-        self.norm_channel = numpy.argmax(self.frequencies > norm_frequency)
-
-    def statistic_1(self: Pass1, low=1.0, high=3.6) -> float:
-        """Spectral power in the range of low frequency apnea
-        oscillations.  Range in cpm
-
-        """
-
-        return self.bandpower(low, high) / self.statistic_2()
-
-    def statistic_2(self: Pass1):
-        """Power in frequencies higher than norm_channel
-
-        """
-        return self.psd[self.norm_channel:].sum()
-
-    def bandpower(self: Pass1, low: float, high: float) -> float:
-        """Spectral power in band.  Range in cpm
-
-        """
-        # argmax finds first place inequality is true
-        channel_low = max(0, numpy.argmax(self.frequencies > low))
-        channel_high = numpy.argmax(self.frequencies > high)
-        if channel_high <= 0:
-            channel_high = len(self.frequencies)
-
-        return self.psd[channel_low:channel_high].sum()
 
 
 class ModelRecord:
@@ -998,131 +875,6 @@ class ModelRecord:
                 else:
                     print('N', end='', file=report)
             print('\n', end='', file=report)
-
-
-def print_chain_model(y_mod, weight, key2index):
-    """Print information to understand heart rate model performance.
-
-    Args:
-        y_mod: A joint observation model
-        weight: An array of weights for each state
-        key2index: Maps state keys to state indices for hmm
-    """
-    interval = y_mod['interval']
-    print(f'\nindex {"name":14s} {"weight":9s}')
-    for key, index in key2index.items():
-        if key[-1] == '0' or key[
-                -1] == '1' or key in 'N_noise N_switch A_noise A_switch'.split(
-                ):
-            print(f'{index:3d}   {key:14s} {weight[index]:<9.4g}')
-
-
-def peaks_intervals(args, record_names):
-    """Calculate (prominence, interval) pairs.
-
-    Args:
-        args: command line arguments
-        record_names: Specifies data to analyze
-
-    Return: peak_dict with peak_dict[_class][t] = (prominence, interval)
-
-    The returned intervals are in minutes
-    """
-
-    # Calculate (prominence, interval) pairs
-    peak_dict = {0: [], 1: []}
-    for record_name in record_names:
-        heart_rate = HeartRate(args, record_name, args.config)
-        heart_rate.filter_hr()
-        heart_rate.read_expert()
-        heart_rate.find_peaks()
-
-        peak_times = heart_rate.peaks
-        prominences = heart_rate.peak_prominences
-        _class = heart_rate.expert
-        sample_frequency = heart_rate.hr_sample_frequency
-
-        sample_frequency_cpm = int(sample_frequency.to('1/minute').magnitude)
-        intervals = (peak_times[1:] - peak_times[:-1]) / sample_frequency_cpm
-
-        for index, (prominence,
-                    interval) in enumerate(zip(prominences[:-1], intervals)):
-            minute = int(peak_times[index] / sample_frequency_cpm)
-            if minute >= len(_class):
-                break
-            peak_dict[_class[minute]].append((prominence, interval))
-
-    return peak_dict
-
-
-def make_density_ratio(peak_dict, limit, sigma, _lambda):
-    """  Estimate the function p_normal(x)/p_apnea(x)
-
-    Args:
-        peak_dict: Arrays of peak heights and lengths of intervals between peaks
-        limit: Drop samples with length > limit
-        sigma: Width of kernel function
-        _lambda: Regularizes optimization
-
-    Returns: density_ratio.DensityRatio instance
-
-    """
-
-    key_n = 0
-    key_a = 1
-    i_interval = 1
-
-    def drop_big(interval):
-        """Return x_i after dropping values larger than limit
-        """
-        return interval[numpy.nonzero(interval < limit)]
-
-    normal, apnea = (drop_big(numpy.array(peak_dict[key])[:,
-                                                          i_interval]).reshape(
-                                                              -1, 1)
-                     for key in (key_n, key_a))
-
-    # FixMe: The result is a random function.  I should study the
-    # variability.
-    result = density_ratio.uLSIF(normal,
-                                 apnea,
-                                 kernel_num=800,
-                                 sigma=sigma,
-                                 _lambda=_lambda)
-    return result
-
-
-def apnea_pdf(x, _):
-    return numpy.ones(x.shape)
-
-
-def normal_pdf(x_in, config):
-    x = config.pdf_ratio.x
-    y = config.pdf_ratio.y
-    big = numpy.nonzero(x_in > x[-1])
-    small = numpy.nonzero(x_in < x[0])
-    result = config.normal_pdf_spline(x_in)
-    result[big] = y[-1]
-    result[small] = y[0]
-    return result
-
-
-def make_interval_pdfs(args, records=None):
-    """Extrapolate result of estimating the pdf ratio to range [0, \infty)
-
-    """
-
-    if records is None:
-        records = args.a_names
-    # Find peaks
-    peak_dict = peaks_intervals(args, records)
-
-    limit = 2.2  # No intervals longer than this for pdf ratio fit
-    sigma = 0.1  # Kernel width
-    _lambda = 0.06  # Regularize pdf ratio fit
-    pdf_ratio = make_density_ratio(peak_dict, limit, sigma, _lambda)
-
-    return pdf_ratio
 
 
 def main(argv=None):

@@ -48,22 +48,22 @@ class Record:
 
         """
         self.name = name
-        self.fields = 'ecg slow estimated_class expert'.split()
+        self.fields = 'ecg hr_respiration estimated_class expert'.split()
         with open(os.path.join(args.rtimes, f'{name}.ecg'), 'rb') as _file:
             ecg_dict = pickle.load(_file)  # keys 'raw' 'times'.  Times are in
             # seconds and sample frequency is
             # centiseconds
         self.ecg = (ecg_dict['raw'], 100 * PINT('Hz'))
 
-        # Pad prepended to slow by read
+        # Pad prepended to hr_respiration by read
         y_data = model.read_y_no_class(name)
-        length = len(y_data['slow']) - model.args.AR_order
+        length = len(y_data['hr_respiration']) - model.args.AR_order
         for key, value in y_data.items():
-            if key == 'slow':
+            if key == 'hr_respiration':
                 continue
             assert len(value) == length, f'{key} {len(value)} != {length}'
         f_sample = model.args.model_sample_frequency
-        self.slow = (y_data['slow'], f_sample)
+        self.hr_respiration = (y_data['hr_respiration'], f_sample)
 
         joint_data = [hmm.base.JointSegment(y_data)]
         samples_per_minute = int(f_sample.to('1/minute').magnitude)
@@ -79,7 +79,7 @@ class Record:
         for attribute in self.fields:
             data, frequency = getattr(self, attribute)
             length = len(data)
-            if attribute == 'slow':
+            if attribute == 'hr_respiration':
                 length -= model.args.AR_order
             last_time = (length / frequency).to('seconds').magnitude
             setattr(self, attribute, (data, frequency, last_time))
