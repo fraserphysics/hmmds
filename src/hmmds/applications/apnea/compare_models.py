@@ -1,7 +1,7 @@
-"""compare_models.py Calculate and plot error rate for list of models
+"""compare_models.py Calculate error rate for list of models
 
 python compare_models.py --models two_ar1_masked two_ar4_masked \
-two_ar6_masked --parameters 1 4 6 --show
+two_ar6_masked --parameters 1 4 6 result.pkl
 
 """
 import sys
@@ -11,10 +11,8 @@ import pickle
 import os.path
 
 import numpy
-import scipy.optimize
 
 import utilities
-import plotscripts.utilities
 
 
 def parse_args(argv):
@@ -32,18 +30,9 @@ def parse_args(argv):
                         nargs='+',
                         help="eg, 3.0 4.0 5.0 6.0")
     parser.add_argument('--parameter_name', type=str, default='parameter')
-    parser.add_argument('--show',
-                        action='store_true',
-                        help="display figure using Qt5")
-    parser.add_argument('--latex', type=str, help="resulting latex table")
-    parser.add_argument('--result',
-                        type=argparse.FileType('w', encoding='UTF-8'),
+    parser.add_argument('result',
+                        type=argparse.FileType('wb'),
                         default=sys.stdout,
-                        help='Write result to this path')
-    parser.add_argument('figure_path',
-                        nargs='?',
-                        type=str,
-                        default='compare_models.pdf',
                         help='Write result to this path')
     args = parser.parse_args(argv)
     utilities.join_common(args)
@@ -62,25 +51,6 @@ def print_summary(error_counts):
     print(
         f'total_apnea={counts[2]+counts[3]}, total_normal={counts[0]+counts[1]}'
     )
-
-
-def plot(axes, error_counts, xlabel=None):
-    x = []
-    error_rate = []
-    false_alarm = []
-    missed_detection = []
-    for x_, counts in error_counts.items():
-        x.append(float(x_))
-        false_alarm.append(counts[1])
-        missed_detection.append(counts[2])
-        error_rate.append(counts[1] + counts[2])
-    axes.plot(x, false_alarm, label="false alarm")
-    axes.plot(x, missed_detection, label="missed detection")
-    axes.plot(x, error_rate, label="all errors")
-    axes.legend()
-    if xlabel:
-        axes.set_xlabel(xlabel)
-    axes.set_ylabel('Number of errors')
 
 
 def for_threshold(threshold, record_dict):
@@ -105,7 +75,7 @@ def main(argv=None):
     if argv is None:  # Usual case
         argv = sys.argv[1:]
 
-    args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
+    args = parse_args(argv)
 
     if args.records is None:
         records = args.a_names
@@ -127,16 +97,11 @@ def main(argv=None):
     for model_name, parameter in zip(args.models, args.parameters):
         error_counts[parameter] = for_threshold(args.threshold,
                                                 model_records[model_name])
-
-    fig, axes = pyplot.subplots(nrows=1, figsize=(6, 4))
-    plot(axes, error_counts, args.parameter_name)
     print_summary(error_counts)
-
-    fig.tight_layout()
-    fig.savefig(args.figure_path)
-
-    if args.show:
-        pyplot.show()
+    pickle.dump({
+        'error_counts': error_counts,
+        'x_label': args.parameter_name
+    }, args.result)
 
     return 0
 
