@@ -148,7 +148,7 @@ $(APNEA_FIGS)/errors_vs_%.pdf: $(APNEA_PLOTSCRIPTS)/comparison_plot.py $(DERIVED
 $(APNEA_FIGS)/viz.pdf: model_viz.py $(BEST)
 	python $^ $@
 
-$(APNEA_FIGS)/threshold.pdf: survey_threshold.py $(BEST)
+$(APNEA_FIGS)/threshold.pdf: $(APNEA_PLOTSCRIPTS)/survey_threshold.py $(BEST)
 	python $< --records $(TRAIN_NAMES) --thresholds -0.3 0.3 21 \
  $(BEST) $@ > $(DERIVED_APNEA_DATA)/threshold.txt
 
