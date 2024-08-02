@@ -9,7 +9,10 @@
 
 # Data built elsewhere
 RTIMES = $(ROOT)/raw_data/Rtimes/
-ECG = ${ROOT}/build/derived_data/ECG
+ECG_DERIVED = ${ROOT}/build/derived_data/ECG
+ECG_FIGS = $(BUILD)/figs/ecg
+ECG_PLOTSCRIPTS = $(ROOT)/src/plotscripts/ecg
+ECG_TeX = $(BUILD)/TeX/ecg
 ECGCode = $(HMMDS)/applications/apnea/ECG
 # This file is in the ECGCode directory
 
@@ -37,129 +40,165 @@ KEEPERS = initial masked_trained unmasked_trained states likelihood heart_rate
 # have the following section of almost repeated pattern rules:
 
 #################### Block for a01_trained_AR3 ##############################
-$(ECG)/a01_trained_AR3/states/%: $(ECGCode)/ecg_decode.py $(ECG)/a01_trained_AR3/unmasked_trained
+$(ECG_DERIVED)/a01_trained_AR3/states/%: $(ECGCode)/ecg_decode.py $(ECG_DERIVED)/a01_trained_AR3/unmasked_trained
 	mkdir -p  $(@D)
 	python $^ $* $@
-$(ECG)/a01_trained_AR3/likelihood/%: $(ECGCode)/ecg_likelihood.py $(ECG)/a01_trained_AR3/unmasked_trained
+$(ECG_DERIVED)/a01_trained_AR3/likelihood/%: $(ECGCode)/ecg_likelihood.py $(ECG_DERIVED)/a01_trained_AR3/unmasked_trained
 	mkdir -p  $(@D)
 	python $^ $* $@
-$(ECG)/a01_trained_AR3/heart_rate/%: $(ECGCode)/states2hr.py $(ECG)/a01_trained_AR3/states/%
+$(ECG_DERIVED)/a01_trained_AR3/heart_rate/%: $(ECGCode)/states2hr.py $(ECG_DERIVED)/a01_trained_AR3/states/%
 	mkdir -p  $(@D)
-	python $<  $(ECG)/a01_trained_AR3/states/$* $@
+	python $<  $(ECG_DERIVED)/a01_trained_AR3/states/$* $@
 
-$(ECG)/a01_trained_AR3/all_states_likelihood_heart_rate: $(foreach X, states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG)/a01_trained_AR3/, $X/$Y)))
+$(ECG_DERIVED)/a01_trained_AR3/all_states_likelihood_heart_rate: $(foreach X, states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG_DERIVED)/a01_trained_AR3/, $X/$Y)))
 	touch $@
 
 #################### Rules to make a01_trained_AR3/unmasked_trained ############
-$(ECG)/a01_trained_AR3/initial: model_init.py
+$(ECG_DERIVED)/a01_trained_AR3/initial: model_init.py
 	mkdir -p  $(@D)
 	python $(ECGCode)/model_init.py --root ${ROOT} --records a01 --tag_ecg \
 --ecg_alpha_beta 1.0e3 1.0e2 --noise_parameters 1.0e6 1.0e8 1.0e-50 \
 --before_after_slow 18 30 10 --AR_order 3 masked_dict $@
 
-$(ECG)/a01_trained_AR3/masked_trained: $(ECGCode)/train.py $(ECG)/a01_trained_AR3/initial
+$(ECG_DERIVED)/a01_trained_AR3/masked_trained: $(ECGCode)/train.py $(ECG_DERIVED)/a01_trained_AR3/initial
 	python $< --records a01 --type segmented --iterations 5 \
-$(ECG)/a01_trained_AR3/initial $@ >  $(ECG)/a01_trained_AR3/masked.log
+$(ECG_DERIVED)/a01_trained_AR3/initial $@ >  $(ECG_DERIVED)/a01_trained_AR3/masked.log
 
-$(ECG)/a01_trained_AR3/unmasked_hmm: $(ECGCode)/declass.py $(ECG)/a01_trained_AR3/masked_trained
+$(ECG_DERIVED)/a01_trained_AR3/unmasked_hmm: $(ECGCode)/declass.py $(ECG_DERIVED)/a01_trained_AR3/masked_trained
 	python $^ $@
 
-$(ECG)/a01_trained_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/a01_trained_AR3/unmasked_hmm
+$(ECG_DERIVED)/a01_trained_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG_DERIVED)/a01_trained_AR3/unmasked_hmm
 	python $< --records a01 --type segmented --iterations 20 $(@D)/unmasked_hmm $@ >  $@.log
 
 ## Pattern rules for models of other records starting from a01_trained_AR3/unmasked_hmm ###
-$(ECG)/%_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/a01_trained_AR3/unmasked_trained
+$(ECG_DERIVED)/%_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG_DERIVED)/a01_trained_AR3/unmasked_trained
 	mkdir -p $(@D)
-	python $< --records $* --type segmented --iterations 10 $(ECG)/a01_trained_AR3/unmasked_trained $@ >  $@.log
-$(ECG)/%_self_AR3/states: $(ECGCode)/ecg_decode.py $(ECG)/%_self_AR3/unmasked_trained
+	python $< --records $* --type segmented --iterations 10 $(ECG_DERIVED)/a01_trained_AR3/unmasked_trained $@ >  $@.log
+$(ECG_DERIVED)/%_self_AR3/states: $(ECGCode)/ecg_decode.py $(ECG_DERIVED)/%_self_AR3/unmasked_trained
 	python $^ $* $@
-$(ECG)/%_self_AR3/likelihood: $(ECGCode)/ecg_likelihood.py $(ECG)/%_self_AR3/unmasked_trained
+$(ECG_DERIVED)/%_self_AR3/likelihood: $(ECGCode)/ecg_likelihood.py $(ECG_DERIVED)/%_self_AR3/unmasked_trained
 	python $^ $* $@
-$(ECG)/%_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/%_self_AR3/states $(ECG)/%_self_AR3/likelihood
-	python $< --r_state 35 --likelihood $(ECG)/$*_self_AR3/likelihood 0.02 $(ECG)/$*_self_AR3/states $@
+$(ECG_DERIVED)/%_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG_DERIVED)/%_self_AR3/states $(ECG_DERIVED)/%_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG_DERIVED)/$*_self_AR3/likelihood 0.02 $(ECG_DERIVED)/$*_self_AR3/states $@
 
 # Models with alpha and beta to force variance 0.008 for all normal
 # states.  That keeps noisy ecg between beats from being assigned to R
 # part of cycle.  This code is not used 2024-05-02.
-$(ECG)/%_self_AR3/fixed_sigma_initial: $(ECGCode)/model_init.py
+$(ECG_DERIVED)/%_self_AR3/fixed_sigma_initial: $(ECGCode)/model_init.py
 	mkdir -p  $(@D)
 	python $(ECGCode)/model_init.py --root ${ROOT} --records $* --tag_ecg \
 --ecg_alpha_beta 1.0e8 0.008e8 --noise_parameters 1.0e6 1.0e8 1.0e-50 \
 --before_after_slow 18 30 10 --AR_order 3 masked_dict $@
 
-$(ECG)/%_self_AR3/fixed_sigma_masked_trained: $(ECGCode)/train.py $(ECG)/%_self_AR3/fixed_sigma_initial
+$(ECG_DERIVED)/%_self_AR3/fixed_sigma_masked_trained: $(ECGCode)/train.py $(ECG_DERIVED)/%_self_AR3/fixed_sigma_initial
 	python $< --records $* --type segmented --iterations 5 \
-$(ECG)/$*_self_AR3/fixed_sigma_initial $@ >  $(ECG)/$*_self_AR3/masked.log
+$(ECG_DERIVED)/$*_self_AR3/fixed_sigma_initial $@ >  $(ECG_DERIVED)/$*_self_AR3/masked.log
 
-$(ECG)/%_self_AR3/fixed_sigma_unmasked_hmm: $(ECGCode)/declass.py $(ECG)/%_self_AR3/fixed_sigma_masked_trained
+$(ECG_DERIVED)/%_self_AR3/fixed_sigma_unmasked_hmm: $(ECGCode)/declass.py $(ECG_DERIVED)/%_self_AR3/fixed_sigma_masked_trained
 	python $^ $@
 
-$(ECG)/xxx_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/xxx_self_AR3/fixed_sigma_unmasked_hmm
+$(ECG_DERIVED)/xxx_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG_DERIVED)/xxx_self_AR3/fixed_sigma_unmasked_hmm
 	mkdir -p $(@D)
-	python $< --records xxx --type segmented --iterations 10 $(ECG)/xxx_self_AR3/fixed_sigma_unmasked_hmm $@ >  $@.log
+	python $< --records xxx --type segmented --iterations 10 $(ECG_DERIVED)/xxx_self_AR3/fixed_sigma_unmasked_hmm $@ >  $@.log
 
 
 ##########Special rules for records with arrhythmia#############################
-$(ECG)/x11_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/x11_self_AR3/states $(ECG)/x11_self_AR3/likelihood
-	python $< --r_state 35 --likelihood $(ECG)/x11_self_AR3/likelihood 0.01 \
---ecg_peaks x11 0.03 --hr_dips 55 $(ECG)/x11_self_AR3/states $@
+$(ECG_DERIVED)/x11_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG_DERIVED)/x11_self_AR3/states $(ECG_DERIVED)/x11_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG_DERIVED)/x11_self_AR3/likelihood 0.01 \
+--ecg_peaks x11 0.03 --hr_dips 55 $(ECG_DERIVED)/x11_self_AR3/states $@
 
-$(ECG)/x13_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/x13_self_AR3/states $(ECG)/x13_self_AR3/likelihood
-	python $< --r_state 35 --likelihood $(ECG)/x13_self_AR3/likelihood 0.02 \
---ecg_peaks x13 -0.05 $(ECG)/x13_self_AR3/states $@
+$(ECG_DERIVED)/x13_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG_DERIVED)/x13_self_AR3/states $(ECG_DERIVED)/x13_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG_DERIVED)/x13_self_AR3/likelihood 0.02 \
+--ecg_peaks x13 -0.05 $(ECG_DERIVED)/x13_self_AR3/states $@
 
-$(ECG)/x19_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/x19_self_AR3/states $(ECG)/x19_self_AR3/likelihood
-	python $< --r_state 35 --likelihood $(ECG)/x19_self_AR3/likelihood 0.1 \
-$(ECG)/x19_self_AR3/states $@
+$(ECG_DERIVED)/x19_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG_DERIVED)/x19_self_AR3/states $(ECG_DERIVED)/x19_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG_DERIVED)/x19_self_AR3/likelihood 0.1 \
+$(ECG_DERIVED)/x19_self_AR3/states $@
 
 # Special model for x26.  alpha and beta force variance 0.016 for all normal states.  Otherwise noisy ecg between beats gets assigned to R part of cycle.
-$(ECG)/x26_self_AR3/initial: $(ECGCode)/model_init.py
+$(ECG_DERIVED)/x26_self_AR3/initial: $(ECGCode)/model_init.py
 	mkdir -p  $(@D)
 	python $(ECGCode)/model_init.py --root ${ROOT} --records x26 --tag_ecg \
 --ecg_alpha_beta 1.0e8 0.016e8 --noise_parameters 1.0e6 1.0e8 1.0e-50 \
 --before_after_slow 18 30 10 --AR_order 3 masked_dict $@
 
-$(ECG)/x26_self_AR3/masked_trained: $(ECGCode)/train.py $(ECG)/x26_self_AR3/initial
+$(ECG_DERIVED)/x26_self_AR3/masked_trained: $(ECGCode)/train.py $(ECG_DERIVED)/x26_self_AR3/initial
 	python $< --records x26 --type segmented --iterations 5 \
-$(ECG)/x26_self_AR3/initial $@ >  $(ECG)/x26_self_AR3/masked.log
-$(ECG)/x26_self_AR3/unmasked_hmm: $(ECGCode)/declass.py $(ECG)/x26_self_AR3/masked_trained
+$(ECG_DERIVED)/x26_self_AR3/initial $@ >  $(ECG_DERIVED)/x26_self_AR3/masked.log
+$(ECG_DERIVED)/x26_self_AR3/unmasked_hmm: $(ECGCode)/declass.py $(ECG_DERIVED)/x26_self_AR3/masked_trained
 	python $^ $@
-$(ECG)/x26_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/x26_self_AR3/unmasked_hmm
+$(ECG_DERIVED)/x26_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG_DERIVED)/x26_self_AR3/unmasked_hmm
 	mkdir -p $(@D)
-	python $< --records x26 --type segmented --iterations 10 $(ECG)/x26_self_AR3/unmasked_hmm $@ >  $@.log
+	python $< --records x26 --type segmented --iterations 10 $(ECG_DERIVED)/x26_self_AR3/unmasked_hmm $@ >  $@.log
 
-$(ECG)/x26_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/x26_self_AR3/states $(ECG)/x26_self_AR3/likelihood
-	python $< --r_state 35 --likelihood $(ECG)/x26_self_AR3/likelihood 0.03 \
---ecg_peaks x26 -0.03 --hr_dips 48 $(ECG)/x26_self_AR3/states $@
+$(ECG_DERIVED)/x26_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG_DERIVED)/x26_self_AR3/states $(ECG_DERIVED)/x26_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG_DERIVED)/x26_self_AR3/likelihood 0.03 \
+--ecg_peaks x26 -0.03 --hr_dips 48 $(ECG_DERIVED)/x26_self_AR3/states $@
 
 ##### Special rules for records that don't work with models trained on a01 ########
-$(ECG)/a12_self_AR3/initial: model_init.py
+$(ECG_DERIVED)/a12_self_AR3/initial: model_init.py
 	mkdir -p  $(@D)
 	python $(ECGCode)/model_init.py --root ${ROOT} --records a12 --tag_ecg \
 --ecg_alpha_beta 1.0e8 0.016e8 --noise_parameters 1.0e6 1.0e8 1.0e-50 \
 --before_after_slow 18 30 10 --AR_order 3 masked_dict $@
 
-$(ECG)/a12_self_AR3/masked_trained: $(ECGCode)/train.py $(ECG)/a12_self_AR3/initial
+$(ECG_DERIVED)/a12_self_AR3/masked_trained: $(ECGCode)/train.py $(ECG_DERIVED)/a12_self_AR3/initial
 	python $<  --records a12 --type segmented --iterations 5 \
-$(ECG)/a12_self_AR3/initial $@ >  $(ECG)/a12_self_AR3/masked.log
+$(ECG_DERIVED)/a12_self_AR3/initial $@ >  $(ECG_DERIVED)/a12_self_AR3/masked.log
 
-$(ECG)/a12_self_AR3/unmasked_hmm: $(ECGCode)/declass.py $(ECG)/a12_self_AR3/masked_trained
+$(ECG_DERIVED)/a12_self_AR3/unmasked_hmm: $(ECGCode)/declass.py $(ECG_DERIVED)/a12_self_AR3/masked_trained
 	python $^ $@
 
-$(ECG)/a12_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/a12_self_AR3/unmasked_hmm
+$(ECG_DERIVED)/a12_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG_DERIVED)/a12_self_AR3/unmasked_hmm
 	python $< --records a12 --type segmented --iterations 20 $(@D)/unmasked_hmm $@ >  $@.log
 
-$(ECG)/a12_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG)/a12_self_AR3/states $(ECG)/a12_self_AR3/likelihood
-	python $< --r_state 35 --likelihood $(ECG)/a12_self_AR3/likelihood 0.03 \
---ecg_peaks a12 -0.03 --hr_dips 48 $(ECG)/a12_self_AR3/states $@
+$(ECG_DERIVED)/a12_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG_DERIVED)/a12_self_AR3/states $(ECG_DERIVED)/a12_self_AR3/likelihood
+	python $< --r_state 35 --likelihood $(ECG_DERIVED)/a12_self_AR3/likelihood 0.03 \
+--ecg_peaks a12 -0.03 --hr_dips 48 $(ECG_DERIVED)/a12_self_AR3/states $@
 
-$(ECG)/c07_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG)/c10_self_AR3/unmasked_trained
+$(ECG_DERIVED)/c07_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG_DERIVED)/c10_self_AR3/unmasked_trained
 	mkdir -p $(@D)
-	python $< --records c07 --type segmented --iterations 20 $(ECG)/c10_self_AR3/unmasked_trained $@ >  $@.log
+	python $< --records c07 --type segmented --iterations 20 $(ECG_DERIVED)/c10_self_AR3/unmasked_trained $@ >  $@.log
 
 ################################################################################
-all_selves = $(foreach X, unmasked_trained states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG)/$Y_self_AR3/, $X)))
-$(ECG)/all_selves: $(all_selves)
+
+$(ECG_FIGS)/%_states_71.pdf: $(ECG_PLOTSCRIPTS)/ecg_states_fig.py $(ECG_DERIVED)/%/states/a01
+	mkdir -p $(@D)
+	python $< $(RTIMES)/a01.ecg $(ECG_DERIVED)/$*/states/a01 71.1 71.14 $@
+
+$(ECG_FIGS)/%_states_70.pdf: $(ECG_PLOTSCRIPTS)/ecg_states_fig.py $(ECG_DERIVED)/%/states/a01
+	mkdir -p $(@D)
+	python $< $(RTIMES)/a01.ecg $(ECG_DERIVED)/$*/states/a01 70.785 70.825 $@
+
+$(ECG_FIGS)/a01a19c02.pdf:  $(ECG_PLOTSCRIPTS)/a01a19c02.py $(ECG_DERIVED)/a01_trained_AR3/states/a01 $(ECG_DERIVED)/a01_trained_AR3/states/c02
+	mkdir -p $(@D)
+	python $< $(RTIMES) $(ECG_DERIVED)/a01_trained_AR3/states/c02 300.0 300.05 $@
+
+$(ECG_FIGS)/train_log.pdf: $(ECG_PLOTSCRIPTS)/train_characteristic.py $(ECG_DERIVED)/a01_trained_AR3/unmasked_trained
+	mkdir -p $(@D)
+	python $< $(ECG_DERIVED)/a01_trained_AR3/unmasked_trained.log $@
+
+$(ECG_FIGS)/like_a14_x07.pdf: $(ECG_PLOTSCRIPTS)/plot_like.py $(ECG_DERIVED)/a01_trained_AR3/all_states_likelihood_heart_rate
+	mkdir -p $(@D)
+	python $< $(RTIMES) $(ECG_DERIVED)/a01_trained_AR3/likelihood/ 300.16 300.19 a14 x07 $@
+
+$(ECG_FIGS)/simulated.pdf: $(ECG_PLOTSCRIPTS)/plot_simulation.py $(ECG_DERIVED)/a01_trained_AR3/unmasked_trained
+	mkdir -p $(@D)
+	python $^ 1000 $@
+
+ECG_FIGLIST = $(addsuffix .pdf, $(addprefix $(ECG_FIGS)/, \
+a01_trained_AR3_states_70 a01_trained_AR3_states_71 a01a19c02 train_log \
+like_a14_x07 simulated))
+
+ecg.pdf: ecg.tex $(ECG_FIGLIST) table.tex self_table.tex
+	export TEXINPUTS=$(abspath $(BUILD))//:; \
+        pdflatex $< ; pdflatex $<
+
+################################################################################
+
+################################################################################
+all_selves = $(foreach X, unmasked_trained states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG_DERIVED)/$Y_self_AR3/, $X)))
+$(ECG_DERIVED)/all_selves: $(all_selves)
 	touch $@
 
 # $ time make ../../../../../build/derived_data/ECG/all_selves
