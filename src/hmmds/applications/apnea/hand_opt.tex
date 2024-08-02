@@ -189,8 +189,17 @@ data varies with the number of states in the HMM.
 In the book, I got to error rate of .1176 on the training data (1952
 errors) and .1305 (2253 errors) on the test data.
 
-Here a single model gets 2270 errors (rate .1449) on training data and
-2741 errors (rate .1587) on the test data.
+Here with 40 training iterations a single 6 state model gets 2270
+errors (rate .1449) on training data and 2741 errors (rate .1587) on
+the test data.
+
+I tried a single 8 state model and trained it with 100 iterations.  It
+got 2207 errors on training data and 2798 errors on the test data.  I
+used 100 iterations because the training was still improving after 40.
+
+Trying 100 training iterations on the 6 state model yields 2270 errors
+on the training data and 2742 errors on the test data.  I reverted to
+40 training iterations.
 
 Here are notes on the apnea data:
 

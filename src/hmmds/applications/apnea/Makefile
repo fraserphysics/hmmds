@@ -35,6 +35,16 @@ test:
 yapf :
 	yapf -i --recursive --style "google" .
 
+## rmbest                        : For checking performance of new parameter values
+.PHONY : rmbest
+rmbest:
+	rm $(BEST)
+
+## pass2                         : For checking performace of new parameter values
+.PHONY : pass2
+pass2: $(DERIVED_APNEA_DATA)/score.tex
+	less $<
+
 .PHONY : clean
 clean:
 	rm -f *.aux *.log *.pdf like_table.tex *.pkl $(MODELS)/* *flag

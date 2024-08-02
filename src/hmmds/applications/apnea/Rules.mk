@@ -69,17 +69,15 @@ $(MODELS)/%_masked: apnea_train.py $(MODELS)/%_init
 	python $< --records $(TRAIN_NAMES) --iterations 40 $(MODELS)/$*_init $@
 
 $(DERIVED_APNEA_DATA)/pass2.out: pass2.py $(BEST)
-	python $^ $@ --records $(TRAIN_NAMES) --threshold 0.7
+	python $^ $@ --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
 
 $(DERIVED_APNEA_DATA)/test_pass2.out: pass2.py $(BEST)
-	python $^ $@ --records $(XNAMES) --threshold 0.7
+	python $^ $@ --records $(XNAMES) --threshold $(THRESHOLD)
 
 $(DERIVED_APNEA_DATA)/score.tex: score.py $(DERIVED_APNEA_DATA)/pass2.out
-	mkdir -p  $(@D)
 	python $^ $@  --tex
 
 $(DERIVED_APNEA_DATA)/test_score.tex: score.py $(DERIVED_APNEA_DATA)/test_pass2.out
-	mkdir -p  $(@D)
 	python $^ $@ $(XNAMES) --expert raw_data/apnea/event-2-answers --tex
 
 ########################Build hand_opt.pdf####################################
@@ -152,7 +150,7 @@ $(APNEA_FIGS)/viz.pdf: model_viz.py $(BEST)
 
 $(APNEA_FIGS)/threshold.pdf: survey_threshold.py $(BEST)
 	python $< --records $(TRAIN_NAMES) --thresholds -0.3 0.3 21 \
- $(BEST) $@ > threshold.txt
+ $(BEST) $@ > $(DERIVED_APNEA_DATA)/threshold.txt
 
 COMPARE = python compare_models.py --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
 
