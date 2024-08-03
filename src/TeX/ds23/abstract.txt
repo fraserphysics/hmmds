@@ -1,0 +1,10 @@
+I describe hidden Markov models with discreet states and
+autoregressive observation functions that I have built to model
+electrocardiogram data and the use of those models for data
+assimilation.  My ultimate goal is to detect obstructive sleep apnea
+based on ECG measurements alone.  Here I describe the intermediate
+processes of estimating the timing of the individual PQRST phases of
+each heart beat and obtaining from those times estimates of time series of
+heart rate.  My model exploits the observation that variations in
+heart rate affect the time between PQRST sequences, but that the
+duration of the PQRST sequences do not change.

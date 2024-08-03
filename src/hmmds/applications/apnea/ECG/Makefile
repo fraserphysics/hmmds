@@ -9,37 +9,17 @@ BUILD = $(ROOT)/build
 # Default target.  Note: ecg.pdf depends indirectly on
 # $(ECG_DERIVED)/all_selves, and building $(ECG_DERIVED)/all_selves
 # builds the heart rate files that I use for apnea detection.
-ecg.pdf:
+
+ECG_DEFAULT = $(BUILD)/TeX/ecg/ecg.pdf
+.PHONY : evince
+evince: $(ECG_DEFAULT)
+	evince $< &
 
 include Rules.mk
 
-elgendi.pdf: elgendi.py
-	python $< $@
-
-constant_a03.pdf: constant_a03.py  $(RTIMES)a03.ecg
-	python $^ $@
-
-a03_states_56.pdf:  ecg_states_fig.py $(ECG_DERIVED)/a03_self_AR3/states
-	python $< $(RTIMES)/a03.ecg $(ECG_DERIVED)/a03_self_AR3/states 56.25 56.4 $@
-
-a01c02_states.pdf:  a01c02_states.py $(ECG_DERIVED)/a01_trained_AR3/states/a01 $(ECG_DERIVED)/a01_trained_AR3/states/c02
-	python $< $(RTIMES)  $(ECG_DERIVED)/a01_trained_AR3/states/a01 $(ECG_DERIVED)/a01_trained_AR3/states/c02 300.0 300.05 $@
-
-self_table.tex: self_table.py $(ECG_DERIVED)/all_selves
-	python self_table.py $(ECG_DERIVED) $@
-
-table.tex: table.py $(ECG_DERIVED)/a01_trained_AR3/all_states_likelihood_heart_rate
-	python table.py $(ECG_DERIVED)/a01_trained_AR3/ $@
-
-%.pdf : %.fig
-	fig2dev -L pdftex -F $< $@
-%.pdf_t: %.fig %.pdf
-	fig2dev -L pdftex_t -p $*.pdf $< $@
-
-DS23FIGS = elgendi.pdf constant_a03.pdf a03_states_56.pdf a01c02_states.pdf ecg_hmm.pdf ecg_hmm.pdf_t simulated.pdf
-
-ds23.pdf: ds23.tex $(DS23FIGS)
-	export TEXINPUTS=$(ABSROOT)//:; pdflatex ds23.tex; pdflatex ds23.tex
+.PHONY : ds23
+ds23: $(ECG_TeX)/ds23.pdf
+	evince $< &
 
 As = a01 a03 a05 a07 a09 a11 a13 a15 a17 a19 a02 a04 a06 a08 a10 a12	\
 a14 a16 a18 a20

@@ -161,7 +161,6 @@ $(ECG_DERIVED)/c07_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG_DERIVED)
 	python $< --records c07 --type segmented --iterations 20 $(ECG_DERIVED)/c10_self_AR3/unmasked_trained $@ >  $@.log
 
 ################################################################################
-
 $(ECG_FIGS)/%_states_71.pdf: $(ECG_PLOTSCRIPTS)/ecg_states_fig.py $(ECG_DERIVED)/%/states/a01
 	mkdir -p $(@D)
 	python $< $(RTIMES)/a01.ecg $(ECG_DERIVED)/$*/states/a01 71.1 71.14 $@
@@ -186,15 +185,51 @@ $(ECG_FIGS)/simulated.pdf: $(ECG_PLOTSCRIPTS)/plot_simulation.py $(ECG_DERIVED)/
 	mkdir -p $(@D)
 	python $^ 1000 $@
 
+$(ECG_DERIVED)/table.tex: table.py $(ECG_DERIVED)/a01_trained_AR3/all_states_likelihood_heart_rate
+	python $< $(ECG_DERIVED)/a01_trained_AR3/ $@
+
+$(ECG_DERIVED)/self_table.tex: self_table.py $(ECG_DERIVED)/all_selves
+	python $< $(ECG_DERIVED) $@
+
 ECG_FIGLIST = $(addsuffix .pdf, $(addprefix $(ECG_FIGS)/, \
 a01_trained_AR3_states_70 a01_trained_AR3_states_71 a01a19c02 train_log \
 like_a14_x07 simulated))
 
-ecg.pdf: ecg.tex $(ECG_FIGLIST) table.tex self_table.tex
+$(ECG_TeX)/ecg.pdf: ecg.tex $(ECG_FIGLIST) $(ECG_DERIVED)/table.tex $(ECG_DERIVED)/self_table.tex
+	mkdir -p $(@D)
 	export TEXINPUTS=$(abspath $(BUILD))//:; \
-        pdflatex $< ; pdflatex $<
+        pdflatex --output-directory=$(@D) $< ; pdflatex --output-directory=$(@D) $<
 
 ################################################################################
+
+$(ECG_FIGS)/elgendi.pdf: $(ECG_PLOTSCRIPTS)/elgendi.py
+	mkdir -p $(@D)
+	python $< $@
+
+$(ECG_FIGS)/constant_a03.pdf: $(ECG_PLOTSCRIPTS)/constant_a03.py  $(RTIMES)a03.ecg
+	mkdir -p $(@D)
+	python $^ $@
+
+$(ECG_FIGS)/a03_states_56.pdf:  $(ECG_PLOTSCRIPTS)/ecg_states_fig.py $(ECG_DERIVED)/a03_self_AR3/states
+	mkdir -p $(@D)
+	python $< $(RTIMES)/a03.ecg $(ECG_DERIVED)/a03_self_AR3/states 56.25 56.4 $@
+
+$(ECG_FIGS)/a01c02_states.pdf:  $(ECG_PLOTSCRIPTS)/a01c02_states.py $(ECG_DERIVED)/a01_trained_AR3/states/a01 $(ECG_DERIVED)/a01_trained_AR3/states/c02
+	mkdir -p $(@D)
+	python $< $(RTIMES)  $(ECG_DERIVED)/a01_trained_AR3/states/a01 $(ECG_DERIVED)/a01_trained_AR3/states/c02 300.0 300.05 $@
+
+$(ECG_FIGS)/%.pdf : %.fig
+	mkdir -p $(@D)
+	fig2dev -L pdftex -F $< $@
+$(ECG_FIGS)/%.pdf_t: %.fig $(ECG_FIGS)/%.pdf
+	mkdir -p $(@D)
+	fig2dev -L pdftex_t -p $(ECG_FIGS)/$*.pdf $< $@
+
+DS23FIGS = $(addsuffix .pdf, $(addprefix $(ECG_FIGS)/, elgendi constant_a03 \
+a03_states_56 a01c02_states ecg_hmm simulated)) $(ECG_FIGS)/ecg_hmm.pdf_t
+
+$(ECG_TeX)/ds23.pdf: ds23.tex $(DS23FIGS)
+	export TEXINPUTS=$(ABSROOT)//:; pdflatex --output-directory=$(@D) $<; pdflatex --output-directory=$(@D) $<
 
 ################################################################################
 all_selves = $(foreach X, unmasked_trained states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG_DERIVED)/$Y_self_AR3/, $X)))
