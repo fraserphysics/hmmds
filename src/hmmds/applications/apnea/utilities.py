@@ -15,7 +15,7 @@ import pygraphviz
 import hmm.base
 import hmm.C
 
-PINT = pint.UnitRegistry()
+PINT = pint.get_application_registry()
 
 
 def common_arguments(parser: argparse.ArgumentParser):
@@ -532,10 +532,6 @@ class HeartRate:
 
         self.hr_sample_frequency = _dict['sample_frequency']
         self.raw_hr = _dict['hr'].to('1/minute').magnitude
-
-        if normalize:
-            self.raw_hr *= config.norm_avg / Pass1(record_name,
-                                                   args).statistic_2()
 
         # Set up for fft based filtering
         self.fft_length = 131072

@@ -2,10 +2,11 @@
 
 """
 
+from __future__ import annotations  # Enables, eg, (self: HMM,
+
 import sys
 import argparse
 import pickle
-import os
 
 import pint
 
@@ -17,9 +18,7 @@ from hmmds.applications.apnea import utilities
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as pyplot
 
-PINT = pint.UnitRegistry()
-pint.set_application_registry(PINT)  # Makes objects from pickle.load
-# use this pint registry.
+PINT = pint.get_application_registry()
 
 
 def parse_args(argv):
@@ -27,7 +26,8 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser(description='Plot spectrogram')
-    parser.add_argument('--name', type=str, default='a11')
+    utilities.common_arguments(parser)
+    parser.add_argument('--record_name', type=str, default='a11')
     parser.add_argument('--time_window',
                         type=float,
                         nargs=2,
@@ -39,13 +39,13 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_true',
                         help='display figure in pop-up window')
-    parser.add_argument('HR_dir', type=str, help='Path to heart rate data')
-    parser.add_argument('resp_dir', type=str, help='Path to heart rate data')
+    parser.add_argument('input', type=str, help='Path to spectrogram data')
     parser.add_argument('annotations',
                         type=str,
                         help='Path to expert annotations')
     parser.add_argument('output', type=str, help='Path to result')
     args = parser.parse_args(argv)
+    utilities.join_common(args)
     return args
 
 
@@ -56,18 +56,14 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
-    # Read heart rate data
-    with open(os.path.join(args.HR_dir, args.name + '.lphr'), 'rb') as _file:
-        hr_dict = pickle.load(_file)
-    time_series = hr_dict['hr_band_pass']
-    hr_dt = 1 / hr_dict['sample_frequency'].to('1/minute')
-
     # Read spectrogram data
-    with open(os.path.join(args.resp_dir, args.name + '.sgram'), 'rb') as _file:
+    with open(args.input, 'rb') as _file:
         sgram_dict = pickle.load(_file)
     frequencies = sgram_dict['frequencies']
     times = sgram_dict['times']
     psds = sgram_dict['psds']
+    time_series = sgram_dict['time_series']
+    hr_dt = sgram_dict['hr_dt']
 
     # Calculate spectrogram with unit lengths
     assert psds.shape == (len(frequencies), len(times))
@@ -75,12 +71,10 @@ def main(argv=None):
     psds /= norms
 
     # Read expert annotations
-    annotations = utilities.read_expert(args.annotations, args.name)
+    annotations = utilities.read_expert(args.annotations, args.record_name)
 
     figure, (ax_time_series, ax_spectrogram,
-             ax_annotation) = pyplot.subplots(3, 1)
-    ax_annotation.get_shared_x_axes().join(ax_time_series, ax_spectrogram,
-                                           ax_annotation)
+             ax_annotation) = pyplot.subplots(3, 1, sharex=True)
 
     # Plot time series
     if args.time_window:
@@ -92,7 +86,8 @@ def main(argv=None):
     ax_time_series.plot(
         numpy.arange(n_start, n_stop) * hr_dt.to('minutes').magnitude,
         time_series[n_start:n_stop].to('1/minutes').magnitude)
-    ax_time_series.set_xticklabels([])
+    ax_time_series.set_ylim([55, 95])
+    ax_time_series.set_yticks([60, 80])
     ax_time_series.set_ylabel('HR/cpm')
 
     # Plot spectrogram
@@ -119,7 +114,7 @@ def main(argv=None):
         shading='gouraud',
     )
     ax_spectrogram.set_ylabel('f/cpm')
-    ax_spectrogram.set_xticklabels([])
+    ax_spectrogram.set_yticks([10, 20])
 
     # Plot annotations
     def annotation(time):

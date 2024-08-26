@@ -31,8 +31,7 @@ ToyTS1 ToyStretch ToyH benettin LikeLor))
 BOUNDS_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/bounds, QR)
 
 APNEA_FIGS =  $(addprefix $(BUILD)/figs/apnea/,  $(addsuffix .pdf, \
-ApneaNLD a03erA sgram a03HR a03erN pass1 )) $(BUILD)/figs/apnea/lda_flag
-# flag is for LDA1.pdf and LDA2.pdf
+ApneaNLD a03erA a03HR a03erN sgram))
 APNEA_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/apnea, class_net)
 
 SKELETON_FIGS = $(INTRODUCTION_FIGS) \
@@ -50,10 +49,10 @@ $(APNEA_XFIGS)
 TEX_SKELETON = $(TEX)/skeleton
 
 $(TEX_OUT)/figures.pdf: $(TEX_SKELETON)/figures.tex $(SKELETON_FIGS)
-	mkdir -p $(TEX_OUT)
+	mkdir -p $(@D)
 	export TEXINPUTS=$(abspath $(BUILD))//:; \
-pdflatex --output-directory $(TEX_OUT) $(TEX_SKELETON)/figures.tex; \
-pdflatex --output-directory $(TEX_OUT) $(TEX_SKELETON)/figures.tex;
+pdflatex --output-directory $(@D) $(TEX_SKELETON)/figures.tex; \
+pdflatex --output-directory $(@D) $(TEX_SKELETON)/figures.tex;
 
 # Local Variables:
 # mode: makefile

@@ -1650,41 +1650,10 @@ this algorithm and perhaps on other approaches.
 \subsection{Extracting Respiration Information}
 \label{sec:RESP}
 
-\begin{figure}
-  \centering{
-    \resizebox{0.65\textwidth}{!}{\includegraphics{LDA1.pdf}}
-    \resizebox{0.3\textwidth}{!}{\includegraphics{LDA2.pdf}}
-  }
-  \caption[Linear discriminant analysis of phase
-  jitter periodograms]%
-  {Linear discriminant analysis of phase jitter periodograms.  The
-    plot in the upper left, shows the following mean periodograms:
-    $\mu_C$, the mean for the \emph{c} records; $\mu_{N}$, the mean of
-    the minutes that the expert classified as normal in the $a$
-    records; and $\mu_{A}$, the mean of the minutes that the expert
-    classified as apnea in the $a$ records.  The lower left plot shows
-    the basis vectors that result from the linear discriminant
-    analysis.  Scatter plots of the three classes projected on the
-    basis $(v_1,v_2)$ appear on the right.}
-  \label{fig:LDA}
-\end{figure}
-
 
 \subsection{Classifying Records}
 \label{sec:ClassRec}
 
-\begin{figure}[tbhp]
-  \centering{\resizebox{\textwidth}{!}{\includegraphics{pass1.pdf}}
-  }
-  \caption[The first pass classifier]%
-  {The first pass classifier.  I've plotted the location of each
-    record using the log likelihood ratio $llr$ and the ratio
-    statistic $R$.  Records to the left of the line $2.39-\frac{llr}{2}$
-    are in the $L$ group.  Records to the right of the line
-    $2.55-\frac{llr}{2}$ are in the $H$ group.  And those in between are
-    in the $M$ group.}
-  \label{fig:pass1}
-\end{figure}
 
 \subsection{Model Topology and Training Data}
 \label{sec:topology}
@@ -1880,15 +1849,6 @@ RD is raw_data
 
 https://physionet.org/content/apnea-ecg/1.0.0/
 
-a03erA
-a03erN
-a03erHR
-ApneaNLD
-sgram
-LDA1
-LDA2
-pass1
-pf_H
 
 https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python/
 
