@@ -51,11 +51,9 @@ def main(argv=None):
 
     n_segments = len(args.t_starts)
 
-    fig, axeses = pyplot.subplots(nrows=n_segments, figsize=(6, 8))
+    fig, axeses = pyplot.subplots(nrows=n_segments, figsize=(6, 8), sharex=True)
     if n_segments == 1:
         axeses = [axeses]
-    else:
-        axeses[0].get_shared_x_axes().join(*axeses)
 
     for n, axes in enumerate(axeses):
         n_start, n_stop = numpy.searchsorted(

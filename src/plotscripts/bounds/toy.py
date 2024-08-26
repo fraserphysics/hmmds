@@ -54,11 +54,10 @@ def time_series(args: argparse.Namespace, pyplot, data):
     error = data['y_means'] - y
     y_deviations = numpy.sqrt(data['y_variances'])
 
-    figure, (y_plot, error_plot, log_prob_plot) = pyplot.subplots(nrows=3,
-                                                                  figsize=(6,
-                                                                           5))
-    # Force matching ticks
-    log_prob_plot.get_shared_x_axes().join(y_plot, error_plot, log_prob_plot)
+    figure, (y_plot, error_plot, log_prob_plot) = pyplot.subplots(
+        nrows=3,
+        figsize=(6,5),
+        sharex=True)
     # Drop tick labels on some shared axes.
     for axis in (y_plot, error_plot):
         axis.set_xticklabels([])

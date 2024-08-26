@@ -53,13 +53,13 @@ def main(argv=None):
     fig, ((forward, forward_error), (backward, backward_error),
           (smooth, smooth_error)) = pyplot.subplots(nrows=3,
                                                     ncols=2,
-                                                    figsize=(6, 10))
+                                                    figsize=(6, 10),
+                                                    sharex=True,
+                                                    sharey=True)
     all_axes = (forward, forward_error, backward, backward_error, smooth,
                 smooth_error)
     for axis in all_axes:
         axis.set_ylim(-45, 45)
-    forward.get_shared_x_axes().join(*all_axes)
-    forward.get_shared_y_axes().join(*all_axes)
 
     # Plot forward filter results
     forward.plot(t_, forward_means, label='forwards')

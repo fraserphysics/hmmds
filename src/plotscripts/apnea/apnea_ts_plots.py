@@ -2,7 +2,7 @@
 
 Here is an example of use:
 
-python apnea_ts_plots.py --data_dir derived_data/apnea  figs/apnea/a03erA.pdf
+python apnea_ts_plots.py --heart_rate_path_format derived_data/ECG/{}_self_AR3/heart_rate  figs/apnea/a03erA.pdf
 
 """
 import sys
@@ -14,9 +14,9 @@ import pint
 import numpy
 
 import plotscripts.utilities
+import hmmds.applications.apnea.utilities
 
-PINT = pint.UnitRegistry()
-pint.set_application_registry(PINT)  # Makes objects from pickle.load
+PINT = pint.get_application_registry()  # Makes objects from pickle.load
 
 # For PhysioNet data
 samples_per_second = 100 * PINT('Hz')
@@ -28,10 +28,7 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser(
         description='Make one of the figures illustrating apnea data')
-    parser.add_argument('--data_dir',
-                        type=str,
-                        default='../../../build/derived_data/apnea',
-                        help='Directory that contains Lphr')
+    hmmds.applications.apnea.utilities.common_arguments(parser)
     parser.add_argument(
         '--show',
         action='store_true',
@@ -41,7 +38,9 @@ def parse_args(argv):
         'fig_path',
         type=str,
         help='Path for storing the result, eg, ./../figs/apnea/a03HR.pdf')
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    hmmds.applications.apnea.utilities.join_common(args)
+    return args
 
 
 def depint(time, frequency=100 * PINT('Hz')):
@@ -82,8 +81,8 @@ def format_time(time: pint.Quantity) -> str:
     return f'${hours:2d}:{minutes:02d}:{int_seconds+fraction:05.2f}$'
 
 
-def read_lphr(data_file: str) -> numpy.ndarray:
-    """Read in "data_file" as an array"""
+def read_lphr(record: str) -> numpy.ndarray:
+    """Read raw heart rate and return result as an array"""
     with open(data_file, 'rb') as _file:
         hr_dict = pickle.load(_file)
     return hr_dict['hr_low_pass'], hr_dict['sample_frequency']
@@ -101,7 +100,8 @@ def plot_ECG_ONR_O2(args, start: pint.Quantity, stop: pint.Quantity,
         subplots: matplotlib.pyplot function
 """
     fig, (ax_ecg, ax_onr, ax_O2) = subplots(nrows=3, ncols=1, sharex=True)
-    with open(os.path.join(args.data_dir, 'a03er.pickle'), 'rb') as _file:
+    with open(os.path.join(args.derived_apnea_data, 'a03er.pickle'),
+              'rb') as _file:
         a03er_dict = pickle.load(_file)
 
     def subplot(ax,
@@ -180,8 +180,9 @@ def a03erN(args, subplots):
     return fig
 
 
-def plot_heart_rate(axes,
-                    path,
+def plot_heart_rate(args,
+                    axes,
+                    record_name,
                     t_start,
                     t_stop,
                     y_ticks,
@@ -198,7 +199,10 @@ def plot_heart_rate(axes,
         x_ticks: Values for tick marks and perhaps labels
         x_labels: Flag for generating labels at tick marks
     """
-    signal, sample_frequency = read_lphr(path)
+    heart_rate = hmmds.applications.apnea.utilities.HeartRate(args, record_name)
+    heart_rate.filter_hr()
+    signal = heart_rate.get_slow() * PINT('1/minute')
+    sample_frequency = heart_rate.model_sample_frequency  # or hr_sample_frequency
 
     times = interval2times(t_start, t_stop, sample_frequency)
     n_start = int((times[0] * sample_frequency).to('').magnitude)
@@ -232,14 +236,15 @@ def a03HR(args, subplots):
     x_label_times = [time * PINT('minutes') for time in (55, 60, 65)]
 
     # Plot the heart rate in the upper plot
-    plot_heart_rate(ax_hr, os.path.join(args.data_dir, 'Lphr/a03.lphr'),
-                    t_start, t_stop, numpy.arange(45, 86, 10), x_label_times)
+    plot_heart_rate(args, ax_hr, 'a03', t_start, t_stop,
+                    numpy.arange(45, 86, 10), x_label_times)
 
     ax_hr.set_ylim(40, 90)
     ax_hr.set_ylabel(r'$HR$')
 
     # Plot SpO2 in lower plot
-    with open(os.path.join(args.data_dir, 'a03er.pickle'), 'rb') as _file:
+    with open(os.path.join(args.derived_apnea_data, 'a03er.pickle'),
+              'rb') as _file:
         a03er_dict = pickle.load(_file)
 
     sample_frequency = 100 * PINT('Hz')  # For PhysioNet data
@@ -276,8 +281,8 @@ def ApneaNLD(args, subplots):
     t_start, t_stop = [time * PINT('minutes') for time in (115, 125)]
     x_label_times = [time * PINT('minutes') for time in (115, 120, 125)]
 
-    plot_heart_rate(ax_a01, os.path.join(args.data_dir, 'Lphr/a01.lphr'),
-                    t_start, t_stop, numpy.arange(40, 105, 10), x_label_times)
+    plot_heart_rate(args, ax_a01, 'a01', t_start, t_stop,
+                    numpy.arange(40, 105, 10), x_label_times)
 
     ax_a01.set_ylim(40, 100)
     ax_a01.set_ylabel(r'$a01 HR$')
@@ -289,8 +294,7 @@ def ApneaNLD(args, subplots):
     x_ticks = [time * PINT('minutes') for time in (570, 575)]
     y_ticks = numpy.arange(40, 85, 10)
 
-    plot_heart_rate(ax_a12, os.path.join(args.data_dir, 'Lphr/a12.lphr'),
-                    t_start, t_stop, y_ticks, x_ticks)
+    plot_heart_rate(args, ax_a12, 'a12', t_start, t_stop, y_ticks, x_ticks)
 
     ax_a12.set_ylim(40, 85)
     ax_a12.set_ylabel(r'$a12 HR$')
