@@ -30,6 +30,16 @@ $(BUILD)/TeX/skeleton/figures.pdf:
 .PHONY : skeleton
 skeleton: $(BUILD)/TeX/skeleton/figures.pdf
 
+## hand_opt                       : Optimizing parameters for detecting apnea
+.PHONY : hand_opt
+hand_opt: $(BUILD)/TeX/apnea/hand_opt.pdf
+
+raw_data/apnea/apnea-ecg-database:
+	mkdir -p $(@D)
+	cd $(@D); wget --no-check-certificate -r -N -c -np https://physionet.org/files/apnea-ecg/1.0.0/
+	mv $(@D)/physionet.org/files/apnea-ecg/1.0.0 $@
+	rm -r $(@D)/physionet.org
+
 # Rules for making plots
 include $(PLOTSCRIPTS)/basic_algorithms/Rules.mk
 include $(PLOTSCRIPTS)/bounds/Rules.mk
@@ -46,6 +56,7 @@ include $(HMMDS)/synthetic/filter/Rules.mk
 include $(HMMDS)/synthetic/bounds/Rules.mk
 include $(HMMDS)/applications/laser/Rules.mk
 include $(HMMDS)/applications/apnea/Rules.mk
+include $(HMMDS)/applications/apnea/ECG/Rules.mk
 
 # Rules for making documents
 include $(TEX)/skeleton/Rules.mk

@@ -49,11 +49,11 @@ class Record:
         """
         self.name = name
         self.fields = 'ecg hr_respiration estimated_class expert'.split()
-        with open(os.path.join(args.rtimes, f'{name}.ecg'), 'rb') as _file:
-            ecg_dict = pickle.load(_file)  # keys 'raw' 'times'.  Times are in
+        with open(os.path.join(args.ecg_dir, f'{name}.ecg')) as _file:
+            ecg_dict = pickle.load(_file)  # keys 'ecg' 'times'.  Times are in
             # seconds and sample frequency is
             # centiseconds
-        self.ecg = (ecg_dict['raw'], 100 * PINT('Hz'))
+        self.ecg = (ecg_dict['ecg'], 100 * PINT('Hz'))
 
         # Pad prepended to hr_respiration by read
         y_data = model.read_y_no_class(name)

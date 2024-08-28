@@ -2,7 +2,7 @@
 
 ecg_states_fig.py ecg_file state_file  t_start t_stop result
 
-ecg_file   Rtimes/a01.ecg
+ecg_file   buld/derived_data/apnea/ecgs/a01
 state_file ECG/AR1k20/states_a01
 t_start    70.1
 t_stop     70.2
@@ -45,7 +45,7 @@ def main(argv=None):
 
     with open(args.ecg_file, 'rb') as _file:
         _dict = pickle.load(_file)
-        ecg = _dict['raw']
+        ecg = _dict['ecg']
         ecg_times = _dict['times'] * PINT('seconds')
 
     with open(args.state_file, "rb") as _file:

@@ -284,11 +284,12 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.read_model()
 
         # Read ECG
-        prefix = os.path.join(self.root_box.text(), 'raw_data/Rtimes',
-                              f'{self.record_box.text()}')
-        with open(prefix + '.ecg', 'rb') as _file:
+        path = os.path.join(self.root_box.text(),
+                            'build/derived_data/apnea/ecgs',
+                            f'{self.record_box.text()}')
+        with open(path, 'rb') as _file:
             _dict = pickle.load(_file)
-        self.ecg = _dict['raw']
+        self.ecg = _dict['ecg']
         self.ecg_times = _dict['times'] * PINT('seconds')
 
         # Read decoded ecg states and find places where state is 32

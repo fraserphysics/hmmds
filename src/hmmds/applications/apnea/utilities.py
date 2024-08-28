@@ -51,10 +51,6 @@ def common_arguments(parser: argparse.ArgumentParser):
         type=str,
         default='build/derived_data/ECG/{0}_self_AR3/heart_rate',
         help='path from root to heart rate data')
-    parser.add_argument('--rtimes',
-                        type=str,
-                        default='raw_data/Rtimes',
-                        help='path from root to files created by wfdb')
     parser.add_argument('--expert',
                         type=str,
                         default='raw_data/apnea/summary_of_training',
@@ -136,7 +132,6 @@ def join_common(args: argparse.Namespace):
 
     # Add root prefix to paths in that directory
     args.derived_apnea_data = os.path.join(args.root, args.derived_apnea_data)
-    args.rtimes = os.path.join(args.root, args.rtimes)
     args.expert = os.path.join(args.root, args.expert)
     args.heart_rate_path_format = os.path.join(args.root,
                                                args.heart_rate_path_format)
@@ -1199,7 +1194,6 @@ def main(argv=None):
     for key, value in args.__dict__.items():
         print(f'{key}: {value}')
 
-    print(f"{args.root=} {args.rtimes=}")
     return 0
 
 

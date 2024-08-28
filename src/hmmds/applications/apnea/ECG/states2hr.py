@@ -254,10 +254,10 @@ def main(argv=None):
                                                        likelihood, fraction)
 
     if args.ecg_peaks:
-        ecg_path = os.path.join(args.rtimes, args.ecg_peaks[0] + ".ecg")
+        ecg_path = os.path.join(args.ecg_dir, args.ecg_peaks[0])
         with open(ecg_path, 'rb') as _file:
             _dict = pickle.load(_file)
-        ecg = _dict["raw"]
+        ecg = _dict["ecg"]
         fraction = float(args.ecg_peaks[1])
         time_period, bad_intervals = censor_peak(time_period, bad_intervals,
                                                  ecg, fraction)

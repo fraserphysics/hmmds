@@ -57,9 +57,9 @@ def common_arguments(parser: argparse.ArgumentParser):
                         default='models',
                         help='path from derived_apnea to models dir')
     #
-    parser.add_argument('--rtimes',
+    parser.add_argument('--ecg_dir',
                         type=str,
-                        default='raw_data/Rtimes',
+                        default='build/derived_data/apnea/ecgs',
                         help='path from root to files created by wfdb')
     parser.add_argument('--expert',
                         type=str,
@@ -109,7 +109,7 @@ def join_common(args: argparse.Namespace):
     for name in 'Amodel   BCmodel  modelLow  modelMedium  modelHigh'.split():
         setattr(args, name, os.path.join(args.models_dir, getattr(args, name)))
 
-    args.rtimes = os.path.join(args.root, args.rtimes)
+    args.ecg_dir = os.path.join(args.root, args.ecg_dir)
     args.expert = os.path.join(args.root, args.expert)
 
     args.a_names = [f'a{i:02d}' for i in range(1, 21)]
@@ -176,20 +176,6 @@ def read_train_log(path: str) -> numpy.ndarray:
     return column_dict
 
 
-def read_rtimes(args, name):
-    """Read rtimes calculated by Elgendi
-    """
-
-    path = os.path.join(args.rtimes, name + '.rtimes')
-    with open(path, mode='r', encoding='utf-8') as _file:
-        lines = _file.readlines()
-    n_ecg = int(lines[0].split()[-1])
-    rtimes = numpy.empty(len(lines) - 1)
-    for i, line in enumerate(lines[1:]):
-        rtimes[i] = float(line)
-    return rtimes, n_ecg  # rtimes are seconds
-
-
 def read_states(args, name):
     path = os.path.join(args.ecg_models, f'{name}_self_AR3/states')
     with open(path, "rb") as _file:
@@ -222,12 +208,13 @@ class JointSegment(hmm.base.JointSegment):
         return self.__class__(new_dict, self.ecg_pad)
 
 
+# FixMe: Document where read_ecgs is used
 def read_ecgs(args):
     ecgs = []
     for name in args.records:
-        path = os.path.join(args.rtimes, name + '.ecg')
+        path = os.path.join(args.ecg_dir, name)
         with open(path, 'rb') as _file:
-            raw = pickle.load(_file)['raw']
+            raw = pickle.load(_file)['ecg']
             if hasattr(args, 'AR_order'):
                 appendage = numpy.empty(len(raw) + args.AR_order)
                 appendage[:args.AR_order] = raw[0]
@@ -272,8 +259,6 @@ def main(argv=None):
     for key, value in args.__dict__.items():
         print(f'{key}: {value}')
 
-    rtimes, n_ecg = read_rtimes(args, 'a03')
-    print(f"{args.root=} {args.rtimes=} {n_ecg=} {rtimes[:5]=}")
     return 0
 
 

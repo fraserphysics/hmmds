@@ -8,21 +8,23 @@ ApneaDerivedData = $(ROOT)/build/derived_data/apnea
 EXPERT =  $(ROOT)/raw_data/apnea/summary_of_training
 RESPIRE = $(ApneaDerivedData)/Respire
 
+ALL_SELVES = ${ROOT}/build/derived_data/ECG/all_selves
+
 APNEA_FIGS = $(addprefix $(ApneaFigDir)/, $(addsuffix .pdf, a03erA a03erN a03HR ApneaNLD sgram ))
 
 APNEA_TS_PLOTS = $(ApneaPlotScripts)/apnea_ts_plots.py
 PLOT_COMMAND = 	mkdir -p $(@D); python $(APNEA_TS_PLOTS) --root $(ROOT) --heart_rate_path_format $(ROOT)/build/derived_data/ECG/{0}_self_AR3/heart_rate
 
-$(ApneaFigDir)/a03erA.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er.pickle
+$(ApneaFigDir)/a03erA.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er.pkl
 	$(PLOT_COMMAND)   $@
 
-$(ApneaFigDir)/a03erN.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er.pickle
+$(ApneaFigDir)/a03erN.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er.pkl
 	$(PLOT_COMMAND)   $@
 
 $(ApneaFigDir)/a03HR.pdf: $(APNEA_TS_PLOTS)
 	$(PLOT_COMMAND)   $@
 
-$(ApneaFigDir)/ApneaNLD.pdf: $(APNEA_TS_PLOTS)
+$(ApneaFigDir)/ApneaNLD.pdf: $(APNEA_TS_PLOTS) $(ALL_SELVES)
 	$(PLOT_COMMAND)    $@
 
 $(ApneaFigDir)/sgram.pdf:  $(ApneaPlotScripts)/spectrogram.py $(ApneaDerivedData)/a11.sgram

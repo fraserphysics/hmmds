@@ -3,21 +3,28 @@
 # project, HMMDS is where most code is, and BUILD is where derived
 # results go.
 
-# Data built elsewhere
-RAW_DATA = /mnt/precious/home/andy_nix/projects/dshmm/raw_data
-EXPERT =  $(RAW_DATA)/apnea/summary_of_training
 DERIVED_APNEA_DATA = $(BUILD)/derived_data/apnea
-APNEA_FIGS = $(BUILD)/figs/apnea
+APNEA_FIG_DIR = $(BUILD)/figs/apnea
 APNEA_PLOTSCRIPTS = $(ROOT)/src/plotscripts/apnea
 APNEA_TeX = $(BUILD)/TeX/apnea
 ApneaCode = $(HMMDS)/applications/apnea
 # This file is in the ApneaCode directory
+
+# Data built elsewhere
+RAW_DATA = /mnt/precious/home/andy_nix/projects/dshmm/raw_data
+EXPERT =  $(RAW_DATA)/apnea/summary_of_training
+PHYSIONET_WFDB = $(ROOT)/raw_data/apnea/apnea-ecg-database
 
 MODELS = ${ROOT}/build/derived_data/apnea/models
 ECG = $(MODELS)/ECG
 
 # See hmmds/applications/apnea/ECG/Makefile for making files like
 # build/derived_data/ECG/a01_self_AR3/heart_rate
+
+# Data files in a03er are shorter than claimed in a03er.hea
+$(DERIVED_APNEA_DATA)/a03er.pkl: $(ApneaCode)/extract_wfdb.py
+	mkdir -p $(@D)
+	python $< --shorten 204 $(PHYSIONET_WFDB) a03er $@
 
 $(DERIVED_APNEA_DATA)/a11.sgram: $(ApneaCode)/spectrogram.py
 	python $< --root $(ROOT) --model_sample_frequency 120 --fft_width 256 a11 $@
@@ -56,25 +63,25 @@ RS = .47
 # Detection threshold
 THRESHOLD = 0.7
 
-$(MODELS)/%_init: make_init.py model_init.py
+$(MODELS)/%_init: $(ApneaCode)/make_init.py model_init.py
 	mkdir -p  $(@D)
 	python $< multi_state $* $@
 
 BEST = $(MODELS)/ar$(AR)fs$(FS)lpp$(LPP)rc$(RC)rw$(RW)rs$(RS)_masked
 
-$(MODELS)/%_masked: apnea_train.py $(MODELS)/%_init
+$(MODELS)/%_masked: $(ApneaCode)/apnea_train.py $(MODELS)/%_init
 	python $< --records $(TRAIN_NAMES) --iterations 40 $(MODELS)/$*_init $@
 
-$(DERIVED_APNEA_DATA)/pass2.out: pass2.py $(BEST)
+$(DERIVED_APNEA_DATA)/pass2.out: $(ApneaCode)/pass2.py $(BEST)
 	python $^ $@ --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
 
-$(DERIVED_APNEA_DATA)/test_pass2.out: pass2.py $(BEST)
+$(DERIVED_APNEA_DATA)/test_pass2.out: $(ApneaCode)/pass2.py $(BEST)
 	python $^ $@ --records $(XNAMES) --threshold $(THRESHOLD)
 
-$(DERIVED_APNEA_DATA)/score.tex: score.py $(DERIVED_APNEA_DATA)/pass2.out
+$(DERIVED_APNEA_DATA)/score.tex: $(ApneaCode)/score.py $(DERIVED_APNEA_DATA)/pass2.out
 	python $^ $@  --tex
 
-$(DERIVED_APNEA_DATA)/test_score.tex: score.py $(DERIVED_APNEA_DATA)/test_pass2.out
+$(DERIVED_APNEA_DATA)/test_score.tex: $(ApneaCode)/score.py $(DERIVED_APNEA_DATA)/test_pass2.out
 	python $^ $@ $(XNAMES) --expert raw_data/apnea/event-2-answers --tex
 
 ########################Build hand_opt.pdf####################################
@@ -83,7 +90,7 @@ $(DERIVED_APNEA_DATA)/test_score.tex: score.py $(DERIVED_APNEA_DATA)/test_pass2.
 ARs = 5 6 7 8 9 10 11 12
 AR_MODELS = $(addsuffix fs$(FS)lpp$(LPP)rc$(RC)rw$(RW)rs$(RS)_masked, $(addprefix ar, $(ARs)))
 
-$(DERIVED_APNEA_DATA)/errors_vs_ar.pkl: compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
+$(DERIVED_APNEA_DATA)/errors_vs_ar.pkl: $(ApneaCode)/compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
 	$(COMPARE) --models $(AR_MODELS) --parameters $(ARs) \
 --parameter_name "AR order" $@ > $(DERIVED_APNEA_DATA)/errors_vs_ar.txt
 
@@ -92,7 +99,7 @@ FSs = 2 3 4 5 6 8
 FS_MODELS = $(addsuffix lpp$(LPP)rc$(RC)rw$(RW)rs$(RS)_masked, \
     $(addprefix ar$(AR)fs, $(FSs)))
 
-$(DERIVED_APNEA_DATA)/errors_vs_fs.pkl: compare_models.py $(addprefix $(MODELS)/, $(FS_MODELS))
+$(DERIVED_APNEA_DATA)/errors_vs_fs.pkl: $(ApneaCode)/compare_models.py $(addprefix $(MODELS)/, $(FS_MODELS))
 	$(COMPARE) --models $(FS_MODELS) --parameters $(FSs) \
 --parameter_name "Sample Frequency" $@ > $(DERIVED_APNEA_DATA)/errors_vs_fs.txt
 
@@ -102,7 +109,7 @@ LPP_MODELS = $(addsuffix rc$(RC)rw$(RW)rs$(RS)_masked, $(addprefix \
     ar$(AR)fs$(FS)lpp, \
     $(LPPs)))
 
-$(DERIVED_APNEA_DATA)/errors_vs_lpp.pkl: compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
+$(DERIVED_APNEA_DATA)/errors_vs_lpp.pkl: $(ApneaCode)/compare_models.py $(addprefix $(MODELS)/, $(LPP_MODELS))
 	$(COMPARE) --models $(LPP_MODELS) --parameters $(LPPs) \
 --parameter_name "Low Pass Period" $@ > $(DERIVED_APNEA_DATA)/errors_vs_lpp.txt
 
@@ -112,7 +119,7 @@ RC_MODELS = $(addsuffix rw$(RW)rs$(RS)_masked, $(addprefix \
     ar$(AR)fs$(FS)lpp$(LPP)rc, \
     $(RCs)))
 
-$(DERIVED_APNEA_DATA)/errors_vs_rc.pkl: compare_models.py $(addprefix $(MODELS)/, $(RC_MODELS))
+$(DERIVED_APNEA_DATA)/errors_vs_rc.pkl: $(ApneaCode)/compare_models.py $(addprefix $(MODELS)/, $(RC_MODELS))
 	$(COMPARE) --models $(RC_MODELS) --parameters $(RCs) \
 --parameter_name "Center Frequency" $@ > $(DERIVED_APNEA_DATA)/errors_vs_rc.txt
 
@@ -122,7 +129,7 @@ RW_MODELS = $(addsuffix rs$(RS)_masked, $(addprefix \
     ar$(AR)fs$(FS)lpp$(LPP)rc$(RC)rw, \
     $(RWs)))
 
-$(DERIVED_APNEA_DATA)/errors_vs_rw.pkl: compare_models.py $(addprefix $(MODELS)/, $(RW_MODELS))
+$(DERIVED_APNEA_DATA)/errors_vs_rw.pkl: $(ApneaCode)/compare_models.py $(addprefix $(MODELS)/, $(RW_MODELS))
 	$(COMPARE) --models $(RW_MODELS) --parameters $(RWs) \
 --parameter_name "Frequency Width" $@ > $(DERIVED_APNEA_DATA)/errors_vs_rw.txt
 
@@ -132,33 +139,33 @@ RS_MODELS = $(addsuffix _masked, $(addprefix \
     ar$(AR)fs$(FS)lpp$(LPP)rc$(RC)rw$(RW)rs, \
     $(RSs)))
 
-$(DERIVED_APNEA_DATA)/errors_vs_rs.pkl: compare_models.py $(addprefix $(MODELS)/, $(RS_MODELS))
+$(DERIVED_APNEA_DATA)/errors_vs_rs.pkl: $(ApneaCode)/compare_models.py $(addprefix $(MODELS)/, $(RS_MODELS))
 	$(COMPARE) --models $(RS_MODELS) --parameters $(RSs) \
     --parameter_name "Respiration Smoothing Filter" \
     $@ > $(DERIVED_APNEA_DATA)/errors_vs_rs.txt
 
-$(APNEA_FIGS)/errors_vs_%.pdf: $(APNEA_PLOTSCRIPTS)/comparison_plot.py $(DERIVED_APNEA_DATA)/errors_vs_%.pkl
+$(APNEA_FIG_DIR)/errors_vs_%.pdf: $(APNEA_PLOTSCRIPTS)/comparison_plot.py $(DERIVED_APNEA_DATA)/errors_vs_%.pkl
 	python $^ $@
 
 ####################################################################
 
-$(APNEA_FIGS)/viz.pdf: model_viz.py $(BEST)
+$(APNEA_FIG_DIR)/viz.pdf: $(ApneaCode)/model_viz.py $(BEST)
 	python $^ $@
 
-$(APNEA_FIGS)/threshold.pdf: $(APNEA_PLOTSCRIPTS)/survey_threshold.py $(BEST)
+$(APNEA_FIG_DIR)/threshold.pdf: $(APNEA_PLOTSCRIPTS)/survey_threshold.py $(BEST)
 	python $< --records $(TRAIN_NAMES) --thresholds -0.3 0.3 21 \
  $(BEST) $@ > $(DERIVED_APNEA_DATA)/threshold.txt
 
-COMPARE = python compare_models.py --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
+COMPARE = python $(ApneaCode)/compare_models.py --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
 
 LIST_ERRORS = ar fs lpp rc rw rs
-ERRORS = $(addsuffix .pdf, $(addprefix $(APNEA_FIGS)/errors_vs_, $(LIST_ERRORS)))
+ERRORS = $(addsuffix .pdf, $(addprefix $(APNEA_FIG_DIR)/errors_vs_, $(LIST_ERRORS)))
 
 APNEA_TEX_INCLUDES = $(addsuffix .tex, $(addprefix $(DERIVED_APNEA_DATA)/, score test_score))
 
 HANDOPT_FIGS = $(ERRORS) \
-$(addsuffix .pdf, $(addprefix $(APNEA_FIGS)/, threshold viz))
-$(APNEA_TeX)/hand_opt.pdf: hand_opt.tex $(HANDOPT_FIGS) $(APNEA_TEX_INCLUDES)
+$(addsuffix .pdf, $(addprefix $(APNEA_FIG_DIR)/, threshold viz))
+$(APNEA_TeX)/hand_opt.pdf: $(ApneaCode)/hand_opt.tex $(HANDOPT_FIGS) $(APNEA_TEX_INCLUDES)
 	mkdir -p  $(@D)
 	export TEXINPUTS=$(abspath $(BUILD))//:; \
 	pdflatex --output-directory=$(@D) $< ; pdflatex --output-directory=$(@D) $<

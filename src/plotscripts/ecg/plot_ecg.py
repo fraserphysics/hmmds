@@ -2,7 +2,7 @@
 
 plot_ecg.py segments of ecg_file t_window t_start_0 t_start_1 ...
 
-ecg_file   Rtimes/a01.ecg
+ecg_file   build/derived_data/apnea/ecgs/a01
 t_window   0.03            In minutes
 t_start    70.81 71.11
 
@@ -46,7 +46,7 @@ def main(argv=None):
     print(f"{type(args.t_starts)}")
     with open(args.ecg_file, 'rb') as _file:
         _dict = pickle.load(_file)
-        ecg = _dict['raw']
+        ecg = _dict['ecg']
         ecg_times = _dict['times'] * PINT('seconds')
 
     n_segments = len(args.t_starts)

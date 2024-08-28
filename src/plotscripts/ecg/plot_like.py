@@ -44,9 +44,9 @@ def main(argv=None):
 
     fig, axeses = pyplot.subplots(nrows=2, ncols=2, figsize=(6, 6))
     for i, name in enumerate(args.record_names):
-        with open(os.path.join(args.ecg_dir, f'{name}.ecg'), 'rb') as _file:
+        with open(os.path.join(args.ecg_dir, f'{name}'), 'rb') as _file:
             _dict = pickle.load(_file)
-            ecg = _dict['raw']
+            ecg = _dict['ecg']
             ecg_times = _dict['times'] * PINT('seconds')
         with open(os.path.join(args.like_dir, name), 'rb') as _file:
             likelihood = pickle.load(_file)

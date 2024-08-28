@@ -89,10 +89,10 @@ def main(argv=None):
                  filtered, errors):
         axis.legend()
 
-    # Force matching ticks
-    sampled_observations.get_shared_x_axes().join(states, sampled_observations)
-    errors.get_shared_x_axes().join(errors, filtered, observations)
-    errors.get_shared_y_axes().join(errors, filtered)
+    # FixMe: Force matching ticks
+    #sampled_observations.get_shared_x_axes().join(states, sampled_observations)
+    #errors.get_shared_x_axes().join(errors, filtered, observations)
+    #errors.get_shared_y_axes().join(errors, filtered)
 
     # Drop tick labels on some shared axes.  FixMe: Drop some more
     for axis in (states, observations, filtered):

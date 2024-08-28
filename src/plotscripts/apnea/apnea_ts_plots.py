@@ -100,7 +100,7 @@ def plot_ECG_ONR_O2(args, start: pint.Quantity, stop: pint.Quantity,
         subplots: matplotlib.pyplot function
 """
     fig, (ax_ecg, ax_onr, ax_O2) = subplots(nrows=3, ncols=1, sharex=True)
-    with open(os.path.join(args.derived_apnea_data, 'a03er.pickle'),
+    with open(os.path.join(args.derived_apnea_data, 'a03er.pkl'),
               'rb') as _file:
         a03er_dict = pickle.load(_file)
 
@@ -243,7 +243,7 @@ def a03HR(args, subplots):
     ax_hr.set_ylabel(r'$HR$')
 
     # Plot SpO2 in lower plot
-    with open(os.path.join(args.derived_apnea_data, 'a03er.pickle'),
+    with open(os.path.join(args.derived_apnea_data, 'a03er.pkl'),
               'rb') as _file:
         a03er_dict = pickle.load(_file)
 

@@ -205,12 +205,14 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         self.read_hr()
 
     def read_ecg(self):
-        prefix = os.path.join(self.root_box.text(), 'raw_data/Rtimes',
-                              f'{self.record_box.text()}')
-        with open(prefix + '.ecg', 'rb') as _file:
+        path = os.path.join(self.root_box.text(),
+                            'build/derived_data/apnea/ecgs',
+                            f'{self.record_box.text()}')
+        with open(path, 'rb') as _file:
             _dict = pickle.load(_file)
-            ecg = _dict['raw']
-            ecg_times = _dict['times'] * PINT('seconds')
+        ecg = _dict['ecg']
+        ecg_times = _dict['times'] * PINT('seconds')
+
         self.ecg_dict['signals'] = [
             (ecg_times, ecg),
         ]

@@ -42,9 +42,9 @@ def main(argv=None):
     axeses = axeses_2x2.flatten()[[0, 2, 1, 3]]
     for i, name in enumerate('a01 c02'.split()):
 
-        with open(os.path.join(args.ecg_dir, f'{name}.ecg'), 'rb') as _file:
+        with open(os.path.join(args.ecg_dir, f'{name}'), 'rb') as _file:
             _dict = pickle.load(_file)
-            ecg = _dict['raw']
+            ecg = _dict['ecg']
             ecg_times = _dict['times'] * PINT('seconds')
 
         t_start = args.t_start * PINT('minutes')

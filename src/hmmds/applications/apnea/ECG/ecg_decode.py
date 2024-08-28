@@ -40,10 +40,10 @@ def main(argv=None):
     with open(args.hmm, 'rb') as _file:
         _, _hmm = pickle.load(_file)
 
-    ecg_path = os.path.join(args.rtimes, args.record + ".ecg")
+    ecg_path = os.path.join(args.ecg_dir, args.record)
     with open(ecg_path, 'rb') as _file:
         _dict = pickle.load(_file)
-        ecg = _dict["raw"]
+        ecg = _dict["ecg"]
 
     states = _hmm.decode([ecg])
 

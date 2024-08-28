@@ -40,7 +40,7 @@ def main(argv=None):
     axeses = axeses_2x2.flatten()[[0, 2, 1, 3]]
     with open(args.ecg_file, 'rb') as _file:
         _dict = pickle.load(_file)
-        ecg = _dict['raw']
+        ecg = _dict['ecg']
         ecg_times = _dict['times'] * PINT('seconds')
 
     for minute_start, minute_stop, axes in ((56.1, 56.2, axeses[0]),
