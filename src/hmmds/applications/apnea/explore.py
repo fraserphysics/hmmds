@@ -225,7 +225,16 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
     def read_model(self):
         file_name = self.model_box.text()
-        with open(file_name, 'rb') as _file:
+        try:
+            _file = open(file_name, 'rb')
+        except FileNotFoundError:
+            print(f'''
+Perhaps you can fix this error with:
+
+make {file_name}
+''')
+            raise
+        with _file:
             self.model = pickle.load(_file)
 
     def new_model(self):
