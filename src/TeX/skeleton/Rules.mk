@@ -48,9 +48,9 @@ $(APNEA_XFIGS)
 
 TEX_SKELETON = $(TEX)/skeleton
 
-$(TEX_OUT)/figures.pdf: $(TEX_SKELETON)/figures.tex $(SKELETON_FIGS)
+$(TEX_OUT)/figures.pdf: $(TEX_SKELETON)/figures.tex $(TEX_SKELETON)/apnea.tex $(SKELETON_FIGS)
 	mkdir -p $(@D)
-	export TEXINPUTS=$(abspath $(BUILD))//:; \
+	export TEXINPUTS=$(TEX_SKELETON):$(abspath $(BUILD))//:;  \
 pdflatex --output-directory $(@D) $(TEX_SKELETON)/figures.tex; \
 pdflatex --output-directory $(@D) $(TEX_SKELETON)/figures.tex;
 
