@@ -5,8 +5,6 @@
 
 DERIVED_APNEA_DATA = $(BUILD)/derived_data/apnea
 APNEA_FIG_DIR = $(BUILD)/figs/apnea
-APNEA_PLOTSCRIPTS = $(ROOT)/src/plotscripts/apnea
-APNEA_TeX = $(BUILD)/TeX/apnea
 ApneaCode = $(HMMDS)/applications/apnea
 # This file is in the ApneaCode directory
 
@@ -84,7 +82,7 @@ $(DERIVED_APNEA_DATA)/score.tex: $(ApneaCode)/score.py $(DERIVED_APNEA_DATA)/pas
 $(DERIVED_APNEA_DATA)/test_score.tex: $(ApneaCode)/score.py $(DERIVED_APNEA_DATA)/test_pass2.out
 	python $^ $@ $(XNAMES) --expert raw_data/apnea/event-2-answers --tex
 
-########################Build hand_opt.pdf####################################
+########################Build data for hand_opt.pdf#############################
 
 # Sensitivity to AutoRegressive order
 ARs = 5 6 7 8 9 10 11 12
@@ -144,31 +142,7 @@ $(DERIVED_APNEA_DATA)/errors_vs_rs.pkl: $(ApneaCode)/compare_models.py $(addpref
     --parameter_name "Respiration Smoothing Filter" \
     $@ > $(DERIVED_APNEA_DATA)/errors_vs_rs.txt
 
-$(APNEA_FIG_DIR)/errors_vs_%.pdf: $(APNEA_PLOTSCRIPTS)/comparison_plot.py $(DERIVED_APNEA_DATA)/errors_vs_%.pkl
-	python $^ $@
-
-####################################################################
-
-$(APNEA_FIG_DIR)/viz.pdf: $(ApneaCode)/model_viz.py $(BEST)
-	python $^ $@
-
-$(APNEA_FIG_DIR)/threshold.pdf: $(APNEA_PLOTSCRIPTS)/survey_threshold.py $(BEST)
-	python $< --records $(TRAIN_NAMES) --thresholds -0.3 0.3 21 \
- $(BEST) $@ > $(DERIVED_APNEA_DATA)/threshold.txt
-
 COMPARE = python $(ApneaCode)/compare_models.py --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
-
-LIST_ERRORS = ar fs lpp rc rw rs
-ERRORS = $(addsuffix .pdf, $(addprefix $(APNEA_FIG_DIR)/errors_vs_, $(LIST_ERRORS)))
-
-APNEA_TEX_INCLUDES = $(addsuffix .tex, $(addprefix $(DERIVED_APNEA_DATA)/, score test_score))
-
-HANDOPT_FIGS = $(ERRORS) \
-$(addsuffix .pdf, $(addprefix $(APNEA_FIG_DIR)/, threshold viz))
-$(APNEA_TeX)/hand_opt.pdf: $(ApneaCode)/hand_opt.tex $(HANDOPT_FIGS) $(APNEA_TEX_INCLUDES)
-	mkdir -p  $(@D)
-	export TEXINPUTS=$(abspath $(BUILD))//:; \
-	pdflatex --output-directory=$(@D) $< ; pdflatex --output-directory=$(@D) $<
 
 # Local Variables:
 # mode: makefile

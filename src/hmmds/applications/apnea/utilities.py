@@ -579,9 +579,7 @@ class HeartRate:
     def read_expert(self: HeartRate):
         """Read expert annotations, assign to self and return as an array
         """
-        path = os.path.join(self.args.root,
-                            'raw_data/apnea/summary_of_training')
-        self.expert = read_expert(path, self.record_name)
+        self.expert = read_expert(self.args.expert, self.record_name)
         return self.expert
 
     def get_class(self: HeartRate):
@@ -1040,12 +1038,18 @@ class State:
 
 class ModelRecord:
 
-    def __init__(self: ModelRecord, model_path: str, record_name: str):
+    def __init__(self: ModelRecord,
+                 model_path: str,
+                 record_name: str,
+                 heart_rate_path_format=None,
+                 expert=None):
         """Holds a model and observations for a single record
 
         Args:
             model: Path to pickled HMM
             record: The name, eg, 'a01' of the record
+            heart_rate_path_format:
+            expert: Path to expert annotations
 
         Note: Subsequent processing uses the "args" attribute of the
         pickled model.  A ModelRecord instance only uses information
@@ -1058,6 +1062,10 @@ class ModelRecord:
         self.record_name = record_name
         with open(model_path, 'rb') as _file:
             self.model = pickle.load(_file)
+        if heart_rate_path_format:
+            self.model.args.heart_rate_path_format = heart_rate_path_format
+        if expert:
+            self.model.args.expert = expert
         self.has_class = 'class' in self.model.y_mod
         self.samples_per_minute = int(
             self.model.args.model_sample_frequency.to('1/minute').magnitude)

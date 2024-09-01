@@ -8,7 +8,7 @@ import argparse
 
 import numpy
 
-import utilities
+import hmmds.applications.apnea.utilities
 import plotscripts.utilities
 
 
@@ -17,18 +17,21 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser("Map (model,data):-> class sequence")
-    utilities.common_arguments(parser)
+    hmmds.applications.apnea.utilities.common_arguments(parser)
     parser.add_argument('--thresholds',
                         type=str,
                         nargs=3,
                         help='Start, stop, number for range to evaluate')
+    parser.add_argument('--expert_override',
+                        type=str,
+                        help="path to expert annotations")
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
     parser.add_argument('model_path', type=str, help="path to initial model")
     parser.add_argument('fig_path', type=str, help='path of file to write')
     args = parser.parse_args(argv)
-    utilities.join_common(args)
+    hmmds.applications.apnea.utilities.join_common(args)
     return args
 
 
@@ -126,10 +129,17 @@ def main(argv=None):
     else:
         records = args.records
 
+    # Ugly hack to let pickle.load in ModelRecord work
+    sys.modules['utilities'] = hmmds.applications.apnea.utilities
+
     model_record_dict = {}
     for record_name in records:
-        model_record_dict[record_name] = utilities.ModelRecord(
-            args.model_path, record_name)
+        model_record_dict[
+            record_name] = hmmds.applications.apnea.utilities.ModelRecord(
+                args.model_path,
+                record_name,
+                heart_rate_path_format=args.heart_rate_path_format,
+                expert=args.expert_override)
 
     threshold_results = threshold_study(model_record_dict, thresholds,
                                         args.power_dict)

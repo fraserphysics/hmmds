@@ -35,7 +35,9 @@ def main(argv=None):
     """
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
-    figure, (top_axes, bottom_axes) = pyplot.subplots(nrows=2, figsize=(6, 6), sharex=True)
+    figure, (top_axes, bottom_axes) = pyplot.subplots(nrows=2,
+                                                      figsize=(6, 6),
+                                                      sharex=True)
 
     # Read and unpack data
     with open(args.data, 'rb') as _file:

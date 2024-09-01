@@ -19,7 +19,6 @@ PLOTSCRIPTS = $(ROOT)/src/plotscripts
 HMMDS = $(ROOT)/src/hmmds
 BUILD = $(ROOT)/build
 XFIGS = $(PLOTSCRIPTS)/xfigs
-ApneaPlotScripts = $(PLOTSCRIPTS)/apnea
 
 # Default target.  Rule in src/TeX/skeleton/Rules.mk
 $(BUILD)/TeX/skeleton/figures.pdf:
@@ -34,21 +33,15 @@ skeleton: $(BUILD)/TeX/skeleton/figures.pdf
 .PHONY : hand_opt
 hand_opt: $(BUILD)/TeX/apnea/hand_opt.pdf
 
+## ds23                           : Presentation for SIAM Dynamical Systems meeting
+.PHONY : ds23
+ds23: $(BUILD)/TeX/ecg/ds23.pdf
+
 raw_data/apnea/apnea-ecg-database:
 	mkdir -p $(@D)
 	cd $(@D); wget --no-check-certificate -r -N -c -np https://physionet.org/files/apnea-ecg/1.0.0/
 	mv $(@D)/physionet.org/files/apnea-ecg/1.0.0 $@
 	rm -r $(@D)/physionet.org
-
-# Rules for making plots
-include $(PLOTSCRIPTS)/basic_algorithms/Rules.mk
-include $(PLOTSCRIPTS)/bounds/Rules.mk
-include $(PLOTSCRIPTS)/filter/Rules.mk
-include $(PLOTSCRIPTS)/laser/Rules.mk
-include $(PLOTSCRIPTS)/introduction/Rules.mk
-include $(PLOTSCRIPTS)/variants/Rules.mk
-include $(XFIGS)/Rules.mk
-include $(ApneaPlotScripts)/Rules.mk
 
 # Rules for making data files
 include $(HMMDS)/synthetic/Rules.mk
@@ -58,9 +51,23 @@ include $(HMMDS)/applications/laser/Rules.mk
 include $(HMMDS)/applications/apnea/Rules.mk
 include $(HMMDS)/applications/apnea/ECG/Rules.mk
 
+# Plot rules use definitions in data file rules so they come first.
+# Rules for making plots.
+include $(PLOTSCRIPTS)/apnea/Rules.mk
+include $(PLOTSCRIPTS)/basic_algorithms/Rules.mk
+include $(PLOTSCRIPTS)/bounds/Rules.mk
+include $(PLOTSCRIPTS)/ecg/Rules.mk
+include $(PLOTSCRIPTS)/filter/Rules.mk
+include $(PLOTSCRIPTS)/laser/Rules.mk
+include $(PLOTSCRIPTS)/introduction/Rules.mk
+include $(PLOTSCRIPTS)/variants/Rules.mk
+include $(XFIGS)/Rules.mk
+
 # Rules for making documents
 include $(TEX)/skeleton/Rules.mk
 include $(TEX)/laser/Rules.mk
+include $(TEX)/apnea/Rules.mk
+include $(TEX)/ecg/Rules.mk
 
 ######################Target Documents##########################################
 ## ds21.pdf                       : Slides for 2021 SIAM Dynamical Systems meeting
@@ -112,11 +119,9 @@ test :
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo INTRODUCTION_FIGS: $(INTRODUCTION_FIGS)
-	@echo BASIC_ALGORITHMS_FIGS: $(BASIC_ALGORITHMS_FIGS)
-	@echo APNEA_FIGS: $(APNEA_FIGS)
+	@echo APNEA_PLOTSCRIPTS: $(APNEA_PLOTSCRIPTS)
+	@echo DERIVED_APNEA_DATA: $(DERIVED_APNEA_DATA)
 	@echo In root Makefile, ROOT: $(ROOT)
-
 ## help                           : Print comments on targets from makefile
 .PHONY : help
 help : Makefile

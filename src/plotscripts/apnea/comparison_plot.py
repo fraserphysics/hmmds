@@ -12,16 +12,14 @@ import os.path
 import numpy
 import scipy.optimize
 
-import utilities
 import plotscripts.utilities
 
 
 def parse_args(argv):
-    """ Combine command line arguments with defaults from utilities
+    """ Parse command line arguments
     """
 
     parser = argparse.ArgumentParser("Plot error rate for list of models")
-    utilities.common_arguments(parser)
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
@@ -34,7 +32,6 @@ def parse_args(argv):
                         default='compare_models.pdf',
                         help='Write result to this path')
     args = parser.parse_args(argv)
-    utilities.join_common(args)
     return args
 
 
