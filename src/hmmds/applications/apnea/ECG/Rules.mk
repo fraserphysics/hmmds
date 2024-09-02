@@ -43,6 +43,9 @@ $(PICKLED_ECG)/flag: $(ECGCode)/wfdb2pickle_ecg.py
 	ls $(@D)/x35  # Weak test of completion
 	touch $@
 
+$(ECG_DERIVED)/a03_ElgendiRtimes: $(ECGCode)/wfdb2rtimes.py
+	python $< --detector Elgendi a03 $(PHYSIONET_WFDB) $@
+
 # Because Gnu make doesn't support pattern rules with two patterns, I
 # have the following section of almost repeated pattern rules:
 

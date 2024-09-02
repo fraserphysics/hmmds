@@ -32,6 +32,7 @@ def parse_args(argv):
     parser.add_argument('--tag_ecg',
                         action='store_false',
                         help="Invoke tagging in utilities.read_ecgs()")
+    parser.add_argument('--rtimes', type=str, help='path to rtimes file')
     parser.add_argument('--records', type=str, nargs='+', default=['a03'])
     parser.add_argument('--show',
                         action='store_true',
@@ -50,8 +51,6 @@ def main(argv=None):
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
     states = utilities.read_states(args, 'a03')
-    # FixMe: Need rtimes from elgendi
-    # rtimes = utilities.read_rtimes(args, 'a03')[0]  # * PINT('seconds')
     joint_segment = utilities.read_ecgs(args)[0]
     ecg = joint_segment['ecg']
     ecg_times = numpy.arange(len(ecg)) / (100 * PINT('Hz'))
@@ -74,16 +73,17 @@ def main(argv=None):
               markersize=15,
               label='hmm')
 
-    # seconds = ecg_times[n_start:n_stop].to('seconds').magnitude
-    # foo, bar = numpy.searchsorted(rtimes, (seconds[0], seconds[-1]))
-    # indices = numpy.searchsorted(seconds, rtimes[foo:bar])
-    # axes.plot(minutes[indices],
-    #           ecg_segment[indices],
-    #           marker='*',
-    #           color='black',
-    #           linestyle='',
-    #           markersize=15,
-    #           label='py-ecg')
+    rtimes = utilities.read_rtimes(args.rtimes)
+    seconds = ecg_times[n_start:n_stop].to('seconds').magnitude
+    start, stop = numpy.searchsorted(rtimes, (seconds[0], seconds[-1]))
+    indices = numpy.searchsorted(seconds, rtimes[start:stop])
+    axes.plot(minutes[indices],
+              ecg_segment[indices],
+              marker='*',
+              color='black',
+              linestyle='',
+              markersize=15,
+              label='py-ecg')
 
     axes.set_xlabel(r'$t$/minutes')
     axes.set_ylabel(r'$a03$ ecg/mV')

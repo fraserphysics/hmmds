@@ -208,6 +208,14 @@ class JointSegment(hmm.base.JointSegment):
         return self.__class__(new_dict, self.ecg_pad)
 
 
+def read_rtimes(in_path):
+    with open(in_path, 'rb') as _file:
+        head = _file.readline()
+        result = numpy.array(
+            list(float(line.split()[1]) for line in _file.readlines()))
+    return result
+
+
 # FixMe: Document where read_ecgs is used
 def read_ecgs(args):
     ecgs = []

@@ -37,9 +37,9 @@ $(ECG_FIGS)/simulated.pdf: $(ECG_PLOTSCRIPTS)/plot_simulation.py $(ECG_DERIVED)/
 	mkdir -p $(@D)
 	python $^ 1000 $@
 
-$(ECG_FIGS)/elgendi.pdf: $(ECG_PLOTSCRIPTS)/elgendi.py $(ECG_DERIVED)/a03_self_AR3/states
+$(ECG_FIGS)/elgendi.pdf: $(ECG_PLOTSCRIPTS)/elgendi.py $(ECG_DERIVED)/a03_ElgendiRtimes $(ECG_DERIVED)/a03_self_AR3/states
 	mkdir -p $(@D)
-	python $< --ecg_models $(ECG_DERIVED) --ecg_dir $(PICKLED_ECG) $@
+	python $< --ecg_models $(ECG_DERIVED) --ecg_dir $(PICKLED_ECG) --rtimes $(ECG_DERIVED)/a03_ElgendiRtimes $@
 
 $(ECG_FIGS)/constant_a03.pdf: $(ECG_PLOTSCRIPTS)/constant_a03.py  $(PICKLED_ECG)/a03
 	mkdir -p $(@D)
