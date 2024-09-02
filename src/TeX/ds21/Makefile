@@ -5,9 +5,9 @@
 # and
 # http://mirrors.ibiblio.org/CTAN/support/latex-make/latex-make.pdf
 
-ROOT = ../..
-XFIGS = $(ROOT)/plotscripts/xfigs
-ApneaPlotScripts = $(ROOT)/plotscripts/apnea
+ROOT = ../../..
+XFIGS = $(ROOT)/src/plotscripts/xfigs
+ApneaPlotScripts = $(ROOT)/src/plotscripts/apnea
 ABSROOT = $(abspath $(ROOT))
 
 ## slides.pdf                     : Slides for my talk
@@ -21,12 +21,15 @@ includes/%.pdf : includes/%.fig
 includes/%.pdf_t: includes/%.fig includes/%.pdf
 	fig2dev -L pdftex_t -p $(abspath includes/$*.pdf) $< $@
 
-# ADD_PDF_PDF_T is from $(XFIGS)/Rules.mk
-DS21FIGS = $(call ADD_PDF_PDF_T, includes, happy apnea_w normal_0 class_net)
+# ADD_PDF_PDF_T is from $(XFIGS)/Rules.mk.  The following dependencies
+# should be included but are built elsewhere: book_cover.jpg error.jpg
+# a03erN.pdf a03erA.pdf class_net.pdf class_net.pdf_t
+DS21FIGS = $(call ADD_PDF_PDF_T, includes, happy apnea_w normal_0)
 
+# 
+slides.pdf: slides.tex $(DS21FIGS)
 # The // after TeX includes subdirectories.  The : after // includes
 # the standard latex search path
-slides.pdf: slides.tex $(DS21FIGS)
 	export TEXINPUTS=$(ABSROOT)//:; pdflatex slides.tex; pdflatex slides.tex
 
 ## words.ps                       : The words to say for my talk
@@ -40,7 +43,9 @@ clean:
 
 .PHONY : variables
 variables:
-	@echo $(DS21FIGS)
+	@echo DS21FIGS  :  $(DS21FIGS)
+	@echo ABSROOT   :  $(ABSROOT)
+	@echo includes  :  $(abspath includes)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help
