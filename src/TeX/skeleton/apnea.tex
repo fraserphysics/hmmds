@@ -6,39 +6,58 @@ The challenge for the \emph{Computers in Cardiology} %
 meeting in 2000 (CINC2000) %
 \index{CINC2000 (Computers in Cardiology 2000)}%
 was to identify \emph{obstructive sleep apnea} on the basis of
-electrocardiograms alone.  With my colleague James \index*{McNames} at
-Portland State University, I won the prize for the best minute by
-minute analysis of data.  I prepared our first entry using HMMs, and
-James prepared the subsequent (and winning) entries by hand using
-spectrograms\footnote{A spectrogram is display of power in Fourier
-  spectral bands as a function of time.  The x-axis is time, the
-  y-axis is frequency, and the image intensity at point $(t,f)$ is the
-  power in that frequency estimated in a window centered at that
-  time.} to visualize the data.  \index{spectrogram}
+electrocardiograms alone.  My colleague James \index*{McNames} at
+Portland State University, with some support from me, won the prize
+for the best minute by minute analysis of data.  I prepared our first
+entry using HMMs, and McNames prepared the subsequent (and winning)
+entries by hand using spectrograms\footnote{A spectrogram is display
+  of power in Fourier spectral bands as a function of time.  The
+  x-axis is time, the y-axis is frequency, and the image intensity at
+  point $(t,f)$ is the power in that frequency estimated in a window
+  centered at that time.} to visualize the data.  \index{spectrogram}
 
-In preparing the first entry, I discovered that using the maximum
-likelihood sequence of states from the Viterbi algorithm to deduce a
-sequence of classifications produces obvious errors., ie, estimating
-the class at time $t$ to be the class that contains the state at time
-$t$ in the sequence of states that maximizes the likelihood
-\begin{align*}
-  \hat s(t) &\in c(t) \\
-  \hat s &\equiv \argmax{s} p(y|s)
-\end{align*}
+In preparing the first entry, I noticed that apnea produced many
+different characteristics in heart rate time series while the
+characteristics in non-apnea times were more similar to each other.  I
+used a larger number of states in HMMs to model the various
+characteristics of apnea and a smaller number of states to model the
+more consistent normal times.  However using the maximum a posteriori
+probability (MAP) estimate sequence of states from the Viterbi
+algorithm, ie,
+\begin{equation*}
+  \hat {\ts{s}{1}{T}} \equiv
+  \argmax_{\ts{s}{1}{T}}P\left(\ts{s}{1}{T} | \ts{y}{1}{T} \right)
+\end{equation*}
+to estimate the sequence of classifications $\hat {\ts{c}{1}{T}}$ with
+\begin{equation*}
+  \hat {\ti{c}{t}} \equiv c:\hat {\ti{s}{t}} \in c
+\end{equation*}
+produced obvious errors.  I found that during many periods of apnea
+the probability of being in each of the apnea states was lower than
+the probability of being in the normal state with the highest
+probability while the sum of the probabilities of apnea states was
+larger than the sum over normal states.  My effort to model the
+diversity of apnea characteristics led to decoded sequences that were
+normal too often.
 
-After some thought, I realized that the a variant of the Viterbi algorithm
-that directly decoded sequences of \emph{classifications} rather than
-sequences of \emph{states} would yield better classification results.
-Although I did not implement such an algorithm in 2000, I have in
-preparing this book.
+I tried to address the issue by estimating the MAP sequence of classes
+rather than the MAP sequence of states, ie,
+\begin{equation}
+  \label{eq:decode_class}
+  \hat {\ts{c}{1}{T}} \equiv
+  \argmax_{\ts{c}{1}{T}}P\left(\ts{c}{1}{T} | \ts{y}{1}{T}\right).
+\end{equation}
+While the computational complexity of Viterbi algorithm which finds
+the MAP sequence of states is linear in $T$, the length of the
+sequence of observations, the computational complexity required to
+solve \eqref{eq:decode_class} is exponential\footnote{In the first
+  edition of this book, I presented an algorithm that I claimed solved
+  \eqref{eq:decode_class} in linear complexity.  In some cases that
+  algorithm yields plausible but not necessarily correct results and
+  in others it simply crashes.} in $T$.
 
-While the more appropriate algorithm does not perform as well as
-James' eye, it does perform well enough to place among the top scores
-that appear on the \index*{PhysioNet}
-website\footnote{\url{http://www.physionet.org/challenge/2000/top-scores.shtml}}.
-In this final chapter, I will describe the algorithm for decoding
-sequences of classification and narrate in a less formal style of
-presentation my attempt at using it to \emph{re-win} the contest.
+In this chapter, I will first describe the CINC2000 challenge and how
+McNames addressed it.  Then I will address the challenge using HMMs.
 
 \section{The  Challenge and the Data}
 \label{sec:challenge}
@@ -96,7 +115,7 @@ announced the challenge and described the data as follows:
   respiration signals (oronasal airflow measured using nasal
   thermistors, and chest and abdominal respiratory effort measured
   using inductive plethysmography) each digitized at 20 Hz, and an
-  oxygen saturation signal digitzed at 1 Hz. These additional signals
+  oxygen saturation signal digitized at 1 Hz. These additional signals
   can be used as reference material to understand how the apnea
   annotations were made, and to study the relationships between the
   respiration and ECG signals. [...]
@@ -178,8 +197,10 @@ Briefly, one can fetch the following records from PhysioNet:
   the similarity in my analysis.}; records without classification
 \end{description}
 
-In 2000, using both the data and software to view it from PhysioNet, I
-saw striking oscillations in the apnea time series.  The patients stop
+Using data visualization tools\footnote{One can use the script
+  hmmds.applications.apnea.explore.py from the software I used to
+  create this book to explore aspects of the data.} one can see
+striking oscillations in the apnea time series.  The patients stop
 breathing for tens of seconds, gasp a few breaths, and stop again.
 Each cycle takes about 45 seconds and can go on for most of the night.
 I've plotted two periods of such an oscillation from record \emph{a03}
@@ -235,22 +256,14 @@ apnea.
   \label{fig:a03erHR}
 \end{figure}
 
-\section{First Classification Algorithms and Two Useful Features}
-\label{sec:NVG}
+\section{Using Information from Experts to Train}
 
-\newcommand{\tmo}{i} % \tmo is t minus one
-\newcommand{\tex}{j} % \tex is t exactly
-\newcommand{\tpo}{k} % \tpo is t plus one
-
-\subsection{Using Information from Experts to Train}
-
-I first carefully considered the CINC2000 challenge when Andreas
+I first considered the CINC2000 challenge when Andreas
 Rechtsteiner told me that he was going to use it as a final project
 for a class that James was teaching.  I suggested that he try a two
 state HMM with autoregressive observation models, \ie, a model like
 those described in section~\ref{sec:ARVGaussian} but with scalar
-observations.  The performance of Andreas' two state model
-was not memorable.
+observations.
 
 To use the expert classification information in training, Andreas and
 I found that we need only modify the observation model.  The technique
@@ -265,85 +278,23 @@ $P_{\ti{Y}{t},\ti{C}{t}|\ti{S}{t},\ts{Y}{1}{t-1}}$ wherever it occurs
 in the Baum Welch algorithm.  Roughly, the modification forces the
 system into states associated with the right class during training.
 
-\subsection{Nonlinear Dynamics}
-\label{sec:NLD}
+While the performance of Andreas' two state model was not memorable,
+models with more states were promising.
 
-After Andreas finished his class, I looked more carefully at heart
-rate time series and the classification errors of a two state model.
-I saw evidence of \emph{nonlinear dynamics} such as the period two
-waveform and the sawtooth in Fig.~\ref{fig:ApneaNLD}.  Superpositions
-of sinusoids can describe such patterns with the right amplitudes and
-relative phases of the harmonics.  Although a linear model can favor
-the correct frequencies and amplitudes of the component sinusoids,
-linear models cannot detect or enforce phase relationships.  The
-ability to distinguish phase relationships makes it possible to build
-nonlinear models that are more discriminating than any linear model.
-
-\begin{figure}
-  \centering{\resizebox{\textwidth}{!}{\includegraphics{ApneaNLD.pdf}}
-  }
-  \caption[Nonlinear effects]%
-  {Nonlinear effects: The upper plot seems to be a period two
-    oscillation.  The lower plot is approximately sawtooth.}
-  \label{fig:ApneaNLD}
-\end{figure}
-
-Excited by these observations, I built an HMM with many chains of
-states.  Each chain modeled a different form of heart rate
-oscillation.  I trained the model on the expertly classified records,
-and then used the model to classify those same records.  For each
-record, I used the Viterbi algorithm to find the most likely state
-sequence given the observations.  Then I derived a classification
-sequence from the decoded state sequence by selecting class $C$ at
-time $t$ if the decoded state satisfied $\ti{s}{t}\in C$.  The
-technique performed terribly.  The sequences of classifications said
-every minute was \emph{normal} even though (actually \emph{because}) I had
-modeled the different kinds of \emph{apnea} oscillations so carefully.
-
-An analysis of the values of the conditional probabilities of states given
-the entire sequence of observations, $P_{\ti{S}{t}|\ts{Y}{1}{T}}
-\left(s_i|\ts{y}{1}{T} \right) = \alpha(s_i,t) \beta(s_i,t)$,
-revealed the problem and suggested a solution.  Because the model had
-many more apnea states than normal states, the state probability was
-rarely concentrated enough in a single apnea state for that state to
-be decoded.  To address the problem, I solved for the sequence of most
-likely classifications, \ie,
-\begin{equation}
-  \label{eq:smlc}
-  \ti{\tilde C}{t} \equiv \argmax_C \sum_{i:s_i\in C}
-  P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s_i|\ts{y}{1}{T} \right).
-\end{equation}
-instead of solving for the most likely sequence of states.  Using
-Eqn.~\eqref{eq:smlc} and the HMM with many chains of states, I
-classified the test data to prepare a contest entry.  When James
-submitted the entry % on April 24, 2000
-we found that it classified 78.91\% of the minutes correctly.
-
-In Section~2.3.3 I presented a sequence of MAP states that not only
-failed to be a MAP sequence of states but that was actually an
-impossible sequence.  Since the analogous distinction holds for
-sequences of classifications, I developed the algorithm described in
-Section~\ref{sec:V4Class} that finds
-\begin{equation}
-  \label{eq:mlsc}
-  {\ts{\hat C}{1}{T}} \equiv \argmax_{\ts{C}{1}{T} }
-  \sum_{\ts{s}{1}{T}:\ti{s}{t}\in \ti{C}{t}, 1 \leq t \leq T} P\left(
-    \ts{s}{1}{T} | \ts{y}{1}{T} \right),
-\end{equation}
-\ie, the MAP sequence of classifications rather than the sequence of
-MAP classifications.
-
-\subsection{The Excellent Eye of Dr.\ McNames}
+\subsection{The Excellent Eye of Professor McNames}
 \label{sec:mcnames}
 
-To diagnose the errors, James printed spectrograms of every record.
-Although the spectrograms discarded the phase information that I hoped
-was important, they clearly indicated the oscillations that I had
-tried to capture in my complicated HMMs as intense bands of power at
-frequencies below 2 cpm (cycles per minute).%
+To diagnose the errors, McNames printed spectrograms of every record.
+As he reported in \cite{mcnames2000}, the first step in McNames
+analysis was implementing his own QRS detection algorithm.  Then he
+derived spectrograms from the resulting QRS analyses.  Although the
+spectrograms discarded phase information that I hoped was important,
+they clearly indicated the oscillations that I had tried to capture
+with complicated HMMs as intense bands of power at frequencies below 2
+cpm (cycles per minute).%
 \nomenclature[rcpm]{cpm}{Cycles per minute.}%
-In addition to those low frequency oscillations, James noticed bands
-of power between 10 and 20 cpm in the spectrograms (See
+In addition to those low frequency oscillations, he noticed bands of
+power between 10 and 20 cpm in the spectrograms (See
 Fig.~\ref{fig:sgram}).  That higher frequency power was evidence of
 respiration.  Using both of those features, he classified the test
 data by hand.  First he classified each entire record for \emph{event
@@ -356,9 +307,10 @@ contest.
   \centering{\resizebox{\textwidth}{!}{\includegraphics{sgram.pdf}}
   }
   \caption[Information about respiration in high
-  frequency phase variations]%
+  frequency phase variations]% FixMe: Use the same parameters for this
+                             % plot as used for the HMM
   {Information about respiration in high frequency phase variations.
-    This is the $a11$ record roughly between minutes 40 and 225.  The
+    This is the $a11$ record roughly between minutes 00 and 150.  The
     upper plot is heart rate (bandpass filtered 0.09-3.66 cpm), the
     middle plot is a spectrogram of the phase jitter in the heart
     rate, and the lower plot is the expert classification.  A single
@@ -369,382 +321,196 @@ contest.
 \end{figure}
 
 The question that motivated the contest is ``Is the information in an
-ECG alone sufficient to classify apnea?'' James work answered the
+ECG alone sufficient to classify apnea?'' McNames work answered the
 question affirmatively.  For attempts to do the classification
 automatically, his work suggests the following points:
 \begin{enumerate}
-\item Classify each entire record first.  Then, using that
-  classification, classify each minute in the record.
 \item Heart rate oscillations at about 1.3 cpm indicate apnea.
 \item A clean phase jitter signal at about 14 cpm
   indicates normal respiration.
 \end{enumerate}
 
-\section{Decoding Sequences of Classifications}
-\label{sec:V4Class}
+\afterpage{\clearpage}%% Print this right here please.
 
-In the book I presented the algorithm described in
-Fig.~\ref{fig:viterbiC} for finding the \emph{best} classification
-sequence,
-\begin{equation*}
-  \hat c_1^T \equiv \argmax_{c_1^T} P(y_1^T,c_1^T),
-\end{equation*}
-given an observation sequence $y_1^T$.  I claimed that the number of
-computations required is a linear function of $T$.  In 2013, as I was
-developing a test suite for a new version of the software, I
-discovered a configuration for which the algorithm failed to find a
-\emph{possible} classification sequence even though it was using the
-model that generated the test data.
+\section{Using HMMs to Address the Challenge}
+\label{sec:apnea_hmms}
 
-Examining the failure, I discovered that for each of the ``best''
-class histories ending in each of the classes at a particular time
-$t$, the conditional probability of a particular state $s$ given that
-class history was 0.  However, at time $t+1$, the only state that
-could produce $y(t+1)$ required that $S(t)=s$.  Thus the algorithm
-calculated $P(y_1^{t}, \hat c_1^{t}) = 0$ and died.
+In the following sections, as the final example in the book, I use
+HMMs to address the CINC2000 challenge.  I begin with an HMM scheme
+for estimating heart rate because, like McNames, I find off-the-shelf
+QRS detection codes are not adequate for the variety of the CINC2000
+data.  From the estimated heart rate signal for each record, I derive
+a sequence of two dimensional observations.  The first component is
+the low pass filtered heart rate, and the second is roughly the
+intensity of the spectrogram in the range of respiration near 15
+cycles per minute.  Next I fit an HMM with the vector autoregressive
+observation models described in Section~\ref{sec:ARVGaussian} to the
+training data.  And finally I apply that HMM to classify each minute
+of the test data.
 
-I had designed the algorithm thinking that the class sequence was
-Markov and that future evidence could not change what was the best
-history leading to any class.  The following drawing makes my error
-obvious.
-\begin{center}
-  \resizebox{0.75\columnwidth}{!}{\input{class_net.pdf_t}}
-\end{center}
-Blocking out $s_{t+1}$ separates the past from the future, but
-blocking out $c_{t+1}$ doesn't.
+\subsection{Estimating Heart Rate}
+\label{sec:ecg_hmms}
 
-Given measurements up to time step $t$, for any class history $c_1^t$,
-one can calculate a \emph{score} or value of
-\begin{equation*}
-  \psi(s,c_1^t) \equiv P(y_1^t, s(t) = s, c_1^t)
-\end{equation*}
-for every possible value $s$ of the ending state $s(t)$.  I define
-\emph{complete domination} of one class history $^a c_1^t$ by a
-second $^b c_1^t$ as
-\begin{equation*}
-  \psi(s, ^b \!c_1^t) \geq \psi(s, ^a\! c_1^t),~ \forall s,
-\end{equation*}
-which I denote $^b \! c_1^t \preceq \,^a\!c_1^t$.  Because a completely
-dominated class history will never be required as a part of a best
-class sequence, one can safely discard them as one makes a forward
-pass through a data set.  However, to ensure optimality one must
-retain and propagate every partial history that is not completely
-dominated by another retained partial history.
+At first I tried using off-the-shelf code to extract heart rates from
+the Physionet ECG data.  Figure~\ref{fig:elgendi} illustrates results
+of using one of the detectors\footnote{Elgendi, Mohamed \& Jonkman,
+  Mirjam \& De Boer, Friso. (2010). "Frequency Bands Effects on QRS
+  Detection" The 3rd International Conference on Bio-inspired Systems
+  and Signal Processing (BIOSIGNALS2010). 428-431.} implemented by
+Porr et al.\footnote{https://github.com/berndporr/py-ecg-detectors},
+and Figure~\ref{fig:a03a10b03c02} illustrates the challenging
+diversity of waveforms in the Physionet data.  To address the
+diversity of waveforms, I developed an approach to estimating heart
+rates from ECGs based on HMMs that relies on the observation that for
+each record the shape and duration of the $PQRST$ pattern doesn't
+vary.  For different heart rates the time between the $T$ wave and the
+next $P$ wave does change, but the rest of the pattern varies very
+little.  Figure~\ref{fig:constant_a03} illustrates the invariance.
 
-One might hope that for a class with a small number of states, that a
-small number of histories would completely dominate all others.  For a
-class with only two states, the figure below illustrates both that
-hope and the fact that it is only a \emph{hope} and not a necessity.
-To ensure optimality one may need to keep a number of class histories
-that is exponential in sequence length $t$.  That is too many to
-retain for most realistic applications.
+\begin{figure}
+  \centering{\resizebox{0.8\textwidth}{!}{\includegraphics{elgendi.pdf}}
+  }
+  \caption[Inadequate off-the-shelf ECG detectors]%
+  {In this segment of the ECG for record a03, stars indicate estimates
+    of the R wave locations by an off-the-shelf detector\cite{porr},
+    and $\times$s indicate estimates from the algorithm described in
+    Section~\ref{sec:ecg_hmms}. }
+  \label{fig:elgendi}
+\end{figure}
 
-\begin{center}
-%  \resizebox{\textwidth}{!}{\input mono.pdf_t }\medskip\\
-  \parbox{0.9\textwidth}{ In the drawings above, each dot represents a
-    different class history and for that class history the coordinates
-    of the dot are $\psi(s_1, c_1^t)$ and $\psi(s_2, c_1^t)$.  The
-    drawing on the left illustrates \emph{complete dominance}.  The
-    class history corresponding to the upper right dot completely
-    dominates all the other class histories and it is the only one
-    that must be retained and propagated.  In the drawing on the
-    right, no class history is completely dominated, and to ensure
-    finding an optimal class sequence each history must be retained
-    and propagated.  For even two states in a class there is no limit
-    on the number of class histories that one may have to retain to
-    ensure finding an optimal class sequence.}
-\end{center}
+\begin{figure}
+  \centering{\resizebox{0.8\textwidth}{!}{\includegraphics{a03a10b03c02.pdf}}
+  }
+  \caption[Segments of ECGs from four records]%
+  {Segments of ECGs from four records.  The ECGs for the different
+    data records were so different from each other that off-the-shelf
+    code was not adequate for estimating heart rate signals.}
+  \label{fig:a03a10b03c02}
+\end{figure}
 
-\subsection{Finding a \emph{Pretty Good Class} Sequence}
+\marginpar{FixMe: Label PQRST}
+\begin{figure}
+  \centering{\resizebox{\textwidth}{!}{\includegraphics{constant_a03.pdf}}}
+  \caption[Invariant PQRST shape]%
+  {At different heart rates the shape and duration of the PQRST
+    pattern doesn’t change. Only the delay between the sequences
+    changes.  Notice that the lengths of the time intervals in the
+    upper and lower plots are identical.}
+  \label{fig:constant_a03}
+\end{figure}
+
+\begin{figure}
+  \centering{\resizebox{0.5\textwidth}{!}{\input{ecg_hmm.pdf_t}}
+  }
+  \caption[Topology of HMMs for exploiting invariance of PQRST
+  shapes]{Illustration of the topology of HMMs for exploiting
+    invariance of PQRST shapes. The chain of 49 fast states models the
+    invariant PQRST shape.  The variable duration paths through the
+    slow states, $S_1$, $S_2$, and $S_3$, model the flexible time
+    between $T$ and $P$ waves.}
+  \label{fig:ecg_hmm}
+\end{figure}
+
+\begin{itemize}
+\item Loop of 52 discrete states
+\item A sequence of 49 \emph{fast} states that don't branch, state $n$ must
+  transition to state $n+1$ at each time step
+\item Three \emph{slow} states accommodate heart rate variations.
+  Each of the three branches to one of the following:
+  \begin{itemize}
+  \item Itself
+  \item Its successor
+  \item The first fast state
+  \end{itemize}
+\end{itemize}
+The minimum number of states visited in a loop is 50, or 500~ms since
+the ECG data was sampled at 100~Hz.  Consequently the model is not
+appropriate for heart rates above 120~bpm.
+
+A special \emph{outlier} state accommodates ECG-lead noise.
+
+I used a Gaussian scalar autoregressive observation model with means
+for each state being an affine function of the previous three
+observations and variances fit to each state separately.  The models
+are one dimensional versions of those described in
+Section~\ref{sec:ARVGaussian}.
+
+I used scipy.signal.find\_peaks to supervise training of an initial
+model for one of the records from CINC 2000.  I derived models for the
+most\footnote{For a few of the records I used other techniques to
+  obtain initial models.} other records from that initial model via
+unsupervised training.
+
+\begin{figure}
+  \centering{\resizebox{0.8\textwidth}{!}{\includegraphics{a01c02_states.pdf}}
+  }
+  \caption[Decoded state sequences]{State sequences from Viterbi
+    decoding of ECG signals for two records appear.  The invariant
+    $PQRST$ pattern maps to the lines of constant slope.  The varying
+    lengths of the horizontal segments accounts for variable time
+    between heart beats.}
+  \label{fig:a01c02_states}
+\end{figure}
+
+\begin{figure}
+  \centering{\resizebox{\textwidth}{!}{0.8\includegraphics{simulated.pdf}}
+  }
+  \caption[Simulated ECG]{A plausible ECG appears in the upper plot,
+    and the corresponding state sequence appears in the lower plot.
+    Driving a model fit to data with a random number generator created
+  both plots.}
+  \label{fig:simulated}
+\end{figure}
+
+\subsubsection{Mapping state sequences to heart rate}
+\label{sec:states2hr}
+
+\begin{figure}
+  \centering{\resizebox{0.8\textwidth}{!}{\includegraphics{ecg2hr.pdf}}
+  }
+  \caption[Heart rate derived from ECG.]{An illustration of using
+    Viterbi decoding to derive heart rate from an ECG.  An ECG segment
+    appears in the upper plot, and the corresponding segment of the
+    decoded state sequence appears in the middle plot.  The $\times$
+    marks in the middle plot indicate the times when the state is 31.
+    The same times are also indicated in the upper plot.  The inverse
+    of the difference in time between adjacent $x$s provides the
+    estimated heart rate.  A smoothed version of those estimates
+    sampled periodically at 2 Hz appears in the lower plot. }
+  \label{fig:ecg2hr}
+\end{figure}
+
+\afterpage{\clearpage}%% Print this right here please.
+
+\subsection{An Observation Model}
+\label{sec:apnea_observation_model}
+
+\subsection{Using a Sequence of Class Probabilities}
 \label{sec:prettygood}
 
-Rather than finding the \emph{best} class sequence given a sequence of
-observations $y_1^T$, I now seek a \emph{good} sequence.  In a forward pass
-through the data sequence, at each $t$ I retain a class history for
-each ending class and a class history for each state.  Specifically, I
-retain the set:
+Equation \eqref{eq:wit} (2.20), ie,
 \begin{equation*}
-  \left\{ \argmax_{c_1^t:c_1^{t-1}\text{retained}}
-    \psi(s,c_1^t), ~ \forall s \right\} \cup
-  \left\{ \argmax_{c_1^t:c(t)=c\& c_1^{t-1}\text{retained}}
-    \psi(s,c_1^t), ~ \forall c \right\}.
+  w(s,t) \equiv P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s|\ts{y}{1}{T}
+  \right),
 \end{equation*}
-Future versions of this document will report on the performance of
-this algorithm and perhaps on other approaches.
-
-
-%
-\begin{figure}[htbp]
-  \begin{center}
-    \newcommand{\tnext}{_{\text{next}}}
-    \newcommand{\told}{_{\text{old}}}
-    \newcommand{\tbest}{_{\text{best}}}
-    \newcommand{\ick}{\log \left(\sum_{s} g(s,c\tbest) f(t+1,s,c\tbest) \right)}
-    \fbox{
-      \begin{minipage}{\columnwidth}
-        \begin{tabbing}
-          XX\=XX\=XX\=XX\=XX\=XX\=XX\=XX\= \kill
-          Initialize: \> \+ \\
-          for each $c$\\ \> \+
-          $\nu\tnext (c) = \log \left( \sum_{s} g(s,C) P_{\ti{Y}{1},\ti{S}{1}}
-            \left(\ti{y}{1},s \right)\right)$ \\ \\ \< \- \< \-
-          Iterate: \> \+ \\
-          for $t$ from 1 to $T$\\ \> \+
-          Swap $\nu\tnext \leftrightarrow \nu\told$\\
-          for each $c\tnext$\\ \> \+
-          \\ \# Find best predecessor\\
-          $c\tbest = \argmax_{c\told}\left( \nu\told(c\told) + \ick \right)$ \\
-          \\ \# Update $\nu$\\
-          $\nu\tnext(c\tnext) =\,$ \= $\nu\told(c\tbest) + \ick$ \\ \> \-
-          \\ \# Update predecessor array\\
-          Predecessor[$c\tnext,t$] = $c\tbest$\\
-          \\ \# Update $\phi$\\
-          for $s$ in $c\tnext$\\ \> \+
-          Assign $\phi\tnext(s,c\tnext)$ using Eqn.~6.7\\ \\
-          \< \- \< \- \< \- %This stuff is for tabs \< \-
-          Backtrack: \> \+ \\
-          $\ts{c}{1}{t} = \ts{\hat c}{1}{t}(\bar c)$ , where $\bar c =
-          \argmax_c \nu\tnext(c)$ at $t=T$
-        \end{tabbing}
-      \end{minipage}
-    }
-    \caption[\textbf{This algorithm does not work!}  In the book, this
-    figure was entitled \emph{Pseudocode for the Viterbi Algorithm}.]%
-    {\textbf{This algorithm does not work!}  In the book, this figure
-      was entitled \emph{Pseudocode for the Viterbi algorithm for
-        class sequences}.}
-    \label{fig:viterbiC}
-  \end{center}
-\end{figure}
-
-\section{Assembling the Pieces}
-\label{sec:Pieces}
-
-As a final example for this book, I chose to revisit the CINC2000
-challenge by combining the following pieces:
-\begin{description}
-\item[Low frequency oscillations of heart rate:] Oscillations like
-  those before 1:00 in the upper plot of Fig.~\ref{fig:a03erHR}
-  indicate apnea.
-\item[High frequency phase modulation:] Strong bands of spectral power
-  between 10 and 20 cpm indicate normal respiration.
-\item[Two pass classification:] First classify each entire record.
-  Then classify each minute in the record using a model selected on
-  the basis of the first classification.
-\item[Viterbi decoding of classification:] For a given model and
-  sequence of observations, use the algorithm of
-  Section~\ref{sec:V4Class} to solve for a sequence of
-  classifications.
-\end{description}
-
-\subsection{Extracting a Low Pass Filtered Heart Rate}
-\label{sec:LPHR}
-
-From the raw ECG, I derived two kinds of sequences of observations.
-At each sample time the code extracts a scalar \emph{low pass heart
-  rate signal} that conveys information about the low frequency heart
-rate oscillations and a \emph{respiration vector} that conveys
-information about high frequency phase oscillations.  I used the
-following signal processing steps to derive the low pass heart rate
-signal.
-\begin{enumerate} % Summary of rr2hr.py
-\item Clip the raw ECG signal.  The ECG signals have a few time
-  intervals during which the values have extremely large magnitudes.
-  I suspect that the electrical leads were physically disturbed at
-  those time.  I eliminated those useless values as follows:
-  \begin{enumerate}
-  \item For each second, find the lowest $l$ and highest $h$ value of
-    the ECG signal
-  \item Sort these two collections of extreme values
-  \item Find $X_l$ the largest value that is smaller than 90\% of the
-    $l$ values and define the lower bound as $B_l=1.5*X_l$
-  \item Find $X_h$ the smallest value that is larger than 90\% of the
-    $h$ values and define the upper bound as $B_h=1.5*X_h$
-  \item For every second that has an ECG value outside of the range
-    $[B_l,B_h]$ set all ECG values in that second to 0.
-  \end{enumerate} %ecg\_clean.py
-\item Find the time of each heart beat by applying the PhysioNet
-  program \emph{wqrs} to the clipped ECG signal.  I call these times
-  the \emph{Rtimes}.
-\item Create a sequence of raw pairs [\emph{time, rr-interval}] where
-  \emph{time} is an \emph{Rtime} and \emph{rr-interval} is the time
-  delay to the next \emph{Rtime}.  %see rr2hr.py
-\item Cull the sequence of pairs by removing entries that have extreme
-  \emph{rr-interval} values.  For various reasons, the code misses
-  some heart beats.  Without culling, the missed beats introduce
-  impulsive noise into the heart rate signal that is at least twice as
-  large as the real signal.
- % top = 1.25*sortedD[ti] bottom = 0.8*sortedD[bi]
-\item Create a heart rate signal $hr$ sampled uniformly at 2 Hz by
-  interpolating between times in the sequence of remaining pairs.
-\item Subtract the mean heart rate from $hr$ and then use the FFT
-  twice to eliminate frequency components below 0.09 cpm and above
-  3.66 cpm.  Call the resulting signal $hr_l$.
-\item Save $hr_l$ sampled 10 times per minute.% rr2hr.py
-\end{enumerate}
-
-\subsection{Extracting Respiration Information}
-\label{sec:RESP}
-
-I also created a \emph{respiration} signal with a sample every tenth
-of a minute where each sample is a vector with three components.  As a
-first step, I used the following procedure to derive
-periodograms\footnote{Periodograms are calculated by applying the FFT
-  to a sample sequence and squaring the resulting coefficients.  The
-  result is a Fourier transform of the autocorrelation of a finite
-  segment of a single sequence.} from the same \emph{Rtimes} sequence
-I used for the \emph{low pass heart rate} signal: \index{periodogram}
-\begin{enumerate}
-\item Read the \emph{Rtimes} data
-\item Calculate a \emph{deviation} time series sampled uniformly at 2
-  Hz.  The deviation is the difference between the actual value of an
-  \emph{Rtime} and the value that is midway between its nearest neighbors.
-\item Calculate ten periodograms per minute using FFTs and Gaussian
-  windows with a support of 512 seconds and $\sigma=25$ seconds
-\item Smooth each periodogram over frequencies
-\item Normalize each smoothed periodogram to be a vector $F_j$
-  with unit length
-\item Save the vector $F_j$ and the normalization factor $Z_j$
-\end{enumerate}
-
-\subsection{Tunable Parameters}
-\label{sec:tune}
-%
-It takes a long time make the data for Fig.~\ref{fig:PFsurvey}.  To
-let readers avoid that delay, I've included the data in the source
-package.  If you want to build the data, simply remove
-\emph{data/PFsurveyH}, make \emph{data/PFsurveyH} and copy it to
-\emph{data/PFsurvey}.
-\begin{figure}
-  \centering{
-    \resizebox{1.0\textwidth}{!}{
-%      \includegraphics[trim = 40mm 10mm 10mm 10mm ]{pf_H.pdf}
-    }
-  }
-  \caption[The response of classification performance to changes in
-  \emph{Pow} and \emph{Fudge}]%
-  {The response of classification performance to changes in \emph{Pow}
-    and \emph{Fudge}.  I've plotted the performance of $Mod_H$ trained
-    and evaluated on the \emph{H} group of records.  As described in
-    the text, \emph{Pow} governs the relative weighting of the low
-    pass heart rate signal to the respiration characteristics and
-    \emph{Fudge} is a bias for choosing the \emph{normal}
-    classification.  The $Z$ axis is the fraction of minutes
-    classified correctly.  It takes about 3.75 days to make the data
-    for this plot. }
-  \label{fig:PFsurvey}
-\end{figure}
-
-\subsection{Results}
-\label{sec:results}
-
-The results in Table~\ref{tab:result1} are part of the typed in \LaTeX
-source.  I should write code that creates a file of results and then
-import the results into the text.
-\begin{table}
-  \caption[Performance with tuned values of \emph{Fudge} and \emph{Pow} on training]%
-  {Performance with tuned values of \emph{Fudge} and
-    \emph{Pow} on training records.  I've sorted the list in order of
-    how well the code classified each of the minutes in each record.  For
-    each record, the number in the column labeled $N\rightarrow A$ is
-    the number of minutes labeled as \emph{normal} by the expert that
-    the code labeled as \emph{apnea}.  The interpretations of the
-    other columns are similar.}
-  \centering{\plotsize%
-    \begin{tabular}{|llllll|}
-      \hline
-      Record & $N\rightarrow N$ &  $N\rightarrow A$ &  $A\rightarrow N$ &  $A\rightarrow A$ & \% Right \\
-      \hline
-      \rule{0pt}{2.0ex}%
-      a11 &  198 &   46 &  138 &   84 & 0.6052 \\
-      b02 &  255 &  169 &   14 &   79 & 0.6460 \\
-      a06 &  276 &   27 &  140 &   66 & 0.6719 \\
-      a08 &  197 &  114 &   24 &  165 & 0.7240 \\
-      b01 &  362 &  105 &    2 &   17 & 0.7798 \\
-      a07 &   96 &   93 &   12 &  309 & 0.7941 \\
-      a18 &   37 &   14 &   82 &  356 & 0.8037 \\
-      b03 &  296 &   71 &   13 &   60 & 0.8091 \\
-      a03 &  175 &   98 &    0 &  246 & 0.8112 \\
-      a20 &  184 &   10 &   78 &  237 & 0.8271 \\
-      a15 &   91 &   50 &   36 &  332 & 0.8310 \\
-      a05 &  147 &   30 &   44 &  232 & 0.8366 \\
-      a16 &  140 &   21 &   51 &  269 & 0.8503 \\
-      a13 &  213 &   38 &   28 &  215 & 0.8664 \\
-      a09 &   90 &   24 &   39 &  342 & 0.8727 \\
-      a10 &  404 &   13 &   49 &   50 & 0.8798 \\
-      a14 &   69 &   57 &    2 &  381 & 0.8841 \\
-      a17 &  302 &   24 &   32 &  126 & 0.8843 \\
-      a02 &   72 &   36 &   19 &  401 & 0.8958 \\
-      a19 &  289 &    8 &   30 &  174 & 0.9242 \\
-      a12 &   14 &   29 &    3 &  530 & 0.9444 \\
-      b04 &  418 &    0 &   10 &    0 & 0.9766 \\
-      a01 &   11 &    8 &    0 &  470 & 0.9836 \\
-      a04 &   35 &    4 &    2 &  451 & 0.9878 \\
-      c07 &  424 &    0 &    4 &    0 & 0.9907 \\
-      c05 &  462 &    0 &    3 &    0 & 0.9935 \\
-      c09 &  465 &    0 &    2 &    0 & 0.9957 \\
-      c10 &  429 &    0 &    1 &    0 & 0.9977 \\
-      c03 &  452 &    1 &    0 &    0 & 0.9978 \\
-      c06 &  466 &    0 &    1 &    0 & 0.9979 \\
-      c02 &  500 &    0 &    1 &    0 & 0.9980 \\
-      c01 &  483 &    0 &    0 &    0 & 1.0000 \\
-      c04 &  481 &    0 &    0 &    0 & 1.0000 \\
-      c08 &  513 &    0 &    0 &    0 & 1.0000 \\
-      \hline
-      \rule{0pt}{2.0ex}%
-      sum & 9046 & 1090 &  860 & 5592 & 0.8824\\
-      \hline
-    \end{tabular}}
-  \label{tab:result1}
-\end{table}
-
-Table~\ref{tab:cinc2000} is a copy of the table in the book.  It does
-not reflect the performance of the new code.
-\begin{table}
-  \caption[The scores described in this chapter]%
-  {Here are the scores described in this chapter interspersed
-    with the top scores from the CINC2000 website
-    (\url{http://www.physionet.org/challenge/2000/top-scores.shtml}).}
-  \centering{\plotsize%
-    \begin{tabular}{|l|p{25em}|l|}
-      \hline
-      Score & Entrant & Entries \\
-      \hline
-      \rule{0pt}{2.25ex}%
-      92.62 & J McNames, A Fraser, and A Rechtsteiner
-      Portland State University, Portland, OR, USA & 4 \\
-      92.30 & B Raymond, R Cayton, R Bates, and M Chappell
-      Birmingham Heartlands Hospital, Birmingham, UK & 8 \\
-      89.36 & P de Chazal, C Henehan, E Sheridan, R Reilly, P Nolan,
-      and M O'Malley
-      University College - Dublin, Ireland  & 15 \\
-      87.56 & M Schrader, C Zywietz, V von Einem, B Widiger, G Joseph
-      Medical School Hannover, Hannover, Germany &	9 \\
-      87.30 & MR Jarvis and PP Mitra
-      Caltech, Pasadena, CA, USA &	3 \\
-      \hline
-      \rule{0pt}{2.25ex}%
-      86.95 & Second entry in this chapter.  Adjust \emph{Fudge} to get
-      fraction of apnea minutes in the test records to match the fraction of
-      apnea minutes in the training records & \\
-      \hline
-      \rule{0pt}{2.25ex}%
-      86.24 & First entry in this chapter.  Models and parameters tuned to
-      the training records. & \\
-      \hline
-      \rule{0pt}{2.25ex}%
-      85.63 & Z Shinar, A Baharav, and S Akselrod
-      Tel-Aviv University, Ramat-Aviv, Israel &	1 \\
-      85.54 & C Maier, M Bauch, and H Dickhaus
-      University of Heidelberg, Heilbronn, Germany & 5 \\
-      84.49 & JE Mietus, C-K Peng, and AL Goldberger
-      Beth Israel Deaconess Medical Center, Boston, MA, USA (unofficial
-      entry) & \\
-      \hline
-    \end{tabular}}
-  \label{tab:cinc2000}
-\end{table}
-%
+gives the probability of each state at each time given the model and
+all of the observations.  From such state weights, I construct the
+sequence of ratios
+\begin{equation*}
+  \ti{r}{t} \equiv \frac{\sum_{s\in A} w(s,t)}{\sum_{s\in N} w(s,t)}
+\end{equation*}
+where $A$ is the set of apnea states and $N$ is the set of normal
+states.  Finally I derive a sequence of classifications,
+$\ts{c}{1}{T}$, from the sequence of ratios, $\ts{r}{1}{T}$, by
+comparing to a threshold, $R$,
+\begin{equation}
+  \label{eq:class_sequence}
+  \ti{c}{t} =
+  \begin{cases}
+    N & \ti{r}{t} < R \\
+    A & \ti{r}{t} >= R
+  \end{cases}.
+\end{equation}
 
 \section{Classification Versus Estimation}
 \label{sec:ClassVsEst}
@@ -758,7 +524,7 @@ characterizations of observations conditional on class membership the
 best classifier would be a likelihood ratio classifier, it is not true
 that without such characterizations the best approach to
 classification is to estimate them.  This point is made forcefully by
-Vapnik\cite{Vapnik98} who says, ``one should solve the [classification]
+Vapnik\cite{Vapnik98} who said, ``one should solve the [classification]
 problem directly and never solve a more general problem as an
 intermediate step.''
 

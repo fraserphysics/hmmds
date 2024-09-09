@@ -34,6 +34,10 @@ APNEA_FIGS =  $(addprefix $(BUILD)/figs/apnea/,  $(addsuffix .pdf, \
 ApneaNLD a03erA a03HR a03erN sgram))
 APNEA_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/apnea, class_net)
 
+ECG_FIGS =  $(addprefix $(BUILD)/figs/ecg/,  $(addsuffix .pdf, \
+elgendi a03a10b03c02 constant_a03 a01c02_states simulated ecg2hr))
+ECG_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/ecg/, ecg_hmm)
+
 SKELETON_FIGS = $(INTRODUCTION_FIGS) \
 $(LASER_FIGS) \
 $(INTRODUCTION_XFIGS) \
@@ -44,7 +48,9 @@ $(VARIANTS_XFIGS) \
 $(BOUNDS_FIGS) \
 $(BOUNDS_XFIGS) \
 $(APNEA_FIGS) \
-$(APNEA_XFIGS)
+$(APNEA_XFIGS) \
+$(ECG_FIGS) \
+$(ECG_XFIGS)
 
 TEX_SKELETON = $(TEX)/skeleton
 

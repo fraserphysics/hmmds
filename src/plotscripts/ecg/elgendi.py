@@ -55,6 +55,11 @@ def main(argv=None):
     ecg = joint_segment['ecg']
     ecg_times = numpy.arange(len(ecg)) / (100 * PINT('Hz'))
     fig, axes = pyplot.subplots(nrows=1, ncols=1, figsize=(6, 4))
+    pyplot.setp(
+        axes,
+        xticks=[59.5, 59.6, 59.7],
+        yticks=[-1.0, 0.0, 1.0, 2.0, 3.0],
+    )
 
     n_start, n_stop = numpy.searchsorted(
         ecg_times.to('minutes').magnitude, (59.5, 59.7))
@@ -70,7 +75,7 @@ def main(argv=None):
               marker='x',
               color='red',
               linestyle='',
-              markersize=15,
+              markersize=8,
               label='hmm')
 
     rtimes = utilities.read_rtimes(args.rtimes)
@@ -82,7 +87,7 @@ def main(argv=None):
               marker='*',
               color='black',
               linestyle='',
-              markersize=15,
+              markersize=10,
               label='py-ecg')
 
     axes.set_xlabel(r'$t$/minutes')

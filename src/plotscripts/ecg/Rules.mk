@@ -4,15 +4,22 @@
 
 # ROOT         : The root of this project
 # BUILD        : Directory tree for derived results
-# PICKLED_ECG  : Directory of ecg files
 # ECG_DERIVED  : Holds pickled data
-# PICKLED_ECG  : Pickled ecg data from wfdb
+# PICKLED_ECG  : Directory of pickled ecg data from wfdb
 
 ECG_FIGS = $(BUILD)/figs/ecg
 ECG_PLOTSCRIPTS = $(ROOT)/src/plotscripts/ecg
 # This file is in the ECG_PLOTSCRIPTS directory
 
 ################################################################################
+$(ECG_FIGS)/ecg2hr.pdf: $(ECG_PLOTSCRIPTS)/ecg2hr.py
+	mkdir -p $(@D)
+	python $< $(ECG_DERIVED)/a01_self_AR3 $(PICKLED_ECG)/a01 $@
+
+$(ECG_FIGS)/a03a10b03c02.pdf: $(ECG_PLOTSCRIPTS)/four_ecgs.py
+	mkdir -p $(@D)
+	python $< --records a03 a10 b03 c02 $(PICKLED_ECG) $@
+
 $(ECG_FIGS)/%_states_71.pdf: $(ECG_PLOTSCRIPTS)/ecg_states_fig.py $(ECG_DERIVED)/%/states/a01
 	mkdir -p $(@D)
 	python $< $(PICKLED_ECG)/a01 $(ECG_DERIVED)/$*/states/a01 71.1 71.14 $@
