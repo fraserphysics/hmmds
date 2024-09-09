@@ -351,22 +351,6 @@ of the test data.
 \subsection{Estimating Heart Rate}
 \label{sec:ecg_hmms}
 
-At first I tried using off-the-shelf code to extract heart rates from
-the Physionet ECG data.  Figure~\ref{fig:elgendi} illustrates results
-of using one of the detectors\footnote{Elgendi, Mohamed \& Jonkman,
-  Mirjam \& De Boer, Friso. (2010). "Frequency Bands Effects on QRS
-  Detection" The 3rd International Conference on Bio-inspired Systems
-  and Signal Processing (BIOSIGNALS2010). 428-431.} implemented by
-Porr et al.\footnote{https://github.com/berndporr/py-ecg-detectors},
-and Figure~\ref{fig:a03a10b03c02} illustrates the challenging
-diversity of waveforms in the Physionet data.  To address the
-diversity of waveforms, I developed an approach to estimating heart
-rates from ECGs based on HMMs that relies on the observation that for
-each record the shape and duration of the $PQRST$ pattern doesn't
-vary.  For different heart rates the time between the $T$ wave and the
-next $P$ wave does change, but the rest of the pattern varies very
-little.  Figure~\ref{fig:constant_a03} illustrates the invariance.
-
 \begin{figure}
   \centering{\resizebox{0.8\textwidth}{!}{\includegraphics{elgendi.pdf}}
   }
@@ -399,6 +383,25 @@ little.  Figure~\ref{fig:constant_a03} illustrates the invariance.
   \label{fig:constant_a03}
 \end{figure}
 
+At first I tried using off-the-shelf code to extract heart rates from
+the Physionet ECG data.  Figure~\ref{fig:elgendi} illustrates results
+of using one of the detectors\footnote{Elgendi, Mohamed \& Jonkman,
+  Mirjam \& De Boer, Friso. (2010). "Frequency Bands Effects on QRS
+  Detection" The 3rd International Conference on Bio-inspired Systems
+  and Signal Processing (BIOSIGNALS2010). 428-431.} implemented by
+Porr et al.\footnote{https://github.com/berndporr/py-ecg-detectors},
+and Figure~\ref{fig:a03a10b03c02} illustrates the challenging
+diversity of waveforms in the Physionet data.  To address the
+diversity of waveforms, I developed an approach to estimating heart
+rates from ECGs based on HMMs that relies on the observation that for
+each record the shape and duration of the $PQRST$ pattern doesn't
+vary.  For different heart rates the time between the $T$ wave and the
+next $P$ wave does change, but the rest of the pattern varies very
+little.  Figure~\ref{fig:constant_a03} illustrates the invariance.
+
+\subsubsection{State topology}
+\label{sec:state_topology}
+
 \begin{figure}
   \centering{\resizebox{0.5\textwidth}{!}{\input{ecg_hmm.pdf_t}}
   }
@@ -411,11 +414,17 @@ little.  Figure~\ref{fig:constant_a03} illustrates the invariance.
   \label{fig:ecg_hmm}
 \end{figure}
 
+Figure~\ref{fig:ecg_hmm} illustrates the topology of the HMMs I built
+to capture the invariant shapes of the PQRST sequences for each
+individual record.  In addition to the states drawn, there is a
+special \emph{outlier} state accommodates ECG-lead noise.  Here are
+the essential characteristics of the topology:
 \begin{itemize}
-\item Loop of 52 discrete states
+\item A loop of 52 discrete states.
 \item A sequence of 49 \emph{fast} states that don't branch, state $n$ must
-  transition to state $n+1$ at each time step
-\item Three \emph{slow} states accommodate heart rate variations.
+  transition to state $n+1$ at each time step.  These fast states
+  model the invariant PQRST shape.
+\item Three \emph{slow} states that model heart rate variations.
   Each of the three branches to one of the following:
   \begin{itemize}
   \item Itself
@@ -427,7 +436,8 @@ The minimum number of states visited in a loop is 50, or 500~ms since
 the ECG data was sampled at 100~Hz.  Consequently the model is not
 appropriate for heart rates above 120~bpm.
 
-A special \emph{outlier} state accommodates ECG-lead noise.
+\subsubsection{Observation models and training}
+\label{sec:ecg_training}
 
 I used a Gaussian scalar autoregressive observation model with means
 for each state being an affine function of the previous three
@@ -441,6 +451,14 @@ most\footnote{For a few of the records I used other techniques to
   obtain initial models.} other records from that initial model via
 unsupervised training.
 
+\subsubsection{Applying trained ECG models}
+\label{sec:applying_ECG_models}
+
+As intended, the trained HMMs track PQRST shapes in the ECG data well.
+Figure~\ref{fig:a01c02_states} illustrates the performance on two
+records, \emph{a01} and \emph{c02}, in which the ECG shapes are quite
+different.  To be clear, I note that a separate HMM gets trained on
+each record.
 \begin{figure}
   \centering{\resizebox{0.8\textwidth}{!}{\includegraphics{a01c02_states.pdf}}
   }
@@ -452,6 +470,8 @@ unsupervised training.
   \label{fig:a01c02_states}
 \end{figure}
 
+In addition to analyzing measured ECGs, the models can generate
+simulated ECGs, eg, Figure~\ref{fig:simmulated}.
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{0.8\includegraphics{simulated.pdf}}
   }
@@ -480,9 +500,21 @@ unsupervised training.
   \label{fig:ecg2hr}
 \end{figure}
 
+I've built HMMs of ECG signals to estimate heart rate signals because
+I believe that it is the heart rate that is relevant for detecting
+apnea.  Decoded state sequences like those that appear in
+Figure~\ref{fig:c01c02_states} are sufficient for estimating heart
+rate.  Considering the circular character of the topology depicted in
+Figure~\ref{fig:ecg_hmm}, the estimated heart rate is simply the rate
+at which decoded sequences go around the circle, and the phase of
+state sequence is not important for the estimation.  It is nice
+however that one state in the chain of fast states corresponds closely
+to the peak of the R wave in the ECGs as appears in
+Figure~\ref{fig:ecg2hr}.
+
 \afterpage{\clearpage}%% Print this right here please.
 
-\subsection{An Observation Model}
+\subsection{An Observation Model for HMMs of Heart Rate}
 \label{sec:apnea_observation_model}
 
 \subsection{Using a Sequence of Class Probabilities}
