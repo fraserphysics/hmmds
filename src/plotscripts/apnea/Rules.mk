@@ -37,6 +37,11 @@ $(APNEA_FIG_DIR)/errors_vs_%.pdf: $(APNEA_PLOTSCRIPTS)/comparison_plot.py $(DERI
 	mkdir -p $(@D)
 	python $^ $@
 
+$(APNEA_FIG_DIR)/explore.pdf: $(APNEA_PLOTSCRIPTS)/explore.py
+	mkdir -p $(@D)
+	python $< --heart_rate_path_format build/derived_data/ECG/{}_self_AR3/heart_rate \
+  --root $(ROOT) --model_sample_frequency 4 $@
+
 $(APNEA_FIG_DIR)/viz.pdf: $(ApneaCode)/model_viz.py $(BEST)
 	mkdir -p $(@D)
 	python $^ $@

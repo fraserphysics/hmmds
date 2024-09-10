@@ -9,7 +9,6 @@ TEX_OUT = $(BUILD)/TeX/skeleton
 # prepends prefix and appends pdf and pdf_t to names
 ADD_PDF_PDF_T = $(addprefix $(1)/, $(addsuffix .pdf, $(2)) $(addsuffix .pdf_t, $(2)))
 
-
 LASER_FIG_DIR = $(BUILD)/figs/laser/
 # FixMe: Some of these figures may not be required
 LASER_FIGS = $(addsuffix .pdf, $(addprefix $(LASER_FIG_DIR), \
@@ -31,7 +30,7 @@ ToyTS1 ToyStretch ToyH benettin LikeLor))
 BOUNDS_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/bounds, QR)
 
 APNEA_FIGS =  $(addprefix $(BUILD)/figs/apnea/,  $(addsuffix .pdf, \
-ApneaNLD a03erA a03HR a03erN sgram))
+a03erA a03erN a03HR sgram explore viz errors_vs_fs explore))
 APNEA_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/apnea, class_net)
 
 ECG_FIGS =  $(addprefix $(BUILD)/figs/ecg/,  $(addsuffix .pdf, \
@@ -52,9 +51,10 @@ $(APNEA_XFIGS) \
 $(ECG_FIGS) \
 $(ECG_XFIGS)
 
+TEX_INCLUDES = $(APNEA_TEX_INCLUDES)
 TEX_SKELETON = $(TEX)/skeleton
 
-$(TEX_OUT)/figures.pdf: $(TEX_SKELETON)/figures.tex $(TEX_SKELETON)/apnea.tex $(SKELETON_FIGS)
+$(TEX_OUT)/figures.pdf: $(TEX_SKELETON)/figures.tex $(TEX_SKELETON)/apnea.tex $(SKELETON_FIGS) $(TEX_INCULDES)
 	mkdir -p $(@D)
 	export TEXINPUTS=$(TEX_SKELETON):$(abspath $(BUILD))//:;  \
 pdflatex --output-directory $(@D) $(TEX_SKELETON)/figures.tex; \

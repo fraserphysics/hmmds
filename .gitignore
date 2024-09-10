@@ -16,3 +16,4 @@ derived_data/
 /www/*.www
 *.so
 /build/
+/raw_data
