@@ -1,0 +1,1431 @@
+\chapter{Toy Problems and Performance Bounds}
+\label{chap:toys}
+
+Having developed algorithms for fitting model parameters, one might
+reasonably ask how well the models so produced perform.  In this
+chapter we argue that the exercise of fitting models to data from
+chaotic dynamical systems is interesting because \emph{Lyapunov
+  exponent} calculations give a quantitative benchmark against which
+to compare model performance.  The idea is that the stretching or
+local instability of dynamics, which Lyapunov exponents characterize,
+limits the predictability \index{predictability} of sequences of
+observations.  We will start by examining a toy example derived from
+the Lorenz system that informally introduces the main ideas.  From
+there we will review definitions of entropy and Lyapunov exponents and
+results from information theory and ergodic theory that connect the
+ideas.  Finally we explain a simple calculation that can determine
+that a proposed model is fundamentally suboptimal.
+
+We suppose that a \emph{true} stochastic process that assigns
+probabilities to sequences of observations exists.  Many of the terms
+that we define are \emph{expected values} with respect to those
+probabilities, and we find that sample sequences converge to those
+expected values.  We use $P_{*|\mu}$ to denote these \emph{true}
+probabilities\footnote{Following Kolmogorov, modern probability theory
+  is cast a subfield of measure theory.  The measure theory literature
+  uses the Greek letter $\mu$ for a function or \emph{measure} that
+  maps sets to $\REAL^+$.  In earlier chapters, we have used
+  $P_{*|\theta}$ to denote parametric families of distributions.  We
+  introduce the mongrel notation $P_{*|\mu}$ here to make our notation
+  for comparisons between a true distribution and a parametric model
+  natural.  The meaning of the Greek letter $\mu$ here is not related
+  to its use to denote the mean of a distribution.}, and we use them
+to define expected values without delving in to theoretical questions
+about their existence.
+
+\subsubsection{Lorenz Example}
+
+As an example, we have simulated a version of the %
+\index*{Lorenz system} (Eqn.~\eqref{eq:Lorenz}) modified to fit the
+form of Eqn.~\eqref{eq:contnoise},
+\begin{align*}
+  \ti{x}{t+1} &= F(\ti{x}{t},t) + \ti{\eta}{t}\\
+  \ti{y}{t}   &= G(\ti{x}{t},t) + \ti{\epsilon}{t}).
+\end{align*}
+We have used the \index*{extended Kalman filter} described in
+chapter~\ref{chap:continuous} to obtain parametric probability
+functions $P\left(\ti{y}{t}|\ts{y}{1}{t-1} , \theta \right)$ that
+approximate $P\left(\ti{y}{t}|\ts{y}{1}{t-1}, \mu \right)$, \ie, the
+conditional distribution of the measurement at time $t$ given all
+previous measurements.  Our code for generating sequences of
+measurements has the following characteristics:
+  \begin{description}
+  \item[State] 
+    \begin{equation*}
+      x \equiv 
+      \begin{bmatrix}
+        x_1\\x_2\\x_3
+      \end{bmatrix}
+    \end{equation*}
+  \item[Time step] We obtain the map $F$ by numerically integrating
+    Eqn.~\eqref{eq:Lorenz} for time intervals of length $t_s$ with an
+    absolute error tolerance of $10^{-7}$.
+  \item[iid state noise] 
+    \begin{equation*}
+      \ti{\eta}{t} \sim \Normal(0, \begin{bmatrix} 1 & 0 & 0\\0 & 1 &
+        0\\0&0&1 \end{bmatrix} \sigma_\eta^2)
+    \end{equation*}
+  \item[Measurement function] A simple projection
+    \begin{equation*}
+      G(x) = x_1 = \begin{bmatrix} 1,0,0 \end{bmatrix} \cdot x
+    \end{equation*}
+  \item[iid measurement noise] 
+    \begin{equation*}
+      \ti{\epsilon}{t} \sim \Normal(0, \sigma_\epsilon^2)
+    \end{equation*}
+  \item[Quantization] The observations are quantized with a resolution
+    $\Delta$.  We analyze quantized measurements rather than
+    continuous measurements because they provide a \emph{finite} rather
+    than \emph{infinite} amount of information and they are
+    characterized by \emph{coordinate invariant} probability mass
+    functions rather than \emph{coordinate dependent} probability
+    density functions.
+\end{description}
+Recall that $\ti{\mu_\gamma}{t}$ and $\ti{\sigma_\gamma}{t}$
+completely characterize $ P(\ti{y}{t}|\ts{y}{1}{t-1},\theta)$ with
+\begin{equation*}
+  P(\ti{y}{t}|\ts{y}{1}{t-1},\theta) =
+  \NormalE{\ti{\mu_\gamma}{t}}{\ti{\sigma^2_\gamma}{t}}{\ti{y}{t}}.
+\end{equation*}
+(We use a lower case sigma here because the observations are scalars.)
+We obtain affine maps for the approximation $F(x+\delta,t) \approx
+\left[ DF(x)\right]\delta + F(x)$ %
+\nomenclature[rDF]{$\left[ DF(x)\right]\delta$}{The \emph{derivative}
+  of the function $F$ at $x$ applied to the vector $\delta$.  This
+  notation emphasizes that $DF(x)$ is a linear map.}
+%
+by numerically integrating both the
+Lorenz system and the tangent equations.  We use those approximations
+with Eqns.~\eqref{eq:KForeMu} and \eqref{eq:KUpdate} on page
+\pageref{eq:KUpdate} to implement the recursive calculation of
+$\ti{\mu_\gamma}{t}$ and $\ti{\sigma_\gamma}{t}$ described by
+Eqns.~\eqref{eq:t274} to \eqref{eq:IUpdate} on page
+\pageref{eq:IUpdate}.
+
+Figures~\ref{fig:ToyTS1} and \ref{fig:ToyStretch} depict a simulation
+in which dynamical stretching, \ie, the linear instability of $\left[
+  DF(x)\right]$, occasionally limits predictability.  We chose the
+parameters, specified in the caption of Fig.~\ref{fig:ToyTS1}, so that
+dynamical noise and measurement quantization are negligible compared
+to the effects of measurement noise and dynamical stretching.  In the
+middle plot of Fig.~\ref{fig:ToyTS1} notice that while for most times
+the forecast deviation of the predictions $\ti{\sigma_\gamma}{t}$ is
+very close to the size of the measurement noise $(0.01)$, occasionally
+the forecast deviations are many times larger.  The log likelihood per
+time step which appears in bottom plot of the figure is low when
+either the forecast deviations are large or when the difference
+between the mean of the forecast and the actual observation is much
+larger than the predicted deviation, \ie, $\ti{\sigma^2_\gamma}{t} <<
+\left(\ti{y}{t}-\ti{\mu_\gamma}{t}\right)^2$.
+
+The largest excursion of $\ti{\sigma_\gamma}{t}$ in
+Fig.~\ref{fig:ToyTS1} occurs between $t=117$ and $t=122$.
+Figure~\ref{fig:ToyStretch} illustrates the stretching action of
+the map $[DF]$ that occurs in that interval; the dynamics maps the
+smaller ellipse in the plot on the left into the larger ellipse in the
+plot on the right.
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \def\loglikelihood{$\log\left( P_{\gamma} \left(\ti{y}{t} \right)\right)$}%
+    \def\dev{$\ti{\sigma_\gamma}{t}$}%
+    \def\errorerrore{$\ti{y}{t} - \ti{\mu_\gamma}{t}$}%
+    \def\yt{$\ti{y}{t}$}%
+    \input{figs/ToyTS1.eps_t}}
+  \caption[\comment{fig:ToyTS1 }Extended Kalman filter for one step forecasting.]%
+    {Extended Kalman filter for one step forecasting with simulation
+    parameters:\\
+    \begin{tabular}[c]{ll}
+       $t_s=0.25$ & Sample interval \\
+       $\sigma_\eta = 10^{-6}$ & Standard deviation of state noise \\
+       $\sigma_\epsilon = 0.01$ & Standard deviation of measurement
+       noise \\
+       $\Delta = 10^{-4}$ & Measurement quantization \\
+     \end{tabular}\\
+    A time series of observations appears in the upper plot.  The
+    middle plot characterizes the one-step forecast distributions
+    $P_{\gamma} \left(\ti{y}{t} \right) \equiv P
+    \left(\ti{y}{t}|\ts{y}{1}{t-1},\theta \right) =
+    \NormalE{\ti{\mu_\gamma}{t}}{\ti{\sigma^2_\gamma}{t}}{\ti{y}{t}}$;
+    the first trace is the standard deviations of the forecasts and
+    the second trace is the difference between the actual observation
+    and the mean of the forecast.  The logs of the likelihoods of the
+    forecasts, $\log(P_{\gamma} \left(\ti{y}{t} \right))$, appear in
+    the bottom plot.}
+  \label{fig:ToyTS1}
+\end{figure}
+%%%
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \def\S{$P_a\text{ and } P_\alpha\text{ at }t=118$}%
+    \input{figs/ToyStretch118.eps_t}%
+    \def\S{$P_a\text{ and } P_\alpha\text{ at }t=119$}%
+    \input{figs/ToyStretch119.eps_t}}
+  \caption[\comment{fig:ToyStretch }Dynamical stretching increases state variance.]%
+  {These plots illustrate dynamical stretching increasing the variance
+    of the conditional distribution in state space corresponding to
+    time steps 118 and 119 in Fig.~\ref{fig:ToyTS1}.  In each plot,
+    the larger ellipse represents the \emph{forecast} state
+    distribution $P_{a} \left(\ti{x}{t} \right) \equiv P
+    \left(\ti{x}{t}|\ts{y}{1}{t-1},\theta \right) =
+    \NormalE{\mu_a}{\Sigma_a}{\ti{x}{t}}$ and the smaller ellipse
+    represents the \emph{updated} state distribution $P_{\alpha}
+    \left(\ti{x}{t} \right) \equiv P \left(\ti{x}{t}|\ts{y}{1}{t},
+      \theta \right) =
+    \NormalE{\mu_\alpha}{\Sigma_\alpha}{\ti{x}{t}}$.  For each
+    distribution, an ellipse depicts the level set $(x-\mu)\transpose
+    \Sigma^{-1} (x-\mu) =1$ in the $x_1\times x_3$ plane.  Since the
+    observations provide information about the value of $x_1$, the
+    updated distributions vary less in the $x_1$ direction than the
+    corresponding forecasts.  To aid comparisons, the $x_1$ range is
+    $0.2$ and the $x_3$ range is $0.01$ in each plot.  In the $x_1$
+    direction, the standard deviation of the updated distribution
+    $P_{\alpha}(\ti{x}{t})$ at $t=118$ (the smaller of the two
+    ellipses on the left) is 0.007.  The dynamics map that
+    distribution to the forecast distribution $P_{a}(\ti{x}{t})$ at
+    $t=119$ (the larger of the two ellipses on the right) for which
+    the standard deviation in the $x_1$ direction is more than ten
+    times larger.}
+  \label{fig:ToyStretch}
+\end{figure}
+
+Figure~\ref{fig:ToyH} illustrates the behavior of $-\hat h$, the sample
+average of the log likelihood of forecasts, for a group of simulations
+with parameters that are quite different from those in
+Figs.~\ref{fig:ToyTS1} and \ref{fig:ToyStretch}.  Given model parameters
+$\theta$ and a sample sequence $\ts{y}{1}{T}$ of length $T$, we define
+\begin{align*}
+  -\hat h &\equiv \frac{1}{T} \sum_{t=1}^T
+    \log \left( P \left(\ti{y}{t}|\ts{y}{1}{t-1}, \theta
+      \right)\right)\\
+    &=  \frac{1}{T} \log \left( P \left(\ts{y}{1}{T}| \theta
+      \right)\right).
+\end{align*}
+The negative of this sample log likelihood is an estimate of the
+\emph{cross entropy rate} \index{entropy!cross rate}
+\begin{equation*}
+  h(\mu||\theta) \equiv  \lim_{T \rightarrow \infty} - \frac{1}{T}
+  \EV_{\mu} \log \left( P \left(\ts{Y}{1}{T}|\theta \right) \right)
+\end{equation*}
+which in turn is bounded from below by the \emph{entropy rate}.  We
+discuss both entropy rate and cross entropy rate in
+Section~\ref{sec:pesin}, and in Section~\ref{sec:PesinFormula} we
+review the \emph{Pesin Formula}.  That formula says that the largest
+\emph{Lyapunov exponent} $\lambda_1$, a characterization of the
+stretching action of the dynamics, is equal to the entropy rate, a
+characterization of the predictability.  For good models, we expect
+the log likelihood of forecasts to fall off with a slope of
+$-\lambda_1$ as the sample time $t_s$ increases, and for the best
+possible model we expect
+\begin{equation}
+  \label{eq:bound1}
+  h(t_s) = \lambda_1 t_s.
+\end{equation}
+
+We have chosen the parameters\footnote{ In making Fig.~\ref{fig:ToyH},
+  we wanted simulations close to the bound of Eqn.~\eqref{eq:bound1}.
+  We found that at larger values of $t_s$ and $\Delta$, extended
+  Kalman filters performed better if given models with larger state
+  noise than the noise actually used to generate the data, \ie $\tilde
+  \sigma_\eta > \sigma_\eta$.  We believe that the effect is the
+  result of the larger errors that occur as the affine approximation
+  $F(x+\delta) \approx [DF(x)] \delta + F(x)$ fails to track the
+  nonlinearities of the Lorenz system over larger intervals in state
+  space.  By making $\tilde \sigma_\eta$ larger, the errors are
+  accommodated as state noise.  We chose the state noise of the
+  generating process to be an order of magnitude larger than the
+  absolute integration tolerance of $10^{-7}$.  We then chose the
+  quantization level and sample times to be as large as possible, but
+  still small enough that we could have $\tilde \sigma_\eta =
+  \sigma_\eta$ without losing performance.  That led to the values
+  $\tilde \sigma_\eta = \sigma_\eta = 10^{-6}$, $\Delta = 10^{-4}$,
+  and $0 < t_s \leq 0.5$.} specified in the caption of
+Fig.~\ref{fig:ToyH} with a large measurement quantization size so that
+the log likelihood is limited primarily by dynamical stretching and
+the Gaussian assumption for $ P \left(\ti{y}{t}|\ts{y}{1}{t-1}, \theta
+\right)$.  We are pleased to observe that the overall slope of the
+plot on the left in Fig.~\ref{fig:ToyH} is consistent with the
+estimate $\hat \lambda_1 = 0.906$ (base $e$) that we obtain using the
+Benettin procedure described in Section~\ref{sec:Benettin}.
+%%% code/python/lorenzLyap.py
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \def\tsa{$t_s$}%
+    \def\x#1{\mbox{\kern-0.5em\lower1.0ex\hbox{$#1$}}}%
+    \def\devy{\mbox{\lower7.0ex\hbox{$\log_{10} \left( \tilde \sigma_\epsilon \right)$}}}%
+    \def\y#1{\mbox{\kern-1.0em\lower2.0ex\hbox{$#1$}}}%
+    \def\tsb{\mbox{\lower6.0ex\hbox{$t_s$}}}%
+    \def\ailly{$-\hat h$}%
+    \input{figs/ToyH.eps_t}}
+  \caption[\comment{fig:ToyH }Average log likelihood of one step forecasts.]%
+  {Average log likelihood of one step forecasts as a function of time
+    step $t_s$ and filter parameter $\tilde \sigma_\epsilon$.  To
+    simulate measurements for this figure, we used the parameters:\\
+    \begin{tabular}[c]{ll}
+     $\sigma_\eta = 10^{-6}$ & Standard deviation of state noise \\
+     $\sigma_\epsilon = 10^{-10}$ & Standard deviation of measurement noise \\
+     $\Delta = 10^{-4}$ & Measurement quantization \\
+     $T=5,000$ & Number of samples
+   \end{tabular}\\
+   For both plots, the vertical axis is the average log likelihood of
+   the one-step forecast $-\hat h \equiv \frac{1}{T} \sum_{t=1}^T
+   \log \left( P \left(\ti{y}{t}|\ts{y}{1}{t-1}, \theta
+     \right)\right)$.  On the left we plot $-\hat h$ as a function of
+   both $t_s$, the time step, and $\tilde \sigma_\epsilon$, the
+   standard deviation of the measurement noise model used by the
+   Kalman filter.  On the right ``$\circ$''%% Top row of dots
+   indicates the
+   performance of filters that use measurement noise models that depend on the
+   sampling time through the formula $\tilde \sigma_\epsilon(t_s) =
+   10^{0.4 t_s -4.85}$, which closely follows the ridge top in the plot
+   on the left, ``$\diamond$''%% Bottom row of dots
+   indicates the performance of
+   filters that use $\tilde \sigma_\epsilon = 10^{-4}$, \ie the
+   measurement quantization level, and the solid line traces
+   Eqn.~\eqref{eq:ToyH} in the text.}
+   \label{fig:ToyH}
+\end{figure}
+%\afterpage{\clearpage}%% Print this right here please.
+
+In the plot on the right in Fig.~\ref{fig:ToyH} we see that for a
+class of filters in which the standard deviation of the model
+measurement noise $\tilde \sigma_\epsilon$ is set to the quantization
+size $\Delta$, the log likelihood closely follows the approximation
+\begin{equation}
+  \label{eq:ToyH}
+  \hat h(t_s) = \log\left(\text{erf}\left(\frac{1}{2\sqrt{2}}\right)\right)
+  + \lambda_1 t_s,
+\end{equation}
+where \emph{erf} is the error function\footnote{The error function is
+  defined by $\operatorname{erf}(x) = \frac{2}{\sqrt{\pi}}\int_0^x
+  e^{-t^2} dt$.}.  We explain the nonzero intercept in
+Eqn.~\eqref{eq:ToyH} by observing that in the limit of small sampling
+interval ($t_s \rightarrow 0$) and zero noise ($\sigma_\eta
+\rightarrow 0$ and $\sigma_\epsilon \rightarrow 0$), only one discrete
+observation $\ti{y}{t}=\bar y$ is possible given a history
+$\ts{y}{1}{t-1}$.  For data drawn from that limiting case, a Kalman
+filter with parameters $\tilde \sigma_\epsilon = \Delta$ and
+$\sigma_\eta \rightarrow 0$ would make a forecast with a density
+$P(\ti{y}{t}|\ts{y}{1}{t-1}) = \NormalE{\bar
+  y}{(\Delta)^2}{\ti{y}{t}}$.  Integrating that density over the
+quantization interval yields
+ \begin{align*}
+   P_{\ti{y}{t}|\theta}(\bar y) &= \int_{\bar y -
+     \frac{\Delta}{2}}^{\bar y + \frac{\Delta}{2}} \frac{1}{\sqrt{2\pi
+       (\Delta)^2}}e^{-\frac{(y-\bar
+       y)^2}{2(\Delta)^2}} dy\\
+   &= \int_{-\frac{1}{2}}^{\frac{1}{2}} \frac{1}{\sqrt{2\pi
+     }}e^{-\frac{1}{2}s^2} ds\\
+   &= \text{erf} \left( \frac{1}{2\sqrt{2}}\right) \\
+   &\approx 0.3829 \\
+   \log \left( P_{\ti{y}{t}|\theta}(\bar y) \right) &\approx -0.9599.
+\end{align*}
+Given the simplicity of the analysis, Eqn.~\eqref{eq:ToyH} fits the
+simulations in Fig.~\ref{fig:ToyH} remarkably well.
+
+
+\section{Fidelity Criteria and Entropy}
+\label{sec:fidelity}
+
+Stochastic models are fit to an enormous variety of measured phenomena
+and the most appropriate measure of the fidelity of a model to
+measurements depends on the application.  Such phenomena include long
+and short term weather, financial markets, computer data, electric
+power demand, and signals and noise in communication or
+instrumentation.  In many cases one makes decisions based on a model
+and those decisions change the \emph{cost} of future events.  The
+expected cost of basing decisions on a model $P_{*|\theta}$ depends in
+a complicated fashion on many factors including how the cost of acting
+on a decision depends on lead time and which aspects of the modeled
+phenomenon are important.  For the Lorenz example at the beginning of
+this chapter we implicitly assumed \emph{stationarity} and
+\emph{ergodicity} and characterized model quality in terms of the
+average of the log of the likelihood.  For a stationary ergodic
+system, the log-likelihood is tied to $D(\mu||\theta)$, the
+\emph{relative entropy} of the model $P_{*|\theta}$ given $P_{*|\mu}$
+(see Eqn.~\eqref{eq:RelativeEntropy}).  Although relative entropy is
+not an appropriate performance measure for every application, it is a
+common tool for problems in information theory and statistics.  See
+Cover and Thomas\cite{Cover91} for many of these including the
+application of relative entropy to the theory of gambling.  Relative
+entropy is exactly the right performance measure for data compression.
+The arithmetic coding algorithm (see the review by Witten, Neal, and
+Cleary\cite{Witten87}) for compressing a sequence of symbols uses a
+model $P_{*|\theta}$ to make decisions that affect the cost in a
+manner that depends on the symbol values that actually occur.  The
+relative entropy $D(\mu||\theta)$ is the expected value of the number
+of bits wasted by the algorithm if it uses a model $P_{*|\theta}$ for
+decisions when in fact $P_{*|\mu}$ is true.  More accurate models lead
+to better compression.
+
+\subsection{Definitions}
+\label{sec:hDef}
+
+Now, to solidify the discussion, we make some formal definitions.
+
+\subsubsection{Stochastic process}
+\index{stochastic process}
+We are interested in sequences of states $\ts{X}{1}{T}$ and
+measurements  $\ts{Y}{1}{T}$ each of which can be thought of as a
+\emph{random function} on the domain $\left\{ 1,2,\ldots,T \right\}$,
+\ie, a \emph{stochastic process}.
+
+\subsubsection{Entropy of a discrete random variable}
+\index{entropy}
+If a discrete random variable $U$ takes on the values
+$u_1,u_2,\ldots,u_n$ with probabilities $P(u_1),P(u_2),\ldots,P(u_n)$,
+then the \emph{entropy} of $U$ is
+\nomenclature[rHU]{$H(U)$}{The entropy of a discrete random variable $U$.}
+\begin{equation}
+  \label{eq:HDef}
+  H(U) \equiv - \EV \log \left( P(U) \right) = -\sum_{k=1}^n P(u_k)
+  \log \left( P(u_k) \right).
+\end{equation}
+Entropy quantifies the the uncertainty in $U$ before its value is
+known and the information or degree of surprise in discovering its
+value.  If the base of the logarithm in Eqn.~\eqref{eq:HDef} is 2,
+then the units of $H(U)$ are called \emph{bits}.  We will use natural
+logarithms with Euler constant $e$ as the base.  For natural
+logarithms the units of $H(U)$ are called \emph{nats}.
+
+\subsubsection{Differential entropy of a continuous random variable}
+\index{entropy!differential of a continuous random variable}
+If $U$ is a continuous random variable with a probability density
+function $P$ then the \emph{differential entropy} of $U$ is
+\newcommand{\hdiff}{\tilde H}
+\begin{equation}
+  \label{eq:hdiffDef}
+  \hdiff(U) \equiv  - \EV \log \left( P(U) \right) = - \int P(u) \log
+  \left( P(u) \right) du.
+\end{equation}
+\nomenclature[rhv]{$\hdiff(U)$}{Differential entropy of the continuous random
+  variable $U$.}  Notice that the differential entropy depends on the
+coordinates of $U$.
+
+\subsubsection{Conditional entropy}
+\index{entropy!conditional}
+The \emph{conditional entropy} of $U$ given $V$ is
+\nomenclature[rHUV]{$H(U"|V)$}{The \emph{conditional entropy} of $U$ given
+  $V$.}
+\begin{equation*}
+  H(U|V) \equiv - \EV \log \left( P(U|V) \right) = -\sum_{i,j} P(u_i,v_j)
+  \log \left( P(u_i|v_j) \right).
+\end{equation*}
+Factoring the probability of sequences
+\begin{equation*}
+  P_{\ts{z}{1}{T} } = P _{\ti{z}{1} }
+  \prod_{t=2}^T P _{\ti{z}{t}|\ts{z}{1}{t-1} }
+\end{equation*}
+is equivalent analyzing entropy into the sum
+\begin{equation*}
+  H(\ts{Z}{1}{T}) = H(\ti{Z}{1}) + \sum_{t=2}^T H
+  \left(\ti{Z}{t}|\ts{Z}{1}{t-1} \right).
+\end{equation*}
+
+\subsubsection{Relative entropy of two probability functions}
+\index{entropy!relative} The \emph{relative entropy} between two
+probability functions $P_{*|\mu}$ and $P_{*|\theta}$ with the same
+domain ${\cal Z}$ is %
+\nomenclature[rDmu]{$D(\mu"|"|\theta)$}{The \emph{relative entropy}
+  between two probability functions $P_{*"|\mu}$ and $P_{*"|\theta}$.}
+\begin{align}
+  \label{eq:RelativeEntropy}
+  D(\mu||\theta) &\equiv \EV_{\mu} \log \left(
+    \frac{P(Z|\mu)}{P(Z|\theta)} \right) \\
+  &= \sum_{z \in \cal{Z}} P(z|\mu) \log\left(
+  \frac{P(z|\mu)}{P(z|\theta)} \right) \nonumber.
+\end{align}
+The relative entropy is coordinate independent.  The relative entropy
+between two probability functions $P_{*|\mu}$ and $P_{*|\theta}$ is never
+negative and is zero if and only if the functions are the same on all
+sets with finite probability.  We use $D(\mu||\theta)$ to
+characterize the fidelity of a model $P_{*|\theta}$ to a \emph{true}
+distribution $P_{*|\mu}$
+
+\subsubsection{Cross entropy of two probability functions}
+\index{entropy!cross}
+While some authors use the terms \emph{relative entropy} and
+\emph{cross entropy} interchangeably to mean the quantity
+$D(\mu||\theta)$ that we defined in Eqn.\eqref{eq:RelativeEntropy}, we
+define the cross entropy to be
+\begin{align}
+  \label{eq:CrossEntropy}
+  H(\mu||\theta) &\equiv -\EV_{\mu} \log \left(P(Z|\theta) \right) \\
+  &= -\sum_{z \in \cal{Z}} P(z|\mu) \log(P(z|\theta)) \nonumber
+\end{align}
+and note that
+\begin{equation*}
+  D(\mu||\theta) = H(\mu||\theta) - H(\mu).
+\end{equation*}
+The cross entropy is the negative expected log-likelihood of a model.
+It is greater than the entropy unless the model $P_{*|\theta}$ is the same
+as $P_{*|\mu}$ for all sets with finite probability.
+
+\subsubsection{Stationary}
+\index{stationary}
+A stochastic process is \emph{stationary} if probabilities are
+unchanged by constant shifts in time, \ie, for any two integers
+$T\geq 1$ and $\tau\geq 0$
+\begin{equation*}
+  P_{\ts{Z}{1}{T}} =  P_{\ts{Z}{1+\tau}{T+\tau}}.
+\end{equation*}
+
+\subsubsection{Ergodic}
+Roughly, in an \emph{ergodic} \index{ergodic|textbf} process you can
+get anywhere from anywhere else.  Let ${\cal X}$ be the set of states
+for a stationary stochastic process with probabilities $P_{*|\mu}$.
+The process is ergodic if for any two subsets of ${\cal X}$, $A$ and
+$B$ with $P(A|\mu) > 0$ and $P(B|\mu) > 0$ there is a time $T$ such
+that the probability of going from set $A$ to set $B$ in time $T$ is
+greater than zero.  Birkhoff's ergodic theorem says that for an
+ergodic process, time averages converge to expected values with
+probability one.
+
+\subsubsection{Entropy rate}
+For a discrete stochastic process $X$, the \index*{entropy!rate} is
+\nomenclature[rhx]{$h(X)$}{The \emph{entropy rate} of a stochastic process $X$.}
+\begin{equation}
+  \label{eq:hrate1}
+  h(X) \equiv \lim_{T \rightarrow \infty} \frac{1}{T} H(\ts{X}{1}{T}).
+\end{equation}
+If the process is stationary
+\begin{equation}
+  \label{eq:hrate2}
+  h(X) = \lim_{T \rightarrow \infty} H(\ti{X}{T}|\ts{X}{1}{T-1}).
+\end{equation}
+If the process is stationary and Markov
+\begin{equation}
+  \label{eq:hrate3}
+  h(X) =  H(\ti{X}{T+1}|\ti{X}{T})~\forall T.
+\end{equation}
+And if the process is ergodic
+\begin{equation}
+  \label{eq:hrate4}
+  h(X) = \lim_{T \rightarrow \infty} - \frac{1}{T} \log \left( P \left(\ts{x}{1}{T}|\mu \right) \right)
+\end{equation}
+with probability one.
+
+We similarly define the relative entropy rate and the cross entropy
+rate.  For an ergodic process $X$ with true probabilities $P_{*|\mu}$ and
+model probabilities $P_{*|\theta}$
+\begin{align}
+  \label{eq:hrate5}
+  h(\mu||\theta) &\equiv  \lim_{T \rightarrow \infty} - \frac{1}{T}
+  \EV_\mu \log \left( P \left(\ts{X}{1}{T}|\theta \right) \right) \\
+  &=  \lim_{T \rightarrow \infty} - \frac{1}{T} \log \left( P
+  \left(\ts{x}{1}{T}| \theta \right) \right) \nonumber
+\end{align}
+with probability one.
+
+\subsubsection{Entropy rate of a partition $\mathcal{B}$}
+\index{partition} Let ${\cal X}$, the set of states for a
+stationary stochastic process with probabilities $P_{*|\mu}$, be a
+continuum, and let $\mathcal{B} = \left\{ \beta_1,\beta_2,\ldots
+  \beta_n \right\}$ be a partition of ${\cal X}$ into a finite number
+of non-overlapping subsets.  By setting $\ti{b}{t}$ to the index of
+the element of $\mathcal{B}$ into which $\ti{x}{t}$ falls, we can map
+any sequence $\ts{x}{1}{T}$ into a sequence $\ts{b}{1}{T}$ thus
+defining a discrete stationary stochastic process $B$.  Applying the
+definition of entropy rate to the process $B$ yields the definition of
+the entropy rate as a function of partition $\mathcal{B}$.  Suppose in
+particular that on some set ${\cal X}$ the map $F:{\cal X}\mapsto{\cal
+  X}$ and the probability $P_{*|\mu}$ define an ergodic process, that
+$\mathcal{B}$ is a partition of ${\cal X}$, and that the model
+probability function $P_{*|\theta}$ assigns probabilities to sequences
+of partition indices $\ts{b}{1}{T}$.  We define the entropy rate $
+h(\mathcal{B},F,\mu)$ and the \index*{cross entropy rate} %
+$h(\mathcal{B},F,\mu||\theta)$ as follows
+\begin{align}
+  \label{eq:hrate6}
+  h(\mathcal{B},F,\mu) &\equiv \lim_{T \rightarrow \infty} \frac{1}{T}
+  H(\ts{B}{1}{T}) \\
+  &= \lim_{T \rightarrow \infty} \frac{1}{T} \EV_\mu \log\left(P
+  \left(\ts{B}{1}{T}| \mu \right) \right) \nonumber\\
+  \label{eq:hrate7}
+  h(\mathcal{B},F,\mu||\theta) &\equiv \lim_{T \rightarrow \infty}
+  \frac{1}{T} \EV_\mu \log\left(P \left(\ts{B}{1}{T} | \theta \right)
+  \right). \nonumber  
+\end{align}
+\subsubsection{Kolmogorov Sinai entropy $h_{KS}$}
+\index{Kolmogorov Sinai entropy|textbf}%
+\index{entropy!Kolmogorov Sinai|see{Kolmogorov Sinai entropy}}%
+\nomenclature[rhw]{$h_{KS}$}{Kolmogorov Sinai entropy.}%
+As before, suppose that on some set ${\cal X}$, the map $F:{\cal
+  X}\mapsto{\cal X}$ and the probability $P_{*|\mu}$ define an ergodic
+process.  The least upper bound over all partitions $\mathcal{B}$ on
+the entropy rate $h(\mathcal{B},F,\mu)$ is the called the
+\emph{Kolmogorov Sinai entropy}
+\begin{equation}
+  \label{eq:hKS}
+  h_{KS}(F,\mu) \equiv \sup_{\mathcal{B}} h(\mathcal{B},F,\mu).
+\end{equation}
+
+\section{Stretching and Entropy}
+\label{sec:pesin}
+
+Here we will outline theory that connects ideas from dynamics to ideas
+from probability.  The main results say that average dynamical
+stretching (Lyapunov exponents) is proportional to average uncertainty
+(entropy) in measurement sequences.  First we will give some examples,
+then we will quote definitions and theorems without proof.
+
+\subsection{Maps of the unit circle}
+\label{sec:PesinExamples}
+\index{unit circle!map of}
+\index{map of unit circle}
+
+\subsubsection{Two $x$ mod one}
+\label{sec:TwoX}
+
+The map of the unit interval $[0,1)$ into itself defined by
+\begin{align}
+  \ti{x}{n+1} &= F_2(\ti{x}{n})\\
+  \label{eq:twox}
+  &\equiv 2x \mod 1
+\end{align}
+is continuous if we identify the points $0$ and $1$.  Notice that if
+we use the partition
+\begin{equation}
+  \label{eq:partition2}
+  \mathcal{B}_2 = \left\{ \beta_0 = [0,\frac{1}{2}),\beta_1 =
+  [\frac{1}{2}, 1 )\right\},  
+\end{equation}
+a symbol sequence $\ts{b}{0}{\infty}$ provides the coefficients of a
+base two power series that identifies the starting point, \ie
+\begin{equation*}
+  \ti{x}{0} = \sum_{t=0}^\infty  \ti{b}{t} \left(\frac{1}{2}\right)^{t+1}.
+\end{equation*}
+Further, if we assign a uniform probability measure $\mu$ to the interval
+\begin{equation*}
+  h_{KS}(F_2,\mu) =h(\mathcal{B}_2,F,\mu) = \log(2).
+\end{equation*}
+
+\subsubsection{Three $x$ mod one}
+\label{sec:ThreeX}
+
+Analogously, by defining the map
+\begin{align}
+  \ti{x}{n+1} &= F_3(\ti{x}{n})\\
+  \label{eq:threex}
+  &\equiv 3x \mod 1,
+\end{align}
+and using the partition
+\begin{equation}
+  \label{eq:partition3}
+  \mathcal{B}_3 = \left\{ \beta_0 = [0,\frac{1}{3}),\beta_1 =
+    [\frac{1}{3}, \frac{2}{3} ), \beta_2 = [\frac{2}{3}, 1 )\right\},
+\end{equation}
+and uniform probability measure $\mu$, we find
+\begin{equation*}
+  h_{KS}(F_3,\mu) =h(\mathcal{B}_3,F_3,\mu) = \log(3).
+\end{equation*}
+
+This is the result that motivated Kolmogorov and Sinai to define the
+entropy $h_{KS}$.  They were addressing the isomorphism problem, \eg, ``Is
+there a relabeling of points in the unit interval that makes $F_2$ the
+same as $F_3$?''.  Since the characteristic $h_{KS}$ is independent of
+the coordinates or labeling used, the fact that $h_{KS}(F_3,\mu) \neq
+h_{KS}(F_2,\mu)$ provided a negative answer to the question.
+
+Notice that the Kolmogorov entropy is equal to the average of the log
+of slope of the map.  Specifically, the slope of $F_2$ is 2 and
+$h_{KS}(F_2,\mu) = \log(2)$ while the slope of $F_3$ is 3 and
+$h_{KS}(F_3,\mu) = \log(3)$.  The rule that entropy is proportional to
+the log of the average slope is not true in general.  The next example
+provides a counter example and suggests a correction factor.
+
+\subsubsection{Dynamics on a \index*{Cantor set}}
+\label{sec:Cantor}
+
+While every point in the entire unit interval can be represented as a
+base three power series, \ie
+\begin{equation*}
+  \forall x \in [0,1),~ \exists d_0^\infty :~x  = \sum_t^\infty
+  \ti{d}{t} \left(\frac{1}{3}\right)^{t+1} \text{ with } \ti{d}{t} \in
+  \left\{ 0,1,2 \right\} ~ \forall t,
+\end{equation*}
+the middle third Cantor set consists of the points in the unit
+interval that can be represented as base three power series that
+exclude the digit ``1''.  The symbol sequences produced by applying
+the map $F_3$ and partition $\mathcal{B}_3$ to the middle third Cantor
+set are the sequences of coefficients in the base three expansions of
+the starting points, \ie, they consist exclusively of $0's$ and $2's$.
+Given any finite sequence $d_0^n$, we define the set of infinite
+coefficient sequences $\left\{d_0^n,\ldots \right\}$ as those that
+begin with the sequence $d_0^n$.  Now we define a probability measure
+$\mu_c$ in terms of such sets of infinite sequences,
+\begin{equation}
+  \label{eq:muC}
+  \mu_c\left( \left\{ d_0^n,\ldots \right\} \right) \equiv 
+  \begin{cases}
+    2^{-(n+1)} & \text{if ``1'' does not appear in } d_0^n\\
+    0 & \text{if ``1'' does appear in } d_0^n
+  \end{cases}
+\end{equation}
+With this measure we find
+\begin{equation*}
+  h_{KS}(F_3,\mu_c) = \log(2).
+\end{equation*}
+
+The following isomorphism or relabeling of the unit interval connects
+$(F_2,\mu)$ to $(F_3,\mu_c)$:
+\begin{enumerate}
+\item Find the binary expansion $\ts{b}{0}{\infty}$ of the original
+  point $x$
+\item Create a new sequence $\ts{d}{0}{\infty}$ by replacing every
+  occurrence of ``1'' in  $\ts{b}{0}{\infty}$ with ``2''
+\item Map $x$ to $y$ where $y$ is described by the base three
+  expansion $\ts{d}{0}{\infty}$
+\end{enumerate}
+
+The \index*{Hausdorff dimension}\footnote{We sometimes refer to sets and
+  characteristics of sets with non-integer dimensions as
+  \emph{fractal}.} of the middle third Cantor set is $\delta =
+\frac{\log(2)}{\log(3)}$, and that is the factor that is missing in
+the formula connecting entropy and stretching.
+\begin{align}
+  h_{KS}(F_3,\mu_c) &= \log(2) \nonumber \\
+  &= \frac{\log(2)}{\log(3)} \log(3) \nonumber \\
+  \label{eq:CantorCorrect}
+  &= \delta \log(\text{stretching factor})
+\end{align}
+Now we turn to the definitions and theorems that express the above
+idea precisely.
+
+\section{Lyapunov Exponents and Pesin's Formula}
+\label{sec:PesinFormula}
+
+Vixie\cite{vixie02} has reviewed the work of
+Ruelle\cite{ruelle-1978-1}, Pesin\cite{pesin77},
+Young\cite{young95-1}, and others who established the relationship
+between smooth dynamics and entropy.  Here we reiterate a few of those
+results using the following notation:
+\begin{description}
+\item[$X$] An $n$-dimensional manifold
+\item[$F:X\mapsto X$] An invertible $C^2$ (continuous with continuous
+  first and second derivatives) map of the manifold into itself
+\item[$\mu$] A probability measure on $X$ that is invariant under $F$
+\item[$x$] A point on the manifold
+\item[$TX(x)$] The tangent space of $X$ at $x$
+\item[$v$] An element of $TX(x)$
+\end{description}
+
+We define the asymptotic growth rate of the direction $v$ at $x$ as
+\begin{equation}
+  \label{eq:growthVX}
+  \lambda(F,x,v) \equiv \lim_{t\rightarrow \infty} \frac{1}{t} \log
+  \left( \left\| [DF^t(x)] v \right\| \right).
+\end{equation}
+\index*{Oseledec's theorem} (~\cite{young95-1,katok95, mane87}) says
+that at almost every $x$ the limit exists for every $v$, and that
+although the value of the limit depends on $v$, that as $v$ varies, it
+only takes on $r \leq n$ discrete values called the \emph{spectrum of
+  \index*{Lyapunov exponents}}
+\begin{equation}
+  \label{eq:LyapunovSpectrum}
+  \lambda_1(F,x) > \lambda_2(F,x) > ... > \lambda_r(F,x).
+\end{equation}
+The tangent space $TX(x)$ is the direct sum of subspaces $E_i \subset
+TX(x)$ associated with each exponent, with
+\begin{equation*}
+  \lambda(F,x,v) = \lambda_i(F,x) ~ \forall v \in E_i
+\end{equation*}
+and
+\begin{equation*}
+  TX(x) = \bigoplus_{i=1}^r E_i. %\bigoplus?
+\end{equation*}
+The dimension of $E_i$ is called the \emph{multiplicity} $m_i$ of the
+exponent $\lambda_i$. If $\mu$ is ergodic with respect to $F$, then
+the spectrum $\left\{ \lambda_i \right\}$ is the same almost
+everywhere.
+
+We want to use \index*{Pesin's formula}\cite{pesin77} which implies
+that if $\mu$ is smooth and ergodic, then the entropy is equal to the
+sum of the positive Lyapunov exponents, \ie
+\begin{equation}
+  \label{eq:pesin}
+  h_{KS}(F,\mu) = \sum_{i:\lambda_i >0} m_i \lambda_i.
+\end{equation}
+In light of the correction for fractal dimension that we saw in
+Eqn.~\eqref{eq:CantorCorrect} and the ubiquity of fractal measures in
+chaotic systems, we should review Ledrappier and Young's explanation
+(See \cite{young95-1} for an overview) of the effect of fractal
+measures on Pesin's formula.
+
+Ledrappier and Young's formula is given in terms of the dimensions of
+the conditional measures on the nested family of \emph{unstable
+  foliations} of $F$.  For a point $x\in X$ and $i$ such that
+$\lambda_i>0$ we define
+\begin{equation}
+  \label{eq:Foliation}
+  W^i(x) \equiv \left\{ y \in X \text{ such that } \lim_{n \rightarrow
+  \infty} \sup \frac{1}{t} \log \left( d\left( F^{-t}(x), F^{-t}(y)
+  \right) \right) <
+  -\lambda_i \right\}.
+\end{equation}
+For an intuitive picture, consider a trajectory $x(t)$ that passes
+through $x$ at time $t=0$; any trajectory $y(t)$ that has separated
+from $x(t)$ at a rate of at least $\lambda_i$, passes through the
+manifold $W^i(x)$ at time $t=0$.
+
+Let $\delta_i$ be the Hausdorff dimension of the conditional measure
+that $\mu$ defines on $W^i(x)$.  For an ergodic $\mu$, $\delta_i$ will
+be constant almost everywhere.  Further, let $\gamma_i$ be the
+incremental dimension
+\begin{equation*}
+  \gamma_i \equiv
+  \begin{cases}
+    \delta_1 & i=1\\
+    \delta_i - \delta_{i-1} & i > 1
+  \end{cases}
+\end{equation*}
+Now \index*{Ledrappier and Young's formula} is
+\begin{equation}
+  \label{eq:Ledrappier}
+  h_{KS}(F,\mu) = \sum_{i : \lambda_i > 0} \lambda_i \gamma_i.
+\end{equation}
+
+Note that Pesin's formula holds if the measure $\mu$ is smooth in the
+unstable directions.  Such measures are called SRB (Sinai Ruelle
+Bowen) measures.  \index{SRB measure} Tucker has found that the Lorenz
+system has an SRB measure and says that numerical simulations of
+Lorenz's system are ``real''~\cite{tucker99}.
+
+\subsection{A theoretical bound on model likelihood}
+\label{sec:TheoreticalBound}
+
+Now we have the terms that we need to discuss theoretical bounds on
+the expected log likelihood of models of discrete observations of a
+chaotic dynamical system.  Given $X$, $F$, and $\mu$ as described
+above, if the multiplicity of each exponent is $m_i = 1$ then we know:
+\begin{align}
+  \label{eq:Bound1}
+  h({\cal{B}},F,\mu) &\equiv - \lim_{t \rightarrow
+    \infty} \EV_\mu \log \left( P \left( \ti{b}{t}|\ts{b}{1}{t-1}, \mu
+    \right) \right) \\
+  \label{eq:Bound2}
+  h({\cal{B}},F,\mu||\theta) &\equiv - \lim_{t \rightarrow \infty}
+  \EV_\mu \log \left( P \left( \ti{b}{t}|\ts{b}{1}{t-1}, \theta
+    \right) \right) \\
+  \label{eq:Bound3}
+  h({\cal{B}},F,\mu) &\leq h({\cal{B}},F,\mu||\theta)  &&
+  \text{Equality } \iff \theta = \mu \text{ a.e.}\\
+  \label{eq:Bound4}
+  h({\cal{B}},F,\mu) &\leq h_{KS}(F,\mu)  &&
+  \text{Equality } \iff {\cal{B}} \text{ generating} \\
+  \label{eq:Bound5}
+  h_{KS}(F,\mu) &= \sum_{i : \lambda_i > 0} \lambda_i \gamma_i\\
+  \label{eq:Bound6}
+  h_{KS}(F,\mu) &\leq \sum_{i : \lambda_i > 0} \lambda_i && \mu \text{
+  smooth on } W^i \Rightarrow \text{Equality}
+\end{align}
+with the following justifications
+\begin{description}
+\item[\eqref{eq:Bound1} {\mdseries and} \eqref{eq:Bound2}:] Definition
+\item[\eqref{eq:Bound3}:] Gibbs inequality, \eqref{eq:GibbsIE}
+\item[\eqref{eq:Bound4}:] The definition of $h_{KS}(F,\mu)$ is that it is the
+  \emph{supremum} over all partitions ${\cal{B}}$
+\item[\eqref{eq:Bound5}:] This is Ledrappier and Young's formula
+  \eqref{eq:Ledrappier}
+\item[\eqref{eq:Bound6}:] Because in \eqref{eq:Bound5} $0 \leq \gamma_i \leq
+  1~ \forall i$
+\end{description}
+Thus we have the following two theorems:
+\begin{theorem}[Lyapunov exponent bound on likelihood]
+  If $\mu$ is ergodic and smooth in the unstable directions and
+  $\cal{B}$ is a generating partition, then for any model $\theta$ of
+  the stochastic process $B$ consisting of $F,\mu$, and $\cal{B}$
+  \begin{equation}
+    \label{eq:BoundTheorem}
+    h({\cal{B}},F,\mu||\theta) \geq \sum_{i : \lambda_i > 0} \lambda_i
+  \end{equation}
+\end{theorem}
+\begin{theorem}[Entropy gap] \label{GapTheorem}
+  \index{entropy!gap|textbf}
+  If $\mu$ is ergodic (not necessarily smooth in the unstable
+  directions).  Then for an optimal model $\theta$ of the stochastic
+  process $B$ consisting of $F,\mu$, and $\cal{B}$ ($\cal{B}$ not
+  necessarily generating)
+  \begin{equation}
+    \label{eq:GapTheorem1}
+    h({\cal{B}},F,\mu||\theta) = h({\cal{B}},F,\mu) \leq  \chi \equiv \sum_{i :
+    \lambda_i > 0} \lambda_i
+  \end{equation}
+  and if for some other model $\nu$
+  \begin{equation}
+    \label{eq:GapTheorem2}
+    h({\cal{B}},F,\mu||\nu) \geq \chi
+    % \equiv \sum_{i : \lambda_i > 0} \lambda_i m_i
+  \end{equation}
+  then the model $\nu$ is not optimal.
+\end{theorem}
+
+In the next section, we will describe a numerical procedure for
+estimating Lyapunov exponents, and in the following section we will
+argue that one can reasonably use Eqn.~\eqref{eq:GapTheorem2} with
+numerical simulations to quantitatively characterize the
+non-optimality of a model.
+
+\section{Benettin's Procedure for Calculating Lyapunov Exponents Numerically}
+\label{sec:Benettin}
+
+We begin reviewing \index*{Benettin's procedure}\cite{Benettin80} for
+estimating Lyapunov exponents by using the Lorenz system as an
+example.  The Lorenz system is
+\begin{align*}
+  \dot x = F(x) = 
+  \begin{bmatrix}
+    s(x_2-x_1)\\ x_1(r - x_3) -x_2 \\ x_1 x_2 - bx_3.
+  \end{bmatrix}
+\end{align*}
+Note that
+\begin{equation*}
+  D F(x) = 
+  \begin{bmatrix}
+    -s & s & 0 \\ r-x_3 & -1 & -x_1 \\ x_2 & x_1 & -b
+  \end{bmatrix}
+\end{equation*}
+where $\left(D F(x)\right)_{i,j} \equiv \frac{\partial F_i(x)}{\partial
+  x_j}$.  Let $\Phi$ denote solutions to the differential equation
+with
+\newcommand{\DM}{{\cal{D}}} % Derivative Matrix, or tangent
+\newcommand{\ct}{\tau}      % Continuous time
+\begin{equation*}
+  \ti{x}{\ct} \equiv \Phi(\ti{x}{0},\ct).
+\end{equation*}
+Lyapunov exponents are defined (recall Eqn.~\eqref{eq:growthVX}) in
+terms of the long time behavior of the derivative matrix
+\begin{equation*}
+  \ti{\DM}{\ti{x}{0},\ct} \equiv D_{\ti{x}{0}} \Phi(\ti{x}{0},\ct).
+\end{equation*}
+Interchanging the order of differentiation with respect to $\ti{x}{0}$
+and $\ct$ and applying the chain rule yields a \emph{linear}
+differential equation for $\DM$:
+\begin{align*}
+  \dot \DM(\ti{x}{0},\ct) &=  \frac{d}{d\ct} D_{\ti{x}{0}}
+  \Phi(\ti{x}{0},\ct)\\
+  &= \left. D F(x) \right|_{x=\Phi(\ti{x}{0},\ct)}
+  \DM(\ti{x}{0},\ct).
+\end{align*}
+Thus, given initial conditions $\ti{x}{0}$ and $\ti{\DM}{0} = \id $
+%\begin{bmatrix}  1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1\end{bmatrix}$
+one can  use an off-the-shelf routine to find $\begin{bmatrix}
+  \ti{x}{\ct}\\ \ti{\DM}{\ct}\end{bmatrix}$ by integrating 
+\begin{equation}
+  \label{eq:TangentODE}
+  \dot {\begin{bmatrix} \ti{x}{\ct}\\\ti{\DM}{\ct}\end{bmatrix}} = 
+  \begin{bmatrix}
+    F(x) \\  [D F(x)] \DM
+  \end{bmatrix}.
+\end{equation}
+
+Given a computer with infinite precision, for a range of time
+intervals $\tau$, one could:
+\begin{enumerate}
+\item Integrate Eqn.~\eqref{eq:TangentODE} to obtain $\ti{\DM}{\ct}$
+\item \label{item:SVD} Do singular value decompositions (SVD's)
+  \begin{equation}
+    \label{eq:TangentSVD}
+    \ti{U}{\ct} \ti{S}{\ct} \ti{V\transpose}{\ct} = \ti{\DM}{\ct},
+  \end{equation}
+  where $\ti{U}{\ct}$ and $\ti{V}{\ct}$ are orthogonal and $\ti{S}{\ct}$ is
+  diagonal
+\item Look for approximate convergence of the finite time Lyapunov
+  exponent estimates:
+  \begin{equation}
+    \label{eq:lambdaSVD}
+    \ti{\tilde \lambda_i}{\ct} \equiv \frac{1}{\ct} \log( \ti{S_{i,i}}{\ct} ) .
+  \end{equation}
+\end{enumerate}
+On a real computer, the procedure fails because the ratio of the
+largest and smallest singular values
+$\frac{\ti{S_1}{\ct}}{\ti{S_d}{\ct}}$ grows exponentially with $\ct$
+and becomes larger than the precision of the machine.
+
+Rather than using an SVD decomposition for each $\tau$ in
+step~\ref{item:SVD} above, one could use a QR decomposition:
+\begin{equation}
+  \label{eq:TangentQR}
+  \ti{Q}{\ct} \ti{R}{\ct} = \ti{\DM}{\ct}.
+\end{equation}
+A QR decomposition factors the matrix $\ti{\DM}{\ct}$ into a product
+of two matrices the first of which $\ti{Q}{\ct}$ is orthogonal and the
+second of which $\ti{R}{\ct}$ is upper triangular.  One could use the
+intuitive Gram Schmidt procedure, but there are algorithms that behave
+better numerically (see, \eg \cite{GandL3} or \cite{Press92}).
+Although the diagonal elements of $\ti{R}{\ct}$ are not equal to the
+diagonal elements of $\ti{S}{\ct}$, the finite time estimates
+\begin{equation}
+  \label{eq:lambdaQR}
+  \ti{\hat \lambda_i}{\ct} \equiv \frac{1}{\ct} \log( \left|
+  \ti{R_{i,i}}{\ct} \right| )
+\end{equation}
+and the $\ti{\tilde \lambda_i}{\ct}$ defined in
+Eqn.~\eqref{eq:lambdaSVD} converge to the same values\footnote{In the
+  SVD of Eqn.~\eqref{eq:TangentSVD}, the first column of $\ti{V}{\ct}$
+  specifies the direction of the initial vector in the tangent space
+  with the largest stretching.  The exponential stretching rate is the
+  Lyapunov exponent $\lambda_1$.  However, with probability one, a
+  randomly chosen vector will have the same stretching rate.  The
+  estimate $\ti{\hat \lambda_1}{\ct}$ of Eqn~\eqref{eq:lambdaQR} is
+  based on the stretching rate of the first standard basis vector, \eg,
+  $[1,0,0]$.
+  Similar arguments using the growth rates of areas, volumes,
+  hyper-volumes, etc. support using the estimates $\ti{\hat
+    \lambda_i}{\ct}$ of Eqn~\eqref{eq:lambdaQR} for $i=2,3,\ldots$}.
+
+Using Eqn.~\eqref{eq:lambdaQR} does not address the problem of finite
+machine precision for long time intervals $\tau$, but Benettin et al.
+recommend calculating $\log( \left| \ti{R_{i,i}}{\ct} \right| )$ by
+breaking the interval into $N$ smaller steps of duration $\Delta\tau$
+in a way that does address finite precision.  Letting $\ti{A}{n}$
+denote the one time step derivative
+\begin{equation}
+  \label{eq:Adef}
+  \ti{A}{n} \equiv D \Phi( \ti{x}{(n-1) \Delta\tau}, \Delta\tau )
+\end{equation}
+the chain rule implies
+\begin{equation*}
+  D \Phi( \ti{x}{0}, N \Delta\tau ) = \prod_{n=1}^N \ti{A}{n}.
+\end{equation*}
+If, for each $n$, one calculates\footnote{To calculate $\ti{Q}{n}$ and
+  $\ti{r}{n}$ for each $n$, one can either:
+  \begin{enumerate}
+  \item Integrate Eqn.~\eqref{eq:TangentODE} for a time interval $\Delta\tau$
+    with the initial condition $\begin{bmatrix} \ti{x}{(n-1)\Delta\tau} \\
+      \ti{Q}{n-1} \end{bmatrix}$ to obtain $\begin{bmatrix}
+      \ti{x}{n\Delta\tau} \\ \ti{A}{n} \ti{Q}{n-1}\end{bmatrix}$ and then
+    calculate a QR factorization of $\ti{A}{n} \ti{Q}{n-1}$, the
+    second component of the result.
+  \item As above, but use the identity matrix instead of $\ti{Q}{n-1}$
+    as the second component of the initial condition for the
+    integration which yields the result $\begin{bmatrix}
+    \ti{x}{n\Delta\tau} \\ \ti{A}{n}\end{bmatrix}$, then calculate a QR
+    factorization of the product $\ti{A}{n}\ti{Q}{n-1}$
+  \end{enumerate} }
+                                %
+the pair $\left( \ti{Q}{n}, \ti{r}{n}
+\right)$ defined by
+\begin{align*}
+  \ti{Q}{0} &= \id \\
+  \ti{Q}{n} \ti{r}{n} &\equiv \ti{A}{n} \ti{Q}{n-1},
+\end{align*}
+where $\ti{Q}{n}$ and $\ti{r}{n}$ are obtained by a QR factorization
+of the product $\ti{A}{n} \ti{Q}{n-1}$, then induction yields
+\begin{equation*}
+  \prod_{n=1}^N \ti{A}{n} =\ti{Q}{N} \prod_{n=1}^N \ti{r}{n}.
+\end{equation*}
+Since $\prod_{n=1}^N \ti{r}{n}$ is upper triangular, we have the QR
+factorization
+\begin{align}
+  \label{eq:QR1}
+  D \Phi( \ti{x}{0}, N \Delta\tau ) &= \ti{Q}{N} \ti{R}{N} \\
+  \label{eq:QR2}
+  \ti{R}{N} &= \prod_{n=1}^N \ti{r}{n}.
+\end{align}
+And since $\ti{R_{i,i}}{N} = \prod_{n=1}^N \ti{r_{i,i}}{n}$,
+\begin{equation}
+  \label{eq:rii}
+  \log( \left| \ti{R_{i,i}}{n} \right| ) = \sum_{n=1}^N \log( \left|
+    \ti{r_{i,i}}{n} \right| ).
+\end{equation}
+Substituting this result into Eqn.~\eqref{eq:lambdaQR} constitutes the
+Benettin procedure.  The action of a matrix on a unit square is
+factored into components $Q$ and $R$ and sketched in
+Fig.~\ref{fig:QR}.  Results of applying the procedure to the Lorenz
+system appear in Fig.~\ref{fig:benettin}.
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \def\Mone{$ \begin{bmatrix} \begin{bmatrix} e_1
+        \end{bmatrix} & \begin{bmatrix} e_2 \end{bmatrix} \end{bmatrix} $}%
+    \def\Mtwo{$ R \begin{bmatrix} \begin{bmatrix} e_1
+        \end{bmatrix} & \begin{bmatrix} e_2 \end{bmatrix} \end{bmatrix} $}%
+    \def\Mthree{$ QR \begin{bmatrix} \begin{bmatrix} e_1
+        \end{bmatrix} & \begin{bmatrix} e_2 \end{bmatrix} \end{bmatrix} $}%
+    \def\Mfour{$ \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} $}%
+    \def\Mfive{$ \begin{bmatrix} 5 & 0.15 \\ 0 & 0.2 \end{bmatrix} $}%
+    \def\Msix{$ \begin{bmatrix}3 & 0.25 \\ -4 & 0 \end{bmatrix} $}%
+    \input{figs/QR.eps_t}}
+  \caption[\comment{fig:QR }The action of the $Q$ $R$ factors of a matrix on a unit square.]%
+  {The action of the $Q$ $R$ factors of a matrix on a unit square.
+    Here $A=
+    \begin{bmatrix} 3 & 0.25 \\ -4 & 0 \end{bmatrix}$, $Q=
+    \begin{bmatrix} 0.6 & 0.8 \\ -0.8 & 0.6 \end{bmatrix}$, and $R=
+    \begin{bmatrix} 5 & 0.15 \\ 0 & 0.2 \end{bmatrix}$.  $R$ stretches the
+    $x$ component by a factor of five and shears $y$ components in the
+    $x$ direction and shrinks them by a factor of five with a net
+    effect of preserving areas (The determinants of
+    $A$ and $R$ are both 1.0).  $Q$ simply rotates the stretched figure.}
+  \label{fig:QR}
+\end{figure}
+\begin{figure}[htb]
+  \centering{\plotsize%
+    \def\NFp{95\%}%
+    \def\SamOne{Sample1}%
+    \def\SamTwo{Sample2}%
+    \def\SamThr{Sample3}%
+    \def\Fp{5\%}%
+    \def\ylabel{$\hat\lambda(t)$}%
+    \input{figs/benettinA.eps_t}
+    \def\t{$t$}%
+    \input{figs/benettinAug0.eps_t}}
+  \caption[\comment{fig:benettin }Lyapunov exponent calculation for the Lorenz system.]%
+  {Lyapunov exponent calculation for the Lorenz system.  In the upper
+    part, the three lighter traces are plots of $\frac{1}{T}
+    \sum_{t=1}^T \log\left( \left| \ti{r_{1,1}}{t} \right| \right)$
+    and the heavier traces the 5\% and 95\% limits on 1,000 separate
+    runs.  The lower part is the same except that $\left|
+      \ti{r_{1,1}}{t} \right|$ is augmented by a noise term with
+    amplitude $\frac{\sigma_\eta}{\Delta} = 0.01$ (See
+    Eqn.~\eqref{eq:LE.aug}).}
+  \label{fig:benettin}
+\end{figure}
+
+\section{A Practical Performance Bound}
+\label{sec:PracticalBound}
+
+Consider the following two cases:
+\begin{itemize}
+\item State space dynamics perturbed by noise
+\item Simulated dynamics perturbed by numerical truncation
+\end{itemize}
+The definition of \index*{Kolmogorov Sinai entropy} in the two cases yields
+extremely different answers.  If the perturbations are random noise,
+then the supremum of $h(\mathcal{B},F,\mu)$ over $\mathcal{B}$ does
+not exist and $h_{KS}$ is unbounded.  On the other hand, if the
+perturbations are numerical truncation and the process is a digital
+simulation, then all observation sequences converge to periodic cycles
+and $h_{KS} = 0$.  Thus, the \emph{strict} definition of the
+Kolmogorov Sinai entropy is useless as a bound on the cross entropy of
+models in numerical simulations.  Here we argue however, that
+numerical Lyapunov exponent estimates nonetheless provide a
+\emph{practical} reference for the performance of models.
+
+If you are working on a new model building procedure that takes
+\emph{training} samples $\left\{ \ts{y}{\tau_1}{T_1},
+  \ts{y}{\tau_2}{T_2}, \ldots, \ts{y}{\tau_N}{T_N}, \right\}$ and
+produces a family of parameterized conditional probability functions
+$P \left(\ti{y}{t}|\ts{y}{1}{t-1},\theta \right)$, we recommend
+numerically estimating the \emph{entropy gap} (see
+Theorem~\ref{GapTheorem}) $\delta_{\mu||\theta} =
+h({\cal{B}},F,\mu||\theta) - \sum_{i : \lambda_i > 0} \lambda_i$ to
+characterize the fidelity of the resulting models $\theta$ to
+generating processes.  As a debugging tool, it is reasonable to choose
+some parameters $\theta'$ for a model class, use that model to
+generate training data, and then verify that as the size of the
+training data set increases the proposed model building procedure
+recovers the parameters $\theta'$.  However such a test fails to
+consider how well the proposed procedure and model class work on the
+realistic case of data generated by processes outside the model class.
+Even though the test we propose does not provide \emph{correct} model
+parameters against which to compare fitted parameters, it does provide
+a reference against which to compare model performance.  Specifically,
+we advocate the following numerical experiment for evaluating a model
+building procedure:
+\begin{enumerate}
+\item \label{PPB1} Use a numerical simulation of a chaotic dynamical
+  system to generate training data and testing data.  For simplicity,
+  consider a system with a single positive exponent $\lambda_1$
+\item \label{PPB2} Quantize the data to a few thousand levels
+\item \label{PPB3} Run the Benettin procedure on the system, to
+  estimate Lyapunov exponents
+\item \label{PPB4} Substitute the estimated exponents into Ledrappier
+  and Young's formula, Eqn.~\eqref{eq:Ledrappier} with $\gamma_1 = 1$
+  to get $\hat h(F,\mu)) = \hat \lambda_1$, an estimated entropy rate.
+  If the partition $\mathcal{B}$ is fine enough, $\hat
+  h(\mathcal{B},F,\mu)) = \hat \lambda_1$ will be a good estimate.
+\item \label{PPB5} Produce $P_{*|\theta}$ by applying the new model building
+  procedure to the training data
+\item \label{PPB6} Estimate the cross entropy by evaluating the
+  likelihood of the model on long sequences of testing data
+  \begin{equation}
+    \label{eq:ToyCE}
+    \hat h(\mathcal{B},F,\mu||\theta) = \frac{-1}{T} \sum_{t=1}^T \log \left(
+    P \left(\ti{y}{t}|\ts{y}{1}{t-1},\theta \right)\right)
+  \end{equation}
+\item \label{PPB7} Calculate an entropy gap \index{entropy!gap} by
+  subtracting the two estimates
+  \begin{equation*}
+    \hat \delta_{\mu||\theta} = \hat h(\mathcal{B},F,\mu||\theta)
+    -\hat h(\mathcal{B},F,\mu)).
+  \end{equation*}
+  For an optimal model, expect the gap to be zero.  If the gap is much
+  larger than zero, conclude that the new procedure is suboptimal.
+\end{enumerate}
+The test is reasonable only if, subject to some constraints, $\EV \hat
+\delta_{\mu||\theta} \geq 0$ is a tight bound and the variance of
+$\hat \delta_{\mu||\theta}$ is small.  Below, we argue that a model
+that uses knowledge of the generating process and has smooth
+probability densities in state space achieves the bound with equality
+and thus the bound is tight.
+
+In this class of models, the probability measure for the generating
+process is not necessarily ergodic or even stationary; it is derived
+from a uniform density over a box that covers possible starting
+conditions, and it includes a little bit of noise in the dynamics so
+that even in the long time limit it does not become fractal.  Because
+the probability is smooth, the models cannot exploit fractal
+properties that might exist in the modeled system and consequently
+$\gamma$, the Ledrappier and Young correction to the Pesin formula, is
+irrelevant.  More specifically we consider a model class with the
+following properties: \newcommand{\Lic}{L_{\text{i.c.}}}
+\begin{description}
+\item[Probability density] The probability density for the initial
+  state $P(\ti{x}{1}|\theta)$ is a uniform distribution on a cube in
+  $X$ that has length $\Lic$ on each side.
+\item[State noise] The model has noise in the state dynamics,
+  \begin{equation}
+    \label{eq:PracticalStateMap}
+    \ti{x}{t+1} = F(\ti{x}{t}) + \ti{\eta}{t},
+  \end{equation}
+  where $\ti{\eta}{t}$ are \iid Gaussian with $\ti{\eta}{t} \sim
+  \Normal(0,\id \sigma_\eta^2)$.  We suppose that $F$ is the same as
+  the \emph{true} function of the \emph{modeled} system, but that
+  noise in the modeled system is smaller or zero.
+\item[Measurement function] We let the measurement function be the
+  same for the model as for the true system, \ie, a discrete partition
+  with resolution $\Delta$.  We have in mind a uniform quantization of
+  a single component of $X$ such as we used for Fig.~\ref{fig:ToyH}.
+\end{description}
+The only difference between the true system and the model is that the
+state noise in the model may be larger than the state noise in the
+true system.
+
+With this framework we can draw samples randomly from a true
+distribution $P_{*|\mu}$ and consider model probabilities
+$P_{*|\theta}$ without having to find a stationary distribution.  In
+sidestepping the key issue of a stationary distribution, we have
+sacrificed ergodicity which is the basis of the definition of a
+Lyapunov exponent as a global property.  Empirically, however, the
+convergence of the Benettin procedure is similar for any initial
+condition (See Fig.~\ref{fig:benettin}).  Relying on this empirical
+observation, we suppose for some time interval $\tau$ that the
+stretching factor is independent of initial conditions with
+\begin{equation}
+  \label{eq:Stretch}
+  \ti{S}{\tau} = \prod_{t=1}^\tau \ti{r_{1,1}}{t} = e^{\hat \lambda \tau}.
+\end{equation}
+
+In the limit of small noise $\sigma_\eta \rightarrow 0$, one can
+calculate $P(\ts{y}{1}{T}|\theta)$ for any sequence of observations as
+the probability of the set of initial conditions that are consistent
+with  $\ts{y}{1}{T}$, \ie, the pre-image of $\ts{y}{1}{T}$,
+\begin{equation*}
+  P(\ts{y}{1}{T}|\theta) = \int_{ \left\{ x:\ts{Y}{1}{T}(x) =
+      \ts{y}{1}{T} \right\} } P(x|\theta) dx.
+\end{equation*}
+For a $d$ dimensional system, the volume of such pre-images is typically
+\begin{equation*}
+  \frac{\Delta e^{-\hat \lambda T}}{O(T^d)} < \text{Vol} < \Delta e^{-\hat \lambda T},
+\end{equation*}
+and since the density of initial conditions is smooth, for large $T$
+we find
+\begin{subequations}
+\begin{equation}
+  \label{eq:back.image}
+  \frac{1}{T} \log \left( P(\ts{y}{1}{T}|\theta) \right) \approx -\hat
+  \lambda.
+\end{equation}
+
+Rather than going backwards in time to analyze the pre-image of
+$\ts{y}{1}{T}$, we can think about the forward image of the volume of
+initial conditions under the map $\Phi(T)$.  To first order, the
+distribution is a uniform probability density over a parallelepiped
+that extends a distance $\Lic \ti{s}{T}$ in the direction of the first
+column of the orthogonal matrix $\ti{Q}{t}$ in Eqn.~\eqref{eq:QR1}.
+The measurement partition divides the image into elements that have a
+characteristic size of $\Delta$, yielding
+\begin{equation}
+  \label{eq:forward.image}
+  \frac{1}{T} \log \left( P(\ts{y}{1}{T}|\theta) \right) \approx -\hat
+  \lambda
+\end{equation}
+\end{subequations}
+again.  Given the enormous stretching that occurs, it is clear that
+the image of the volume of allowed initial conditions will resemble
+steel wool more than a parallelepiped, but the exponential nature of
+the stretching is all that matters, and in the small noise limit we
+have
+\begin{equation}
+  \label{eq:zero.noise}
+  h({\cal{B}},F,\mu||\theta) \approx \hat \lambda
+\end{equation}
+
+One might wonder whether finite state noise $\sigma_\eta$ invalidates
+\eqref{eq:zero.noise} or if perhaps a correction of order
+$\frac{\sigma_\eta}{\Delta}$ will suffice.  As long as $\sigma_\eta <<
+\Lic e^{\hat \lambda T}$, the analysis of the size of the image of the
+volume of initial conditions under $\Phi(T)$ that leads to
+\eqref{eq:forward.image} is adequate.  The noise term $\sigma_\eta$ in
+the model will however transfer probability from observation sequences
+permitted by the true system to sequences that it does not allow,
+thereby increasing the cross entropy.  At each time step the effect
+roughly augments the stretching in each state space direction with a
+term of size $\frac{\sigma_\eta}{\Delta}$.  Since the noise at each
+time is independent of the noise at all other times, the effects add
+in quadrature.  We can estimate an upper bound on the total effect by
+replacing $ \left| \ti{r_{i,i}}{n} \right|$ with $ \left|
+  \ti{r_{i,i}}{n} \right| + \frac{\sigma_\eta}{\Delta}$ for each $i$
+and $n$ in Eqn.~\eqref{eq:rii} of the Benettin procedure, \ie,
+\begin{equation}
+  \label{eq:LE.aug}
+  \hat \lambda_{\text{aug},i} \equiv \frac{1}{N}  \sum_{n=1}^N \log( \left|
+    \ti{r_{i,i}}{n} \right|  + \frac{\sigma_\eta}{\Delta}).
+\end{equation}
+Notice that knowledge of $\hat \lambda_i$ and $\frac{\sigma_\eta}
+{\Delta}$, is not sufficient to calculate $\hat
+\lambda_{\text{aug},i}$.  If the stretching were uniform with $\left|
+  \ti{r_{i,i}}{n} \right| = e^{\lambda} ~\forall n$, the augmented
+result would be $\hat \lambda_{\text{aug},i} = \log\left( e^\lambda +
+  \frac{\sigma_\eta} {\Delta} \right)$, but the result increases
+without bound\footnote{If for example,
+  \begin{equation*}
+     \left| \ti{r_{i,i}}{n} \right| = \begin{cases}
+       \delta^{N-1} e^\lambda & n=0\\
+       \frac{1}{\delta} e^\lambda & \text{otherwise} \end{cases}
+  \end{equation*}
+  then $\hat \lambda_i = \lambda$, but $\lim_{\delta \rightarrow
+    0}\hat \lambda_{\text{aug},i} = \infty$. } as $ \left| \ti{r_{i,i}}{n}
+\right|$ varies more with $n$.  In Fig.~\ref{fig:benettin} we compare
+$\hat \lambda_{\text{aug},1}$ with $\hat \lambda_{1}$ for the Lorenz
+system.  For noise with an amplitude $\frac{\sigma_\eta}{\Delta} =
+0.01$, the figure indicates an augmentation of $\hat
+\lambda_{\text{aug},1} - \hat \lambda_{1} \approx 0.03$, which is
+roughly ten times the augmentation that uniform stretching would
+produce.  From the figure, we conclude that the Benettin procedure
+produces a robust practical upper bound on model performance.
+
+
+\section{Approaching the Bound}
+\label{sec:approach}
+\longpage%%% Maybe not required for MathTime... look for half
+         %%% paragraph after the fig:LikeLor to see if it is needed.
+
+Although the \emph{slope} of the plot in Fig.~\ref{fig:ToyH} (the log
+likelihood per time step attained by extended Kalman filters) matches
+the entropy bound, and we are satisfied with our explanation of the
+nonzero intercept, an example of a model with a likelihood close to
+the bound without any offset would be more satisfying.  To find such
+model, we returned to the source of coarsely quantized Lorenz
+observations that we used for Fig.~\ref{fig:Statesintro} in the
+introduction.  That figure illustrates the association of each of the
+twelve discrete hidden states of an HMM with particular regions in
+$\REAL^3$, the state space of the Lorenz system.  Recall that we
+generated the observations by integrating the Lorenz system with a
+time step of $\tau_{\mathtt{sample}}=0.15$ and quantized the first
+component into one of four levels.  Although the cross entropy of that
+twelve state model is not very close to the bound based on our
+Lyapunov exponent estimate ($\hat h(\mathcal{B},F,\mu)) = \hat
+\lambda_1 = 0.136~\text{nats} = 0.196~\text{bits}$), it seems
+plausible that by using HMMs with more states, we might get higher
+likelihoods.  In fact it is true, but we are surprised at how many
+states we needed.
+
+Our first attempt was to train a sequence of models with ever more
+hidden states.  We initialized each model randomly and ran many
+iterations of the Baum Welch algorithm on quantized observations.
+Even with with many iterations, we did not build any promising models.
+
+In our second attempt, we exploited our knowledge of the Lorenz
+dynamics in $X=\REAL^3$ as follows:
+\begin{enumerate}
+\item Generate training data $\ts{x}{1}{T}$ and $\ts{y}{1}{T}$ by
+  integrating the Lorenz system.  Here $\ti{x}{t}$ is a point in the
+  original state space and $\ti{y}{t}$ is a quantized observation that
+  can take one of four values.
+\item Generate testing data $\ts{y}{T+1}{T+N}$ by continuing the integration.
+\item Find a set of discrete states $\left\{s_1, s_2, \ldots,
+    s_m\right\}$ by partitioning the original space with a uniform
+  grid of resolution $\Delta_x$.  We only constructed states for those
+  partition elements that were occupied by at least one member of
+  $\ts{x}{1}{T}$.
+\item Build an initial HMM using the training sequence.  We set the
+  state transition probabilities by counting the frequency with which
+  the partitioned $X$ sequence made each possible transition.
+  Similarly, we set the observation model by counting the frequency
+  with which each partition element was associated with each possible
+  observation.
+\item \label{step:estimate1} Estimate the cross entropy ($ \hat
+  h(\mathcal{B},F,\mu||\theta)$ See Eqn.~\eqref{eq:ToyCE}) of the
+  initial model by calculating its log likelihood per time step on the
+  testing data.
+\item \label{step:train} Improve the model with several Baum Welch
+  iterations.
+\item \label{step:estimate2} Estimate the cross entropy of the trained
+  model by calculating its log likelihood per time step on the testing
+  data.
+\end{enumerate}
+
+As hoped, we found that as we reduced the resolution, the number of
+states increased and the cross entropy estimates decreased.  We found
+however that the computational cost of training models with large
+numbers of states was prohibitive.  Although the cross entropy
+estimates in step~\ref{step:estimate2} were lower than the estimates
+in step~\ref{step:estimate1}, it was computationally cheaper to attain
+any given cross entropy value by simply reducing the state partition
+resolution enough, omitting steps~\ref{step:train}
+and~\ref{step:estimate2}, and using the estimate from
+step~\ref{step:estimate1}.
+
+Since there is no training, \ie, Baum Welch iterations, in this
+abbreviated procedure, we could calculate the likelihood with a
+variant of the forward algorithm that does not store or return
+$\alpha$ or $\gamma$ values for the entire sequence.  In fact, given
+typical observations $\ts{y}{1}{t}$ up to time $t$, only a small
+fraction of the states have nonzero probability.  Code that exploits
+these features is many orders of magnitude cheaper than code for the
+vanilla forward algorithm.
+
+\longpage%%% Maybe not required for MathTime... look for half
+         %%% paragraph after the fig:LikeLor to see if it is needed.
+Results of the abbreviated procedure appear in Fig.~\ref{fig:LikeLor}.
+For the rightmost point on the curve we found a model with 1,490,202
+hidden states and a cross entropy of 0.153 nats or 0.221 bits.  By
+connecting this model to a simple data compression routine one could
+compress the test data (or presumably any other long sequence from the
+source) down to 0.221 bits per sample, which is 13\% more than the
+0.196 bits per sample that the Lyapunov exponent estimate suggests is
+possible.  Address space limits of 32 bit Python made it difficult to
+build larger models and extend the plot to the right.
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \def\Nstates{$n_{\text{states}}$}%
+    \def\h{$\hat h(\mathcal{B},F,\mu||\theta)$ (nats)}%
+    \def\bits{$\hat h$ (bits)}%
+    \input{figs/LikeLor.eps_t}}
+  \caption[\comment{fig:LikeLor }Entropy gap, $\hat \delta_{\mu||\theta}$ vs number of states in HMMs]%
+  {Entropy gap, $\hat \delta_{\mu||\theta}$ vs number of
+    states in HMMs.  The upper trace plots estimates of cross entropy
+    $\hat h(\mathcal{B},F,\mu||\theta)$ for a sequence of HMMs vs the
+    number of discrete state in the models.  We built the models using
+    actual Lorenz state space trajectories as describe in the text.
+    The lower trace is an estimate of the entropy rate, $\hat
+    h(F,\mu)) = \hat \lambda_1$, of the true process based on Lyapunov
+    exponents estimated by the Benettin procedure.  The distance
+    between the curves is the \emph{entropy gap} $\hat
+    \delta_{\mu||\theta}$. The gap seems to be going to zero,
+    suggesting that an HMM with a few \emph{billion} states might
+    perform at least as well as any other model based any other
+    technology.  Each model was built using the same 8,000,000 sample
+    trajectory in the original state space, and the cross entropy
+    estimates are based on a test sequence of 10,000 observations.}
+  \label{fig:LikeLor}
+\end{figure}
+\afterpage{\clearpage}%% Print this right here please.
+\newpage
+% \ToDo{remember to cite Yariv Ephraim
+% ph\_barbe at hotmail.com recommends Biscarat '94 (a paper on
+% stochastic EM)}
+
+\ReviewerNote{Reviewer 2 asks, ``If ARHMMs are not very good, why bother?''}
+
+
+\begin{CVSID}
+%%%$Id: toys.tex,v 1.62 2007-06-07 05:12:02 karlheg Exp $
+\end{CVSID}
+%%%
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% eval: (load-file "hmmkeys.el")
+%%% End:

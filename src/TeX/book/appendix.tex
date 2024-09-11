@@ -1,0 +1,500 @@
+\appendix
+
+\chapter{Formulas for Matrices and Gaussians}
+\label{cha:MatrixFormulas}
+
+Here we review some material necessary for deriving
+Eqns.~\eqref{eq:KUpdate}-\eqref{eq:smoothing}.  Similar material
+appears in Appendix A of Kailath et al.\cite{KSH00}.
+
+\subsubsection{Block Matrix Inverse}
+\index{block matrix inverse}%
+\index{matrix inverse|see{block matrix inverse}}%
+
+If $G$ is an $n\times n$ invertible matrix, $K$ is an $m\times m$
+invertible matrix, and $H$ and $J$ are $n\times m$ and $m\times n$
+respectively, then direct matrix multiplication verifies that
+\begin{subequations}
+  \label{eq:MatrixInverse}
+  \begin{align}
+    \begin{bmatrix}
+      (G-HK^{-1}J)^{-1} & -(G-HK^{-1}J)^{-1}HK^{-1} \\
+      -(K-JG^{-1}H)^{-1}JG^{-1} & (K-JG^{-1}H)^{-1}
+    \end{bmatrix}
+    \begin{bmatrix}
+      G & H \\ J & K
+    \end{bmatrix}
+    &=
+    \begin{bmatrix}
+      \id & 0 \\ 0 & \id
+    \end{bmatrix}\\ \nonumber \\
+    \begin{bmatrix}
+      G & H \\ J & K
+    \end{bmatrix}
+    \begin{bmatrix}
+      (G-HK^{-1}J)^{-1} & -G^{-1}H(K-JG^{-1}H)^{-1} \\
+      -K^{-1}J(G-HK^{-1}J)^{-1} & (K-JG^{-1}H)^{-1}
+    \end{bmatrix}
+    &=
+    \begin{bmatrix}
+      \id & 0 \\ 0 & \id
+    \end{bmatrix},
+  \end{align}
+\end{subequations}
+assuming that $(G-HK^{-1}J)^{-1}$ and $(K-JG^{-1}H)^{-1}$ exist.
+One can derive other expressions for the inverse by using the Sherman
+Morrison Woodbury formula (Eqn.~\eqref{eq:SMW}) to expand terms in
+Eqn.~\eqref{eq:MatrixInverse}.
+
+By noting
+\begin{multline*}
+  \begin{bmatrix}
+    (G-HK^{-1}J)^{-1} & -G^{-1}H(K-JG^{-1}H)^{-1} \\
+    0 & (K-JG^{-1}H)^{-1}
+  \end{bmatrix}
+  \begin{bmatrix}
+    G & H \\ J & K
+  \end{bmatrix}\\
+  =
+  \begin{bmatrix}
+    \id & 0 \\
+     (K-JG^{-1}H)^{-1}J & (K-JG^{-1}H)^{-1} K
+  \end{bmatrix}
+\end{multline*}
+and taking the determinant of both sides
+\renewcommand{\det}[1]{\left| #1 \right|}
+\begin{equation*}
+  \det{(K-JG^{-1}H)^{-1}} \det{K} = \det{(G-HK^{-1}J)^{-1}}
+  \det{(K-JG^{-1}H)^{-1}} \det{
+  \begin{bmatrix}
+    G & H \\ J & K
+  \end{bmatrix}}
+\end{equation*}
+one finds the following formula for determinants
+\index{block matrix determinant}
+\index{determinant|see{block matrix determinant}}
+\begin{equation}
+  \label{eq:BlockDet}
+  \det{ \begin{bmatrix} G & H \\ J & K \end{bmatrix}} = \det{K}
+  \det{(G-HK^{-1}J)}
+\end{equation}
+\subsubsection{Sherman Morrison Woodbury Formula}
+\index{Sherman Morrison Woodbury formula}
+
+If $G$ and $J$ are invertible matrices, $H$ and $K$ have dimensions so
+that $\left( G + HJK \right)$ makes sense, and $\left(KG^{-1}H +
+  J^{-1} \right)^{-1}$ exists, then
+\begin{equation}
+  \label{eq:SMW}
+  \left( G + HJK \right)^{-1} = G^{-1} - G^{-1}H\left(KG^{-1}H +
+  J^{-1}\right)^{-1}KG^{-1}.
+\end{equation}
+Multiplying both sides by $\left( G + HJK \right)$ verifies the
+formula.  The special case
+\begin{equation}
+  \label{eq:MatrixInversion}
+  \left(L^{-1} + H\transpose J^{-1}H \right)^{-1} = L - LH\transpose
+  \left( HLH\transpose + J \right)^{-1}HL
+\end{equation}
+is efficient when the dimension, $m$, of $J$ is smaller than the
+dimension $n$ of $L$ because an $n\times n$ matrix inversion on the
+left is replaced by an $m \times m$ matrix inversion on the right.
+
+\subsubsection{Marginal and Conditional Distributions of a Gaussian}
+\index{marginal distribution, Gaussian}
+\index{conditional distribution, Gaussian}
+
+Suppose that $W = \begin{bmatrix} U \\ V \end{bmatrix}$ is a Gaussian
+random variable with an $n$ dimensional component $U$ and an $m$
+dimensional component $V$.  We write its distribution
+%
+\nomenclature[rNormal]{$\Normal \left( \mu,\Sigma \right)$}{A
+  \emph{normal} or Gaussian distribution function; $\mu$ is an $n$
+  dimensional vector and $\Sigma$ is an $n\times n$ matrix.  Writing
+  $X\sim \Normal \left( \mu,\Sigma \right)$ means $X$ is distributed
+  normally with mean $\mu$ and covariance $\Sigma$ and the
+  probability density at any particular vector $x$ is
+  $\NormalE{\mu}{\Sigma}{x}$.
+} % end \nomenclature
+%
+\nomenclature[rNormalE]{$\NormalE{\mu}{\Sigma}{x}$}{The value of a
+  Gaussian probability density function evaluated at the $n$
+  dimensional vector $x$, \ie
+  \begin{equation*}
+    \NormalE{\mu}{\Sigma}{x} \equiv \frac{1}
+    {\sqrt{(2\pi)^n\left"|\Sigma\right"|}} e^{ -\frac{1}{2}
+      (x-\mu)\transpose \Sigma^{-1} (x-\mu)}
+  \end{equation*}
+  where $\left"|\Sigma\right"|$ is the determinant of the covariance
+  matrix $\Sigma$.
+} % end \nomenclature
+\begin{equation*}
+  W \sim \Normal \left( \mu_W,\Sigma_W \right) \text{ or equivalently
+  } P(w) = \NormalE{\mu_W}{\Sigma_W}{w}
+\end{equation*}
+with
+\begin{equation*}
+  \mu_W = \begin{bmatrix} \mu_U\\\mu_V \end{bmatrix} \text{ and }
+  \Sigma_W =   \begin{bmatrix} \Sigma_{UU} & \Sigma_{UV}\\ \Sigma_{VU}
+  & \Sigma_{VV} \end{bmatrix} \equiv \begin{bmatrix} A & C \\
+  C\transpose & B \end{bmatrix},
+\end{equation*}
+where we have introduced $A \equiv \Sigma_{UU}$, $B \equiv
+\Sigma_{VV}$, and $C \equiv \Sigma_{UV}$ to shorten the notation.
+If we denote
+\begin{equation*}
+    \Sigma_W^{-1} =   \begin{bmatrix} D & F \\ F\transpose & E
+  \end{bmatrix},
+\end{equation*}
+then from Eqns.~\eqref{eq:MatrixInverse} and ~\eqref{eq:SMW}
+\begin{subequations}
+  \label{eq:MI:ABCDEF}
+  \begin{align}
+    \label{eq:MI:D}
+    D &= (A - CB^{-1}C\transpose)^{-1} & &= A^{-1} + A^{-1}C E
+    C\transpose A^{-1}\\
+    \label{eq:MI:E}
+    E &= (B - C\transpose A^{-1}C)^{-1} & &= B^{-1} + B^{-1}C\transpose
+    D C B^{-1} \\
+    \label{eq:MI:F}
+    F &= -A^{-1}C E & &= -DCB^{-1}.
+  \end{align}
+\end{subequations}
+In this notation, the marginal distributions are
+\begin{subequations}
+  \label{eq:Gauss-Marginal}
+  \begin{align}
+    P\left(u \right) &= \int P\left(u,v \right) dv \\
+    &= \NormalE{\mu_U}{A}{u} \\
+    P\left(v \right) &= \int P\left(u,v \right) du \\
+    &= \NormalE{\mu_V}{B}{v},
+  \end{align}
+\end{subequations}
+and the conditional distributions are
+\begin{subequations}
+  \label{eq:Gauss-Conditional}
+  \begin{align}
+    P\left(u |v \right) &= \frac{ P\left(u,v \right)}{P\left(v \right)} \\
+    &= \NormalE{\mu_U + CB^{-1}(v-\mu_v)}{D^{-1}}{u} \\
+    P\left(v |u \right) &= \frac{ P\left(v,u \right)}{P\left(u \right)} \\
+    &= \NormalE{\mu_V + C\transpose A^{-1} (u - \mu_U)}{E^{-1}}{v}
+  \end{align}
+\end{subequations}
+Notice that the covariance of the \emph{marginal} distribution of $U$
+is given by the $UU$ block of $\Sigma_W$, but that the inverse
+covariance of the \emph{conditional} distribution of $U$ is given by
+the $UU$ block of $\Sigma_W^{-1}$.
+
+As a check of these formulas, we examine $P\left(u |v \right) P\left(v
+\right)$ and find
+\begin{align*}
+  P\left(u |v \right) P\left(v \right) &= \frac{\sqrt{\left| D
+      \right|}} {\sqrt{(2\pi)^n}} e^{ -\frac{1}{2} \left(u - \mu_U -
+      CB^{-1}(v - \mu_V) \right)\transpose D \left(u - \mu_U -
+      CB^{-1}(v - \mu_V) \right)
+  } \\
+  &\quad \times \frac{1}{\sqrt{(2\pi)^m \left| B \right|}} e^{ -\frac{1}{2}
+    (v-\mu_V)\transpose B^{-1} (v-\mu_V)}\\
+                                %
+    &= \frac{1} {\sqrt{(2\pi)^{n+m} \left| \Sigma_W
+      \right| }} \exp \bigg( -\frac{1}{2} \Big[ \\
+  &\quad \left( u - \mu_U - CB^{-1}(v - \mu_V) \right)\transpose D
+       \left(u - \mu_U - CB^{-1}(v - \mu_V) \right)  \\
+     &\quad + (v-\mu_V)\transpose B^{-1} (v-\mu_V) \Big]\bigg)\\
+                                  %
+     &= \frac{1} {\sqrt{(2\pi)^{n+m} \left| \Sigma_W \right| }}\\
+     &\quad\times e^{ -\frac{1}{2} \left((u-\mu_U)\transpose D (u-\mu_U) +
+         2 (v-\mu_V)\transpose F\transpose (u-\mu_U) +
+         (v-\mu_V)\transpose E (v-\mu_V)\right)}\\
+     &= P \left(u,v \right)
+\end{align*}
+all is right with the world.  In the above, Eqn.~\eqref{eq:BlockDet}
+implies that $\frac{\sqrt{\det{D}}}{\sqrt{\det{B}}} =
+\frac{1}{\sqrt{\det{\Sigma_W}}}$.
+
+
+\subsubsection{Completing the Square}
+\index{completing the square}
+
+Some of the derivations in section~\ref{sec:KDerive} rely on a
+procedure called \emph{completing the square}, which we illustrate
+with the following example.  Suppose that the function $f(u)$ is the
+product of two $n$ dimensional Gaussians,
+$\Normal\left(\mu_1,\Sigma_1\right)$ and
+$\Normal\left(\mu_2,\Sigma_2\right)$, \ie
+\begin{align}
+  \label{eq:Qu.a}
+  f(u) &= \frac{1} {\sqrt{(2\pi)^n \left| \Sigma_1 \right| }}
+  e^{-\frac{1}{2} ( u - \mu_1)\transpose \Sigma_1^{-1} ( u - \mu_1)}
+  \frac{1} {\sqrt{(2\pi)^n \left| \Sigma_2 \right| }}
+  e^{-\frac{1}{2} ( u - \mu_2)\transpose \Sigma_2^{-1} ( u - \mu_2)}\\
+  \label{eq:Qu.b}
+  &= \frac{1} {\sqrt{(2\pi)^{2n} \left| \Sigma_1 \right| \left|
+        \Sigma_2 \right| }} e^{-\frac{1}{2}\big[ ( u -
+    \mu_1)\transpose \Sigma_1^{-1} ( u - \mu_1) + ( u -
+    \mu_2)\transpose \Sigma_2^{-1} ( u - \mu_2)\big]}\\
+  \label{eq:Qu.c}
+  &\equiv \frac{1} {\sqrt{(2\pi)^{2n} \left| \Sigma_1 \right| \left|
+        \Sigma_2 \right| }} e^{-\frac{1}{2}\big[Q(u)\big]}.
+\end{align}
+By expanding the function $Q(u)$ in the exponent, we find:
+\begin{align}
+  \label{eq:Qu.d}
+  Q(u) &= u\transpose \left( \Sigma_1^{-1} + \Sigma_2^{-1} \right) u -
+  2 u\transpose  \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2
+  \right) + \mu_1\transpose \Sigma_1^{-1} \mu_1 + \mu_2\transpose
+  \Sigma_2^{-1} \mu_2 \\
+  \label{eq:Qu.e}
+  &= u\transpose q u - 2 u\transpose l + s
+\end{align}
+where the quadratic, linear, and scalar terms are
+\begin{align*}
+  q &= \left( \Sigma_1^{-1} + \Sigma_2^{-1} \right) \\
+  l &= \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2 \right) \\
+  s &= \mu_1\transpose \Sigma_1^{-1} \mu_1 + \mu_2\transpose
+  \Sigma_2^{-1} \mu_2
+\end{align*}
+respectively.
+
+\emph{Completing the square} means finding values $\mu$, $\Sigma$, and
+$R$ for which Eqn.~\eqref{eq:Qu.e} takes the form
+\begin{equation}
+  \label{eq:Qu.f}
+  Q(u) = (u - \mu)\transpose \Sigma^{-1} (u - \mu) + R,
+\end{equation}
+where $R$ is not a function of $u$.  One can verify by substitution
+that the solution is
+\begin{align*}
+  \Sigma^{-1} &= q\\
+  \mu &= \Sigma l\\
+  R &= s -  \mu\transpose \Sigma^{-1} \mu.
+\end{align*}
+For the product of Gaussians example \eqref{eq:Qu.a},
+\begin{align*}
+  \Sigma^{-1} &= \Sigma_1^{-1} + \Sigma_2^{-1} \\
+  \mu &= \Sigma \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2
+  \right) \\
+  &= \left( \Sigma_1^{-1} + \Sigma_2^{-1} \right)^{-1} \left(
+  \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2  \right) \\
+  R &= \mu_1\transpose \Sigma_1^{-1} \mu_1 + \mu_2\transpose
+  \Sigma_2^{-1} \mu_2 -  \mu\transpose \Sigma^{-1} \mu \\
+  &= \mu_1\transpose \Sigma_1^{-1} \mu_1 + \mu_2\transpose
+  \Sigma_2^{-1} \mu_2 - \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1}
+  \mu_2  \right) \transpose \left( \Sigma_1^{-1} + \Sigma_2^{-1}
+  \right)^{-1} \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2
+  \right).
+\end{align*}
+In words the product of two Gaussian density functions is an
+unnormalized Gaussian density function in which the inverse covariance
+is the sum of the inverse covariances of the factors and the mean is
+the average of the factor means weighted by the inverse covariances.
+
+\chapter{Notes on Software}
+\label{cha:Software}
+
+All of the software written to make this book is available at
+www.siam.org.fraser.xxxx.  On a gnu/linux system, after unpacking the
+files and installing the prerequisites, typing ``make'' in the top
+level directory will create a copy of the book in a file called
+\emph{book.pdf} after some hours of computation.
+
+As we finished writing the book, we planned to reorganize the software
+before the book was distributed.  As of April, 2007 the code was a
+single project that we managed with CVS (a version control system, see
+\url{http://www.nongnu.org/cvs/}).  By the time readers download the
+software, it will consist of a package named \emph{hmmpy} that
+provides general HMM utilities for python and a package named
+\emph{hmmdsbook} that contains the LaTeX source files, scripts, and
+data required for making the figures and ultimately the book.  While
+\emph{hmmpy} will be platform independent, \emph{hmmdsbook} will rely
+on a gnu or gnu/linux environment.
+
+In the sections below, we describe the software as it was in April,
+2007, and modifications we planned then.  In addition to describing
+the software we distribute, we hope readers find the material useful
+in deciding how to develop software of their own.
+
+\section{Dependencies}
+\label{sec:SWdep}
+
+Our code relies on many free software packages.  Although we developed
+the code on debian gnu/linux systems, the code will run on any of the
+many other platforms for which the dependencies are available.  In
+addition to the standard gnu development tools, we require at least
+the following and their dependencies:
+  \begin{description}
+  \item[gnuplot] Old reliable plotting package driven with either a
+    command line interface or a script
+  \item[libgsl0-dev] GNU Scientific Library
+  \item[python] An interpreted, interactive, object-oriented,
+    extensible programming language
+  \item[python-dev] Header files necessary for compiling code wrapped
+    by swig
+  \item[python-gnuplot] A python interface to gnuplot.  We plan to
+    remove this dependency because simply using python to pipe commands to
+    gnuplot gives more control without much more complexity
+  \item[python-matplotlib] A matlab like GUI driven plotting package.
+    We use matplotlib to plot a spectrogram.  We plan to plot the
+    spectrogram with a script that does not require mouse
+    manipulation.
+  \item[python-numeric] Fast numerics, old and unsupported.  This was
+    the best mathematical array package for python when we started
+    working on the book.  We plan to eliminate this dependency by
+    using scipy instead.
+  \item[python-scipy] Scientific methods for python.  Scipy has been
+    developed as we wrote the book.  Hoping for both stability and
+    access to a rich set of tools, we have switched between using the
+    scipy, numeric, and numarray packages too often.  It would have
+    been easier to simply use numeric as we wrote the book and then
+    switch entirely to scipy afterwards.
+  \item[python-tk] Python interface to the Tk GUI toolkit
+  \item[rubber] A tool to automate latex compilations.  Rubber figures
+    out how many latex passes are needed and also runs
+    metapost/bibtex/dvips/ etc.~as necessary.  Although we recommend
+    rubber, we will eliminate the dependency because it is not
+    essential.
+  \item[swig] The \emph{Simplified Wrapper and Interface Generator}
+    wraps code written in C or C++ for any of a number of higher level
+    programming languages.  We used it to make fast C implementations
+    of the basic HMM algorithms callable from python.
+  \item[tetex] TeX, LaTeX and much supporting software
+  \item[tetex-extra] More supporting software for TeX and LaTeX
+  \item[time] For obtaining run-times.  We plan to remove this
+    nonessential dependency.
+  \item[transfig] For translating xfig drawings to eps
+  \end{description}
+  In addition, we used software from www.physionet.org to preprocess
+  ECG data from the same site.  We will remove the dependency on the
+  PhysioNet software by including preprocessed ECG data in the
+  \emph{hmmdsbook} package.
+
+\section{Data}
+\label{sec:SWdata}
+
+We used the following sets of data for examples:
+\begin{description}
+\item[Tang's laser data] Carl Otto Weiss \index{Weiss, C.\ O.} mailed
+  us a CD full of data from various experiments that he and Tang did
+  in the 1980s and 1990s.  Although we analyzed many of the files, we
+  finally used only a file called \emph{LP5.DAT} in the book (see
+  Section~\ref{sec:laser}).  The file \emph{LP5.DAT} is included in
+  \emph{hmmdsbook}.
+\item[H.~L.~Mencken's \emph{A Book of Prefaces}] We used Mencken's
+  book for the parts of speech example in Section~\ref{sec:POSpeech}.
+  Although the code fetches the book from www.gutenberg.org as of
+  April, 2007, we planned to include the parsed text in
+  \emph{hmmdsbook}.
+\item[CINC2000 ECG data] We used Dr. Thomas Penzel's ECG measurements
+  throughout Chapter~\ref{chap:apnea}.  Although the code fetches the
+  the data from\\
+  www.physionet.org/physiobank/database/apnea-ecg as of April, 2007,
+  we planned to include much smaller files that contain estimates of
+  the timing of heart beats in \emph{hmmdsbook}.
+\end{description}
+Ultimately, the \emph{hmmdsbook} package will itself contain all of
+the data required to compile the book.
+
+\section{Clarity and Efficiency}
+\label{sec:Clarity}
+
+Perhaps the clearest way to describe and code the algorithms of
+Chapter~\ref{chap:algorithms} is in terms of vector and matrix
+operations.  The \emph{hmmwb} directory in the \emph{hmmpy} package
+contains such an implementation of the algorithms written by Ralf
+Juengling.  \index{Juengling, Ralf} Here is his implementation of the
+entire forward algorithm:
+\begin{alltt}
+\addtocontents{loa}{}{An early version of the Forward Algorithm}% ToDo: ?
+def forward(hmm, y):
+    P_S0, P_ScS, P_YcS = hmm.parameters()
+    N = len(hmm.states)
+    T = len(y)
+
+    # create data structures alpha and gamma
+    alpha = N.zeros((T, N), N.float64) # alpha[t,s] = P(s|y(0..t))
+    gamma = N.zeros((T, 1), N.float64) # gamma[t] = P(y(t)|y(0..t-1))
+
+    # fill up alpha and gamma
+    alpha[0] = P_YcS[y[0]]*P_S0
+    gamma[0] = N.sum(alpha[0])
+    alpha[0] /= gamma[0]
+    for t in xrange(1, T):
+        P_ScY_1_prev = N.dot(P_ScS, alpha[t-1])    # Eqn. \eqref{eq:forwardB}
+        P_SYcY_1_prev = P_YcS[y[t]]*P_ScY_1_prev   # Eqn. \eqref{eq:forwardC}
+        gamma[t] = N.sum(P_SYcY_1_prev)            # Eqn. \eqref{eq:forwardD}
+        alpha[t] = P_SYcY_1_prev/gamma[t]          # Eqn. \eqref{eq:forwardA}
+
+    return alpha, gamma
+\end{alltt}
+
+The comments refer to the formulas in Chapter~\ref{chap:algorithms}
+implemented by each line.  The code uses the standard python module
+\emph{itertools} and the external module \emph{scipy}.
+
+As we developed code for the examples in the book, we abandoned the
+simplicity of Juengling's code in the pursuit of flexibility and
+speed.  To have code that could use special observation models such as
+those in Chapters~\ref{chap:variants} and~\ref{chap:apnea}, we
+replaced \emph{P\_YcS[yt]} with a function call.  To make code faster,
+we wrote routines in C and called them from python using swig.  And to
+have code that could operate on the large models required for
+Fig.~\ref{fig:LikeLor} we used hash tables (python
+\emph{dictionaries}) rather than lists or arrays.  The result was a
+collection of code that was flexible and fast enough to build the book
+in a few hours but not as easy to read as we would have liked.
+
+After many modifications of observation models as we worked on
+Chapter~\ref{chap:apnea}, we found that caching the conditional
+probabilities of observations given the states works well.  Originally
+we used a class method to calculate $P(\ti{y}{t}|s)$ for particular
+values of $s$ and $t$ wherever the code required such a probability.
+To use different observation models, we wrote subclasses that
+redefined the method.  The technique worked but there were drawbacks.
+By profiling the python code, we found that the calls to the methods
+that implemented $P(\ti{y}{t}|s)$ took most of the time for each of
+the basic HMM algorithms$\ldots$
+
+Actually, it was not the actual method calls that took so much time.
+In at least one of the programs, they amounted to little more than an
+array element look-up with very little computation.  The problem was
+that Python had to traverse it's object-representation data structures
+in order to find the methods.  The result was returned by code about
+three levels deep.  The interpreter dutifully performed that look-up
+chaining over and over again, once for each run-time method call.
+Python is a dynamic language where variables are not constrained to
+hold values of a particular type.
+
+When you declare a variable, you just name it, without saying anything
+to Python about the data type of the object that will be kept at the
+location it stands for.  This language characteristic, known as ``duck
+typing'', makes it easy to implement \emph{interface polymorphism}.
+``If it walks like a duck and quacks like a duck, it must be a duck.''
+To make that work, method look-up must happen at run-time.  Since
+there is no syntax for declaring the variable to hold only a certain
+data-type, the Python byte-compiler has no way of resolving those at
+compile-time.  Perhaps that new type declaration syntax would be a
+good feature for a future version of Python?  Another option might be
+to give the Python interpreter some sort of method look-up memoization
+cache.
+
+Also, we needed different C code for each different type of
+observation model.  Reorganizing the code so that before each
+iteration of the Baum Welch algorithm and before the Viterbi
+algorithm, a single call to an observation method calculates and
+stores $P(\ti{y}{t}|s)$ for every value of $s$ and $t$, resolved the
+drawbacks at the expense of using more memory.  The additional memory
+required is the same as that required for all of the $\alpha$ values.
+It reduces the maximum amount of training data that we could use with
+the Baum Welch algorithm by a multiplier between $\frac{2}{3}$ and
+$1$.
+
+\begin{CVSID}
+%%%$Id: appendix.tex,v 1.23 2007-08-02 19:38:46 karlheg Exp $
+\end{CVSID}
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% eval: (load-file "hmmkeys")
+%%% End:
+
+% LocalWords:  Welch Viterbi HMM

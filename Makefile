@@ -64,6 +64,7 @@ include $(PLOTSCRIPTS)/variants/Rules.mk
 include $(XFIGS)/Rules.mk
 
 # Rules for making documents
+include $(TEX)/book/Rules.mk
 include $(TEX)/skeleton/Rules.mk
 include $(TEX)/laser/Rules.mk
 include $(TEX)/apnea/Rules.mk

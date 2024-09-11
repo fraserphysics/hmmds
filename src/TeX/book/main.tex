@@ -1,0 +1,377 @@
+%%%
+%%% bibTeX doesn't understand "\includeonly".
+%%%
+%%% \includeonly{introduction, algorithms, variants, continuous, toys, apnea, appendix}
+%%% \includeonly{introduction, algorithms, variants, continuous, toys, appendix}
+%%%
+
+%%%
+%%% "hmmdsbook" is a subclass of "newsiambook", unless you use the
+%%% 'ltxbook' option, in which case it is a subclass of the standard
+%%% LaTeX "book".
+%%%
+%%% Note: The 'nottoc' option should be passed if we do not want the
+%%%       TOC to appear in the TOC.  It will be passed along to
+%%%       tocbibind.sty by hmmdsbook.cls.
+%%%
+
+%%% I'm guessing that the paper size given to 'crop' might change for
+%%% actual printing runs.  The logical paper size is determined by the
+%%% newsiambook.cls where it arbitrarily sets \pageheight 10in
+%%% \pagewidth 7in (line 1121), regardless of any \documentclass
+%%% options such as 'letterpaper' or 'a4'.  (Those will set it
+%%% initially, but by the time the .cls file is done loaded, they are
+%%% set to those hard-coded values.)
+%%%
+%%% The effective default options are (AFAICT):
+%%%
+%%% plain-opener,10pt,twoside,onecolumn,openright,final
+%%%
+%%% It doesn't seem to honor or implement 'twoside' at all.  I'm not
+%%% sure what happens at the the publisher with that.  They must have
+%%% a style that they load that sets it up for the press run or
+%%% something.  The way it is not, it's not really set for two sided
+%%% printing the way I would expect.  It looks like every page is a
+%%% right-page to me.  It's too bad that the Development and
+%%% Aquisitions Editor would not provide me with a direct-contact
+%%% email address to a LaTeX Compositor, because it would be useful
+%%% and valuable for me to be able to communicate with that expert.
+%%%
+\documentclass[dvips]{hmmdsbook}
+
+%%% Note: The following settings will cause many overfull hbox false alarms:
+% \documentclass[dvips,prelim,showlabels]{hmmdsbook}
+% %%% Show index entries in margin
+% \proofmodetrue
+
+%%% For MathTime fonts:
+%%%
+%%% Does not work for me: \usepackage{siammathtime}
+%%% Does not work either: \usepackage{mathtime}
+%%%                       \usepackage{mathpi}
+%%%
+%%% It bombs where there's a call to a macro for a bold-math font.  A
+%%% test document typeset with 'mathtime' works... I'm not sure what's
+%%% happening.  I think that either the Postscript viewer or 'dvips'
+%%% is performing a font substitution, since I'm certain that the
+%%% actual MathTime fonts are not installed on my computer.  There are
+%%% TeX font metrics for them, but no actual fonts.  From what I can
+%%% tell, they are slightly smaller than CM glyphs, so the labels on
+%%% the illustrations should come out fine, and probably won't cause
+%%% any over-typing from boxes being bigger than with CM.
+%%%
+%%%
+%%% Note: SIAM Compositor: Please see the definition of and comment
+%%% Note:                  regarding the '\plotsize' macro, which you
+%%% Note:                  will find in "hmmdsbook.cls".
+%%% Note:
+%%% Note:                  Also, please grep the document for
+%%% Note:                  occurances of "\longpage", and see if when
+%%% Note:                  you run it with MathTime fonts whether
+%%% Note:                  those pages need to be squashed or not.
+%%% Note:
+%%% Note:                  There is some trouble around sec:gaussian
+%%% Note:                  where, in our runs, just under
+%%% Note:                  fig:ScalarGaussian there is a paragraph
+%%% Note:                  fragment; some awkward whitespace.  I put
+%%% Note:                  a commented off \newpage above the heading
+%%% Note:                  "Reestimation" that I think will fix it,
+%%% Note:                  but you need to run it with MathTime first
+%%% Note:                  of course.
+%%%
+%%% I'm putting this in here for our own runs, since I think that it
+%%% provides a reasonable facimile of the font metrics that the final
+%%% document will have, at least for the plot labels.  This should
+%%% probably be removed or commented off before the final run.
+%%%
+\usepackage{type1cm}
+\renewcommand{\plotsize}{%
+  \fontsize{8.5}{8.5}%
+  \selectfont%
+}
+
+
+%%% I found that the crop.sty included with TeXlive works a lot better
+%%% than the one included with the SIAM book macro package.  I've
+%%% moved theirs aside so the TeXlive version is used.
+%%%
+\usepackage[letter,center]{crop}
+\crop
+
+
+%%% rubber: paper letter
+%%% rubber: dvips.options -Z
+%%% rubber: path ./SiamTeX
+%%% rubber: path ./figs
+%%% rubber: module graphicx
+%%% rubber: module bibtex
+%%% rubber: module index
+%%% rubber: onchange main.nlo "makeindex main.nlo -s nomencl.ist -o main.nls"
+%%% rubber: watch main.nls
+%%% rubber: clean main.loa
+%%% rubber: clean main.nlo
+%%% rubber: clean main.nls
+%%% rubber: clean main.out
+
+
+\author{\copyright Andrew M. Fraser}
+\title{Hidden Markov Models and Dynamical Systems}
+
+
+\begin{document}
+\frontmatter
+\maketitle
+
+\chapter*{Preface}
+\addcontentsline{toc}{chapter}{Preface}
+\label{chap:preface}
+This book arose from a pair of symposia on hidden Markov models that
+Kevin Vixie organized at the 2001 SIAM Dynamical Systems meeting.  At
+the end of the first symposium someone asked for a simple reference
+that explains the basic ideas and algorithms for applying HMMs.  We
+were stumped.  A group of the participants suggested writing this book
+to answer the question.  Two years later, I delivered a proposal for
+the book that included about two chapters to SIAM at the 2003
+Dynamical Systems meeting.  The book is intended for readers who have
+backgrounds and interests typical of those who attend that conference.
+In particular, my view is that HMMs are discrete state discrete time
+stochastic dynamical systems, and that they are often used to
+approximate dynamical systems with continuous state spaces operating
+in continuous time.  Thus, by using familiar analogies, it should be
+easy to explain HMMs to readers who have studied dynamical systems.
+
+The basic techniques were well developed in the 1970's for work on
+speech and language processing.  Many in speech research learned about
+the techniques at a symposium held at the Institute for Defense
+Analysis \index{Institute for Defense Analysis} in Princeton.  A small
+number of proceedings of that symposium \cite{ida80} were printed, and
+the volume was called \emph{the blue book} by workers in the field.  I
+was not part of that community, but I have a copy of the blue book.
+It explains the basic algorithms and illustrates them with simple
+concrete examples.  I hope my book is as simple, useful, and clear.
+
+\ReviewerNote{Reviewer4 wants emphasis on applications and discussion of
+  characteristics that suggest using HMMs in preface and
+  introduction.}
+
+Although there are other books and papers that are about HMMs
+exclusively or in part, I believe that the present volume is unique in
+that:
+\begin{description}
+\item[It is introductory] Sophomore or Junior study in engineering,
+  mathematics, or science provides the prerequisites for most of the
+  book.  The exceptions are ideas from dynamical systems and
+  information theory.  In particular, I use the Gibbs inequality
+  (Eqn.~\eqref{eq:GibbsIE}) in developing the EM algorithm in Chapter
+  \ref{chap:algorithms}.  Although Chapter \ref{chap:toys} \emph{Toy
+    Problems and Performance Bounds} deals with Lyapunov exponents and
+  entropies, it is not a prerequisite for any other chapter.
+\item[Algorithms are explained and justified] I present enough of the
+  theory behind the basic algorithms in Chapter \ref{chap:algorithms}
+  so that a reader can use it as a guide to developing his own
+  variants.
+\item[I provide code implementing the algorithms and data for the
+  examples] Although algorithms are given in pseudo code in the text,
+  at \url{http://www.fraserphysics.com/~andy/hmmdsbook} and
+  \url{www.siam.org/~fraser/XXXX} I provide a working implementation
+  of each of the algorithms I describe.  I have chosen to write the
+  programs in the python language because it is easy to read and the
+  interpreter is free software.  I have written the programs to follow
+  the descriptions and notation in the text.  I provide data and
+  scripts (makefiles, shell scripts, etc.)  that make all of the
+  figures in the text.  On a gnu system, issuing ``make book.pdf''
+  from a command line compiles the software, runs the numerical
+  experiments, makes the figures, and formats the entire book.
+\item[It uses analogies to dynamical systems] For example, I
+  demonstrate the HMM training algorithm by applying it to data
+  derived from the Lorenz system.  The result, as
+  Fig.~\ref{fig:Statesintro} illustrates, is that the algorithm
+  estimates a discrete state generating mechanism that is an
+  approximation to the state space of the original Lorenz system.
+\item[I illustrate with a practical example] In Chapter \ref{chap:apnea} I
+  present an application to experimental measurements of
+  electrocardiograms (ECGs).
+\end{description}
+
+\ToDo{ Point to review papers and material (I've collected some of the
+  kind of stuff I have in mind at
+  \url{http://fraserphysics.com/~andy/HMMs/} ).  Perhaps organize this
+  stuff under the following topics:
+  \begin{itemize}
+  \item MCMC annealing and optimization
+  \item Other applications
+  \item Other papers books and web sites
+  \item Bayes nets
+  \end{itemize}
+}
+\section*{Acknowledgments}
+\addcontentsline{toc}{section}{Acknowledgments}%
+\label{sec:ack}
+\longpage%%% Maybe not required for MathTime... look for partial
+         %%% paragraph on page by itself before TOC begins.
+
+In writing this book, I have used much that I learned from
+colleagues in Portland.  In particular, Todd Leen kept me informed
+about developments in the machine learning community and explained the
+use of a prior and maximum a posteriori estimation for regularization.
+I've relied on the review of the ergodic theory of dynamical systems
+in Kevin Vixie's dissertation\cite{vixie02} for
+Chapter~\ref{chap:toys} of this book.  Shari Matzner and Gerardo
+Lafferriere helped me understand the convergence properties of the EM
+algorithm.  Also the following colleagues have given me constructive
+comments on drafts of the book:
+% 
+Patrick Campbell, %
+Ralf Juengling, %
+Shari Matzner, %
+Cosma Shalizi, %
+and %
+Rudolph Van der Merwe. %
+
+I thank the following people and organizations for providing the data
+that I used for examples:
+\begin{description}
+\item[Carl Otto Weiss], for providing Tang's\cite{Tang92} laser data
+\item[PhysioNet] For providing Penzel's\cite{Penzel02} ECG data and
+  George Moody's \emph{wfdb} software \cite{PhysioToolkit}
+\item[Project Gutenberg] For digitizing and distributing \emph{A
+    Book of Prefaces},\\ by H.~L.~Mencken
+%%% I hate to put a line break in there like that, but it was hanging
+%%% out into the margin without it. -- karlheg
+\end{description}
+
+I was fortunate to meet Karl Hegbloom in Portland.  Karl contributes
+to several free software projects and he helped me with the figures
+and software.  Ralf Juengling also helped with the software.  In
+addition to personal help with software, I relied on free software
+written by too many contributers to mention.  Almost all of the tools
+I used are available at \url{http://www.debian.org/} or
+\url{http://www.ubuntu.com}.
+
+I acknowledge Portland State University for support of a sabbatical
+leave during which I started the book and for a computer on which I
+did much of the development.  I thank Principal Investigator James
+Kamm for arranging to have the Los Alamos National Laboratory LDRD
+office support work on Chapter~\ref{chap:apnea} through project \#
+20030037DR.
+%
+\ReviewerNote{
+
+  \begin{itemize}
+  \item Reviewer 1 suggests using Bayes nets for time series.
+  \item Reviewer 4 says that I \emph{should} discuss these things
+    briefly and have references.  I agree.  Perhaps put it at the end of
+    the book so that I can describe the ideas in terms of HMMs that I
+    will have already covered.
+  \end{itemize}
+}
+
+\tableofcontents
+%%%\addcontentsline{toc}{chapter}{Table of Contents}%
+%%% Enable these to make it easier to find them during editing phase
+% \listoffigures% Not unless required by SIAM
+% \listoftables% Not unless required by SIAM
+%%% \listofalgorithms%% There are none, since at this point they are done as figures.
+
+\mainmatter
+\include{introduction}
+\include{algorithms}
+\include{variants}
+\include{continuous}
+\include{toys}
+\include{apnea}
+\include{appendix}
+%%% \include{pointers}
+
+\backmatter
+% Begin ``Notation'' material
+\renewcommand{\nomname}{Notation}%
+\renewcommand{\pagedeclaration}[1]{\ (page #1)}%
+\setlength{\nomlabelwidth}{2.0cm}%
+\renewcommand{\nompreamble}{%
+  Throughout the book we write about random variables and stochastic
+  processes.  We have tried to select notation that is as simple as
+  possible without being ambiguous.  To illustrate the challenge
+  suppose that we have been talking about gambling and the weather
+  and that we say ``the probability of 5 is 0.16''.  Among the many
+  things that we could mean are the following:
+  \begin{equation}
+    \label{eq:dice}
+    \mathbf{Prob}(\text{top face of die}=5) = 0.16
+  \end{equation}
+  \begin{equation}
+    \label{eq:rain}
+    \lim_{\epsilon \rightarrow 0} \frac{\mathbf{Prob}(5 < \text{total
+        rainfall today in millimeters}<5+\epsilon)}{\epsilon} = 0.16
+  \end{equation}
+  As a less cumbersome notation we prefer $P_D(5)=0.16$ or
+  $P_R(5)=0.16$, where $P$ denotes either a probability mass function
+  or a probability density function.  We only use a subscript when it
+  is necessary to specify which function we mean.
+
+  In general we use the following conventions:
+  \begin{symbdescription}
+  \item[$X$] Upper case indicates a random variable.  Although the
+    notation does not suggest it, the notion of a random variable
+    includes a set of possible values or outcomes and a probability
+    distribution for those values.
+  \item[$x$] Lower case indicates an \emph{outcome} or value of a
+    random variable.
+  \item[${\cal X}$] Occasionally we use a calligraphic font to
+    indicate the \emph{alphabet} or set of all possible values of a
+    random variable $X$.
+  \item[$\ts{X}{1}{T}$] A stochastic process indexed by the sequence
+    $[1,2,3,\ldots,T]$, \ie,\\
+    $\ti{X}{1},\ti{X}{2}, \ldots, \ti{X}{T}$.
+  \item[$\ts{x}{1}{T}$] A particular possible outcome of the stochastic
+    process $\ts{X}{1}{T}$.
+  \item[$\ti{X}{t}$] The random variable that results from picking a
+    single component of a stochastic process.
+  \item[$P(x)$] The probability (or density) that a random variable
+    will have the particular value $x$.  We do not put a subscript on
+    $P$ when the context permits us to drop it without ambiguity.
+  \item[$P_{\ti{X}{t}} \left(x \right)$] The probability that the
+    value of $\ti{X}{t}$ is $x$.
+  %% FixMe: This next label is a lot wider than the rest.  I cannot
+  %% FixMe: figure out how to move the margin for only one \item so
+  %% FixMe: I am leaving it the way it is.  Good Enough?
+  \item[$P_{\ti{X}{t+1}|\ti{X}{t}} \left(x_1|x_2 \right)$] The
+    conditional probability that the value of $\ti{X}{t+1}$ is $x_1$
+    given that the value of $\ti{X}{t}$ is $x_2$.
+  \item[$\mu(\beta)$] The probability that an outcome is in the
+    \emph{set} $\beta$.  We occasionally use this notation from
+    measure theory in Chapter~\ref{chap:toys}.
+  \item[$P \left(x|\theta \right)$] Rather than a subscript, we
+    occasionally use a conditioning variable to specify one of many
+    possible probability distributions.
+ \end{symbdescription}
+
+  \section*{Symbols}
+  The following symbols usually have the meanings described below:
+}
+\cleardoublepage%
+\markboth{\nomname}{\nomname}%% Required to get correct page heading labels.
+\printnomenclature
+% End ``Notation'' material
+
+\chapter*{Bibliography}
+\addcontentsline{toc}{chapter}{Bibliography}%
+\ReviewerNote{Reviewer4 wants bibliography structured into basic books,
+  comprehensive books, etc.}
+\bibliography{hmmds}% \bibliographystyle is set in class definition.
+
+%%% \printindex prints the label ``Index'' already, and also seems to
+%%% do a \clearpage first.
+%%%
+\addcontentsline{toc}{chapter}{Index}%
+\printindex[default][Page numbers set in \textbf{bold} type indicate
+that the entry refers to a definition.]
+
+\begin{CVSID}
+%%%$Id: main.tex,v 1.69 2009/05/22 22:27:59 amfsr Exp $
+\end{CVSID}
+\end{document}
+%%%---------------
+%%% Local Variables:
+%%% eval: (load-file "hmmkeys.el")
+%%% End:

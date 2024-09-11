@@ -1,0 +1,1791 @@
+\chapter{Basic Algorithms}
+\label{chap:algorithms}
+
+\ReviewerNote{Reviewer5 says to increase the intuition to equation ratio.
+  Reviewer4 wants more illustrations and examples.  Shari says put
+  Viterbi before Forward.  Patrick says put Forward first. }
+
+In Section~\ref{sec:intro_hmm} we mentioned the Viterbi algorithm for
+finding the state sequence that has the highest probability given an
+observation sequence, the forward algorithm for calculating the
+probability of an observation sequence, and the Baum Welch algorithm
+for finding a parameter vector that at least locally maximizes the
+likelihood given an observation sequence.  This chapter explains the
+details of those algorithms.  Much of the literature on the algorithms
+and much of the available computer code uses Ferguson's
+\cite{Ferguson80} notation.  In particular, Rabiner's \cite{Rabiner89}
+widely cited article follows Ferguson's notation.  Let us begin by
+establishing our notation for the model parameters.
+\setlength{\nomlabelwidth}{2.7cm}%
+\begin{symbdescription}
+\item[$\bm{P_{\ti{S}{t+1}|\ti{S}{t}}(s|{\tilde s})}$] The probability that
+  at time $t+1$ the system will be in state $s$ given that at time
+  $t$ it was in state ${\tilde s}$.  Notice that the parameter is independent
+  of time $t$.  Ferguson called these parameters \emph{the $A$ matrix}
+  with $a_{i,j} = P_{\ti{S}{t+1}|\ti{S}{t}}(s|{\tilde s})$.
+\item[$\bm{P_{\ti{S}{1}}(s)}$] The probability that the system will
+  start in state $s$ at time 1.  Ferguson used $a$ to represent this
+  vector of probabilities with $a_i = P_{\ti{S}{1}} \left(s \right)$.
+\item[$\bm{P_{\ti{Y}{t}|\ti{S}{t}}(y_k|{\tilde s})}$] The probability that
+  the observation value is $y_k$ given that the system is in state ${\tilde s}$.
+  Ferguson used $b$ to represent this with $b_j(k) =
+  P_{\ti{Y}{t}|\ti{S}{t}} \left(y_k|{\tilde s} \right)$.
+\item[$\bm{\parameters}$] The entire collection of parameters.  For
+  example, iteration of the Baum Welch algorithm produces a sequence
+  of parameter vectors $\ts{\parameters}{1}{N}$ with
+  $P\left(\ts{y}{1}{T}|\ti{\parameters}{n+1}\right) \geq
+  P\left(\ts{y}{1}{T}|\ti{\parameters}{n}\right)\, : 1 < n < N$.
+  Instead of $\parameters$, Ferguson used $\lambda$ to denote the
+  entire collection of parameters.
+  \nomenclature[gh]{$\bm{\theta}$}{The entire collection of
+    parameters that defines a model.}
+\end{symbdescription}
+
+\section{The Forward Algorithm}
+\label{sec:forward}
+\index{forward algorithm|textbf}
+
+Given $\parameters$, the forward algorithm calculates
+$P(\ts{y}{1}{T}|\parameters)$, and several useful intermediate terms.
+Figure~\ref{fig:forward} sketches the basic recursion's structure.
+Since we are considering only one set of parameters, we will drop the
+dependence of probabilities on $\parameters$ from the notation for the
+remainder of this section.  In the example of Eqn.~\eqref{eq:pcalc} we
+found that we could calculate the right hand terms of
+\begin{equation*}
+   P\left( \ts{y}{1}{T} \right) = \sum_{\ts{s}{1}{T}}
+   P\left( \ts{y}{1}{T},\ts{s}{1}{T} \right)
+\end{equation*}
+easily from the model assumptions.  Unfortunately, the number of
+possible sequences $\ts{s}{1}{T}$ is exponential in $T$, and it is
+impossible to do the sum for even modest lengths $T$.
+
+\begin{sidewaysfigure}[htbp]
+  %% 0.75\textheight is approx 5.7 in.  The .eps is exactly that size.
+  %% The widths for the minipages below are taken by measuring the
+  %% ovals inside of XFig.
+  \centering{\plotsize%
+    %% Column a
+    \def\colaa{$\alpha(s_1,t-1)$}%
+    \def\colab{$\alpha(s_2,t-1)$}%
+    \def\colac{$\alpha(s_3,t-1)$}%
+    %% Column b
+    \def\colba{$P \left(s_1|\ts{y}{1}{t-1} \right)$}%
+    \def\colbb{$P \left(s_2|\ts{y}{1}{t-1} \right)$}%
+    \def\colbc{$P \left(s_3|\ts{y}{1}{t-1} \right)$}%
+    \def\sumeqforwardAthree{%
+      \begin{minipage}[t]{1.8in}
+        \raggedright%
+        Weighted\\%
+        sum of prior\\%
+        $\alpha$'s\\%
+        Eqn.~\eqref{eq:forwardA3}
+      \end{minipage}}%
+    %% Column c
+    \def\colca{$P \left(s_1,\ti{y}{t}|\ts{y}{1}{t-1} \right)$}%
+    \def\colcb{$P \left(s_2,\ti{y}{t}|\ts{y}{1}{t-1} \right)$}%
+    \def\colcc{$P \left(s_3,\ti{y}{t}|\ts{y}{1}{t-1} \right)$}%
+    \def\prdeqforwardBtwo{%
+      \begin{minipage}[t]{2.3in}
+        \raggedright%
+        Multiply\\%
+        observation\\%
+        probability\\%
+        Eqn.~\eqref{eq:forwardB2}
+      \end{minipage}}%
+    %% Column d
+    \def\coldb{$P(\ti{y}{t}|\ts{y}{1}{t-1})$}%
+    \def\prdeqforwardC{%
+      \begin{minipage}[t]{1.8in}
+        \raggedright%
+        Add, to get\\%
+        $\gamma(t)$, $P \left(\ti{y}{t}|\ts{y}{1}{t-1} \right)$\\%
+        Eqn.~\eqref{eq:forwardC}
+      \end{minipage}}%
+    %% Column e
+    \def\colea{$\alpha(s_1,t)$}%
+    \def\coleb{$\alpha(s_2,t)$}%
+    \def\colec{$\alpha(s_3,t)$}%
+    \def\quoteqforwardD{%
+      \begin{minipage}[t]{1.8in}
+        \raggedright%
+        Normalize\\%
+        new $\alpha$'s\\%
+        Eqn.~\eqref{eq:forwardD}
+      \end{minipage}}%
+    \input{figs/forward.eps_t}}
+  \vspace{5 em}
+  \caption[\comment{fig:forward }Dependency relations in the forward algorithm.]%
+  {Dependency relations in the forward algorithm (See
+    Eqns.~\eqref{eq:forwardA}-\eqref{eq:forwardD} in the text).}
+  \label{fig:forward}
+\end{sidewaysfigure}
+\afterpage{\clearpage}%% Print this right here please.
+
+The forward algorithm regroups the terms and produces the desired
+result using order $T$ calculations.  For each time $t:\, 1 < t \leq
+T$ we calculate $P(\ti{y}{t}|\ts{y}{1}{t-1})$, and in principle we can
+write
+\begin{equation*}
+  P(\ts{y}{1}{T}) = P(\ti{y}{1}) \prod_{t=2}^T P(\ti{y}{t}|\ts{y}{1}{t-1}).
+\end{equation*}
+However the values of $P(\ti{y}{t}|\ts{y}{1}{t-1})$ are typically
+small compared to 1, and the product of many such terms is too small
+to be represented even in double precision.  Working with logarithms
+avoids underflow:
+
+\begin{equation}
+  \mlabel{eq:logP}
+  \log\left( P(\ts{y}{1}{T}) \right) = \log\left( P(\ti{y}{1})
+ \right) + \sum_{t=2}^T \log\left( P(\ti{y}{t}|\ts{y}{1}{t-1})\right).
+\end{equation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%
+%%% #1 = time #2 = state
+\newcommand{\alphax}[2]{%
+  \psdblframebox{%
+    P_{S(#1)|\ts{Y}{1}{#1}}\left(#2 |\ts{y}{1}{#1} \right)%
+  }%
+}%
+%%%
+%%%
+\newcommand{\prealpha}{%
+  \psframebox{%
+    P_{\ti{S}{t}|\ts{Y}{1}{t-1}} \left(s | \ts{y}{1}{t-1} \right)%
+  }%
+}%
+%%%
+\newcommand{\gammax}{%
+  \psdblframebox[framearc=0.3]{%
+    P(\ti{y}{t}|\ts{y}{1}{t-1})%
+  }%
+}%
+%%%
+%%%
+\newcommand{\pregamma}{%
+  \psframebox[framearc=0.3]{%
+    P_{\ti{S}{t},\ti{Y}{t}|\ts{Y}{1}{t-1}} \left(s,\ti{y}{t}|\ts{y}{1}{t-1}\right)%
+  }%
+}%
+%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+For each time step we do the four calculations specified in the
+equations below\footnote{In Section~\ref{sec:Clarity} we present four
+  lines of python code that implement these four calculations.}.  In
+these equations we use boxes to emphasize repeated instances of the
+same quantity.  The algorithm saves the intermediate results
+%
+\nomenclature[ga]{$\alpha(s,t)$}{The conditional probability that at time
+  $t$ the system is in state $s$ given the observations up to the
+  present,
+  \begin{equation*}
+    \alpha(s,t) \equiv  P_{S(t)"|\ts{Y}{1}{t}}\left(s "|\ts{y}{1}{t}
+    \right).
+  \end{equation*}
+  Also called the forward updated distribution in the Kalman filter
+  literature.}
+%
+\nomenclature[gc]{$\gamma(t)$}{The probability of the present observation
+  given the history.}%, $P(y(t)|y_1^{t-1}$.}
+\begin{align}
+  \label{eq:alpha}
+  \alpha(s,t) &\equiv \alphax{t}{s}\\
+  \label{eq:gamma}
+  \ti{\gamma}{t} &\equiv \gammax .
+\end{align}
+In words\footnote{In Ferguson's notation $\alpha(s,t) \equiv
+  P_{\ti{S}{t},\ts{Y}{1}{t}} \left(s,\ts{y}{1}{t} \right)$.  Our
+  notation differs from that by a factor of $P(\ts{y}{1}{t})$.
+  Ferguson did not have notation for the term
+  $P(\ti{y}{t}|\ts{y}{1}{t-1})$ which we call $\gamma$, but he did use
+  $\gamma$ for quantities that we will denote by $w$ in
+  Eqns.~\eqref{eq:wit} and \eqref{eq:wijt}.}, $\alpha(s,t)$ is the
+conditional probability of being in state $s$ at time $t$ given all
+of the observations up to time $t$ and $\ti{\gamma}{t}$ is the
+conditional probability of the observation at time $t$ given all of
+the previous observations.  To initialize the algorithm, one assigns
+\begin{equation*}
+\alpha(s,1) = P_{\ti{S}{1}|\ti{Y}{1}}(s|\ti{y}{1}) =
+\frac{P_{\ti{S}{1}}(s)P_{\ti{Y}{t}|\ti{S}{t}}(\ti{y}{1}|s)}
+{\sum_{{\tilde s}}P_{\ti{S}{1}}({\tilde s})P_{\ti{Y}{t}|\ti{S}{t}}(\ti{y}{1}|{\tilde s})}
+~\forall s \in \states
+\end{equation*}
+where the distributions $P_{\ti{S}{1}}$ and $P_{\ti{Y}{t}|\ti{S}{t}}$
+are model parameters.
+\begin{description}
+\item[Forecast the Distribution of States] Find for time $t$ and each
+  possible state $s$, the conditional probability, given the
+  previous observations, of the state being $s$ at time $t$:
+  \begin{subequations}
+    \label{eq:forwardA}
+    \begin{align}
+      \mlabel{eq:forwardA1}
+      \prealpha & = \sum_{{\tilde s}\in\states}
+      P_{\ti{S}{t},\ti{S}{t-1}|\ts{Y}{1}{t-1}} \left( s, {\tilde s}
+      |\ts{y}{1}{t-1} \right)\\
+      \mlabel{eq:forwardA2}
+      & = \sum_{{\tilde s}\in\states} \left(
+        P_{\ti{S}{t}|\ti{S}{t-1},\ts{Y}{1}{t-1}}
+        \left( s|{\tilde s},\ts{y}{1}{t-1} \right) \right. \nonumber \\ &
+      \left. \times \alphax{t-1}{{\tilde s}} \right) \\
+      \mlabel{eq:forwardA3}
+      & = \sum_{{\tilde s}\in\states} P_{\ti{S}{t}|\ti{S}{t-1}} \left( s|{\tilde s} \right)
+      \cdot \alpha({\tilde s},t-1) .
+    \end{align}
+  \end{subequations}
+  We justify the operations as follows:
+  \begin{description}
+  \item[\eqref{eq:forwardA1}] $P(a) = \sum_b P(a,b)$
+  \item[\eqref{eq:forwardA2}] $P(a|b)\cdot P(b) = P(a,b)$
+  \item[\eqref{eq:forwardA3}] Assumption of
+    Eqn.~\eqref{eq:assume_markov}: The state process is Markov
+  \end{description}
+\item[Update the Joint Probability of States and the Current
+  Observation] Find for time $t$ and each possible state $s$, the
+  conditional probability, given the previous observations, of the
+  state being $s$ and the observation being $\ti{y}{t}$ (the observation
+  actually observed):
+  \begin{subequations}
+    \label{eq:forwardB}
+    \begin{align}
+      \mlabel{eq:forwardB1}
+      \pregamma &= P_{\ti{Y}{t} |
+        \ti{S}{t},\ts{Y}{1}{t-1}}\left(\ti{y}{t} |s, \ts{y}{1}{t-1}
+      \right) \nonumber \\& \times \prealpha\\
+      \mlabel{eq:forwardB2}
+      &= P_{\ti{Y}{t} | \ti{S}{t}}\left(\ti{y}{t} |s \right) \cdot
+      \prealpha .
+    \end{align}
+  \end{subequations}
+We justify the equations as follows:
+\begin{description}
+\item[\eqref{eq:forwardB1}]  $P(a|b)\cdot P(b) = P(a,b)$
+\item[\eqref{eq:forwardB2}] Assumption of
+  Eqn.~\eqref{eq:assume_output}: The observations are conditionally
+  independent given the states
+\end{description}
+\item[Calculate the Conditional Probability of the Current Observation]
+  Find for time $t$, the conditional probability, given the previous
+  observations, of the observation being $\ti{y}{t}$ (the observation actually
+  observed):
+  \begin{align}
+    \mlabel{eq:forwardC}
+    \gammax &= \sum_{s \in \states} \pregamma .
+  \end{align}
+Equation~\eqref{eq:forwardC} is an application of $P(a) = \sum_b P(a,b)$.
+\item[Normalize the Updated Distribution of States] For each possible
+  state $s$, find the conditional probability of being in that state
+  at time $t$ given all of the observations up to time $t$.  Note that
+  this differs from the first calculation in that the
+  conditioning event includes $\ti{y}{t}$:%
+  \begin{subequations}
+    \label{eq:forwardD}
+    \begin{align}
+      \mlabel{eq:forwardD1}
+      \alpha(s,t) &\equiv
+      \alphax{t}{s} \\
+      \mlabel{eq:forwardD2}
+      &= \pregamma \div \gammax
+    \end{align}
+  \end{subequations}
+  Equation \eqref{eq:forwardD2} is an application of Bayes rule, \ie,
+  $P(a|b)\cdot P(b) = P(a,b)$.
+\end{description}
+
+\section{The Viterbi Algorithm}
+\label{sec:viterbi}
+
+For some applications, one must estimate the sequence of states based
+on a sequence of observations.  The Viterbi algorithm %
+\index{Viterbi algorithm|textbf}%
+finds the \emph{best} sequence $\ts{\hat s}{1}{T}$ in the sense of
+maximizing the probability $P\left( \ts{s}{1}{T}|\ts{y}{1}{T}
+\right)$.  That is equivalent to maximizing $\log \left( P\left(
+    \ts{y}{1}{T},\ts{s}{1}{T} \right) \right)$ because $P \left(
+  \ts{y}{1}{T} \right)$ is simply a constant, and the $\log$ is
+monotonic, ie,
+\begin{align*}
+  \ts{\hat s}{1}{T} &\equiv \argmax_{\ts{s}{1}{T}}
+  P(\ts{s}{1}{T}|\ts{y}{1}{T})\\
+  &= \argmax_{\ts{s}{1}{T}} \left( P(\ts{s}{1}{T}|\ts{y}{1}{T}) \cdot
+    P(\ts{y}{1}{T}) \right)\\
+  &= \argmax_{\ts{s}{1}{T}} \log \left( P(\ts{y}{1}{T}),\ts{s}{1}{T}
+  \right).
+\end{align*}
+As in the implementation of the forward algorithm, we use logs to
+avoid numerical underflow.  If we define $\log \left( P\left(
+    \ts{y}{1}{t}, \ts{s}{1}{t} \right) \right)$ as the
+\emph{utility} (negative cost) of the state sequence $\ts{s}{1}{t}$
+given the observation sequence $\ts{y}{1}{t}$, then the Viterbi
+algorithm finds the maximum utility state sequence.
+
+Initially one calculates $\log\left(P_{\ti{Y}{1},\ti{S}{1}}
+  \left(\ti{y}{1}, s \right) \right)$ for each state $s \in
+\states$.  Then for each successive time step $t: 1 < t \leq T$ one
+considers each state and determines the best predecessor for that
+state and the utility of the best state sequence ending in that state.
+The Viterbi algorithm and the forward algorithm have similar
+structures (see Fig.~\ref{fig:forward} and Fig.~\ref{fig:viterbiB}).
+Roughly, the forward algorithm does a sum over predecessor states,
+while the Viterbi algorithm finds a maximum. We use the following
+notation and equations to describe and justify the algorithm.
+
+\ReviewerNote{Reviewer 3 wants a little more informal verbal
+  discussion of how the different algorithms work.  He specifically
+  mentions the Viterbi algorithm.  Patrick wants ``more structure''.}
+
+\subsubsection*{Notation:}
+\begin{description}
+\item[$\bm{{\hat s}_1^t(s)}$ The best sequence ending in $\bm{s}$]
+  Of all length $t$ state sequences ending in $s$, we define
+  $\ts{\hat s}{1}{t}(s)$ to be the sequence with the highest joint
+  probability with the data, \ie,
+  \begin{equation*}
+    \ts{\hat s}{1}{t}(s) = \argmax_{ \ts{s}{1}{t}:\ti{s}{t}=s}
+    P\left(\ts{y}{1}{t}, \ts{s}{1}{t} \right).
+  \end{equation*}
+\item[$\bm{\nu(t,s)}$ The \emph{utility} of the best sequence ending
+  in $\bm{s}$] %
+  \nomenclature[gn]{$\nu(t,s)$}{Used in discussing the Viterbi
+    algorithm to denote the \emph{utility} of the best sequence ending
+    in state $s$.
+    \begin{equation*}
+      \nu(t,s) = \log\left( P\left(\ts{y}{1}{t}, \ts{\hat s}{1}{t}(s)
+        \right) \right)
+    \end{equation*}} % end nomenclature
+  This is simply the log of the joint
+  probability of the data with the best state sequence defined above,
+  \ie
+  \begin{equation*}
+    \nu(t,s) = \log\left( P\left(\ts{y}{1}{t}, \ts{\hat s}{1}{t}(s)
+      \right) \right)
+  \end{equation*}
+\end{description}
+\subsubsection*{Equations:}
+Equations~\eqref{eq:cat} and \eqref{eq:nuprop} summarize the Viterbi
+algorithm.  When finally deciphered, one finds Eqn.~\eqref{eq:cat} is
+the vacuous statement that the best state sequence ending in $s$ at
+time $t+1$ consists of $s$ concatenated with the best sequence ending
+in $s'$ at time $t$, where $s'$ is the best predecessor of $s$.
+\begin{equation}
+  \label{eq:cat}
+  \ts{\hat s}{1}{t+1} (s) = \left( \left[\ts{\hat s}{1}{t}
+      (s'(s,t+1))\right],s \right)
+\end{equation}
+Equation~\eqref{eq:nuprop} says that the total utility of the best
+path to state $s$ at time $t+1$ is the utility of the best
+predecessor plus two terms, one that accounts for the transition from
+the predecessor to $s$ and one that accounts for the probability of
+state $s$ producing the observation $\ti{y}{t+1}$.  The equation
+follows from taking logs of
+\begin{multline*}
+  P_{\ti{Y}{t+1},\ts{Y}{1}{t},\ti{S}{t+1},\ts{S}{1}{t}}
+  \left(\ti{y}{t+1},\ts{y}{1}{t},s,\ts{s}{1}{t} \right) =\\
+  P\left(\ts{y}{1}{t}, \ts{s}{1}{t} \right) \cdot
+  P_{\ti{S}{t+1}|\ti{S}{t}} \left(s|\ti{s}{t} \right) \cdot
+  P_{\ti{Y}{t+1}|\ti{S}{t+1}} \left(\ti{y}{t+1}|s \right)
+\end{multline*}
+which in turn follows from the model assumptions
+(Eqn.~\eqref{eq:assume_markov} and Eqn.~\eqref{eq:assume_output}).
+\begin{equation}
+  \label{eq:nuprop}
+  \begin{split}
+    \nu (t+1,s) = \nu(t,s'(s,t+1)) +
+    \log\left(P_{\ti{S}{t+1}|\ti{S}{t}} \left(s|s'(s,t+1) \right)\right)\\
+    \quad + \log \left( P_{\ti{Y}{t+1}|\ti{S}{t+1}}
+      \left(\ti{y}{t+1}|s\right)\right)
+  \end{split}
+\end{equation}
+
+\subsubsection*{Algorithm:}
+Following the steps in Fig.~\ref{fig:viterbi}, note that the algorithm
+starts by assigning a utility for each state using the first
+observation and then iterates forward through time.  For each time
+step $t$ and each possible next state $s_\text{next}$ at time $t+1$,
+the algorithm finds and records the best predecessor state $s_\text{best}$
+at time $t$.  Then the algorithm calculates the utility of
+$s_\text{next}$ at time $t+1$ on the basis of the utility of the best
+predecessor, the conditional transition probability, and the
+conditional observation probability.  At the final time $T$ the
+algorithm selects the highest utility endpoint, \ie,
+\begin{equation*}
+  \hat {\ti{s}{T}} = \argmax_s \nu(T,s),
+\end{equation*}
+and then backtracks through the optimal predecessor links to produce
+the entire highest utility path.
+%%%
+%%% fig:viterbi
+%%%
+%%% FixMe: \addcontentsline{loa}{section}{Pseudocode for the Viterbi Algorithm}
+%%% FixMe: Is this a "figure" or an "algorithm"?
+\begin{figure}[htbp]
+  \begin{center}
+    \def\tnext{_{\text{next}}}%
+    \def\told{_{\text{old}}}%
+    \def\tbest{_{\text{best}}}%
+    \fbox{
+      \begin{minipage}{0.90\textwidth}
+        \begin{tabbing}
+          XX\=XX\=XX\=XX\=XX\=XX\=XX\=XX\= \kill
+          Initialize: \> \+ \\
+          for each $s$\\ \> \+
+          $\nu\tnext (s) = \log \left( P_{\ti{Y}{1},\ti{S}{1}}
+            \left(\ti{y}{1},s \right)\right)$ \\ \\ \< \- \< \-
+          Iterate: \> \+ \\
+          for $t$ from 1 to $T$\\ \> \+
+          Swap $\nu\tnext \leftrightarrow \nu\told$\\
+          for each $s\tnext$\\ \> \+
+          \\ \# Find best predecessor\\
+          $s\tbest = \argmax_{s\told}\left( \nu\told(s\told) + \log\left(
+              P_{\ti{S}{t}|\ti{S}{t-1}} \left(s\tnext|s\told \right) \right)\right)$ \\
+          \\ \# Update $\nu$\\
+          $\nu\tnext(s\tnext) =\,$ \= $\nu\told(s\tbest)$ \\ \> \+
+          $+ \log\left( P_{\ti{S}{t}|\ti{S}{t-1}} \left(s\tnext|s\tbest
+            \right) \right)$ \\
+          $ + \log\left( P_{\ti{Y}{t}|\ti{S}{t}} \left(\ti{y}{t}|s\tnext \right)
+          \right)  $ \\ \> \-
+          \\ \# Update predecessor array\\
+          Predecessor[$s\tnext,t$] = $s\tbest$\\ \\
+          \< \- \< \- \< \- %This stuff is for tabs \< \-
+          Backtrack: \> \+ \\
+          $s_1^T = \hat s_1^T(\bar s)$ , where $\bar s =
+          \argmax_s \nu\tnext(s)$ at $t=T$
+        \end{tabbing}
+      \end{minipage}
+    }
+    \caption[\comment{fig:viterbi }Pseudocode for the Viterbi Algorithm.]%
+    {Pseudocode for the Viterbi Algorithm}
+    \label{fig:viterbi}
+  \end{center}
+\end{figure}
+%%%
+%%% fig:viterbiB
+%%%
+\begin{sidewaysfigure}[htbp]
+  %% 0.75\textheight is approx 5.7 in.  The .eps is exactly that size.
+  %% The widths for the minipages below are taken by measuring the
+  %% ovals inside of XFig.
+  \centering{\plotsize%
+    %% Column a
+    \def\colaa{$\nu(s_1,t-1)$}%
+    \def\colab{$\nu(s_2,t-1)$}%
+    \def\colac{$\nu(s_3,t-1)$}%
+    %% Column b
+    \def\colba{$ \begin{matrix} s'(s_1,t) = \argmax_{{\tilde s}}\\%
+        \log\left(P(s_1|{\tilde s}) \right)\\+ \nu({\tilde s},t-1)
+      \end{matrix}$}%
+    \def\colbb{$ \begin{matrix} s'(s_2,t) = \argmax_{{\tilde s}}\\%
+        \log\left(P(s_2|{\tilde s}) \right)\\+ \nu({\tilde s},t-1)
+      \end{matrix}$}%
+    \def\colbc{$ \begin{matrix} s'(s_3,t) = \argmax_{{\tilde s}}\\%
+        \log\left(P(s_3|{\tilde s}) \right)\\+ \nu({\tilde s},t-1)
+      \end{matrix}$}%
+    \def\bestpred{%
+      \begin{minipage}[t]{3.9in}
+        \raggedright%
+        For each state $s$ find the best\\%
+        predecessor $s'(s,t)$, \ie, the\\%
+        one that maximizes\\%
+        $\log\left(P(s|s'(s,t)) \right) + \nu(s'(s,t),t-1)$.\\%
+        The bolder lines indicate best\\%
+        predecessors.
+      \end{minipage}}%
+    %% Column c
+    \def\colca{$\nu(s_1,t)$}%
+    \def\colcb{$\nu(s_2,t)$}%
+    \def\colcc{$\nu(s_3,t)$}%
+    \def\newnu{%
+      \begin{minipage}[t]{2.7in}
+        \raggedright%
+        For each state $s$\\%
+        calculate $\nu(s,t)$\\%
+        by including the\\%
+        conditional probability\\%
+        of the observation $\ti{y}{t}$,\\%
+        \ie, $ \nu(s,t) = \log\left(P(\ti{y}{t}|s) \right) $\\
+        \qquad$+ \log\left(P(s|s'(s,t)) \right)$\\
+        \qquad$+ \nu(s'(s,t),t-1)$.
+      \end{minipage}}
+    %%
+    \input{figs/viterbiB.eps_t}}
+  \vspace{7em}
+  \caption[\comment{fig:viterbiB }Dependency relations in the Viterbi algorithm.]%
+  {Dependency relations in the Viterbi algorithm.}
+  \label{fig:viterbiB}
+\end{sidewaysfigure}
+
+
+\section{The Baum Welch Algorithm}
+\label{sec:baum_welch}
+
+Given an initial vector of model parameters $\parameters$ for an HMM
+and a sequence of observations $\ts{y}{1}{T}$, iteration of the Baum
+Welch algorithm \index{Baum Welch algorithm|textbf} produces a
+sequence of parameter vectors $\ts{\parameters}{1}{N}$ that almost
+always converges to a local maximum of the likelihood function
+$P_{\parameters} \left( \ts{y}{1}{T} \right)$.  The algorithm was
+developed by \index*{Baum} and collaborators \cite{Baum70,Baum67} in
+the 1960's at the Institute for Defense Analysis in Princeton.  In
+each iteration, it estimates the distribution of the unobserved states
+and then maximizes the expected log likelihood with respect to that
+estimate.  Although Baum et al.\ limited their attention to HMMs, the
+same kind of iteration works on other models that have unobserved
+variables.  In 1977, Dempster Laird and Rubin \cite{Dempster77} called
+the general procedure the \emph{EM algorithm}.
+\index{EM (expectation-maximization) algorithm}%
+\index{expectation-maximization (EM) algorithm}%
+
+The EM algorithm operates on models $P_{\Y,\bS,\parameters} $ with
+parameters $\parameters$ for a mix of data that is observed $(\Y)$ and
+data that is unobserved $(\bS)$.  (For our application, $\Y$ is a
+sequence of observations $\ts{Y}{1}{T}$ and $\bS$ is a sequence of
+discrete hidden states $\ts{S}{1}{T}$.)  The steps in the algorithm
+are:
+\begin{enumerate}
+\item Guess\footnote{Although a symmetric model in which the
+    transition probability from each state to every other state is the
+    same and the observation probabilities are all uniform is easy to
+    describe, such a model is a bad choice for $\ti{\parameters}{1}$
+    because the optimization procedure will not break the symmetry of
+    the states.}  a starting value of $\ti{\parameters}{1}$, and set
+  $n=1$.
+\item \label{EM_loop} Choose $\ti{\parameters}{n+1}$ to maximize
+  an \emph{auxiliary function} $Q$
+                                %
+  \begin{equation}
+    \label{eq:EMmax}
+    \ti{\parameters}{n+1} = \argmax_{\parameters} Q(\parameters,\ti{\parameters}{n})
+  \end{equation}
+  where
+  \begin{equation}
+    \label{eq:Qdef}
+    Q(\parameters',\parameters) \equiv \EV_{P \left(\bS|\y,\parameters \right)}
+    \left( \log P(\y,\bS,\parameters') \right)
+  \end{equation}
+  (Here the notation $\EV_{P \left(\bS|\y,\parameters
+    \right)}(F(\bS))$ means the expected value of $F(\bS)$ over all
+  values of $\bS$ using the distribution $P \left(\bS|\y,\parameters
+  \right)$.)%
+  \nomenclature[rEV]{$\EV_{q(X)}(F(X))$}{The expected value of
+    the function $F$ over random variable $X$ with distribution $q$.}
+\item If not converged, go to~\ref{loop} with $n \leftarrow n+1.$
+\end{enumerate}
+
+We defer further discussion of the general EM algorithm to Section
+\ref{sec:EM} and now proceed to the details of its application to
+HMMs, \ie, the Baum Welch algorithm.  The work of an iteration of the
+EM algorithm is done in step~\ref{EM_loop}.  To apply it to an HMM, we
+first characterize $P \left(\ts{s}{1}{T}|\ts{y}{1}{T}, \parameters
+\right)$ by a combination of the \emph{forward algorithm} that we
+already described in Section~\ref{sec:forward} and the \emph{backward
+  algorithm} which we will describe in the next section.  Using the
+characterization of $P \left(\ts{s}{1}{T}|\ts{y}{1}{T}, \parameters
+\right)$, we describe the optimization specified by
+Eqn.~\eqref{eq:EMmax} in Section~\ref{sec:reestimation}.
+
+\subsection{The Backward Algorithm}
+\label{sec:backward}
+
+The \index{backward algorithm} backward algorithm is similar to the
+forward algorithm in structure and complexity, but the terms are
+neither as easy to interpret nor as clearly useful.  After running
+both the forward algorithm and the backward algorithm, one can
+calculate $P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s|\ts{y}{1}{T} \right)$,
+the conditional probability of being in any state $s \in \states$ at
+any time $t: 1\leq t \leq T$ given the entire sequence of
+observations.  The forward algorithm provides the terms $\alpha(s,t)
+\equiv P_{\ti{S}{t}|\ts{Y}{1}{t}} \left(s|\ts{y}{1}{t} \right)\,
+\forall (s,t)$.  Thus the backward algorithm must provide terms, call
+them $\beta(s,t)$, with the values
+\begin{equation}
+  \label{eq:bw1} \beta(s,t) =
+  \frac{P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s|\ts{y}{1}{T} \right)}
+  {\alpha(s,t)} = \frac{P_{\ti{S}{t}|\ts{Y}{1}{T}}
+    \left(s|\ts{y}{1}{T} \right)}
+  {P_{\ti{S}{t}|\ts{Y}{1}{t}} \left(s|\ts{y}{1}{t} \right)}.
+\end{equation}
+\nomenclature[gb]{$\beta(s,t)$}{An intermediate quantity calculated in the
+  backwards algorithm which is used somewhat like $\alpha$ in the
+  forward algorithm.  One may use either of the following two
+  equations to define $\beta$
+  \begin{align*}
+    \beta(s,t) &= \frac{P_{\ts{Y}{t+1}{T}"|\ti{S}{t}}
+      \left(\ts{y}{t+1}{T}"|s
+      \right)} {P \left(\ts{y}{t+1}{T}"|\ts{y}{1}{t} \right)}\\
+    &= \frac{P_{\ti{S}{t}"|\ts{Y}{1}{T}} \left(s"|\ts{y}{1}{T} \right)}
+    {\alpha(s,t)} = \frac{P_{\ti{S}{t}"|\ts{Y}{1}{T}}
+      \left(s"|\ts{y}{1}{T} \right)} {P_{\ti{S}{t}"|\ts{Y}{1}{t}}
+      \left(s"|\ts{y}{1}{t} \right)}.
+  \end{align*}
+  The interpretation of $\beta$ is less intuitive than the
+  interpretation of $\alpha$.  It is also called the backward forecast
+  distribution in the Kalman filter literature.}% end nomenclature
+Invoking Bayes rule and the model assumptions we find
+\begin{align}
+  \mlabel{eq:bw2} \beta(s,t) &= \frac{P_{\ts{Y}{1}{T},\ti{S}{t}}
+    \left(\ts{y}{1}{T},s \right)\cdot P \left(\ts{y}{1}{t} \right)}
+  {P_{\ts{Y}{1}{t},\ti{S}{t}}
+    \left(\ts{y}{1}{t},s \right)\cdot P \left(\ts{y}{1}{T} \right)}\\
+  \mlabel{eq:bw3} &= \frac{P_{\ts{Y}{t+1}{T}|\ts{Y}{1}{t},\ti{S}{t}}
+    \left(\ts{y}{t+1}{T}|\ts{y}{1}{t},s \right)} {P
+    \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right)}\\
+  \label{eq:bw4}
+  & = \frac{P_{\ts{Y}{t+1}{T}|\ti{S}{t}} \left(\ts{y}{t+1}{T}|s
+    \right)} {P \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right)}.
+\end{align}
+(Note that if $\alpha(s,t)=0$, Eqn.~\eqref{eq:bw1} is undefined, but
+we can nonetheless implement Eqn.~\eqref{eq:bw4}.)
+
+The algorithm starts at the final time $T$ with $\beta$ set to
+one\footnote{From the premises that $\alpha(s,t) \beta(s,t) =
+  P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s|\ts{y}{1}{T} \right)$ and
+  $\alpha(s,T) \equiv P_{S(T)|\ts{Y}{1}{T}}\left(s |\ts{y}{1}{T}
+  \right)$, we conclude that $\beta(s,T) = 1 ~\forall s$.} %
+for each state, $\beta(s,T) = 1,~\forall s \in \states$, and solves
+for $\beta$ at earlier times with the following recursion that goes
+\emph{backwards} through time:
+\begin{equation}
+  \label{eq:backformula}
+  \beta({\tilde s},t-1) = \sum_{s\in\states} \beta(s,t)
+  \frac{ P_{\ti{Y}{t}|\ti{S}{t}}
+    \left(\ti{y}{t}|s \right) \cdot P_{\ti{S}{t}|\ti{S}{t-1}}
+    \left(s|{\tilde s} \right)} {\ti{\gamma}{t}}
+\end{equation}
+Note that ${\ti{\gamma}{t} \equiv P \left( \ti{y}{t} |
+    \ts{y}{1}{t-1}\right)}$ is calculated by the forward algorithm and
+that the terms in the numerator are model parameters.  We justify
+Eqn.~\eqref{eq:backformula} by using Eqn.~\eqref{eq:bw4}
+\begin{align}
+  \beta({\tilde s},t-1) & \equiv \frac{P_{\ts{Y}{t}{T}|\ti{S}{t-1}}
+    \left(\ts{y}{t}{T}|{\tilde s} \right)}
+  {P \left(\ts{y}{t}{T}|\ts{y}{1}{t-1} \right)} \\
+  \mlabel{eq:back2}
+  &= \frac{\sum_{s\in\states} P_{\ts{Y}{t}{T},\ti{S}{t}|\ti{S}{t-1}}
+    \left(\ts{y}{t}{T},s|{\tilde s} \right)} {P
+    \left(\ts{y}{t}{T}|\ts{y}{1}{t-1} \right)}.
+\end{align}
+Next, factor each term in the numerator of Eqn.~\eqref{eq:back2} using
+Bayes rule twice then apply the model assumptions and the expression
+for $\beta(s,t)$ from Eqn.~\eqref{eq:bw4}:
+\begin{align*}
+  & P_{\ts{Y}{t}{T},\ti{S}{t}|\ti{S}{t-1}}\left( \ts{y}{t}{T},s|{\tilde s} \right)\\
+  \begin{split}
+    &\quad= P_{\ts{Y}{t+1}{T}|\ti{Y}{t},\ti{S}{t},\ti{S}{t-1}}
+       \left(\ts{y}{t+1}{T}|\ti{y}{t},s,{\tilde s} \right)\\
+    &\quad\qquad \cdot P_{\ti{Y}{t}|\ti{S}{t},\ti{S}{t-1}} \left(\ti{y}{t}|s,{\tilde s}
+       \right)\cdot P_{\ti{S}{t}|\ti{S}{t-1}} \left(s|{\tilde s} \right)
+  \end{split}\\
+  &\quad= P_{\ts{Y}{t+1}{T}|\ti{S}{t}} \left(\ts{y}{t+1}{T}|s\right)
+           \cdot P_{\ti{Y}{t}|\ti{S}{t}} \left(\ti{y}{t}|s \right) \cdot
+            P_{\ti{S}{t}|\ti{S}{t-1}} \left(s|{\tilde s} \right) \\
+  &\quad= \beta(s,t) \cdot P \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right)
+           \cdot P_{\ti{Y}{t}|\ti{S}{t}} \left(\ti{y}{t}|s \right) \cdot
+            P_{\ti{S}{t}|\ti{S}{t-1}} \left(s|{\tilde s} \right)
+\end{align*}
+Similarly, simplify the denominator of Eqn.~\eqref{eq:back2} using
+Bayes rule:
+\begin{equation*}
+  P \left(\ts{y}{t}{T}|\ts{y}{1}{t-1} \right) = P
+  \left(\ts{y}{t+1}{T}|\ts{y}{1}{t}  \right) \cdot {P \left(
+  \ti{y}{t}|\ts{y}{1}{t-1}\right)}
+\end{equation*}
+Finally by substituting these values into the fraction of
+\eqref{eq:back2}, we verify the recursion \eqref{eq:backformula}
+\begin{align}
+  \mlabel{eq:back3} \beta({\tilde s},t-1) &= \frac{\sum_{s\in\states}
+    \beta(s,t) \cdot P \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right)
+    \cdot P_{\ti{Y}{t}|\ti{S}{t}} \left(\ti{y}{t}|s \right) \cdot
+    P_{\ti{S}{t}|\ti{S}{t-1}} \left(s|{\tilde s} \right)} {P
+    \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right) \cdot {P \left(
+        \ti{y}{t}|\ts{y}{1}{t-1}\right)}} \\
+  \mlabel{eq:back4} &= \sum_{s\in\states} \beta(s,t) \frac{
+    P_{\ti{Y}{t}|\ti{S}{t}} \left(\ti{y}{t}|s \right) \cdot
+    P_{\ti{S}{t}|\ti{S}{t-1}} \left(s|{\tilde s} \right)} {\ti{\gamma}{t}}.
+\end{align}
+
+\subsection{Weights and Reestimation}
+\label{sec:reestimation}
+
+Each pass of the Baum Welch algorithm consists of the following steps:
+Run the forward algorithm described in Section~\ref{sec:forward} to
+calculate the values of $\alpha(s,t)$ and $\gamma(t)$ for each time $t
+\in [1,\ldots,T]$ and each state $s \in \states$; Run the backward
+algorithm described in Section~\ref{sec:backward} to calculate the
+values of $\beta({\tilde s},t)$; Reestimate the model parameters using the
+formulas in Table~\ref{tab:reestimation}.
+
+We write the reestimation formulas in terms of \emph{weights} which
+express the conditional probability of being in specific states at
+specific times given the observed data $\ts{y}{1}{T}$.  We denote the
+conditional probability of being in state $s$ at time $t$ given all of
+the data by
+\begin{equation}
+  \label{eq:wit}
+  w(s,t) \equiv P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s|\ts{y}{1}{T}
+  \right),
+\end{equation}
+\nomenclature[rwst]{$w(s,t)$}{In the reestimation phase of the Baum Welch
+  algorithm, the \emph{weight} assigned to state $s$ at time $t$,
+  \begin{equation*}
+    w(s,t) \equiv P_{\ti{S}{t}"|\ts{Y}{1}{T}} \left(s"|\ts{y}{1}{T}
+    \right).
+  \end{equation*}}% end nomenclature
+and we denote the conditional probability, given all of the data, of
+being in state $s$ at time $t$ and being in state ${\tilde s}$ at time
+$t+1$ by
+\begin{equation}
+  \label{eq:wijt}
+  {\tilde w}({\tilde s},s,t) \equiv P_{\ti{S}{t+1},\ti{S}{t}|\ts{Y}{1}{T}}
+  \left({\tilde s},s|\ts{y}{1}{T} \right).
+\end{equation}
+\nomenclature[rwsst]{$ {\tilde w}({\tilde s},s,t)$}{In the reestimation phase
+  of the Baum Welch algorithm, the \emph{weight} assigned to the
+  transition from state $s$ at time $t$ to state $\tilde s$ at time $t+1$,
+  \begin{equation*}
+     {\tilde w}({\tilde s},s,t) \equiv P_{\ti{S}{t+1},\ti{S}{t}"|\ts{Y}{1}{T}}
+  \left({\tilde s},s"|\ts{y}{1}{T} \right).
+  \end{equation*}}
+Table~\ref{tab:reestimation} (page \pageref{tab:reestimation})
+summarizes the formulas for the updated model parameters after one
+pass of the Baum Welch algorithm.
+
+To derive reestimation formulas for $P_{S(1)}$ and
+$P_{\ti{Y}{t}|\ti{S}{t}}$ we will consider a sum over all possible
+state sequences $\ts{s}{1}{T}$, \ie,
+\begin{equation}
+  \label{eq:witFFE}
+  w(s,t) = \sum_{\ts{s}{1}{T}:\ti{s}{t}=s}
+  P \left(\ts{s}{1}{T}|\ts{y}{1}{T}
+  \right).
+\end{equation}
+Since this is virtually unimplementable, the actual algorithm uses
+\begin{equation}
+  \label{eq:witalphabeta}
+  w(s,t) = \alpha(s,t) \beta(s,t).
+\end{equation}
+In fact, in Eqn.~\eqref{eq:bw1}, we chose the expression for $\beta$
+to make Eqn.~\eqref{eq:witalphabeta} true.
+
+Similarly, we will derive the reestimation formula for
+$P_{\ti{S}{t+1}|\ti{S}{t}}$ using
+\begin{equation}
+  \label{eq:wijtFFE}
+  {\tilde w}({\tilde s},s,t) = \sum_{\substack{\ts{s}{1}{T}:\ti{s}{t+1}={\tilde s},\\\ti{s}{t}=s}}
+  P \left(\ts{s}{1}{T}|\ts{y}{1}{T} \right),
+\end{equation}
+but in the algorithm we use
+\begin{equation}
+  \label{eq:wijtalphabeta}
+  {\tilde w}({\tilde s},s,t) = \frac{ \alpha(s,t) \cdot P_{\ti{S}{t+1}|\ti{S}{t}}
+    \left({\tilde s}|s \right)  \cdot P_{\ti{Y}{t+1}|\ti{S}{t+1}}
+    \left(\ti{y}{t+1}|{\tilde s} \right) \cdot \beta({\tilde s},t+t) }
+  {\ti{\gamma}{t+1}}.
+\end{equation}
+One can verify Eqn.~\eqref{eq:wijtalphabeta} using the model
+assumptions, the definitions of $\alpha$, $\beta$, and $\gamma$, and
+Bayes rule.
+
+\subsubsection{Reestimation}
+
+With Eqns.~\eqref{eq:witalphabeta} and \eqref{eq:wijtalphabeta} for
+$w(i,t)$ and ${\tilde w}({\tilde s},s,t)$ in terms of known quantities
+($\alpha$, $\beta$, $\gamma$, $\ts{y}{1}{T}$, and the old model
+parameters $\ti{\parameters}{n}$), we are prepared to use the formulas
+in Table \ref{tab:reestimation} to calculate new estimates of the
+model parameters, $\ti{\parameters}{n+1}$ with higher likelihood.
+
+\begin{table}[htbp]
+  \caption[\comment{tab:reestimation }Summary of reestimation formulas.]%
+  {Summary of reestimation formulas.\index{reestimation formulas}}
+  \centering{\plotsize%
+    \begin{minipage}{.7\textwidth}
+      Note that formulas for $w(s,t)$ and ${\tilde w}({\tilde s},s,t)$
+      appear in Eqns.~\eqref{eq:witalphabeta} and
+      \eqref{eq:wijtalphabeta} respectively.
+    \end{minipage}\\[1ex]
+%    \begin{tabular*}{0.98\textwidth}[H]{|l|r|l|}
+    \begin{tabular}[H]{|c|c|c|}
+      \hline
+      \rule{0pt}{2.5ex}Description & Expression & New Value \\
+      \hline
+      \rule{0pt}{2.5ex}Initial State Prob.
+      & $P_{\ti{S}{1}|\ti{\parameters}{n+1}} \left(s|\ti{\parameters}{n+1} \right)$
+      & $ w(s,1) $ \\[1.5ex]
+      State Transition Prob.
+      & $P_{\ti{S}{t+1}|\ti{S}{t},\ti{\parameters}{n+1}} \left({\tilde
+          s}|s, \ti{\parameters}{n+1} \right)$
+      & $ \frac {\sum_{t=1}^{T-1} {\tilde w}({\tilde s},s,t)} {\sum_{s'\in\states}
+        \sum_{t=1}^{T-1} {\tilde w}(s',s,t)}$ \\[2.5ex]
+      Cond. Observation Prob.
+      & $P_{\ti{Y}{t}|\ti{S}{t},\ti{\parameters}{n+1}} \left(y|s, \ti{\parameters}{n+1} \right)$
+      & $ \frac {\sum_{t:\ti{y}{t}=y} w(s,t)} {\sum_{t} w(s,t)}$ \\[2.0ex]
+      \hline
+%    \end{tabular*}}
+    \end{tabular}}
+  \label{tab:reestimation}
+\end{table}
+
+To derive the formulas in Table \ref{tab:reestimation}, start with
+Step 2 of the EM algorithm (see Eqn.~\eqref{eq:Qdef}) which is to
+maximize the auxiliary function
+\begin{equation*}
+  Q(\parameters',\parameters) \equiv \EV_{P \left(\bS|\y \right),\parameters}
+  \left( \log P(\y,\bS|\parameters') \right)
+\end{equation*}
+with respect to $\parameters'$.  For an HMM, substitute the sequence of
+\emph{hidden} states $\ts{s}{1}{T}$ for $\bS$ and the sequence of
+observations $\ts{y}{1}{T}$ for $\y$.  Note that the joint probability
+of a state sequence $\ts{s}{1}{T}$ and the observation sequence
+$\ts{y}{1}{T}$ is
+\begin{equation*}
+  P\left( \ts{s}{1}{T},\ts{y}{1}{T} \right) = P_{\ti{S}{1}}
+  \left(\ti{s}{1} \right) \cdot \prod_{t=2}^T P_{\ti{S}{2}|\ti{S}{1}}
+  \left(\ti{s}{t}|\ti{s}{t-1} \right)
+  \cdot \prod_{t=1}^T  P_{\ti{Y}{1}|\ti{S}{1}}
+  \left(\ti{y}{t}|\ti{s}{t} \right),
+\end{equation*}
+or equivalently,
+\begin{align*}
+  \log P\left(\ts{y}{1}{T}, \ts{s}{1}{T} \right) &= \log P_{\ti{S}{1}}
+  \left(\ti{s}{1} \right) + \sum_{t=2}^T \log P_{\ti{S}{2}|\ti{S}{1}}
+  \left(\ti{s}{t}|\ti{s}{t-1} \right)\\
+  &\quad + \sum_{t=1}^T \log  P_{\ti{Y}{1}|\ti{S}{1}}
+  \left(\ti{y}{t}|\ti{s}{t} \right).
+\end{align*}
+We can optimize $Q$ by breaking it into a sum in which each of the
+model parameters only appears in one of the terms and then optimizing
+each of the terms independently:
+\begin{align}
+  \label{eq:QHMM}
+  Q(\parameters',\parameters) &= \sum_{\ts{s}{1}{T}\in\states^T}
+  \left( P
+  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \log P
+  \left(\ts{s}{1}{T},\ts{y}{1}{T},\parameters' \right) \right) \\
+  \label{eq:QHMMseparate}
+  & \equiv Q_{\text{initial}} (\parameters',\parameters) +
+  Q_{\text{transition}} (\parameters',\parameters) + Q_{\text{observation}}
+  (\parameters',\parameters),
+\end{align}
+where
+\begin{align}
+  \label{eq:Qinitial}
+  Q_{\text{initial}} (\parameters',\parameters) &\equiv
+%
+  \sum_{\ts{s}{1}{T}\in\states^T} \left( P
+  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \log P_{\ti{S}{1}|\parameters'}
+  \left(\ti{s}{1}|\parameters' \right) \right)\\
+%
+  \label{eq:Qtransition}
+  Q_{\text{transition}} (\parameters',\parameters) &\equiv
+%
+  \sum_{\ts{s}{1}{T}\in\states^T} \left( P
+  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \sum_{t=2}^T \log
+  P_{\ti{S}{2}|\ti{S}{1},\parameters'}
+  \left(\ti{s}{t}|\ti{s}{t-1},\parameters' \right) \right) \\
+%
+  \label{eq:Qoutput}
+  Q_{\text{observation}} (\parameters',\parameters) &\equiv
+%
+  \sum_{\ts{s}{1}{T}\in\states^T} \left( P
+  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \sum_{t=1}^T \log
+  P_{\ti{Y}{1}|\ti{S}{1},\parameters'}
+  \left(\ti{y}{t}|\ti{s}{t},\parameters' \right) \right)
+%
+\end{align}
+
+To simplify the appearance of expressions as we optimize $Q$, we
+introduce notation for logs of parameters
+\begin{align}
+  L_{\text{initial}}(i) & \equiv \log P_{\ti{S}{1}|\parameters'}
+  \left(s|\parameters' \right) \\
+  L_{\text{transition}}(i,j) &\equiv \log P_{\ti{S}{2} |
+    \ti{S}{1},\parameters'}({\tilde s}|s,\parameters') \\
+  \label{eq:Loutput}
+  L_{\text{observation}}(y,i) & \equiv \log
+  P_{\ti{Y}{1}|\ti{S}{1},\parameters'} \left(y|s,\parameters' \right).
+\end{align}
+Now to optimize $Q_{\text{initial}}$ write Eqn.~\eqref{eq:Qinitial} as
+\begin{align}
+  Q_{\text{initial}} (\parameters',\parameters) &=
+  \sum_{\ts{s}{1}{T}\in\states^T} P
+  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right)
+  L_{\text{initial}}(\ti{s}{1})\\
+  &= \sum_{s \in \states} L_{\text{initial}}(s)
+  \sum_{\ts{s}{1}{T}:\ti{s}{1}=s} P
+  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right)\\
+  &= \sum_s L_{\text{initial}}(s) P_{\ti{S}{1}|\ts{Y}{1}{T},\parameters}
+  \left(s|\ts{y}{1}{T},\parameters \right) \text{ see Eqn.~\eqref{eq:witFFE}}\\
+  &= \sum_s L_{\text{initial}}(s) w(s,1)
+\end{align}
+We wish to find the set $\left\{ L_{\text{initial}}(s) \right\}$ that
+maximizes $Q_{\text{initial}} (\parameters',\parameters)$ subject to the
+constraint
+\begin{equation*}
+  \sum_s e^{ L_{\text{initial}}(s)} \equiv\sum_s
+  P_{\ti{S}{1}|\hat \parameters} \left(s|\hat \parameters \right) = 1.
+\end{equation*}
+The method of Lagrange multipliers yields
+\begin{equation}
+  \label{eq:LiSol}
+   L_{\text{initial}}(s) = \log w(s,1) ~ \forall s,
+\end{equation}
+ie, the new estimates of the initial probabilities are
+\begin{equation}
+  \label{eq:InitialRe}
+  P_{\ti{S}{1}|\ti{\parameters}{n+1}} \left(s|\ti{\parameters}{n+1} \right) = w(s,1).
+\end{equation}
+
+To derive new estimates of the state transition probabilities, write
+\begin{align}
+  Q_{\text{transition}} (\parameters',\parameters) &=
+  \sum_{\ts{s}{1}{T}\in\states^T} P
+  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \sum_{t=2}^T
+  L_{\text{transition}}(\ti{s}{t-1},\ti{s}{t})\\
+  &= \sum_{s,{\tilde s}} L_{\text{transition}}(s,{\tilde s})
+  \sum_{t=2}^T \sum_{\substack{\ts{s}{1}{T}:\ti{s}{t}={\tilde
+        s},\\\ti{s}{t-1}=s}}
+  P\left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right)\\
+  &= \sum_{s,{\tilde s}} L_{\text{transition}}(s,{\tilde s})
+  \sum_{t=1}^{T-1} {\tilde w}({\tilde s},s,t).
+\end{align}
+Optimization yields
+\begin{equation}
+  \label{eq:NewTrans}
+  P_{\ti{S}{t+1}|\ti{S}{t},\ti{\parameters}{n+1}} \left({\tilde
+      s}|s,\ti{\parameters}{n+1} \right) = \frac
+  {\sum_{t=1}^{T-1} {\tilde w}({\tilde s},s,t)} {\sum_{s'}
+    \sum_{t=1}^{T-1} {\tilde w}(s',s,t)}.
+\end{equation}
+
+Similarly, we derive the new estimates of the conditional observation
+probabilities from
+\begin{align}
+  \label{eq:Qout1}
+  Q_{\text{observation}} (\parameters',\parameters) &=
+  \sum_{\ts{s}{1}{T}\in\states^T} P
+  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \sum_{t=1}^T
+  L_{\text{observation}}(\ti{y}{t},\ti{s}{t})\\
+  &= \sum_{y\in\outputs,s\in\states} L_{\text{observation}}(y,s)
+  \sum_{t:\ti{y}{t}=y}
+  \sum_{\ts{s}{1}{T}:\ti{s}{t}=s }P
+  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \\
+  &= \sum_{y,s} L_{\text{observation}}(y,s) \sum_{t:\ti{y}{t}=y} w(s,t).
+\end{align}
+Optimization yields
+\begin{equation}
+  \label{eq:NewOut}
+  P_{\ti{Y}{t}|\ti{S}{t},\ti{\parameters}{n+1}}
+  \left(y|s,\ti{\parameters}{n+1} \right) = \frac
+  {\sum_{t:\ti{y}{t}=y} w(s,t)} {\sum_{t=1}^T w(s,t)}.
+\end{equation}
+
+%%%
+%%% fig:train
+%%%
+%%% FixMe: \addcontentsline{loa}{section}{Baum Welch model parameter optimization}
+%%% FixMe: Is this a "figure" or an "algorithm"?
+\begin{figure}[htbp]
+  \begin{center}
+    %\small%
+    \def\assign{\leftarrow}%
+    \def\oldmodel{\ti{\parameters}{n}}%
+    \def\newmodel{\ti{\parameters}{n+1}}%
+% Tabbing commands:
+% \=    Set a stop
+% \>    Skip to the next stop
+% \<    Go back a stop
+% \\    New line
+% \+    Move left margin right one stop
+% \-    Move the left margin left one stop
+\fbox{
+  \begin{minipage}{0.90\textwidth}
+    \begin{tabbing}
+      XX\=XX\=XX\=XX\=XX\=XX\=XX\=XX\= \kill
+      Notation: \> \+ \\ \\
+      \begin{minipage}[b]{1.0\textwidth}
+        $\oldmodel$ is the model, or equivalently the set of
+        parameters, after $n$ iterations of the Baum Welch algorithm.
+      \end{minipage}\\ \\%
+      %%
+      \begin{minipage}[b]{1.0\textwidth}
+        $\bm{\alpha}_n$ is the set of conditional state probabilities
+        calculated on the basis of the $n^{\text{th}}$ model and the
+        data $\ts{y}{1}{T}$.  See Eqns.~\eqref{eq:alpha} and
+        \eqref{eq:forwardD}.
+        \begin{equation*}
+          \bm{\alpha}_n \equiv \left\{ P_{ S(t)| \ts{Y}{1}{t},\oldmodel} \left( s |
+             \ts{y}{1}{t},\oldmodel\right) : \forall s \in \states\, \& \, 1
+           \leq t \leq T \right\}
+        \end{equation*}
+      \end{minipage}\\ \\%
+      %%
+      \begin{minipage}[b]{1.0\textwidth}
+         $\bm{\beta}_n$ is a set of values calculated on the basis of the
+         $n^{\text{th}}$ model $\oldmodel$ and the data $\ts{y}{1}{T}$.  See
+         Eqns.~\eqref{eq:bw4} and \eqref{eq:backformula}.
+         \begin{equation*}
+         \bm{\beta}_n \equiv \left\{ \frac{P_{\ts{Y}{t+1}{T}|\ti{S}{t}}
+         \left(\ts{y}{t+1}{T} | s \right)} {P
+         \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right)} : \forall s \in
+         \states\, \& \, 1 \leq t < T \right\}
+         \end{equation*}
+      \end{minipage}\\ \\%
+      %%
+      \begin{minipage}[b]{1.0\textwidth}
+         $\bm{\gamma}_n$ is the set of conditional observation probabilities
+         calculated on the basis of the $n^{\text{th}}$ model $\oldmodel$ and
+         the data $\ts{y}{1}{T}$.  See Eqns.~\eqref{eq:gamma} and
+         \eqref{eq:forwardC}.
+         \begin{equation*}
+         \bm{\gamma}_n \equiv \left\{P \left(\ti{y}{t} | \ts{y}{1}{t-1},
+         \oldmodel\right) : \, 2 \leq t \leq T \right\}
+         \end{equation*}
+      \end{minipage}\\ \\%
+      %%
+      \<\-
+      Initialize: \> \+ \\
+      Set $n=1$ and choose $\ti{\parameters}{1}$\\ \\ \< \-
+      Iterate: \> \+ \\
+      $\newmodel \assign \text{reestimate} \left( \ts{y}{1}{T},
+      \bm{\alpha}_n, \bm{\beta}_n, \bm{\gamma}_n, \oldmodel\right)$ XX\= \kill
+      $\left(\bm{\alpha}_n,\bm{\gamma}_n\right) \assign
+      \text{forward}(\ts{y}{1}{T},\oldmodel)$ \> See Section
+      \ref{sec:forward} page \pageref{sec:forward}\\
+      $\bm{\beta}_n \assign \text{backward}(\bm{\gamma}_n, \ts{y}{1}{T},
+      \oldmodel)$ \> See Section \ref{sec:backward}  page \pageref{sec:backward}\\
+      $\newmodel \assign \text{reestimate} \left( \ts{y}{1}{T},
+      \bm{\alpha}_n, \bm{\beta}_n, \bm{\gamma}_n, \oldmodel\right)$ \> See Table
+      \ref{tab:reestimation} page \pageref{tab:reestimation} \\
+      $n \assign n+1$ \\
+      Test for completion
+    \end{tabbing}
+  \end{minipage}
+}
+\caption[\comment{fig:train }Baum Welch model parameter optimization.]%
+{Summary and pseudo-code for optimizing model parameters by iterating
+  the Baum Welch algorithm. \index{Baum Welch algorithm}}
+    \label{fig:train}
+  \end{center}
+\end{figure}
+
+\section{Remarks}
+\label{sec:AlgApp}
+
+\subsection{Training on Multiple Segments}
+\label{sec:MultiSegment}
+
+\index{training on multiple segments}
+\index{multiple segments, training on}
+
+Simple modifications to code for the Baum Welch algorithm enable it to
+train on data that consists of a collection of independent segments
+$\mathbf{\vec y} \equiv \left\{ \mathbf{y}_1, \mathbf{y}_2, \ldots,
+  \mathbf{y}_n \right\}$ where $ \mathbf{y}_k = \ts{(y_k)}{1}{T_k}$.
+In particular for each iteration, one should:
+\begin{itemize}
+\item Run the forward and backward algorithms on each segment
+  $\mathbf{y}_k$ to calculate ${\bm \alpha}_k$ and
+  ${\bm \beta}_k$
+\item Create ${\bm \alpha}$ and ${\bm \beta}$ by concatenating
+  ${\bm \alpha}_k~\forall k$ and ${\bm \beta}_k~\forall k$
+  respectively.
+\item Reestimate all model parameters by applying the formulas in
+  Table~\ref{tab:reestimation} to the concatenated  ${\bm \alpha}$,
+  ${\bm \beta}$, and $\mathbf{\vec y}$.
+\item Modify the reestimated initial state probabilities using
+  \begin{equation*}
+    P_{\ti{S}{1}|\ti{\parameters}{m+1}} \left(s|\ti{\parameters}{m+1}
+    \right) = \frac{1}{n} \sum_{k=1}^n \alpha_k(s,1) \beta_k(s,1)
+  \end{equation*}
+\end{itemize}
+
+\subsection{Probabilities of the initial state}
+\label{sec:Ps0}
+
+%\ToDo{Ralf doesn't like this.}
+Using the procedure of the previous section for a few independent
+observation sequences with several iterations of the Baum Welch
+algorithm produces a model in which the estimates of the probabilities
+of the initial states, $P_{\ti{S}{1}} \left(s \right)\,\forall s \in
+\states$, reflect the characteristics at the beginning of the given
+sequences.  Those estimates are appropriate if all observation
+sequences come from state sequences that start in a similar fashion.
+Such models are not \index*{stationary}.  To accommodate the many
+applications in which we wish to model the state dynamics as
+\index*{ergodic}, we also calculate ergodic initial state probability
+estimates using
+\begin{equation}
+  \label{eq:Ps0ergodic}
+  P_{\ti{S}{1}(\text{ergodic})} \left(s \right) =
+  \frac{\sum_{t}w(i,t)}{\sum_{j,t}w(j,t)}
+\end{equation}
+
+\ReviewerNote{Reviewer4 says ``To make this point plausible and serious,
+  it is very important to explain clearly what are the assumptions
+  from a theoretical as well as a practical viewpoint.''  He wants
+  this in the preface or introduction, but I think this may be the
+  place to put it.  Similar subsections could discuss assumption
+  testing.  Reviewer4 also wants to know, ``which types of dynamical
+  systems can be treated appropriately with HMM and what are the data
+  requirements?''  Patrick says to put assumptions in the
+  introduction.  Nick says look up David Pollard wrt data
+  requirements.  LeCam, M Law, L. Brown; Amari, f. divergences; LeCam
+  and Yang, Asymptotic Methods in Statistics (Springer)
+
+  Response to this comment: See \eqref{eq:assume_markov} and
+  \eqref{eq:assume_output} for assumptions.  See
+  \ref{sec:EstWholeDist} for data requirements}
+
+\subsection{Maximizing likelihood over unrealistic classes}
+\label{sec:incredible}
+
+We often fit simple hidden Markov models to data that come from
+systems that have complicated continuous state spaces.  For example we fit
+models with roughly 10 states to electrocardiograms even though we
+believe that it would require at least scores of continuous valued
+parameters to specify the states of the physiological parameters that
+affect the signal.  By fitting unrealistically simple models we reduce
+the variance of the parameter estimates at the expense of having
+parameters that are harder to interpret.  It is a version of the
+classic \index{bias-variance tradeoff} bias-variance tradeoff.
+
+\subsection{Multiple Maxima}
+\label{sec:MultiMax}
+
+The Baum Welch algorithm generically converges to a \emph{local}
+maximum of the likelihood function.  For example, we obtained the
+model used to generate Fig.~\ref{fig:Statesintro} by iterating the
+Baum Welch algorithm on an initial model with random parameters.  By
+re-running the experiment with five different seeds for the random
+number generator, we obtained the five different results that appear
+in Fig.~\ref{fig:TrainChar}.
+\begin{figure}
+  \centering{\plotsize%
+    \def\llps{$\frac{\log \left( P \left(\ts{y}{1}{T}|\ti{\parameters}{n} \right)\right)}{T}$}%
+    \input{figs/TrainChar.eps_t}}
+  \caption[\comment{fig:TrainChar }Convergence of the Baum Welch algorithm.]{%
+    Convergence of the Baum Welch algorithm.  Here we have
+    plotted $\frac{\log \left( P
+        \left(\ts{y}{1}{T}|\ti{\parameters}{n} \right)\right)}{T}$
+    (the log likelihood per step) as a function of the number of
+    iterations $n$ of the Baum Welch algorithm for five different
+    initial models $\ti{\parameters}{1}$.  We used the same sequence
+    of observations $\ts{y}{1}{T}$ that we used for
+    Fig.~\ref{fig:Statesintro}, and we used different seeds for a
+    random number generator to make the five initial models.  Note the
+    following characteristics: The five different initial models all
+    converge to different models with different likelihoods; The curves
+    intersect each other as some models improve more with training
+    than others; Convergence is difficult to determine because some
+    curves seem to have converged for many iterations and later rise
+    significantly.  }
+  \label{fig:TrainChar}
+\end{figure}
+
+\subsection{Disappearing Transitions}
+\label{sec:disappear}
+
+%\ToDo{Ralf wants more discussion.  Is this just a hack?}
+For some observation sequences $\ts{y}{1}{T}$ and initial models,
+multiple iterations of the Baum Welch algorithm leads to state
+transition probabilities that are too small to be represented in
+double precision.  As part of our implementation of the Baum Welch
+algorithm, we prune transitions with conditional probabilities of less
+than $1\times 10^{-20}$.  Such pruning:
+\begin{itemize}
+\item Prevents numerical underflow exceptions
+\item Simplifies the models
+\item Makes algorithms that process the models run faster
+\end{itemize}
+
+\subsection{Bayesian Estimates Instead of Point Estimates}
+\label{sec:EstWholeDist}
+
+A Bayesian parameter estimation scheme begins with an \emph{a priori}
+distribution $P_{\parameters}$ that characterizes knowledge about what
+values are possible and then uses Bayes rule to combine that knowledge
+with observed data $y$ to calculate an \emph{a posteriori}
+distribution of parameters $P_{\parameters|y}$.  We don't really
+believe that the maximum likelihood estimate (MLE) produced by the
+Baum Welch algorithm is precisely the \emph{one true answer}.  It is
+what Bayesians call a \emph{point estimate}.  Parameter values near
+the MLE are entirely consistent with the data.  A proper Bayesian
+procedure characterizes the plausibility of other parameter values
+with an \emph{a posteriori} distribution.  In the next chapter, we
+present a variant on the Baum Welch algorithm that uses a prior
+distribution on parameter values and produces an estimate that
+maximizes the \emph{a posteriori} probability, \ie, a \emph{MAP}
+estimate.  However, like the MLE, the MAP is a point estimate.  It
+does a poor job of characterizing the set of plausible parameters.
+
+In addition to yielding only a point estimate, the Baum Welch
+algorithm is indirect in that each pass optimizes an auxiliary
+function rather than optimizing the likelihood, and it converges to
+\emph{local} maxima.  A Bayesian \emph{Markov chain Monte Carlo}
+approach would address all of these objections at the expense of being
+slow.
+
+Although others have obtained Bayesian \emph{a posteriori} parameter
+distributions for HMMs using \emph{Markov chain Monte Carlo} and
+\emph{variational Bayes} procedures (see for example \cite{Rosales04}
+and \cite{Beal03}), we will restrict our attention to point estimates
+from the Baum Welch algorithm and simple variations.
+
+\ReviewerNote{Reviewer 2: Give citations for these other optimization
+  schemes.}
+
+\section{The EM algorithm}
+\label{sec:EM}
+\index{EM (expectation-maximization) algorithm|textbf}%
+\index{expectation-maximization (EM) algorithm|textbf}%
+
+In Section \ref{sec:baum_welch}, we described the Baum Welch algorithm
+for finding parameters of an HMM that maximize the likelihood, and we
+noted that the Baum Welch algorithm is a special case of the EM
+algorithm.  Here, we examine the general EM algorithm in more detail.
+Readers willing to accept the Baum Welch algorithm without further
+discussion of Eqn.~\ref{eq:EMmax} should skip this section.
+Dempster Laird and Rubin\cite{Dempster77} coined the term \emph{EM
+  algorithm} in 1977.  More recent treatments include Redner and
+Walker\cite{Redner84}, McLachlan and Krishnan\cite{McLachlan96} and
+Watanabe and Yamaguchi\cite{Watanabe04}.
+%
+Recall that the algorithm operates on models $P_{\Y,\bS,\parameters} $
+with parameters $\parameters$ for a mix of data that is observed
+$(\Y)$ and data that is unobserved $(\bS)$ and that the steps in the
+algorithm are:
+\begin{enumerate}
+\item Guess a starting value of $\ti{\parameters}{1}$, and set $n=1$.
+\item \label{loop} Choose $\ti{\parameters}{n+1}$ to maximize
+  an \emph{auxiliary function} $Q$
+                                %
+  \begin{equation}
+    \label{eq:EMmax2}
+    \ti{\parameters}{n+1} = \argmax_{\parameters} Q(\parameters,
+    \ti{\parameters}{n})
+  \end{equation}
+  where
+  \begin{equation}
+    \label{eq:Qdef2}
+    Q(\parameters',\parameters) \equiv \EV_{P\left(\bS|\y, \parameters \right)}
+    \left( \log P(\y,\bS|\parameters') \right)
+  \end{equation}
+\item Increment $n$.
+\item If not converged, go to \ref{loop}.
+\end{enumerate}
+Step \ref{loop} does all of the work.  Note that if the unobserved
+data $(\bS)$ is discrete, then the auxiliary function $(Q)$ is
+$\EV_{P\left(\bS|\y,\parameters \right)} \left( \log
+  P(\y,\bS|\parameters') \right) = \sum_\s P(\s|\y,\parameters) \left(
+  \log P(\y,\s|_\parameters') \right)$.  Although Dempster Laird and
+Rubin \cite{Dempster77} called the characterization of $P
+\left(\bS|\y,\parameters \right)$ the \emph{estimation step} and the
+optimization of $Q(\parameters, \ti{\parameters}{n})$ over
+$\parameters$ the \emph{maximization step}, the steps are now referred
+to as \emph{expectation} and \emph{maximization}.
+
+To illustrate the EM algorithm, we generated ten observations from an
+\iid Gaussian mixture model \index{Gaussian mixture model}
+\begin{equation}
+  \label{eq:GaussMix}
+  P\left(\ts{y}{1}{T}|\parameters \right) = \prod_{t=1}^T
+  \frac{1}{\sqrt{2\pi}} \left( \lambda e^{-\frac{1}{2}
+  (\ti{y}{t}-\mu_1)^2} +
+  (1-\lambda) e^{-\frac{1}{2} (\ti{y}{t}-\mu_2)^2 } \right)
+\end{equation}
+with a vector of free parameters $\parameters = (\lambda,\mu_1,\mu_2)$ set
+to $(\frac{1}{2},-2,2)$.  (See the plot in Fig.~\ref{fig:GaussMix}.)
+Then we tried to recover the parameters from the observations using
+the EM algorithm.  The model generates an observation by:
+\begin{enumerate}
+\item Selecting one of two states or classes $s$ with probability
+  $\lambda$ for state $s=0$ and probability $(1-\lambda)$ for state $s=1$
+\item Drawing from a Gaussian with mean $\mu_s$ and variance $\sigma^2
+  = 1$
+\end{enumerate}
+Note that for each observation, the class $s$ is unobserved.
+
+As an initial model we set $\ti{\parameters}{1} = \left( \frac{1}{2}, -1, 1
+\right)$.  Now for each $\ti{\parameters}{n}$ the EM algorithm consists of
+\begin{description}
+\item[E-step] For each observation $\ti{y}{t}$, \emph{estimate}
+  $\ti{w}{t}$, the probability that the state was $s=0$ given the
+  current model parameters and the observation, \ie, $\ti{w}{t} =
+  P_{\ti{s}{t}|\ti{y}{t},\ti{\parameters}{n}} \left(0|\ti{y}{t},
+    \ti{\parameters}{n}\right)$.
+\item[M-step] Adjust the parameters to \emph{maximize} the auxiliary
+  function.  Letting $W = \sum_{t=1}^{10} \ti{w}{t}$, some effort
+  verifies that the following assignments maximize
+  $Q(\parameters,\ti{\parameters}{n})$:
+  \begin{itemize}
+  \item $\ti{\lambda}{n+1} = \frac{1}{10} W$
+  \item $\ti{\mu_1}{n+1} = \frac{1}{W}\sum_{t=1}^{10} \ti{y}{t} \ti{w}{t}$
+  \item $\ti{\mu_2}{n+1} = \frac{1}{10-W}\sum_{t=1}^{10} \ti{y}{t} (1-\ti{w}{t})$
+  \end{itemize}
+\end{description}
+
+The first two iterations of the EM algorithm produces the estimates
+$\lambda =0.603$, $\mu_1 = -2.028$, and $\mu_2 = 1.885$.  Intermediate
+calculations and density plots appear in Fig.~\ref{fig:GaussMix}.  The
+estimates repeat without change to a precision of twelve decimal
+digits after a total of 53 iterations, and the final estimate is
+$\lambda = 0.674601277409$, $\mu_1 = -1.81907548168$, and $\mu_2 =
+2.31697397996$.
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    %%
+    %% Data generated by code/python/em.py
+    %%
+    %%
+    %% 0 0.592235464363 -2.02434657272 1.77965344905 \\%
+    %%
+    %%
+    %% 1 0.602707378184 -2.02772188643 1.88504047255 \\%
+    %%
+    $\qquad \ti{\parameters}{1}=(0.5, -1, 1) \qquad \ti{\parameters}{2}=(0.592, -2.024, 1.779) \qquad \ti{\parameters}{3}=(0.603, -2.028, 1.885)$\\[2.0ex]
+    \def\cs{\hspace{0.10em}}%
+    \def\st{\rule{0pt}{2.25ex}}%
+    \def\v{\vline}%
+    %% '.' is decimal aligned, see "hmmdsbook.cls", search "dcolumn" or "columntype".
+    \begin{tabular}{r@{}c@{\cs}|*{10}{@{\cs}.@{\cs}|}}
+      \st                  & \bch{t}                     & \bch{1}   & \bch{2}   & \bch{3}   & \bch{4}   & \bch{5}   & \bch{6}   & \bch{7}   & \bch{8}   & \bch{9}   & \bch{10} \\
+                            \cline{2-12}
+      \st                \v&\cs $\ti{y}{t}$              &   -1.02   &   -3.39   &   -3.38   &   2.45    &   -0.13   &   -1.66   &   3.09    &   2.01    &   0.03    &   -2.73  \\
+                            \cline{2-12}
+      \st                \v&\cs $\ti{w}{t}$              &    0.89   &    1.00   &    1.00   &   0.01    &    0.56   &    0.97   &   0.00    &   0.02    &   0.49    &    1.00  \\
+\st$\ti{\parameters}{1}$ \v&\cs $\ti{w}{t}\ti{y}{t}$     &   -0.91   &   -3.39   &   -3.38   &   0.02    &   -0.07   &   -1.61   &   0.01    &   0.04    &   0.01    &   -2.71  \\
+      \st                \v&\cs $(1-\ti{w}{t})\ti{y}{t}$ &   -0.12   &   -0.00   &   -0.00   &   2.44    &   -0.06   &   -0.06   &   3.08    &   1.98    &   0.01    &   -0.01  \\
+                            \cline{2-12}
+      \st                \v&\cs $\ti{w}{t}$              &    0.98   &    1.00   &    1.00   &   0.00    &    0.60   &    1.00   &   0.00    &   0.00    &   0.45    &    1.00  \\
+\st$\ti{\parameters}{2}$ \v&\cs $\ti{w}{t}\ti{y}{t}$     &   -1.00   &   -3.39   &   -3.38   &   0.00    &   -0.08   &   -1.66   &   0.00    &   0.00    &   0.01    &   -2.73  \\
+      \st                \v&\cs $(1-\ti{w}{t})\ti{y}{t}$ &   -0.02   &   -0.00   &   -0.00   &   2.45    &   -0.05   &   -0.00   &   3.09    &   2.01    &   0.01    &   -0.00  \\
+                            \cline{2-12}
+    \end{tabular}\\[2.0ex]
+    \def\ptheta{$P_{\ti{\parameters}{1}}$}%
+    \def\px{$P_{\parameters}$}%
+    \def\Pthetax{$P_{\ti{\parameters}{3}}$}%
+    \input{figs/gaussmixA.eps_t}\\[-2.5ex]
+    \input{figs/gaussmix.eps_t}}
+  \caption[\comment{fig:GaussMix }Two iterations of the EM algorithm.]%
+  {Two iterations of the EM algorithm.  We use the algorithm to search
+    for parameters of Eqn.~\eqref{eq:GaussMix} to maximize the
+    likelihood of ten simulated observations that appear above in the
+    row labeled $\ti{y}{t}$.  The next three lines report the
+    weighting used for recalculating the conditional means, $\mu_1$
+    and $\mu_2$ for $\ti{\parameters}{2}$ in the M step, and the
+    following three lines report the same quantities for the
+    calculation of $\ti{\parameters}{3}$.  The first three models
+    appear in the last line of the table.  On the top axes, we
+    illustrate $P(x|\parameters)$ as defined in
+    Eqn.~\eqref{eq:GaussMix} for two sets of model parameters: The
+    dashed line depicts $\parameters = (0.5, -2, 2)$, the distribution
+    used to simulate the data, and the solid line depicts
+    $\ti{\parameters}{1} = (0.5, -1, 1)$, the starting distribution we
+    chose for the EM algorithm.  On the bottom axes we plot the
+    simulated observations as marks on the abscissa and
+    $P(y|\ti{\parameters}{3})$ as a solid line;
+    $\ti{\parameters}{3}$ is the triple of parameters produced by two
+    iterations of the EM algorithm, $\lambda = 0.603, ~ \mu_1 =
+    -2.028,~ \mu_2 = 1.885$.}
+  \label{fig:GaussMix}
+\end{figure}
+\afterpage{\clearpage}%% Print this right here please.
+
+The advantages of the EM algorithm are that it is easy to implement
+and it monotonically increases the likelihood.  These often outweigh
+its slow convergence and the fact that it calculates neither the
+second derivative of the likelihood function nor any other indication
+of the reliability of the results it reports.  Proving monotonicity is
+simple.  If the likelihood is bounded, convergence follows directly
+from monotonicity, but convergence of the parameters does not follow.
+Also, the likelihood might converge to a local maximum.  Papers by
+Baum et al.\cite{Baum70}, Dempster, Laird, and Rubin\cite{Dempster77},
+and Wu\cite{Wu83} analyze the issues.  In the next two subsections we
+summarize and augment some of that analysis.
+
+\subsection{Monotonicity}
+
+Denoting the log likelihood of the observed data given the model
+$\parameters$ as
+\begin{equation*}
+  L(\parameters) \equiv \log \left( P \left(\y|\parameters \right)\right)
+\end{equation*}
+and the cross entropy of the unobserved data with respect to a model
+$\parameters$ given a model $\parameters$ as
+\begin{equation*}
+  H(\parameters' || \parameters) \equiv - \EV_{P
+    \left(\bS|\y,\parameters \right)} \left( \log P(\bS|\y,\parameters')
+  \right),
+\end{equation*}
+we can write the auxiliary function as
+\begin{align*}
+  Q(\parameters',\parameters) &\equiv \EV_{P \left(\bS|\y ,\parameters\right)}
+  \left( \log P(\bS,\y|\parameters') \right)\\
+  &= \EV_{P \left(\bS|\y ,\parameters \right)} \left( \log
+    P(\bS|\y,\parameters') + \log \left( P(\y|\parameters') \right)
+  \right)\\
+  &= L(\parameters') - H(\parameters' || \parameters)
+\end{align*}
+or
+\begin{equation}
+  \label{eq:LQH}
+   L(\parameters') = Q(\parameters',\parameters) + H(\parameters' ||
+   \parameters).
+\end{equation}
+The fact that
+\begin{equation}
+  \label{eq:GibbsIE}
+  H(\parameters' || \parameters) \geq  H(\parameters || \parameters)
+  \forall \parameters'
+\end{equation}
+with equality \emph{iff}
+\begin{equation*}
+  P(\s|\y,\parameters') =  P(\s|\y,\parameters) ~~ \forall \s
+\end{equation*}
+is called the \emph{\index*{Gibbs Inequality}}\footnote{While most
+  statisticians attribute this inequality to Kullback and
+  Leibler\cite{Kullback51}, it appears earlier in chapter {\em XI}
+  {\em Theorem II} of Gibbs\cite{Gibbs}.}.  It is a consequence of
+\index{Jensen's inequality} Jensen's inequality.
+
+Given the model $\ti{\parameters}{n}$ after $n$ iterations of the EM
+algorithm, we can write
+\begin{equation}
+  L(\ti{\parameters}{n}) = Q(\ti{\parameters}{n},\ti{\parameters}{n}) +
+  H(\ti{\parameters}{n} || \ti{\parameters}{n}).
+\end{equation}
+If for some other model $\parameters'$
+\begin{equation}
+  \label{eq:GEMcond}
+  Q(\parameters',\ti{\parameters}{n}) >
+  Q(\ti{\parameters}{n},\ti{\parameters}{n}),
+\end{equation}
+then the Gibbs inequality implies $H(\parameters' ||
+\ti{\parameters}{n}) \geq H(\ti{\parameters}{n} ||
+\ti{\parameters}{n})$ and consequently, $L(\parameters') >
+L(\ti{\parameters}{n})$.  Monotonicity of the log function further
+implies
+\begin{equation*}
+  P \left(\y |\parameters'\right) > P \left(\y|\ti{\parameters}{n} \right) .
+\end{equation*}
+Since the EM algorithm requires the inequality in \eqref{eq:GEMcond},
+for $\parameters' = \ti{\parameters}{n+1}$, the algorithm
+monotonically increases the likelihood.
+
+\subsection{Convergence}
+
+\newcommand{\EMmap}{{\cal T}} %
+The EM algorithm operates on $\Theta$, a set of allowed parameter
+vectors with the function $\EMmap:\Theta \mapsto \Theta$ that
+implements an iteration of the algorithm, \ie,
+\begin{equation*}
+  \ti{\parameters}{n+1} = \EMmap (\ti{\parameters}{n}).
+\end{equation*}
+Wu\cite{Wu83} has observed that more than one value of $\parameters'$
+may maximize $Q(\parameters',\parameters)$.  Consequently he
+considered $\EMmap$ to be a point to set map.  However, there are many
+model classes --including all of the HMMs the we describe in this
+book-- for which one can write algorithms that calculate a unique
+$\EMmap(\theta)$.  Thus we consider the case of $\EMmap$ being a
+simple function.  If there is a bound $\bar P$ on $ P
+\left(\y|\parameters \right) $ with
+\begin{equation*}
+   P \left(\y|\parameters \right) \leq \bar P ~ \forall \parameters \in \Theta
+\end{equation*}
+then the monotonicity of the sequence $\left(
+  P(\y|\ti{\parameters}{1}),
+  P(\y|\ti{\parameters}{2}), P(\y|\ti{\parameters}{3}), \ldots \right)$ and the bounded
+convergence theorem ensures that the limit $ P^* \equiv
+\lim_{n\rightarrow \infty} P \left(\y |\ti{\parameters}{n} \right) $
+exists.  The bounded convergence theorem does not promise that $P^* =
+\sup_{\parameters \in \Theta} P \left(\y | \parameters \right)$ or
+that it is even a local maximum, nor does it promise that $\theta^*
+\equiv \lim_{n \rightarrow \infty} \ti{\parameters}{n}$ exists.
+
+It would be nice if every trajectory of $\EMmap$ converged to local
+maximum of the likelihood.  Since Wu\cite{Wu83} provides an example of
+a trajectory that converges to a saddle point of the likelihood, it
+certainly is not true.  In the following, we do however give assurance
+that, in typical circumstances, trajectories converge to local maxima.
+
+We assume that $\Theta$ is compact and that the functions $L:\Theta
+\mapsto \REAL$, $H:\Theta \times \Theta \mapsto \REAL$, and $Q:\Theta
+\times \Theta \mapsto \REAL$ are $C^2$, \ie, each function and its
+first two derivatives exist and are continuous.  For any starting
+point $\ti{\parameters}{1}$, we are interested in the \emph{limit set}
+$\Omega(\ti{\parameters}{1})$ defined as the set of points to which
+subsequences converge, \ie, for all $\parameters \in
+\Omega(\ti{\parameters}{1})$, there is a subsequence of integers
+$\left( N(1), N(2), \ldots \right)$ with $N(n+1) > N(n)~ \forall
+n$ such that $\lim_{n \rightarrow \infty}
+\EMmap^{N(n)}(\ti{\parameters}{1}) = \parameters$.  If $\EMmap$ maps a
+compact neighborhood of $\ti{\parameters}{1}$ into itself, then
+$\Omega(\ti{\parameters}{1}) \neq \emptyset$.  For discrete HMMs the
+assumptions are valid for all points in the interior of $\Theta$.
+Continuity and Gibbs inequality ensure that each element of a limit
+set has the same log likelihood $L^*$ and that the cross entropy
+between pairs of limit points is a constant $H^*$.  Consequently, the
+conditional distribution of the unobserved data is constant over all
+limit points; call it $P^*(\bS|\y)$.  Also the continuity assumption
+ensures that at each point the first derivative of $L$ is zero.  In
+summary:
+\begin{equation}
+  \label{eq:OmegaFlat}
+  \forall \parameters \in \Omega(\ti{\parameters}{1})
+  \begin{cases}
+    L(\parameters) = L^*\\
+    H(\parameters || \EMmap(\parameters)) = H(\parameters || \parameters) = H^* \\
+    P(\s|\y,\parameters) = P^*(\s|\y)~\forall \s \\
+    \frac{\partial L(\parameters)}{\partial \parameters} = 0
+  \end{cases}
+\end{equation}
+
+The limit set must be one of the following types: A single point
+$\parameters^*$; A periodic orbit; Or an infinite number of points
+none of which is isolated.  Consider each possibility in turn:
+
+\subsubsection{$\Omega = \{\parameters^*\}$ is a single point}
+\label{sec:EMsingle}
+
+If $N$ is the dimension of $\Theta$, the Hessian of the log likelihood
+is the $N\times N$ matrix $\left. \frac{\partial^2 L(\parameters) }{
+    \partial \parameters^2 }\right|_{\parameters^*}$.  Of the $N$
+eigenvalues of the Hessian, if $N_+$ are positive, $N_z$ are zero and
+$N_-$ are negative, then the triple $(N_+,N_z,N_-)$ is called the
+\emph{inertia} of the Hessian.  The following three possibilities are
+exhaustive.
+\begin{description}
+\item[$N_- = N$] This is the desirable case.  The first derivative
+  is zero, and the second derivative is negative definite.  These
+  are the necessary and sufficient conditions for $\parameters^*$ to
+  be a local maximum of $L$.  The analysis of $\EMmap$ below shows
+  that such limit points are linearly stable.  Thus nonzero volumes
+  of initial conditions in $\Theta$ converge to them.
+\item[$N_z >0$] Although this can happen for neighborhoods of values
+  for distributions such as the Laplacian ($P(x) = \frac{\lambda}{2}
+  e^{-\left|x-\mu\right|}$), it is not generic\footnote{By \emph{not
+      generic}, we mean an event that only occurs on a set of
+    Lebesgue measure zero.} for any of the distributions we consider
+  in this book.
+\item[$N_+ >0$] Trajectories that converge to $\parameters^*$ must
+  stay on the stable manifold.  Close to $\parameters^*$, if a
+  trajectory has \emph{any} component in the unstable subspace, it
+  will diverge from $\parameters^*$ exponentially.  The analysis of
+  $\EMmap$ below shows that the dimension of the linearly unstable
+  subspace is $N_+$.  Thus if $N+ >0$, convergence to
+  $\parameters^*$ is not generic.
+\end{description}
+In summary, convergence to local maxima of the likelihood is generic
+and convergence to saddle points of the likelihood is not.
+
+The linear stability of $\EMmap$ at an isolated fixed point
+$\parameters^*$ is determined by the eigenvalues
+$\left\{\lambda_k:1\leq k \leq N \right\}$ of the $N\times N$ matrix
+$\left. \frac{\partial \EMmap(\parameters) }{ \partial \parameters
+  }\right|_{\parameters^*}$.  The fixed point is linearly unstable if
+any eigenvalue has magnitude greater than one ($\left| \lambda_k
+\right| > 1$). We write\footnote{Equation \eqref{eq:DEM}, which
+  appears in the original EM paper by Dempster et al.\, can be derived
+  by considering the Taylor series expansion of $\frac{\partial
+    Q(\parameters,\parameters)}{\partial \parameters}$ about
+  $\parameters^*$
+  \begin{equation*}
+    \left. \frac{\partial Q(\parameters',\parameters)}{\partial \parameters'}
+    \right|_{\parameters_a,\parameters_b} = \left. \frac{\partial
+        Q(\parameters',\parameters)}{\partial \parameters'}
+    \right|_{\parameters^*,\parameters^*} %
+    + \left. \frac{\partial^2 Q(\parameters',\parameters)}{\partial
+        \parameters' \partial \parameters} \right|_{\parameters^*,\parameters^*}
+    (\parameters_b -  \parameters^*) %
+    + \left. \frac{\partial^2 Q(\parameters',\parameters)}{\partial
+        \parameters'^2} \right|_{\parameters^*,\parameters^*}
+    (\parameters_a - \parameters^*) + R,
+  \end{equation*}
+  where $R$ is a remainder.  Substituting $\ti{\parameters}{n}$ for
+  $\parameters_b$ and $\EMmap(\ti{\parameters}{n})$ for
+  $\parameters_a$ we find that to first order
+  \begin{equation*}
+    0 = 0 + \left. \frac{\partial^2 Q(\parameters',\parameters)}{\partial
+        \parameters' \partial \parameters} \right|_{\parameters^*,\parameters^*}
+    (\ti{\parameters}{n} - \parameters^*) %
+    + \left. \frac{\partial^2 Q(\parameters',\parameters)}{\partial
+        \parameters'^2} \right|_{\parameters^*,\parameters^*} (\EMmap(\ti{\parameters}{n}) -
+    \parameters^*)
+  \end{equation*}
+  and
+  \begin{equation}
+    \label{eq:FN1}
+    \left. \frac{ \partial \EMmap(\parameters)}{\partial \parameters} \right|_{\parameters^*} = %
+    \left[- \left. \frac{\partial^2 Q(\parameters',\parameters)}{\partial
+          \parameters'^2} \right|_{\parameters^*,\parameters^*} \right]^{-1} %
+    \left. \frac{\partial^2 Q(\parameters',\parameters)}{\partial
+        \parameters' \partial \parameters} \right|_{\parameters^*,\parameters^*}.
+  \end{equation}
+  Direct differentiation of the definition of $H$ yields
+  \begin{equation*}
+    \left. \frac{\partial^2 H(\parameters' || \parameters)}{\partial
+        \parameters'^2} \right|_{\parameters^*,\parameters^*} %
+    = \left.- \frac{\partial^2 H(\parameters' || \parameters)}{\partial
+        \parameters' \partial \parameters} \right|_{\parameters^*,\parameters^*}.
+  \end{equation*}
+  Combining this with $Q(\parameters',\parameters) = L(\parameters) -
+  H(\parameters' || \parameters)$, we find
+  \begin{equation*}
+    \left. \frac{\partial^2 Q(\parameters',\parameters)}{\partial \parameters'
+        \partial \parameters} \right|_{\parameters^*,\parameters^*} = %
+    \left. - \frac{\partial^2 H(\parameters' || \parameters)}{\partial
+        \parameters' \partial \parameters} \right|_{\parameters^*,\parameters^*} = %
+    \left. \frac{\partial^2 H(\parameters' || \parameters)}{\partial
+        \parameters'^2} \right|_{\parameters^*,\parameters^*} =%
+    \frac{\partial^2}{\partial \parameters'^2} \left[ L(\parameters') -
+      Q(\parameters',\parameters) \right]_{\parameters^*,\parameters^*},
+  \end{equation*}
+  and substituting back into \eqref{eq:FN1} yields \eqref{eq:DEM}.}
+the derivative of $\EMmap$ in terms of derivatives of $L$ and $Q$
+\begin{equation}
+  \label{eq:DEM}
+  \left. \frac{\partial \EMmap(\parameters)}{\partial \parameters}
+  \right|_{\parameters^*} = \id -
+  \left[ \left. \frac{\partial^2 Q(\parameters',\parameters)}{\partial
+        \parameters'^2} \right|_{\parameters^*,\parameters^*} \right]^{-1}
+  \left[ \left. \frac{\partial^2 L(\parameters)}{\partial
+        \parameters^2} \right|_{\parameters^*} \right].
+\end{equation}
+Note that $\argmax_\parameters Q(\parameters^*,\parameters) =
+\parameters^*$ because $\parameters^*$ is a fixed point of $\EMmap$,
+and generically the Hessian $\left[ \left.  \frac{\partial^2
+      Q(\parameters,\parameters)}{\partial \parameters^2}
+  \right|_{\parameters^*,\parameters^*} \right]$ will be negative
+definite.  It follows that the term $A \equiv \left[ -\left.
+    \frac{\partial^2 Q(\parameters,\parameters)}{\partial
+      \parameters^2} \right|_{\parameters^*,\parameters^*}
+\right]^{-1}$ in Eqn.~\eqref{eq:DEM} is positive definite.
+
+If $A$ and $B$ are symmetric and $A$ is positive definite, then one
+can \index{Sylvester's inertia theorem} use Sylvester's inertia
+theorem\footnote{Gerardo Lafferriere suggested to us the analysis using
+  Sylvester's inertia theorem which says that for any symmetric matrix
+  $M$ and invertible $X$, both $M$ and $X\transpose M X$ have the same
+  inertia.  Because $A^{-1}$ is positive definite, it can be factored
+  as $A^{-1} = X X\transpose$.  For this factorization, $A =
+  (X\transpose)^{-1}X^{-1}$, and
+  \begin{equation}
+    \label{eq:inertia}
+    X\transpose A B X = X^{-1} B X.
+  \end{equation}
+  The right hand side of \eqref{eq:inertia} is a similarity
+  transformation which preserves the inertia of $B$, while the left
+  hand side has the inertia of $AB$.  Thus the inertia of $AB$ is the
+  same as the inertia of $B$.} to show that the inertia of $AB$ is
+equal to the inertia of $B$. At a saddle point of $L$, $B= \left[
+  \left. \frac{\partial^2 L(\parameters)}{\partial
+      \parameters^2} \right|_{\parameters^*} \right]$ will have at
+least one positive eigenvalue and the product $AB$ will also have at
+least one positive eigenvalue $\lambda^+$.  For the eigenvector $v^+$
+of $AB$ corresponding to $\lambda^+$,
+\begin{equation*}
+  (\id +AB) v^+ = (1 + \lambda^+) v^+ .
+\end{equation*}
+Since $(1+\lambda^+)$ is greater than one and is an eigenvalue of
+$\left. \frac{\partial \EMmap(\parameters)}{\partial \parameters}
+\right|_{\parameters^*}$, the saddle is an unstable fixed point of
+$\EMmap$, and convergence to it is not generic.
+
+Similarly, if $\parameters^*$ is an isolated local maximum of $L$ with
+negative definite $B= \left[ \left.  \frac{\partial^2
+      L(\parameters)}{\partial \parameters^2} \right|_{\parameters^*}
+\right]$, then $AB$ is also negative definite, and each eigenvalue of
+$\id + AB$ is less than one.  Negative definiteness of $B$ combined
+with the monotonicity of the EM algorithm also implies that every
+eigenvalue is greater than $-1$.  Thus $\left| \lambda \right| <1$ for
+each eigenvalue $\lambda$ of $\left.  \frac{\partial
+    \EMmap(\parameters)}{\partial \parameters}
+\right|_{\parameters^*}$, and the maximum is a linearly stable fixed
+point of $\EMmap$.  Linear stability implies that for every
+$\ti{\parameters}{1}$ in some neighborhood of $\parameters^*$ the
+sequence $\left( \ti{\parameters}{1}, \EMmap(\ti{\parameters}{1}),
+  \EMmap^2(\ti{\parameters}{1}), \ldots \right)$ converges to
+$\parameters^*$.
+
+In summary: Convergence to fixed point of $\EMmap$ that is a local
+maximum of the likelihood is generic and convergence to a saddle point
+of the likelihood is not generic.
+
+\subsubsection{$\Omega $ is a periodic orbit}
+\label{sec:EMperiodic}
+
+At a periodic limit point $\parameters^*$ with period $n$, an analysis
+parallel to the derivation of Eqn.~\eqref{eq:DEM} yields
+\begin{equation*}
+  \label{eq:DEM-periodic}
+  \left. \frac{\partial \EMmap^n(\parameters)}{\partial \parameters}
+  \right|_{\parameters^*} = \id -
+  \left[ \left. \frac{\partial^2 Q(\parameters',\parameters)}{\partial
+        \parameters'^2} \right|_{\parameters^*,\parameters^*} \right]^{-1}
+  \left[ \left. \frac{\partial^2 L(\parameters)}{\partial
+        \parameters^2} \right|_{\parameters^*} \right],
+\end{equation*}
+and we conclude by the same arguments as for the period one case that
+convergence to periodic limit points is generic if they are local
+maxima of the likelihood and not generic if they are saddle points of
+the likelihood.
+
+\subsubsection{$\Omega $  has an infinite number of points}
+\label{sec:EMstrange}
+
+We have not analyzed the possibility of a limit set with an infinite
+number of points none of which are isolated.  To detect such behavior,
+one could check numerical trajectories of $\EMmap$ for convergence in
+both $\parameters$ and $L$.
+
+\subsubsection{A contrived example}
+\label{sec:contrived}
+
+Figure~\ref{fig:EM} illustrates stable convergence for the case of a
+coin being tossed 4 times and observed twice.  By pretending that the
+unobserved data is important and handling it via the EM algorithm, we
+find that the algorithm implements an obviously stable \emph{linear}
+map $\EMmap$.
+
+\begin{figure}[htbp]
+  \centering
+  {\plotsize%
+    { \def\x#1{\mbox{\lower1.0ex\hbox{$#1$}}}%
+      \def\xlab{\mbox{\lower4.0ex\hbox{$\parameters$}}}%
+      \def\y#1{\mbox{\kern-0.5em\lower1.0ex\hbox{$#1$}}}%
+      \def\ylab{\mbox{\kern-0.5em\lower1.5ex\hbox{$\parametersPrime$}}}%
+      \def\zlab{$Q(\parametersPrime,\parameters)$}%
+      \input{figs/EM1.eps_t}}%
+    {\def\xlab{$\parameters$}%
+      \def\ylab{$\EMmap(\parameters)$}%
+      \input{figs/EM2.eps_t}}}
+  \caption[\comment{fig:EM }An illustration of the EM algorithm.]%
+  {An illustration of the EM algorithm for an experiment in which a
+    coin is thrown four times, first a head is observed
+    $(\ti{y}{1}=1)$, then a tail is observed $(\ti{y}{2}=0)$, and
+    finally two results are unobserved with $s_h$ and $s_t$ being the
+    number of unobserved heads and tails respectively.  The goal is to
+    find the maximum likelihood value of $\parameters$, the
+    probability of heads.  The log likelihood function for the
+    complete data is $L_{\parameters} = (s_h + 1)\log(\parameters) +
+    (s_t +1)\log(1-\parameters)$.  The auxiliary function
+    $Q(\parameters',\parameters) = (1+2\parameters)\log(\parameters')
+    + (1 + 2(1-\parameters))\log(1-\parameters')$ appears on the left,
+    and the map $\EMmap(\parameters)$ appears on the right.  Note that
+    $\parameters^* = \frac{1}{2}$ is the fixed point of $\EMmap$
+    (where the plot intersects the slope 1 reference line) and it is stable
+    because the slope of $\EMmap$ is less than one.}
+  \label{fig:EM}
+\end{figure}
+
+\begin{CVSID}
+%%%$Id: algorithms.tex,v 1.139 2007/06/07 05:12:02 karlheg Exp $
+\end{CVSID}
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% eval: (load-file "hmmkeys.el")
+%%% End:

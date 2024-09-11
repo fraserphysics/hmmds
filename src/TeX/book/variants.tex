@@ -1,0 +1,732 @@
+\chapter{Variants and Generalizations}
+\label{chap:variants}
+
+Hidden Markov models are special cases of discrete time state space
+models characterized by a state transition probability function and an
+observation probability function, \ie,
+\begin{subequations}
+  \label{eq:ssm}
+  \begin{align}
+      &P(\State_{n+1}|\State_n)\text{, and }\\
+      &P(\Output_n|\State_n).
+  \end{align}
+\end{subequations}
+In Chapter~\ref{chap:algorithms} we described algorithms for fitting
+and using the probability distributions specified in
+Eqn.~\eqref{eq:ssm} if both the set of possible states $\states$ and
+the set of possible observations $\outputs$ have an unstructured
+finite number of discrete values.  However, in many applications the
+measurements, and perhaps the states also, are thought of as being
+drawn from continuous vector spaces.
+
+Since most experimental observations are measured and recorded
+digitally, one could argue that discrete approximations are adequate
+and attempt to use the algorithms of Chapter~\ref{chap:algorithms}
+anyway.  That approach is disastrous because it precludes exploiting
+either the metric or topological properties of the space of
+measurements.  Consider the histogram of the first 600 samples of
+Tang's laser data in Fig.~\ref{fig:LaserHist}.  Neither 5 nor 93
+occurs, but it seems more plausible that 93 will occur in the
+remainder of the samples because there are 14 occurrences between 90
+and 96 and none between 2 and 8.  To make more effective use of
+measured data, one usually approximates the probabilities by functions
+with a small number of free parameters.  For many such families of
+\emph{parametric models} one can use the algorithms of
+Chapter~\ref{chap:algorithms} with minor modifications\footnote{At the
+  1988 ICASSP meeting, Poritz\cite{Poritz88} reviewed several HMM
+  variants.}.  For a practitioner, the challenge is to find or develop
+both, a parametric family that closely matches the measured system,
+and algorithms for fitting and using the models.
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \input{figs/LaserHist.eps_t}}
+  \caption[\comment{fig:LaserHist }Histogram of Tang's laser measurements.]%
+  {Histogram of Tang's laser measurements.  Even though neither $y=5$
+    nor $y=93$ occurs in $\ts{y}{1}{600}$, it is more plausible that
+    $y=93$ would occur in future measurements because of what happens
+    in the neighborhood.  Discarding the numerical significance of the
+    bin labels would preclude such an observation. }
+  \label{fig:LaserHist}
+\end{figure}
+
+In this chapter we will describe some model families with Gaussian
+observations.  We will use the failure of the maximum likelihood
+approach with such models to motivate and develop
+\emph{\index*{regularization}}.  Also, we will touch on the
+relationships between HMM model families and other kinds of models.
+
+\section{Gaussian Observations}
+\label{sec:gaussian}
+\index{Gaussian observation}
+
+\subsection{Independent Scalar Observations}
+\label{sec:ScalarGaussian}
+
+A simple model for continuously distributed measurements is an HMM
+with an independent scalar Gaussian observation model associated with each
+state.  In many cases it is adequate, but risky (See
+Fig.~\ref{fig:MLEfail}), to simply use the algorithms of
+Chapter~\ref{chap:algorithms} with minor modifications for Gaussian
+observations.  Such algorithms performed satisfactorily for the exercises
+depicted in Fig.~\ref{fig:ScalarGaussian} in which we estimated an
+approximate state sequence and model parameters from a sequence of
+observations.
+
+%%%
+%%% fig:ScalarGaussian
+%%%
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \setlength{\unitlength}{1in}%
+    \begin{tabular}[H]{cc}
+      \begin{picture}(0,0)
+        \put(-0.1,0.8){\makebox{\normalsize\textbf{(a)}}}
+      \end{picture}%
+      {\def\prba{$0.93$}%
+        \def\prbb{$0.13$}%
+        \def\prbc{$0.07$}%
+        \def\prbd{$0.87$}%
+        \def\lbla{\parbox[t]{1.8in}{$\mu=-1$\\$\sigma=1$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=1$\\$\sigma=1$}}%
+        \input{figs/SGO.eps_t}}%
+      %\smallskip%
+      &
+      \begin{picture}(0,0)
+        \put(0.0,0.8){\makebox{\normalsize\textbf{(b)}}}
+      \end{picture}%
+      \input{figs/SGOsimS.eps_t}%
+      %\smallskip%
+      \\
+      \begin{picture}(0,0)
+        \put(0.0,0.8){\makebox{\normalsize\textbf{(c)}}}
+      \end{picture}%
+      \input{figs/SGOsimY.eps_t}%
+      \smallskip%
+      &
+      \begin{picture}(0,0)
+        \put(0.0,0.8){\makebox{\normalsize\textbf{(d)}}}
+      \end{picture}%
+      \input{figs/SGOdecodeS.eps_t}%
+      %\smallskip%
+      \\
+      \begin{picture}(0,0)
+        \put(-0.1,0.8){\makebox{\normalsize\textbf{(e)}}}
+      \end{picture}%
+      {\def\prba{$0.5$}%
+        \def\prbb{$0.5$}%
+        \def\prbc{$0.5$}%
+        \def\prbd{$0.5$}%
+        \def\lbla{\parbox[t]{1.8in}{$\mu=-2$\\$\sigma=2$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=2$\\$\sigma=2$}}%
+        \input{figs/SGO.eps_t}}&
+      \begin{picture}(0,0)
+        \put(-0.1,0.8){\makebox{\normalsize\textbf{(f)}}}
+      \end{picture}%
+      {\def\prba{$0.92$}%
+        \def\prbb{$0.12$}%
+        \def\prbc{$0.08$}%
+        \def\prbd{$0.88$}%
+        \def\lbla{\parbox[t]{1.8in}{$\mu=-0.74$\\$\sigma=1.05$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=1.17$\\$\sigma=1.13$}}%
+        \input{figs/SGO.eps_t}}
+      \end{tabular}}
+  \caption[\comment{fig:ScalarGaussian }An HMM with scalar Gaussian observations.]%
+  {An HMM with scalar Gaussian observations.  A state diagram appears in
+    (a).  The half-life of the first state is about ten and the half
+    life of the second state is about five, \ie, $0.93^{10} \approx
+    0.87^5 \approx 0.5$.  A simulated state sequence and observation
+    sequence appear in (b) and (c) respectively.  Using the model
+    parameters from (a) and the observation sequence from (c) the
+    Viterbi algorithm estimates the state sequence that appears in (d)
+    which is satisfyingly similar to the state sequence in (b).
+    Finally, starting from the initial model depicted in (e) and using
+    the observation sequence depicted in (c), 50 iterations of the
+    Baum Welch algorithm produces the model depicted in (f) which is
+    satisfyingly similar to (a).}
+  \label{fig:ScalarGaussian}
+\end{figure}
+
+The code that generated the data for Fig.~\ref{fig:ScalarGaussian}
+implemented algorithms from Chapter~\ref{chap:algorithms} with the
+following modifications:
+%%\newpage%%% Look for awkward vertical whitespace under fig:ScalarGaussian
+\begin{description} 
+\item[$\bm{P_{\ti{Y}{t}|\ti{S}{t}} \left(y|s \right)}$] The Viterbi
+  algorithm, the forward algorithm, and the backward algorithm all use
+  the observation probability conditioned on the state. In each case one
+  simply uses the value of the probability density conditioned on the
+  state
+  \begin{equation*}
+    P_{\ti{Y}{t}|\ti{S}{t}} \left(y|s \right) = \frac{1}{\sqrt{2\pi
+    \sigma_s^2}} e^{-\frac{(y-\mu_s)^2}{2\sigma_s^2}}.
+  \end{equation*}
+\newpage%%% Look for awkward vertical whitespace under fig:ScalarGaussian
+\item[Reestimation] Reviewing the derivations in Section
+  \ref{sec:reestimation}, we find that the first two formulas in Table
+  \ref{tab:reestimation} (those for the initial state probability, %
+  %% FixMe: The following formula causes an overfull box with CM fonts:
+  $P_{\ti{S}{1}|\ti{\parameters}{n+1}} \left(i|\ti{\parameters}{n+1} \right)$, 
+  and the state transition probability,
+  $P_{\ti{S}{t+1}|\ti{S}{t},\ti{\parameters}{n+1}} \left({\tilde s}|s \right)$) 
+  still work with the new observation model.  To derive reestimation
+  formulas for the Gaussian observation model parameters, note that
+  Eqn.~\eqref{eq:Loutput} becomes %
+  \begin{align}
+    L_{\text{observation}}(y,s) & \equiv \log
+  P_{\ti{Y}{1}|\ti{S}{1},\parameters'} \left(y|s,\parameters' \right)\\
+    \label{eq:LoutputG}
+    &= -\frac{1}{2} \log (2\pi) - \log(\sigma_s) -
+    \frac{(y-\mu_s)^2}{2\sigma_s^2},
+  \end{align}
+  and starting from Eqn.~\eqref{eq:Qout1} calculate
+\begin{align}
+  \label{eq:QoutG1}
+  Q_{\text{observation}} (\parameters',\parameters) &=
+  \sum_{\ts{q}{1}{T}\in\states^T} P_{\parameters}
+  \left(\ts{q}{1}{T}|\ts{y}{1}{T} \right) \sum_{t=1}^T
+  L_{\text{observation}}(\ti{y}{t},\ti{q}{t})\\
+  \label{eq:QoutG2}
+  &= \sum_{s\in\states} \sum_{t=1}^T L_{\text{observation}}(\ti{y}{t},s)
+  \sum_{\ts{q}{1}{T}:\ti{q}{t}=s }P_{\parameters}
+  \left(\ts{q}{1}{T}|\ts{y}{1}{T} \right) \\
+  \label{eq:QoutG3}
+  &= - \sum_{s\in\states} \sum_{t=1}^T w(s,t) \left( \frac{1}{2}
+    \log(2\pi) + \log(\sigma_s) + \frac{\left( \ti{y}{t}-\mu_s
+      \right)^2}{2\sigma_s^2} \right).
+\end{align}
+Since the formulas
+\begin{align}
+  \label{eq:NewMuG}
+  \mu_s &= \sum_{t=1}^T w(s,t) \ti{y}{t} \\
+  \sigma_s^2 &= \sum_{t=1}^T w(s,t)\left( \ti{y}{t}-\mu_s \right)^2
+\end{align}
+maximize $Q_{\text{observation}} (\parameters',\parameters)$, we use them in place
+of the discrete observation reestimation formula of
+Chapter~\ref{chap:algorithms} (Table \ref{tab:reestimation} and
+Eqn.~\eqref{eq:NewOut}).
+%
+\end{description}
+
+
+\subsection{Singularities of the likelihood function and regularization}
+\label{sec:regularization}
+
+Running five iterations of the Baum Welch algorithm on the observation
+sequence in Fig.~\ref{fig:ScalarGaussian}~(c) starting with the model
+in Fig.~\ref{fig:MLEfail}~(a) produces the model in
+Fig.~\ref{fig:MLEfail}~(b) in which the variance of the observations
+produced by the second state looks suspiciously small.  In fact with
+additional iterations of the Baum Welch algorithm that variance
+continues to shrink, and after the seventh iteration, our code stops
+with a floating point exception.  The algorithm is pursuing a
+singularity in the likelihood function in which the second state fits
+the $56^{\text{th}}$ observation exactly and the first state fits all
+of the other observations.  If $\mu_2 = \ti{y}{56}$ the likelihood
+$P_{\ti{Y}{t}|\ti{S}{t}} \left(\ti{y}{56}|2 \right)$ increases without
+limit as $\sigma_2 \rightarrow 0$, \ie,
+\begin{equation*}
+  \lim_{\sigma_2 \rightarrow 0} P_{\ti{Y}{t}|\ti{S}{t}}
+  \left(\ti{y}{56}|2 \right) = \infty.
+\end{equation*}
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \setlength{\unitlength}{1in}%
+    \begin{tabular}[H]{cc}
+      \begin{picture}(0,0)
+        \put(-0.1,0.8){\makebox{\normalsize\textbf{(a)}}}
+      \end{picture}%
+      {\def\prba{$0.5$}%
+        \def\prbb{$0.5$}%
+        \def\prbc{$0.5$}%
+        \def\prbd{$0.5$}%
+        \def\lbla{\parbox[t]{1.8in}{$\mu=0.0$\\$\sigma=4.0$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=3.6$\\$\sigma=0.126$}}%
+        \input{figs/SGO.eps_t}}&
+      \begin{picture}(0,0)
+        \put(-0.1,0.8){\makebox{\normalsize\textbf{(b)}}}
+      \end{picture}%
+      {\def\prba{$0.99$}%
+        \def\prbb{$1.0$}%
+        \def\prbc{$0.01$}%
+        \def\prbd{$0.0$}%
+        \def\lbla{\parbox[t]{1.8in}{$\mu=-0.08$\\$\sigma=1.38$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=3.60$\\$\sigma=0.08$}}%
+        \input{figs/SGO.eps_t}}%
+    \end{tabular}}%
+  \caption[\comment{fig:MLEfail }An illustration of trouble with maximum likelihood.]%
+  {An illustration of trouble with maximum likelihood.  Here we have
+    used the same implementation of the Baum Welch algorithm that we
+    used to produce Fig.~\ref{fig:ScalarGaussian}~(f), but rather than
+    starting with the model in Fig.~\ref{fig:ScalarGaussian}~(c), we
+    started the algorithm with the initial model depicted in (a)
+    above.  Five iterations of the algorithm produced the suspicious
+    model depicted in (b) above.}
+  \label{fig:MLEfail}% numbers from ScalarGaussian.py
+\end{figure}
+
+Such singularities of likelihood are common among parametric
+probability density functions.  A particularly simple example is the
+\emph{Gaussian mixture model}\index{Gaussian mixture model|textbf}
+\begin{equation}
+  \label{eq:GaussianMixture}
+  f(y) = \lambda \frac{1}{\sqrt{2 \pi \sigma_1^2}}
+  e^{-\frac{(y-\mu_1)^2}{2 \sigma_1^2}} + (1-\lambda) \frac{1}{\sqrt{2 \pi \sigma_2^2}}
+  e^{-\frac{(y-\mu_2)^2}{2 \sigma_2^2}},
+\end{equation}
+which has the five parameters $\mu_1,~\sigma_1,~\mu_2,~\sigma_2,$ and $\lambda$.
+Assuming that the data are \iid, one might attempt a maximum
+likelihood fit to the observations in
+Fig.~\ref{fig:ScalarGaussian}~(e) with the likelihood function
+\begin{equation}
+  \label{eq:GMLike}
+  g(\mu_1,\sigma_1,\mu_2,\sigma_2,\lambda) = \prod_{t=1}^T f(\ti{y}{t}).
+\end{equation}
+While it is possible to find a useful \emph{local} maximum of $g$
+near
+\begin{equation*}
+  \mu_1 = -1,~~\sigma_1 = 1,~~ \mu_2 = 1,~~ \sigma_2 = 1,~~ \lambda =
+  \frac{2}{3},
+\end{equation*}
+the likelihood is higher near the singularities of $g$ specified by
+the equations
+\begin{align*}
+  \mu_s &= \ti{y}{t}\\
+  \sigma_s &= 0,
+\end{align*}
+for each pair $(s,t)\in \left\{1,2\right\} \times \left\{ 1,2,\ldots,T
+\right\}$.
+
+If, as is the case here, we want to exclude parameter vectors for
+which the likelihood function is larger than its value at the solution
+we prefer, then likelihood doesn't really express our goal.
+\emph{Regularization} refers to a variation on maximum likelihood
+that more accurately reflects what we want.  In the next subsection,
+we explain how to use Bayesian \emph{priors} to regularize
+\emph{maximum a posteriori} parameter estimates.
+
+%%% \subsection{The EM algorithm for \emph{maximum a posteriori} estimation}
+\subsection{The EM algorithm for maximum a posteriori estimation}
+%%% variants.tex:297: [Font] Font shape `OT1/cmss/bx/it' undefined using `OT1/cmss/bx/n' instead. (page 51)
+\label{sec:EMMAP}
+
+\index*{Bayesian estimation} starts by characterizing the
+acceptability of models $P_{\Y|\parameters}$ in terms of a
+\emph{prior} probability distribution $P_{\parameters}$.  Initial
+observations $\y_e$, called \emph{evidence} or training data, modify
+the prior through Bayes rule to yield the \emph{a posteriori}
+distribution
+\begin{equation}
+  \label{eq:posteriori}
+  P(\parameters|\y_e) = \frac{P(\y_e,\parameters)}{P(\y_e)} =
+  \frac{P(\y_e|\parameters)P(\parameters)}{\int P(\y_e|\parameters)P(\parameters)\,
+  d\parameters},
+\end{equation}
+and the probability of future observations $\y_f$ is
+\begin{equation}
+  \label{eq:futureBayes}
+  P(\y_f|\y_e) = \int  P(\y_f|\parameters) P(\parameters|\y_e)\, d\parameters.
+\end{equation}
+The parameter vector that maximizes the \emph{a posteriori}
+\index{maximum a posteriori estimate} distribution,
+\begin{subequations}
+  \begin{align}
+    \label{eq:MAPdefa}
+    \parameters_{\text{MAP}} &\equiv \argmax_\parameters P(\parameters|\y_e) \\
+    \label{eq:MAPdefb}
+    &= \argmax_\parameters P(\parameters,\y_e),
+  \end{align}
+\end{subequations}
+is called the MAP estimate.  \index{MAP estimate|see{maximum a
+    posteriori estimate}} Using $\parameters_{\text{MAP}}$ one may
+approximate\footnote{Although it is every bit as reasonable to use the
+  mean to characterize the \emph{a posteriori} distribution as it is to
+  use the maximum, we prefer the maximum because changing from MLE to
+  MAP requires only minor modifications to the Baum Welch algorithm.
+  A strictly Bayesian approach would retain the entire \emph{a
+    posteriori} distribution in parameter space rather than
+  characterizing the distribution by a single point estimate.}
+Eqn.~\eqref{eq:futureBayes} with $P\left( \y_f|\parameters_{
+    \text{MAP} } \right)$.
+
+A slight variation of the algebra in Section~\ref{sec:EM} produces an
+EM algorithm for maximum \emph{a posteriori} estimation.  Dropping
+the subscript on $\y_e$ if we replace the auxiliary function of
+Eqn.~\eqref{eq:Qdef}, \ie,
+\begin{equation*}
+  Q_{\text{MLE}}(\parameters',\parameters) \equiv \EV_{P
+    \left(\bS|\y,\parameters \right)} \left( \log P(\bS,\y|\parameters') \right),
+\end{equation*}
+with
+\begin{subequations}
+  \label{eq:QMAP}
+  \begin{align}
+  \label{eq:QMAPa}
+    Q_{\text{MAP}}(\parameters',\parameters) &\equiv \EV_{P \left(\bS|\y,\parameters \right)}
+    \left( \log P(\bS,\y,\parameters') \right) \\
+  \label{eq:QMAPb}
+    &= Q_{\text{MLE}}(\parameters',\parameters) + \EV_{P \left(\bS|\y,\parameters
+      \right)} \left( \log P(\parameters')\right) \\
+  \label{eq:QMAPc}
+    &= Q_{\text{MLE}}(\parameters',\parameters) + \log P(\parameters'),
+  \end{align} 
+\end{subequations}
+then the derivation of
+\begin{equation*}
+    Q_{\text{MAP}}(\parameters',\parameters) > Q_{\text{MAP}}(\parameters,\parameters)
+    \Rightarrow P(\y,\parameters') > P(\y,\parameters),
+\end{equation*}
+is completely parallel to the argument on page \pageref{eq:GEMcond}
+that concludes $Q_{\text{MLE}}(\parameters',\parameters) >
+Q_{\text{MLE}}(\parameters,\parameters)$.  If in addition the
+components of $P(\parameters)$ are independent, \ie,
+\begin{equation*}
+  P(\parameters) = P(\parameters_{\text{initial}}) \cdot
+  P(\parameters_{\text{transition}}) \cdot P(\parameters_{\text{observation}}),
+\end{equation*}
+then like the decomposition of $Q_{\text{MLE}}$ in
+Eqn.~\eqref{eq:QHMMseparate} we find
+\begin{equation*}
+  Q_{\text{MAP}}(\parameters',\parameters) =  Q_{\text{MAP, initial}}
+  (\parameters',\parameters) +   Q_{\text{MAP, transition}} (\parameters',\parameters)
+  + Q_{\text{MAP, observation}}
+  (\parameters',\parameters),
+\end{equation*}
+with
+\begin{subequations}
+  \label{eq:QseparateMAP}
+  \begin{align}
+    Q_{\text{MAP, initial}} &= Q_{\text{MLE, initial}} + \log
+    P(\parameters_{\text{initial}}) \\
+    Q_{\text{MAP, transition}} &= Q_{\text{MLE, transition}} + \log
+    P(\parameters_{\text{transition}}) \\
+    \label{eq:QseparateMAPout}
+    Q_{\text{MAP, observation}} &= Q_{\text{MLE, observation}} + \log
+    P(\parameters_{\text{observation}}).
+  \end{align}
+\end{subequations}
+With a suitable prior, the simple form of Eqn.~\eqref{eq:QseparateMAP}
+makes it easy to convert a program that implements the Baum Welch
+algorithm for \index{maximum likelihood estimate} maximum likelihood
+estimation into a program that implements maximum a posteriori
+estimation.
+
+\subsection{Vector Autoregressive Observations}
+\label{sec:ARVGaussian}
+
+\subsubsection{Overview of the model}
+
+Rather than choosing a prior and developing algorithms for the
+independent scalar observations of Section~\ref{sec:ScalarGaussian} we will
+work on more general models with vector autoregressive Gaussian
+observations associated with each hidden state.  If at time $t$ such a
+system is in state $s$, then the mean of the conditional distribution
+for $\ti{y}{t}$ is a linear function of the $d$ previous observations
+$\ts{y}{t-d}{t-1}$ added to a fixed offset.  Specifically, the
+conditional distributions for observations are $n$ dimensional vector
+Gaussians as follows:
+\begin{description}
+\item[Covariance] The covariance is a state dependent positive
+  definite $n\times n$ matrix $\Sigma_s$.
+\item[Mean] Given that the system is in state $s$, the parameters
+  $\left\{ c_{s,i,\tau,j}, \bar y_{s,i} \right\}$ and the $d$ previous
+  observations determine the mean of the observation distribution
+  through an \emph{affine} function, \ie, the sum of a linear function
+  and a fixed offset, with components
+  \begin{equation}
+    \label{eq:ARVGout1}
+    \mu\left(s,\ts{y}{t-d}{t-1}\right) = \bar y_{s,i} + \sum_{\tau =
+    1}^d \sum_{j=1}^n c_{s,i,\tau,j} \ti{y_j}{t-\tau}.
+  \end{equation}
+  We implement this as a \emph{linear} function of a \emph{context
+    vector} $x$ consisting of $d$ previous observations and a constant
+  one, \ie,
+  \begin{align*}
+    \ti{x}{t} & \equiv \left( \overrightarrow{\ti{y}{t-1}},
+      \overrightarrow{\ti{y}{t-2}},\ldots
+      \overrightarrow{\ti{y}{t-d}}, 1\right)\\
+    & \equiv \left(\ti{y_1}{t-1}, \ti{y_2}{t-1}, \ldots,
+      \ti{y_n}{t-1}, \ti{y_1}{t-2}, \ldots, \ti{y_n}{t-d}, 1 \right).
+  \end{align*}
+  Using notation in which the $i\th$ component of the observation
+  $\tau$ time steps before time $t$ is $\ti{y_i}{t-\tau}$, the $k\th$
+  component of the context at time $t$ is
+  \begin{equation}
+    \label{eq:context}
+    \ti{x_{k}}{t} = \begin{cases} \ti{y_i}{t-\tau} & 1\leq \tau \leq d
+    \\ 1 & \tau = d+1,~~ i = 1, \end{cases},
+  \end{equation}
+  where $k=d\cdot(\tau-1) + i$, and
+  \begin{equation}
+    \label{eq:ARVGout2}
+    \mu_s\left(s,\ts{y}{t-d}{t-1}\right) = A_s \ti{x}{t}
+  \end{equation}
+  where $A_s$ is an $n\times(nd+1)$ matrix consisting of $\left\{
+    c_{s,i,\tau,j} \right\}$ and $\left\{ \bar y_{s,i} \right\}$.
+\end{description}
+Using this notation the model assumptions are (compare to
+Eqns.~\eqref{eq:assume_markov} and \eqref{eq:assume_output} which
+describe the assumptions for HMMs with discrete observations.) that
+the states follow a Markov process and that the conditional
+distribution of an observation given the state $s$ is Gaussian with
+mean $A_s \ti{x}{t}$ and covariance $\Sigma_s$, \ie,
+\begin{align}
+  \label{eq:assume_markovVARG}
+  P(\ti{s}{t+1}|\ts{s}{-\infty}{t},\ts{y}{-\infty}{t}) &= 
+  P\left(\ti{s}{t+1}|\ti{s}{t}\right)\\
+  \label{eq:assume_outputVARG}
+  P(\ti{y}{t}|\ts{s}{-\infty}{t},\ts{y}{-\infty}{t-1}) &=
+    \frac{1}{\sqrt{ (2 \pi)^n \left|\Sigma_{s(t)}\right|}}
+    \exp\left({-\frac{1}{2} z_{s(t)}\transpose(t) \Sigma_{s(t)}^{-1}
+    z_{s(t)}(t)} \right)
+\end{align}
+where
+\begin{equation*}
+z_k(t) \equiv y(t) - A_k x(t).  
+\end{equation*}
+
+The model accounts for relationships between an observation and its
+predecessors two ways, first the observation at time $\ti{y}{t}$ is
+related to the $d$ previous observations through the matrix $A_s$, and
+it is also related to \emph{all} previous observations through the state $s$.
+
+\subsubsection{Reestimation}
+
+A derivation like the one leading to \eqref{eq:QoutG3} yields
+\begin{equation}
+  \label{eq:QVARGmle1}
+  Q_{\text{observation}} (\parameters',\parameters) =  \frac{1}{2}
+      \sum_{s\in\states} \sum_{t=1}^T w(s,t) \left[ \log\left( \left|
+      \Sigma_s^{-1} \right| \right) - n
+      \log(2\pi) - z_s\transpose(t)
+      \Sigma_s^{-1} z_s(t)\right].
+\end{equation}
+Hence each term in the sum over $s$ can be optimized separately.  One
+can write code that maximizes $ \sum_{t=1}^T w(s,t) \left[ \log \left|
+    \Sigma_s^{-1} \right| - z_s\transpose(t) \Sigma_s^{-1}
+  z_s(t)\right]$ using operations on vectors and matrices as
+follows:
+\begin{enumerate}
+\item Create a weighted \emph{context} matrix $X_s$ with columns
+  $\ti{x}{t}\sqrt{w(s,t)}$, where $w(s,t) =
+  P_{\ti{S}{t}|\ts{y}{1}{T}} \left(s|\ts{y}{1}{T} \right)$ and
+  Eqn.~\eqref{eq:context} defines $\ti{x}{t}$.
+\item Create a weighted \emph{observation} matrix $Y_s$ with columns
+  $\ti{y}{t}\sqrt{w(s,t)}$.
+\item \label{step:A} Solve
+  \begin{equation}
+    \label{eq:VARGnewA}
+    A_s = \argmin_M \left|Y_s - MX_s \right|^2
+  \end{equation}
+  (We use singular value decomposition methods here because they are
+  stable and make diagnosing problems easy.)
+\item Calculate a matrix of residuals
+  \begin{equation*}
+    Z_s = Y_s - A_s X_s
+  \end{equation*}
+\item \label{step:cov} Calculate a new covariance matrix\footnote{One
+    may derive this formula by differentiating the right-hand side of
+    Eqn.~\ref{eq:QVARGmle1} with respect to the elements of
+    $\Sigma_s^{-1}$ and setting the result equal to zero.  The key is
+    the observation that for a positive definite matrix $M$,
+  \begin{equation*}
+    \frac{\partial \log \left| M \right|}{\partial m_{i,j}} =
+    \left[M^{-1}\right]_{i,j},
+  \end{equation*}
+  i.e., the derivative of the log of the determinant with respect to the
+  $i,j^{th}$ element of $M$ is the $i,j^{th}$ element of $M^{-1}$.
+  
+  Since the value of $A_s$ that minimizes $ \sum_{t=1}^T w(s,t) -
+  z_s\transpose(t) \Sigma_s^{-1} z_s(t)$ is independent of
+$\Sigma_s^{-1}$, it is correct to do step \ref{step:A} before step
+\ref{step:cov}. }
+  \begin{equation}
+    \label{eq:VARGnewSigma}
+    \Sigma_s = \frac{\sum_{t=1}^T w(s,t) z_s(t)
+      z_s\transpose(t)}{\sum_{t=1}^T w(s,t)},
+  \end{equation}
+  using $Z_s Z_s\transpose = \sum_{t=1}^T w(s,t) z_s(t)
+  z_s\transpose(t)$.
+\end{enumerate}
+
+\subsubsection{Regularization}
+\index{regularization}
+
+As Eqn.~\eqref{eq:QseparateMAP} indicates, we can influence the a
+posteriori distributions of the initial states, the transitions, and
+the observations by our selection of the respective priors,
+$P(\parameters_{\text{initial}})$, $P(\parameters_{\text{transition}})$, and
+$P(\parameters_{\text{observation}})$.  Since singularities in the likelihood
+are associated with singular covariance matrices $\Sigma_s$, the prior
+for the covariance matrices is most urgent.
+
+Following \cite{Gauvain94, Ormoneit95} we use inverse-\index*{Wishart
+distributions} as priors for the inverse covariance matrices.  See
+pages 150-155 of Schafer \cite{Schafer97} for a description of the
+these distributions.  The inverse-Wishart prior has the following
+probability density for an $n\times n$ inverse covariance matrix
+\begin{equation*}
+  P_{\text{IW}}(\Sigma^{-1}) \equiv C \left| \Sigma^{-1}
+                    \right|^{\frac{m+n+1}{2}}
+                    e^{-\frac{1}{2} {\bf tr}(\Lambda \Sigma^{-1})},
+\end{equation*}
+where $C$ is a normalization constant, $m$ is called the \emph{degrees
+  of freedom}, and $\Lambda$ is called the \emph{scale}.  The mean and
+the maximum of the inverse-Wishart are
+\begin{align*}
+  \EV \Sigma^{-1} &= \frac{1}{m-n-1} \Lambda^{-1}, \text{ and} \\
+  \argmax P_{\text{IW}} \left( \Sigma^{-1} \right) &= \frac{1}{m+n+1}
+  \Lambda^{-1}
+\end{align*}
+respectively.
+
+Assuming neutral priors for the coefficient matrices $A_s$ and the
+form
+\begin{equation*}
+  \Lambda = \beta \id,
+\end{equation*}
+we find
+\begin{equation*}
+  P(\parameters_y) \propto \prod_s \left| \Sigma_s^{-1}
+                    \right|^{\frac{\alpha}{2}}
+                    e^{-\frac{1}{2} {\bf tr}(\beta \Sigma_s^{-1})},
+\end{equation*}
+(where $\alpha = n+m+1$) and Eqn.~\ref{eq:QseparateMAPout} becomes
+\begin{multline*}
+  \label{eq:QVARG1}
+  Q_{\text{observation}} = C + \sum_s \left( \frac{\alpha}{2}\log\left|
+      \Sigma_s^{-1}\right| - \frac{1}{2} {\bf tr}(\beta
+    \Sigma_s^{-1}) \right) \\
+  + \frac{1}{2} \sum_s \sum_{t=1}^T w(s,t) \left[ \log \left|
+      \Sigma_s^{-1} \right| - z_s\transpose(t) \Sigma_s^{-1} z_s(t)\right],
+\end{multline*}
+where $z_s(t) \equiv y(t) - A_s x(t)$ and $w(s,t)$ is the probability
+of being in state $s$ at time $t$ given the data $\ts{y}{1}{T}$.
+Reestimation of the regularized model is the same as reestimation for
+the unregularized model except that Eqn.~\ref{eq:VARGnewSigma} is
+replaced with
+\begin{equation}\label{eq:NewSigma}
+  \Sigma_s = \frac{\beta \id + \sum_{t=1}^T w(s,t) z_s(t)
+    z_s\transpose(t)} {\alpha + \sum_{t=1}^T w(s,t)}.
+\end{equation}
+Thus in the absence of new information, a covariance matrix is given
+the default value $\frac{\beta \id}{\alpha}$, and $\alpha$ is the
+weight of that default.
+
+\section{Related Models}
+\label{sec:related}
+
+Figure~\ref{fig:VARGstates} illustrates the strength of the HMMs with
+vector autoregressive observations described in
+Section~\ref{sec:ARVGaussian}, namely that optimization finds regions
+over which dynamics are approximately linear and assigns those regions
+to single states.  The model class used to make the figure does not
+exploit all of the available features of the Lorenz data.  In
+particular it does not use the Lorenz equations.  Modeling techniques
+exist that can exploit knowledge of nonlinear generating equations,
+\eg \emph{extended Kalman filters} and \emph{particle filters} that we
+mention below.
+
+%%% This is a large color figure on a page by itself. (butterfly)
+\begin{figure}[p]
+  \centering{\plotsize%
+    \includegraphics[width=1.0\textwidth]{VARGstates}}
+  \caption[\comment{fig:VARGstates }Vector autoregressive observation models.]%
+  {Plots of decoded states using an HMM with vector autoregressive
+    observations.  Here the observations are a trajectory of three
+    dimensional state vectors from the Lorenz system.  In each state
+    the observation $\ti{y}{t}$ is modeled as a Gaussian with a mean
+    that is an affine (linear plus fixed offset) function of the
+    observation $\ti{y}{t-1}$.  The empty boxes correspond to states
+    that do not appear in the decoded sequence of states.  In
+    comparing with Fig.~\ref{fig:Statesintro} which used a model with
+    coarsely quantized observations, notice that large regions near
+    the fixed points at centers of the spirals are represented by a
+    single state.  These large regions occur because the dynamics are
+    approximately linear over their extents.}
+  \label{fig:VARGstates}
+\end{figure}
+
+Here we list a few of the many techniques that are related to the
+basic ideas we've described:
+\begin{description}
+\item[Nonstationary HMMs] The definition of a \emph{stationary} model
+  is that all probabilities are independent of shifts in time, \ie, $
+  P_{\ts{Y}{1}{t}} = P_{\ts{Y}{1+\tau}{t+\tau}} \forall (t,\tau).$
+  Many processes, for example weather, are not even approximately
+  stationary.  By making HMMs with state transition probabilities that
+  depend on time, many have created nonstationary HMMs for such
+  applications.  With Rechtsteiner\cite{Rechtsteiner2000} we have
+  implemented weather models with transition probabilities that depend
+  on the time of year.  In similar work, Hughes and
+  Guttorp\cite{Hughes99} described a local precipitation model with
+  state transition probabilities driven by large scale atmospheric
+  parameters.
+\item[Gaussian mixtures] In a Gaussian mixture, the probability
+  density is weighted average of Gaussian densities.  We described a
+  simple one dimensional two component example in
+  Eqn.~\eqref{eq:GaussianMixture}.  Although a simple Gaussian mixture
+  model does not use the notion of \emph{state}, they are frequently
+  used as observation models in HMMs.  Note a Gaussian mixture model
+  is equivalent to the degenerate case of an HMM with Gaussian
+  observations in which all state transition probabilities are
+  identical.
+\item[Cluster weighted modeling] For an HMM, the state transition
+  probabilities depend only on the state.  Looking at
+  Fig.~\ref{fig:VARGstates}, it seems that letting the current
+  observation $\ti{y}{t}$ influence the transition probabilities could
+  be an improvement, \ie, the probability of the next state would
+  depend on both the current state and the current observation.  By
+  ignoring the current state entirely, one obtains a \emph{ cluster
+    weighted model}\cite{Gershenfeld99}; the observation at time $t+1$
+  is a mixture whose component weights are determined by the
+  observation at time $t$.
+\item[Kalman filter] The Kalman filter is essentially the forward
+  algorithm applied to a model with continuous states $\ti{x}{t}$ and
+  observations $\ti{y}{t}$ with the form
+  \begin{align*}
+    \ti{x}{t+1} &= F(\ti{x}{t},t) + \ti{\eta}{t}\\
+    \ti{y}{t} &= G(\ti{x}{t}) + \ti{\epsilon}{t}
+  \end{align*}
+  where the functions $F$ and $G$ are linear in $x$ and the noise
+  terms $\ti{\eta}{t}$ and $\ti{\epsilon}{t}$ are Gaussian.  We will
+  describe algorithms that operate with such models in the next
+  chapter.
+\item[Extended Kalman filter] Using linear approximations to nonlinear
+  functions $F$ and $G$ in a Kalman filter is called an \emph{extended
+  Kalman filter}.  Linear approximations work well as long as the
+  covariance of the state distributions are small compared to the
+  second derivatives of $F$ and $G$.
+\item[Unscented Kalman filter] Rather than use linear approximations
+  to $F$ and $G$, an unscented Kalman filter\cite{Julier97} uses exact
+  functions and a collection of samples to estimate means and
+  variances.
+\item[Particle filter] The idea of using the empirical distribution of
+  many simulated trajectories (particles) to approximate the
+  conditional distribution $P_{\ti{X}{t}|\ts{Y}{1}{t}}$ is called
+  particle filtering\cite{Gordon93,Kitagawa96}.  In the procedure,
+  particles that seem inconsistent with measurements are eliminated
+  and new particles are created. 
+\end{description}
+\ReviewerNote{Reviewer4 wants ``other main approaches \ldots which
+  approach for which problem \ldots Unscented Kalman Filtering''
+  }
+
+
+\ReviewerNote{Reviewer4 wants more illustrations and examples.}
+
+\ReviewerNote{Reviewer 1 wants comparison to AR, ARMAX, etc. \medskip\\
+                                %
+  Reviewer 3 wants comparison to Iterated Function Systems
+}
+
+
+\begin{CVSID}
+%%%$Id: variants.tex,v 1.62 2007-06-07 05:12:02 karlheg Exp $
+\end{CVSID}
+%%%
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% eval: (load-file "hmmkeys.el")
+%%% End:

@@ -1,0 +1,1028 @@
+\chapter{Introduction}
+\label{chap:introduction}
+
+In a dynamical system, a rule maps states $x\in\cal X$ forward in
+time.  Familiar examples include discrete time maps
+%% \begin{equation*}
+%%   \ti{x}{t+1} = F(\ti{x}{t}) ~~ t \in \INTEGER
+%% \end{equation*}
+and differential equations
+%% \begin{equation*}
+%%   \dot x = F(x),
+%% \end{equation*}
+in which the states are elements of $\REAL^n$.  At time $t$, the
+current state $\ti{x}{t}$ of a dynamical system provides all the
+information necessary to calculate future states and information about
+past states is redundant.  Thus the sequence of states in a dynamical
+system satisfies the \emph{Markov property}, which we will more
+formally define in Eqn.~\eqref{eq:MarkovChain}.  In applications, we
+often think of measured data as being a function of states of a
+dynamical system with $ \ti{y}{t} = G(\ti{x}{t})$.  The function $F$
+that maps states forward in time and the function $G$ that maps states
+to observations make up a \emph{\index*{state space model}} for
+sequences of observations.  If the observation function is not
+invertible, then knowledge of the measurement $\ti{y}{t}$ at a single
+time $t$ is not sufficient to specify the state $\ti{x}{t}$ uniquely,
+and one could say that $\ti{x}{t}$ is \emph{hidden}.  That is the
+sense of \emph{hidden} in the term ``hidden Markov model''.
+
+Given a short sequence of observations, say $\left(
+  \ti{y}{1},\ti{y}{2}, \ti{y}{3}\right)$, one might hope to
+\emph{reveal} the state $\ti{x}{3}$ by looking for all initial states
+that are consistent with the observations.  The strategy will only
+work if the images of all initial states that are consistent with the
+observations all fall on the same state, \ie, if for all $x$ such that
+$ G(x) = \ti{y}{1}, G\circ F(x) = \ti{y}{2},$ and $G\circ F\circ F(x)
+= \ti{y}{3}$, we find that $F\circ F(x) = \hat x$, then the
+measurements are sufficient to identify $\ti{x}{3} = \hat x$ uniquely.
+If such a revelation procedure works, then one can use it to map long
+sequences of observations to long sequences of states and from there
+to do forecasting of both states and observations.
+%%
+%%  http://en.wikipedia.org/wiki/Inductive_reasoning 
+%%
+%%  "Induction is sometimes framed as reasoning about the future from
+%%  the past, but in its broadest sense it involves reaching
+%%  conclusions about unobserved things on the basis of what has been
+%%  observed.  Inferences about the past from present evidence for
+%%  instance, as in archaeology, count as induction. Induction could
+%%  also be across space rather than time, for instance as in physical
+%%  cosmology where conclusions about the whole universe are drawn
+%%  from the limited perspective we are able to observe (see cosmic
+%%  variance); or in economics, where national economic policy is
+%%  derived from local economic performance."
+
+For most of the state space models that we consider, the function that
+governs the state dynamics and the observation function both have
+random elements.  Only imagination limits what constitutes the set of
+states in a state space model.  We will consider discrete state spaces
+that are sets with a finite number of elements and state spaces that
+are real vector spaces.  The sets of observations are similarly
+varied.  As a prelude, we look at some measurements of a laser system
+that is ``Lorenz like''.
+
+\section{Laser Example}
+\label{sec:laser}
+
+In 1963 E.N.~Lorenz\cite{Lorenz63} %
+\index{Lorenz system}%
+reported interesting behavior in numerical solutions of the system of
+equations
+\begin{subequations}
+  \label{eq:Lorenz}
+  \begin{align}
+    \dot x_1 &= s x_2 -s x_1\\
+    \dot x_2 &= -x_1 x_3 + r x_1 - x_2 \\
+    \dot x_3 &= x_1 x_2 - b x_3
+  \end{align}
+\end{subequations}
+which he had proposed as an approximation for fluid convection.  In
+Eqn.~\eqref{eq:Lorenz}, $x = (x_1,x_2,x_3)$ is a vector of mode
+amplitudes, and the parameters $s$, $r$, and $b$ describe properties
+of the fluid.  The paper is widely cited, not because it is a good
+model for convection, but because the interesting behavior of the
+solutions has characteristics that are typical of what is now called
+\emph{\index*{chaos}}.  The Lorenz system has been used countless
+times as an example of a system whose solution trajectories are
+unstable, aperiodic and bounded, \ie, \emph{chaotic}.  We will use
+numerical simulations of the system as illustrations throughout this
+book.
+
+In 1975 Haken\cite{Haken75} observed that under certain conditions a
+\index*{laser} should obey the same equations.  For a laser, one
+interprets the components of the state $x$ as the electric field, the
+polarization, and the population inversion in the laser medium.  In
+1992 %
+\index{Tang, D.\ Y.}%
+Tang \etal\cite{Tang92}\ reported measurements of the time %
+% @Article{PhysRevA.49.1296,
+%   title = {Uniqueness of the chaotic attractor of a single-mode laser},
+%   author = {Tang, D. Y. and Weiss, C. O.},
+%   journal = {Phys. Rev. A},
+%   volume = {49},
+%   number = {2},
+%   pages = {1296--1300},
+%   numpages = {4},
+%   year = {1994},
+%   month = {Feb},
+%   doi = {10.1103/PhysRevA.49.1296},
+%   publisher = {American Physical Society}
+% }
+dependent intensity of the electric field for such a laser.  The
+measured quantity corresponds to $(\ti{x_1}{t})^2$.
+Figure~\ref{fig:LaserLP5} shows a sequence of Tang's measurements.  We
+produced the second trace in the figure by numerically integrating
+Eqn.~\eqref{eq:Lorenz} with initial conditions and parameters selected
+to optimize the match.  We used the \emph{fmin\_powell} function in
+Travis Oliphant's \emph{scipy} package\cite{scipy} to implement the
+optimization. % LaserFigs.py
+The similarity of the two traces convincingly supports the claim that
+the laser system is governed by the Lorenz equations.
+\begin{figure}[htbp]
+  \centering{\plotsize%		% See the comment at the definition
+    \def\t{$t$}%		% of \plotsize for why it exists and
+    \def\yt{$\ti{y}{t}$}%	% why these labels are macros.
+    \def\Laser{Laser}%
+    \def\Simulation{Simulation}%
+    \input{figs/LaserLP5.eps_t}}
+  \caption[\comment{fig:LaserLP5 }Laser intensity measurements.]%
+  {Laser intensity measurements.  The trace labeled \emph{Laser} is a
+    plot of laser intensity measurements provided by Tang \etal.  The
+    trace labeled \emph{Simulation} plots a numerical simulation of
+    the Lorenz system \eqref{eq:Lorenz} with parameters $r=21.16$,
+    $s=1.792$, $b=0.3670$, and measurement parameters $\Delta
+    \tau=0.1435$, $S_g = 7.071$, and $O_g =15.16$.  We used the
+    optimization procedure described in the text to select these
+    parameters.  The simulated intensities were derived from the
+    state by $\ti{y}{t} = S_g \cdot (\ti{x_1}{t})^2 + O_g$.  We
+    specified an absolute error tolerance of $10^{-7}$ per time step
+    for the numerical integrator.}
+  \label{fig:LaserLP5}
+\end{figure}
+
+In working with Tang's laser data, we used a stochastic state space
+model with the form
+\begin{subequations}
+  \label{eq:FandG}
+  \begin{align}
+    \ti{x}{t+1} &= F(\ti{x}{t}) + \ti{\eta}{t}\\
+    \ti{y}{t}   &= G(\ti{x}{t}) + \ti{\epsilon}{t}.
+  \end{align}
+\end{subequations}
+We implemented the function $F$ by integrating the Lorenz system for
+an interval $\Delta \tau$, and we used independently identically
+distributed Gaussian noise with mean zero and covariance
+$\id\sigma_\eta^2$ to implement the state noise $\ti{\eta}{t}$.
+\nomenclature[rid]{$\id$}{The \emph{identity} operator; a diagonal
+  matrix of ones.}  Our measurement model is $G(\ti{x}{t}) = S_g \cdot
+(\ti{x_1}{t})^2 + O_g$ where $S_g$ and $O_g$ are fixed scale and
+offset parameters, and the measurement noise $\ti{\epsilon}{t}$ is
+independently identically distributed Gaussian noise with mean zero
+and covariance $\id\sigma_\epsilon^2$.  The model has the following
+eleven free parameters:
+\begin{description}
+\item[Initial state distribution] We model the distribution of the
+  initial state as a Gaussian.  We treated the mean as three
+  parameters and set the covariance to $\id \cdot 10^{-2}$.
+\item[Lorenz system parameters] The values of $r$, $s$, and $b$ in
+  \eqref{eq:Lorenz} constitute three free parameters.
+\item[Integration time] The single parameter $\Delta \tau$.
+\item[Offset and scale] The pair of parameters $O_g$ and $S_g$.
+\item[State noise] The single parameter $\sigma_\eta$.
+\item[Measurement noise] The single parameter $\sigma_\epsilon$.
+\end{description}
+
+Using this parameterization, we wrote a routine based on the
+\emph{extended Kalman filter} %
+\index{Kalman filter|see{extended Kalman filter}}%
+\index{extended Kalman filter}%
+techniques described in Chapter~\ref{chap:continuous} to calculate
+approximate probabilities which we write as $P_{*|\theta}$ where
+$\theta$ denotes the collection of parameters.  By passing that
+routine and Tang's data to the scipy optimization package, we found a
+parameter vector that satisfies
+\begin{equation}
+  \label{eq:theta-hat-laser}
+  \hat \theta = \argmax_{\theta} ~ P(\ts{y}{1}{250}|\theta),
+\end{equation}
+where $P(\ts{y}{1}{250}|\theta)$ is the conditional probability that a
+sequence of 250 observations will have the values
+$\ti{y}{1},\ti{y}{2}, \ldots,\ti{y}{250}$ given the parameters
+$\theta$.  The parameter vector $\hat \theta$ is called the
+\emph{maximum likelihood estimate} %
+\index{maximum likelihood estimate (MLE)}%
+\index{MLE|see{maximum likelihood estimate}}%
+of the parameter vector.  Figure~\ref{fig:LaserLogLike} sketches a
+piece of the log-likelihood function.
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \def\l#1{\mbox{\lower1.5ex\hbox{$#1$}}}%
+    \def\s{\mbox{\kern2.0em\lower2.0ex\hbox{$s$}}}%
+    \def\b{\mbox{\lower1.5ex\hbox{$b$}}}%
+    \def\LogLikely{$\log\left(P(\ts{y}{1}{250}|\theta) \right)$}%
+    \input{figs/LaserLogLike.eps_t}}
+  \caption[\comment{fig:LaserLogLike }Log likelihood as function of $s$ and $b$.]%
+  {Log likelihood as function of $s$ and $b$.  Other parameters were
+    taken from the vector $\hat \theta$ that maximizes the likelihood
+    $P(\ts{y}{1}{250}|\theta)$ (see Eqn.~\eqref{eq:theta-hat-laser}).}
+  \label{fig:LaserLogLike}
+\end{figure}
+
+Given $\hat \theta$, the maximum likelihood parameters, and the
+observations, we can calculate many interesting quantities.  For
+example, in Fig.~\ref{fig:LaserStates} we have plotted the sequence of
+states that has the highest probability, \ie,
+\begin{equation}
+  \label{eq:xhatSeq}
+  \ts{\hat x}{1}{250} = \argmax_{\ts{x}{1}{250}}
+  P(\ts{x}{1}{250}|\ts{y}{1}{250},\hat \theta),
+\end{equation}
+and in Fig.~\ref{fig:LaserForecast} we have plotted a forecast that we
+made by iterating the function $F$ on the state $\hat x$ that has
+highest probability given the first 250 observations, \ie,
+\begin{equation}
+  \label{eq:xhat250}
+  \hat x = \argmax_{\ti{x}{250}} P(\ti{x}{250}|\ts{y}{1}{250},\hat \theta).
+\end{equation}
+%%% \ToDo{ Note that I need smoothing to do this right.}
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \input{figs/LaserStates.eps_t}}
+  \caption[\comment{fig:LaserStates }State trajectory $\ts{\hat x}{1}{250}$.]%
+  {State trajectory $\ts{\hat x}{1}{250}$ estimated from
+    observation sequence $\ts{y}{1}{250}$. (see
+    Eqn.~\eqref{eq:xhatSeq}.)  Components $x_1$ and $x_3$ of the
+    Lorenz system (see Eqn.~\eqref{eq:Lorenz}) are plotted.}
+  %\ToDo{Plot interpolated trajectory with dots at sample points.}
+  \label{fig:LaserStates}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \def\tiyt{$\ti{y}{t}$}%
+    \def\Lase{Laser}%
+    \def\Forecas{Forecast}%
+    \input{figs/LaserForecast.eps_t}}
+  \caption[\comment{fig:LaserForecast }Forecast observation sequence.]%
+  {Forecast observation sequence.  We set the noise terms $\eta$ and
+    $\epsilon$ to zero and iterated Eqn.~\eqref{eq:FandG} 400 times to
+    generate the forecast $\ts{\hat y}{251}{650}$.  We started with
+    the initial condition $\hat x$ defined by Eqn.~\eqref{eq:xhat250}.
+    The forecast begins to fail noticeably after $t=500$.  The failure
+    suggests that the period five cycle in the forecast is unstable.
+    The laser cycle must have been stable to appear in the data.  Thus
+    an essential characteristic of the model is wrong.}
+  \label{fig:LaserForecast}
+\end{figure}
+
+
+\section{State Space Models}
+\label{sec:formal_ssm}
+
+To get \index*{state space model}s that are more general than the form
+(Eqn.~\eqref{eq:FandG}) that we used to describe the laser data, we
+suppose only that a conditional probability distribution
+$P_{\ti{X}{t+1}|\ti{X}{t}}$ governs evolution in state space and
+another conditional distribution $P_{\ti{Y}{t}|\ti{X}{t}}$ governs the
+observations $\ti{Y}{t}$.  Combining these two conditional
+distribution functions with a distribution $P_{\ti{X}{1}}$ of initial
+states defines probabilities for any collection of states and
+observations.  In particular, it defines the joint probabilities of
+the \emph{stochastic process} or \emph{information source} consisting
+of sequences of observations.  We refer to such a combination as a
+\emph{model} and denote it as $P_{*|\theta}$.  So defined, the class
+of state space models is so broad that to do anything useful, we must
+use smaller subclasses.  Typically, we assume that the conditional
+distributions are time invariant and that a finite set of parameters
+$\theta$ specifies the model.  Notice that we have not specified the
+sets from which we draw the states or observations; they could be
+discrete, real scalars, real vectors, or something else.
+
+
+\subsection{Tasks}
+\label{sec:tasks}
+
+One can use a parameterized class of state space models $\left\{
+  P_{*|\theta} \right\}$ in many ways including the following:
+\begin{description}
+\item[Model Parameter Estimation] Given a model class $\left\{
+    P_{*|\theta} \right\}$ and a sequence of observations $\ts{y}{1}{T}$,
+  we often use the maximum likelihood estimate
+  \begin{equation}
+    \label{eq:IntroMLE}
+    \hat \theta_{MLE} \equiv \argmax_{\theta} P(\ts{y}{1}{T}|\theta)
+  \end{equation}
+  to characterize the source $Y$.
+\item[Trajectory Estimation] Given a particular model $P_{*|\theta}$ and
+  a sequence of observations $\ts{y}{1}{T}$, one can calculate the
+  conditional distribution of states
+  $P(\ts{x}{1}{T}|\ts{y}{1}{T},\theta)$.  For example,
+  Fig.~\ref{fig:LaserStates} plots the result of a calculation of
+  \begin{equation*}
+    \ts{\hat x}{1}{250} = \argmax_{\ts{x}{1}{250} \in {\cal X}^{250}}
+    P(\ts{x}{1}{250}|\ts{y}{1}{250},\theta).    
+  \end{equation*}
+\item[Short Term Forecasting] Given a model $P_{*|\theta}$ and a
+  distribution of states at time $t$, $P_{\ti{X}{t}}$, one can
+  calculate the conditional distribution of future states or
+  observations.  For example,
+  Fig.~\ref{fig:LaserForecast} plots the result of a calculation of
+  \begin{equation*}
+    \ts{\hat y}{251}{500} = \argmax_{\ts{y}{251}{500}}
+    P(\ts{y}{251}{500}|\ts{y}{1}{250},\theta).
+  \end{equation*}
+\item[Simulation] Given a model $P_{*|\theta}$, one can characterize its
+  long term behavior, answering questions like ``What is a hundred
+  year flood?''.  We often find that models that we fit are not good
+  for such long term extrapolation.  For example, the laser data that
+  we described in the previous section seems to come from a stable
+  period five orbit, but the periodic orbit that the trajectory in
+  Fig.~\ref{fig:LaserStates} approximates is linearly unstable.  Thus
+  the long term behavior of our estimated model is very different from
+  the actual laser system.
+\item[Classification] Given sample signals like $\ts{y}{1}{T}$ and two
+  possible signal sources, $\alpha$ and $\beta$ where $P_{*|\alpha}$
+  characterizes healthy units and $P_{*|\beta}$ characterizes defective
+  units, one can can classify a unit on the basis of the
+  \emph{likelihood ratio}
+  \begin{equation*}
+    R(\ts{y}{1}{T}) = \frac{P(\ts{y}{1}{T}|\beta)}{P(\ts{y}{1}{T}|\alpha)}.
+  \end{equation*}
+  If $R(\ts{y}{1}{T})$ is above some threshold, it is classified as defective.
+\end{description}
+
+\ReviewerNote{Reviewer 1 wants a discussion of Kalman vs HMM and
+  suggests citing Roweis.}
+\ReviewerNote{ Reviewer 2 wants:
+  \begin{itemize}
+  \item A more leisurely introduction
+  \item He also wants exercises, and so does Patrick Campbell
+  \end{itemize}
+}
+
+
+
+\section{Discrete Hidden Markov Models}
+\label{sec:intro_hmm}
+\index{discrete hidden Markov model}%
+
+In this section we describe the simplest HMMs: those that are
+discrete in time, state, and observation.  \ReviewerNote{Reviewer 2
+  wants more on unhidden Markov models.}  We begin with a couple of
+definitions.  Three random variables $\ti{X}{1}$, $\ti{X}{2}$, and
+$\ti{X}{3}$ constitute a \emph{\index*{Markov chain}} if
+\begin{equation}
+  \label{eq:MarkovChain}
+  P_{\ti{X}{3}|\ti{X}{1},\ti{X}{2}} = P_{\ti{X}{3}|\ti{X}{2}},
+\end{equation}
+which is equivalent to $\ti{X}{1}$ and $\ti{X}{3}$ being conditionally
+independent given $\ti{X}{2}$, \ie,
+\begin{equation*}
+  P_{\ti{X}{3},\ti{X}{1}|\ti{X}{2}} = P_{\ti{X}{3}|\ti{X}{2}}   P_{\ti{X}{1}|\ti{X}{2}}.
+\end{equation*}
+An indexed sequence of random variables $\ts{X}{1}{T}$ is a
+\emph{Markov process} \index{Markov process} if
+for any $t: 1 < t < T$ the variables before and after $t$ are
+conditionally independent given $\ti{X}{t}$, \ie,
+\begin{equation}
+  \label{eq:MarkovProcess}
+  P_{\ts{X}{1}{t-1},\ts{X}{t+1}{T}|\ti{X}{t}} =
+  P_{\ts{X}{1}{t-1}|\ti{X}{t}} P_{\ts{X}{t+1}{T}|\ti{X}{t}}.
+\end{equation}
+We will restrict our attention to time invariant models, \ie, those
+for which the transition probabilities are constant over time.
+Begin by considering the ordinary (\emph{unhidden})
+Markov model or process sketched in Fig.~\ref{fig:mm}.  The set of
+states $\states = \left\{u,v,w\right\}$, the probability distribution
+for the initial state
+\begin{equation}
+  \label{eq:InitialProbabilites}
+P_{\ti{S}{1}} =
+\begin{bmatrix}
+  \frac{1}{3}, & \frac{1}{3}, & \frac{1}{3}
+\end{bmatrix},  
+\end{equation}
+and the \index*{transition matrix} %
+\index{matrix!transition}%
+\begin{equation}
+  \label{eq:TransitionMatrix}
+\begin{array}{rr|ccc}
+  && \multicolumn{3}{c}{\ti{S}{t+1}} \\
+  \multicolumn{2}{c|}{P(\ti{s}{t+1}|\ti{s}{t})} & u & v & w \\ \hline
+  & u & 0 & 1 & 0 \\  && \vspace{-1 em} \\
+  \ti{S}{t} & v & 0 & \frac{1}{2} & \frac{1}{2} \\  && \vspace{-0.98 em} \\
+  & w & \frac{1}{2} & \frac{1}{2} & 0
+\end{array}
+\end{equation}
+define the model, and the model determines the probability of any
+sequence of states $\ts{s}{1}{T}$, which we write\footnote{We use
+  upper case letters to denote random variables and $P$ to denote
+  probability distribution functions.  A random variable used as
+  subscript on $P$ specifies that we mean the distribution of that
+  random variable.  We can give $P$ an argument to specify th value of
+  the distribution function at that value, \eg $P_X(3)$ is the
+  probability that the random variable $X$ has the value 3 and $P_X(x)$
+  is the probability that the random variable $X$ has the value $x$.
+  We usually drop subscripts on $P$ when the context or argument
+  resolves ambiguity as to which probability function we mean.} as
+$P_{\ts{S}{1}{T}}\left( \ts{s}{1}{T} \right)$.  For example we
+calculate the probability that a sequence of 4 states has the values
+$\ts{s}{1}{4} = (u,v,w,v)$, (\ie, $\ti{s}{1} = u$, $\ti{s}{2} = v$,
+$\ti{s}{3} = w$, and $\ti{s}{4} = v$) as follows:
+\ReviewerNote{Reviewer 2 thinks that this is about transients not
+  about a sequence.  I should expand until it's clear.  Probably
+  mention \emph{relaxation to stationary measure}.  $\ldots$ which
+  should perhaps be defined in a ``nomenclature'' entry.}
+
+\begin{align}
+  \label{eq:intro_hmm1}
+  P(\ts{s}{1}{4}) &= P(\ti{s}{1}) \prod_{\tau=2}^4 %
+                     P(\ti{s}{\tau}|\ts{s}{1}{\tau-1})\\
+  \label{eq:intro_hmm2}
+                  &= P(\ti{s}{1}) \prod_{\tau=2}^4 %
+                     P(\ti{s}{\tau}|\ti{s}{\tau-1}) \\
+  \label{eq:intro_hmm3}
+  P(u,v,w,v)      &= P(v|u,v,w) \cdot P(w|u,v) \cdot  P(v|u) \cdot P(u)\\
+  \label{eq:intro_hmm4}
+        &= P(v|w) \cdot P(w|v) \cdot  P(v|u) \cdot P(u)\\
+  \label{eq:intro_hmm5}
+        &= \frac{1}{2} \cdot \frac{1}{2} \cdot 1 %
+                     \cdot \frac{1}{3} = \frac{1}{12}.
+\end{align}
+
+Applying \index*{Bayes rule} $\left( P_{A|B} P_B = P_{A,B} \right)$
+recursively, yields Eqn.~\eqref{eq:intro_hmm1} and the special case,
+Eqn.~\eqref{eq:intro_hmm3}.  Equations \eqref{eq:intro_hmm2} and
+\eqref{eq:intro_hmm4} follow from Eqns.~\eqref{eq:intro_hmm1} and
+\eqref{eq:intro_hmm3} respectively by the %
+\emph{\index*{Markov assumption}}, Eqn.~\eqref{eq:MarkovProcess}.
+which says that in determining the probability of the $t^\text{th}$
+state given any sequence of previous states only the $(t-1)^\text{th}$
+state is relevant. %
+%%%
+\ReviewerNote{Reviewer 2 wants an example in section
+  \ref{sec:intro_hmm} with a more concrete interpretation of states
+  and transition probabilities.  It might be fun to use Markov's
+  original example.  PC says if I do that, I should put it at the end
+  of the section.}
+
+A common exercise is to find a \emph{\index*{stationary}} probability
+distribution, \ie, given a transition matrix $T$ find the probability
+vector $V$ (nonnegative entries that sum to one) that satisfies
+\begin{equation}
+  \label{eq:statCond}
+  VT = V.  
+\end{equation}
+If \eqref{eq:statCond} holds, then
+\begin{equation*}
+  P_{\ti{S}{2}}  = P_{\ti{S}{1}}T = P_{\ti{S}{1}} = P_{\ti{S}{t}}
+  \forall t,
+\end{equation*}
+and in fact all probabilities are independent of shifts in time, \ie,
+\begin{equation*}
+  P_{\ts{S}{1}{t}} = P_{\ts{S}{1+\tau}{t+\tau}} \forall (t,\tau),
+\end{equation*}
+which is the definition of a stationary process.  Quick calculations
+verify that the initial probability and transition matrix in
+\eqref{eq:InitialProbabilites} and \eqref{eq:TransitionMatrix} do not
+satisfy \eqref{eq:statCond} but that the distribution $V =
+\begin{bmatrix} \frac{1}{7}, & \frac{4}{7}, & \frac{2}{7}
+\end{bmatrix}$ does.  Although our example is not a stationary
+stochastic process, it relaxes towards such a process in the sense
+that
+\begin{equation*}
+  \lim_{t \rightarrow \infty} P_{\ti{S}{t}} =  \lim_{t \rightarrow
+    \infty} P_{\ti{S}{1}} T^t = \begin{bmatrix} \frac{1}{7}, & \frac{4}{7}, & \frac{2}{7}
+\end{bmatrix}.
+\end{equation*}
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \input{figs/Markov_mm.eps_t}}
+  \caption[\comment{fig:Markov }A Markov model.]{A Markov model}
+  \label{fig:mm}
+\end{figure}
+
+The important points about a Markov model also apply to hidden
+Markov models, namely that:
+\begin{itemize}
+\item The model determines the probability of arbitrary sequences of
+  observations,
+\item and the assumptions about independence and time invariance
+  permit specification of the model by a small number of parameters.
+\end{itemize}
+
+% karlheg does not like the "," after the display-math array.  The
+% punctuation here is not in any style manual, but karlheg thinks it
+% seems right:
+%
+Now suppose, as sketched in Fig.~\ref{fig:dhmm}, that when the system
+arrives in a state that rather than observing the state directly, one
+observes a random variable that depends on the state.  The matrix that
+specifies the random map from states to observations, \ie%
+:
+\begin{equation*}
+  \begin{array}{cr|ccc}
+      &      &\multicolumn{3}{c}{Y} \\
+      \multicolumn{2}{r|}{P(y|s)} & d & e           & f \\ %
+      \hline%
+      & u      & 1 & 0           & 0 \\
+      &        & \vspace{-1 em} \\
+    S & v      & 0 & \frac{1}{3} & \frac{2}{3} \\
+      &        & \vspace{-1 em} \\
+      & w      & 0 & \frac{2}{3} & \frac{1}{3}
+  \end{array}%,
+\end{equation*}
+$\ldots$ %
+combined with the distribution of initial states
+\eqref{eq:InitialProbabilites} and transition matrix
+\eqref{eq:TransitionMatrix} specifies this hidden Markov model.  The
+notion is that the underlying Markov process chugs along unaware of
+the observations, and that when the process arrives at each successive
+state $\ti{s}{t}$, an observation $\ti{y}{t}$ is produced in a fashion
+that depends only on the state $\ti{s}{t}$.
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \input{figs/Markov_dhmm.eps_t}}
+  \caption[\comment{fig:Markov_dhmm }A hidden Markov model.]{A hidden Markov model}
+  \label{fig:dhmm}
+\end{figure}
+
+Let us calculate the probability that a sequence of four observations
+from this process would have the values $\ts{y}{1}{4} = (d,e,f,e)$.
+As an intermediate step we calculate $P(\ts{y}{1}{4},\ts{s}{1}{4})$
+for the given observation sequence and all possible state sequences.
+Then we add to obtain
+\begin{equation}
+  \label{eq:dhmm_sum}
+  \sum_{\ts{s}{1}{4}} P(\ts{y}{1}{4},\ts{s}{1}{4}) = P(\ts{y}{1}{4}).
+\end{equation}
+It is convenient that the only state sequences that could have
+produced the observation sequence are $(u,v,v,v)$, $(u,v,v,w)$, and
+$(u,v,w,v)$.  For any other state sequence
+$P(\ts{y}{1}{4},\ts{s}{1}{4}) = 0$.
+
+\begin{subequations}
+\label{eq:pcalc}
+ \begin{align}
+  \ts{s}{1}{4} & & P(\ts{s}{1}{4}) %
+                & & P(\ts{y}{1}{4}|\ts{s}{1}{4}) %
+                 & & P(\ts{y}{1}{4},\ts{s}{1}{4})\nonumber\\[1ex]
+  \hline\nonumber\\[-2ex]
+  uvvv         & & \frac{1}{3} \cdot 1 \cdot \frac{1}{2} \cdot \frac{1}{2} %
+                & & 1 \cdot \frac{1}{3} \cdot \frac{2}{3} \cdot \frac{1}{3} %
+                 & & \frac{2}{324}\\[1ex]
+%%%
+  uvvw         & & \frac{1}{3} \cdot 1 \cdot \frac{1}{2} \cdot \frac{1}{2} % 
+                & & 1 \cdot \frac{1}{3} \cdot \frac{2}{3} \cdot \frac{2}{3} %
+                 & & \frac{4}{324}\\[1ex]
+%%%
+  uvwv         & & \frac{1}{3} \cdot 1 \cdot \frac{1}{2} \cdot \frac{1}{2} %
+                & & 1 \cdot \frac{1}{3} \cdot \frac{1}{3} \cdot \frac{1}{3} %
+                 & & \frac{1}{324}
+ \end{align}
+\end{subequations}
+
+Adding the fractions in the right hand column yields %
+\begin{equation*}
+  P(d,e,f,e) = \frac{7}{324}.
+\end{equation*}
+
+Now examine this calculation more carefully beginning with a statement
+of the model assumptions.
+\begin{description}
+\item[The state process is Markov:] Given the current state, the
+  probability of the next state is independent of earlier states and
+  observations, \ie,
+  \begin{equation}
+    \label{eq:assume_markov}
+    P_{\ti{S}{t+1}|\ts{S}{1}{t},\ts{Y}{1}{t}} = %
+        P_{\ti{S}{t+1}|\ti{S}{t}}.
+  \end{equation}
+\item[The observations are conditionally independent given the states:]
+  Given the current state, the probability of the current observation is
+  independent of states and observations at all earlier times, \ie,
+  \begin{equation}
+    \label{eq:assume_output}
+    P_{\ti{Y}{t}|\ts{S}{1}{t},\ts{Y}{1}{t-1}} = %
+        P_{\ti{Y}{t}|\ti{S}{t}}.
+  \end{equation}
+\end{description}
+Though the assumptions appear asymmetric in time, they are
+not\footnote{We often use the following facts about independence
+  relations:
+  \begin{align}
+    P(A|B,C) = P(A|B)   &\iff     P(A,C|B) = P(A|B) \cdot P(C|B)\nonumber\\
+    \label{eq:markov-symmetry}%
+                        &\iff     P(C|A,B) = P(C|B)\\
+    P(A|B,C,D) = P(A|B) &\iff     P(A,C,D|B) = P(A|B) \cdot P(C,D|B)\nonumber\\
+                        &\implies P(A,C|B) = P(A|B) \cdot P(C|B)\nonumber\\
+    \label{eq:independence-groups}%
+                        &\iff     P(A|B,C) = P(A|B).
+  \end{align}
+  The first chain of implications, \eqref{eq:markov-symmetry}, says
+  that if a process is Markov with time going forward, then it is also
+  Markov with time going backwards.  The second chain,
+  \eqref{eq:independence-groups}, says that if $A$ is conditionally
+  independent of $C$ and $D$ given $B$, then $A$ is conditionally
+  independent of $C$ alone given $B$.  By symmetry, $A$ is also
+  conditionally independent of $D$ given $B$.}.  From the assumptions,
+one can derive that
+\begin{description}
+\item[The joint process is Markov:] 
+  \begin{equation*}
+    P_{\ts{Y}{t+1}{T},\ts{S}{t+1}{T}|\ts{Y}{1}{t},\ts{S}{1}{t}}
+      = P_{\ts{Y}{t+1}{T},\ts{S}{t+1}{T}|\ti{Y}{t},\ti{S}{t}}
+  \end{equation*}
+\item[Given $\bm{\ti{S}{t}}$, $\bm{\ti{Y}{t}}$ is conditionally independent of everything else:]
+  \begin{equation*}
+    P_{\ti{Y}{t} |\ts{Y}{1}{t-1},\ts{Y}{t+1}{T}, \ts{S}{1}{T}} = P_{\ti{Y}{t} |\ti{S}{t}}
+  \end{equation*}
+\end{description}
+Equations \eqref{eq:assume_markov} and \eqref{eq:assume_output} are
+assumptions about \emph{conditional independence} relations.  Figure
+\ref{fig:dhmm_net} represents these relations as a %
+\emph{\index*{Bayes net}}\cite{Pearl91a}.
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \input{figs/Markov_dhmm_net.eps_t}}
+  \caption[\comment{fig:dhmm-net }Bayes net schematic for a hidden Markov model.]%
+  {Bayes net schematic for a hidden Markov model.  The drawn edges
+    indicate the dependence and independence relations: Given
+    $\ti{S}{t}$, $\ti{Y}{t}$ is conditionally independent of
+    everything else, and given $\ti{S}{t-1}$, $\ti{S}{t+1}$, and
+    $\ti{Y}{t}$, $\ti{S}{t}$ is conditionally independent of
+    everything else.}
+  \label{fig:dhmm_net}
+\end{figure}
+
+Bayes rule and the assumptions justify
+\begin{align}
+  P(\ts{Y}{1}{T},\ts{S}{1}{T}) &= P(\ts{S}{1}{T}) \, %
+                                   P(\ts{Y}{1}{T}|\ts{S}{1}{T}),\notag\\
+  \label{eq:sseqprob}%
+  P(\ts{S}{1}{T})              &= P(\ti{S}{1}) %
+                                   \prod_{t=2}^T P(\ti{S}{t}|\ti{S}{t-1})\\
+  \label{eq:condyseqprob}%
+  P(\ts{Y}{1}{T}|\ts{S}{1}{T}) &= \prod_{t=1}^T P(\ti{Y}{t}|\ti{S}{t})\\
+  \intertext{and we conclude}
+  P(\ts{Y}{1}{T},\ts{S}{1}{T}) &= P(\ti{S}{1}) %
+                                   \prod_{t=2}^T P(\ti{S}{t}|\ti{S}{t-1})\, %
+                                   \prod_{t=1}^T P(\ti{Y}{t}|\ti{S}{t}).\notag
+\end{align}
+
+Since the state $u$ produces the observation $d$ exclusively and no
+other state can produce $d$, the observation sequence $(d,f,e,f)$ is
+only possible if the state sequence begins with $u$ and does not
+return to $u$.  That constraint reduces the number of possible state
+sequences to eight.  The impossibility of state $w$ following itself,
+further constrains the possible state sequences to the three listed in
+the calculations of Eqn.~\eqref{eq:pcalc}.  One can verify the values
+for $P(\ts{s}{1}{T})$ and $P(\ts{y}{1}{T}|\ts{s}{1}{T})$ in those
+calculations by applying Eqns.~\eqref{eq:sseqprob} and
+\eqref{eq:condyseqprob}.
+
+The calculation of $P(\ts{y}{1}{4})$ in Eqn.~\eqref{eq:pcalc} is easy
+because, of the $3^4 = 81$ conceivable state sequences, only three are
+consistent with the observations and model structure.  In general
+however, if there are $N_S$ states and an observation sequence with
+length $T$, then implementing
+\begin{equation*}
+  P(\ts{y}{1}{T}) = \sum_{\ts{s}{1}{T}} P\left(\ts{s}{1}{T}
+    ,\ts{y}{1}{T} \right)
+\end{equation*}
+naively requires order $\left(N_S\right)^T$ calculations.  If $N_S$
+and $T$ are as large as one hundred, $\left(N_S\right)^T$ is too many
+calculations for any conceivable computer.
+
+There is a family of algorithms whose complexities are linear in the
+length $T$ that make it possible to use HMMs with interestingly long
+time series.  The details of these algorithms constitute Chapter
+\ref{chap:algorithms}; here we only list their names and objectives.
+In these descriptions, we denote by $\parameters$ the vector of
+parameters that define an HMM, namely the state transition
+probabilities, the initial state probabilities, and the conditional
+observation probabilities,
+\begin{equation*}
+   \parameters \equiv \left\{
+     \begin{aligned}
+       &\left\{\; P_{\ti{S}{t+1}|\ti{S}{t}} \left(s'|s
+       \right)~\forall s,s' \;\right\},\\
+       & \left\{\; P_{\ti{S}{1}} \left(s \right)~\forall s
+       \;\right\},\\
+       &  \left\{\; P_{\ti{Y}{t}|\ti{S}{t}} \left(y_i|s' \right)
+       ~ \forall y_i,s' \;\right\}
+     \end{aligned}
+   \right\}.
+\end{equation*}
+\begin{description}
+\item[The Viterbi Algorithm:] \index{Viterbi algorithm} Given a model
+  $\parameters$ and a sequence of observations $\ts{y}{1}{T}$, the
+  Viterbi algorithm finds the most probable state sequence $\ts{\hat
+    s}{1}{T}$, \ie,
+  \begin{equation}
+    \label{eq:intro-viterbi}
+    \ts{\hat s}{1}{T} = \argmax_{\ts{s}{1}{T}} P
+    \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters\right).
+  \end{equation}
+  In speech recognition algorithms, $\ts{y}{1}{T}$ is a representation
+  of the sound pressure waveform, $\ts{s}{1}{T}$ determines a sequence
+  of words, and a variant of the Viterbi algorithm estimates the later
+  from the former.
+\item[The Baum Welch Algorithm:] \index{Baum Welch algorithm}
+  \index{forward backward algorithm|see{Baum Welch algorithm}}(Often
+  called the \emph{Forward Backward Algorithm}) Given a sequence of
+  observations $\ts{y}{1}{T}$ and an initial set of model parameters
+  $\parameters_0$, a single pass of the Baum Welch algorithm
+  calculates a new set of parameters $\parameters_1$ that has higher
+  likelihood
+  \begin{equation}
+    \label{eq:intro-fba}
+    P\left( \ts{y}{1}{T}|\parameters_1 \right) \geq
+    P\left( \ts{y}{1}{T}|\parameters_0 \right).
+  \end{equation}
+  Equality can only occur at critical points of the likelihood
+  function (where $\partial_\parameters P\left(
+    \ts{y}{1}{T}|\parameters \right) = 0$).  In generic cases,
+running many iterations of the Baum Welch algorithm yields a sequence
+$\ts{\parameters}{0}{n}$ that approaches a local maximum of the
+likelihood.
+\item[The Forward Algorithm:] For each time step $t$ and each state
+  $s$, the \index*{forward algorithm} calculates the conditional
+  probability of being in state $s$ at time $t$ given all of the
+  observations up to that time, \ie,
+  $P_{\ti{S}{t}|\ts{Y}{1}{t},\parameters} \left(s|\ts{y}{1}{t},
+    \parameters \right)$. It also calculates
+  $P\left(\ti{y}{t}|\ts{y}{1}{t-1}, \parameters \right)$, the
+  conditional probability of each observation given previous
+  observations.  Using these terms it calculates the probability of
+  the entire data sequence given the model,
+  \begin{equation*}
+    P \left(\ts{y}{1}{T}|\parameters \right) =  P \left(\ti{y}{1}
+      |\parameters \right) \cdot  \prod_{t=2}^T P
+    \left(\ti{y}{t}|\ts{y}{1}{t-1}, \parameters \right).
+  \end{equation*}
+  The forward algorithm is the first phase of the Baum Welch algorithm.
+\end{description}
+
+\subsection{Example: Quantized Lorenz Time Series}
+\label{sec:QuantizedLorenz}
+
+%\ToDo{Train on one set and decode another}
+
+To illustrate these algorithms we have applied them to data that we
+synthesized by numerically integrating the Lorenz system
+(Eqn.~\eqref{eq:Lorenz} with parameter values $r=28$, $s=10$, and
+$b=\frac{8}{3}$) and recording 40,000 vectors $x(\tau)$ with a
+sampling interval $\Delta \tau = 0.15$.  Then we produced a sequence
+of integer valued observations $y_1^{40,000}$ by dividing the $x_1$
+values by 10 adding 2 and keeping the integer part.  The result is
+that for each integer $1\leq t \leq 40,000$, $\ti{x_1}{t\cdot0.15}$
+yields $\ti{y}{t} \in \left\{0,1,2,3\right\}$.
+Figure~\ref{fig:TSintro} depicts the first few observations.
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \input{figs/TSintro.eps_t}}
+  \caption[\comment{fig:TSintro }Generating the observations $\ts{y}{1}{40}$.]%
+  {Generating the observations $\ts{y}{1}{40}$.  The curve in the
+    upper plot depicts the first component $\ti{x_1}{\tau}$ of an
+    orbit of the Lorenz system (Eqn.~\ref{eq:Lorenz}), and the points
+    marked {\scriptsize\raise0.5ex\hbox{$\bm{+}\!$}} indicate the
+    values sampled with an interval $\Delta \tau = 0.15$.  The points
+    in the lower plot are the quantized values $\ti{y}{t} \equiv
+    \bceil{\frac{\ti{x_1}{t \cdot \Delta \tau}}{10} + 2}$, where
+    $\ceil{u}$ is the least integer greater than or equal to $u$.  }
+  \label{fig:TSintro} 
+\end{figure}
+ 
+We randomly generated an HMM with twelve hidden states\footnote{We
+  chose the number of hidden state to be twelve capriciously so that
+  we could organize Fig.~\ref{fig:Statesintro} on a $4\times 4$ grid.}
+and 4 possible observations, and then used 1,000 iterations of the
+Baum Welch algorithm to select a set of parameters $\hat \parameters$
+with high likelihood for the data.  Finally we used the Viterbi
+algorithm to find the most likely state sequence
+ \begin{equation*}
+   {\ts{\hat s}{1}{T}} = \argmax_{\ts{s}{1}{T}}P
+   \left(\ts{s}{1}{T}|\ts{y}{1}{T}, \hat \parameters \right).
+ \end{equation*}
+ 
+ Although the plot of \emph{decoded} \index{decoded state sequence}
+ state values in Fig.~\ref{fig:STSintro} is not very enlightening, we
+ can illustrate that there is a relationship between the learned
+ decoded states and the original Lorenz system states by going back to
+ the original data.  For each state $s$, we identify the set of
+ integer times $t$ such that the decoded state is $s$, \ie, $\left\{ t
+   :\ti{\hat s}{t} = s \right\}$, and then we find what the Lorenz
+ system state was at each of these times and plot that set of points.
+ In the upper right box of Fig.~\ref{fig:Statesintro} we have plotted
+ points in the original state space that correspond to hidden state
+ number one, \ie, the set of pairs $\left\{
+   (\ti{x_1}{t\cdot\Delta\tau},\ti{x_3}{t\cdot\Delta\tau}) :\ti{\hat
+     s}{t} = 1 \right\}$.  In searching for model parameters that give
+ the observed data high likelihood, the Baum Welch algorithm
+ ``discovers'' a discrete hidden state structure, and
+ Fig.~\ref{fig:Statesintro} shows that the discrete hidden state
+ structure is an approximation of the continuous state space that
+ generated the data.
+ %%
+ \begin{figure}[htbp]
+   \centering{\plotsize%
+     \input{figs/STSintro.eps_t}}
+   \caption[\comment{fig:STSintro }A plot of a state sequence found by Viterbi decoding.]%
+   {A plot of the state sequence found by Viterbi decoding a quantized
+     time series from the Lorenz system.  Here the number of the
+     decoded state $\ti{s}{t}$ is plotted against time $t$.  Although
+     it is hard to see any structure in the plot because the numbers
+     assigned to the states are not significant,
+     Fig.~\ref{fig:Statesintro} illustrates that the decoded states
+     are closely related to positions in the generating state space.}
+   \label{fig:STSintro}
+ \end{figure}
+%%%\afterpage{\clearpage}%% Print this right here or let it float to end of chapter?
+%%%
+%%% ToDo: fig:Statesintro -- Do these color figures need to be in
+%%% ToDo: their own "Chapter"-like section so that they can be printed
+%%% ToDo: together on a set of color plates?
+%%%
+%%% This is a large color figure on a page by itself. (butterfly)
+%%%
+ \begin{figure}[p]
+   \centering{\plotsize%
+     \includegraphics[width=1.0\textwidth]{figs/Statesintro}}%
+   \caption[\comment{fig:Statesintro }Relationship between states of HMM and Lorenz system.]%
+   {The relationship between the hidden states of an HMM and the
+     original coordinates of the Lorenz system.}
+   \label{fig:Statesintro}
+ \end{figure}
+%%%\afterpage{\clearpage}%% Print this right here or let it float to end of chapter?
+\ToDo{Transition diagram for back cover}
+\ReviewerNote{
+  \begin{itemize}
+  \item Reviewer 2 suggests a transition diagram
+  \item Reviewer 2 wants suggested applications that justify the
+    effort
+  \item Review 3 wants connections between HMMs and other approaches
+  \end{itemize}
+}
+
+\subsection{Example: Hidden States as Parts of Speech}
+\label{sec:POSpeech}
+
+Hidden Markov models were developed for speech and text processing,
+and for unscientific audiences, we find the application to language
+modeling the easiest way to motivate HMMs.  Consider for example the
+sentence, ``The dog ate a biscuit.'' and its reduction to a sequence
+of parts of speech: \emph{article noun verb article noun}.  By
+choosing different particular articles nouns and verbs and placing
+them in the order specified by the sequence of parts of speech, we can
+produce many other sentences such as, ``An equation describes the
+dynamics.''  The parts of speech are like hidden states and the
+particular words are like observations.
+
+Rather than using a dictionary or our own knowledge to build a model
+of language, here we describe the experiment of applying the Baum
+Welch algorithm to some sample text to create an HMM.  We hope that
+the experiment will \emph{discover} parts of speech.  We fetched the
+fourth edition of \emph{A Book of Prefaces} by H.~L.~Mencken from
+www.gutenberg.org, fit an HMM with the Baum Welch algorithm, and
+decoded a state sequence with the Viterbi algorithm.  We chose a book
+of essays rather than a novel because we expected that it would not
+have as much dialog.  We feared that different speakers in a novel
+would require different models.
+
+The experiment consisted of the following steps:
+\begin{description}
+\item[Parse the text:] We reduced the text to a sequence of tokens.
+  Each token was a word, a number, or a special character such as
+  punctuation.  We retained distinctions between lower and upper case.
+  The length of the resulting sequence was 68,857 tokens, \ie,
+  $\ts{w}{1}{T}$ with $T=68,857$.
+\item[Identify unique tokens:] There were 9,772 unique tokens of which
+  2,759 appear in the text more than twice.
+\item[Create a map from tokens to rank:] We sorted the tokens by the
+  frequency of their occurrence so that for the most frequent token
+  $w'$, $R(w')=1$ and for the most infrequent token, $\bar w$, $R(\bar
+  w)=9,772$.
+\item[Map tokens to integers:] We created a sequence of integers
+  $\ts{y}{1}{T}$ where $\ti{y}{t} \in \{0,\ldots,2,760\} \forall
+  t$.  If the token $\ti{w}{t}$ appeared in the text less than three
+  times, we set $\ti{y}{t}=2,760$.  Otherwise, we set  $\ti{y}{t}$ to
+  $R(\ti{w}{t})$.
+\item[Train an HMM:] Starting from a fifteen state model with random
+  parameters, we used 100 iterations of the Baum Welch algorithm to
+  obtain a trained model.
+\item[Decode a sequence of states:] By applying the Viterbi algorithm
+  to $\ts{y}{1}{T}$ we obtained $\ts{s}{1}{T}$ where $\ti{s}{t}\in
+  \{1,\ldots,12\}$.
+\item[Print the most frequent words for each state:] For each state
+  $s$, count the number of times each integer $y$ occurs, \ie, $c(y,s)
+  = \sum_{t:\ti{s}{t}=s} \delta(y,\ti{y}{t})$.  Then print the words
+  corresponding the ten most frequently occurring integers (excluding
+  the special value $y=2,760$).
+\end{description}
+The results appear in Table~\ref{tab:POS}.
+
+\begin{table}[htb]
+  \caption[Words most frequently associated with each state.]%
+  {Words most frequently associated with each state.  While we have no
+    interpretation for three of the states, some of the following
+    interpretations of the other states are strikingly successful.}
+  \begin{center}{\plotsize%
+      \fbox{%
+      \begin{tabular}[t]{r@{\hspace{0.28em}}p{19em}}
+        1  -- & \rule{0pt}{2.5ex}Adjectives \\
+        2  -- & \rule{0pt}{2.5ex}Punctuation and other tokens that appear at the end of phrases \\
+        6  -- & \rule{0pt}{2.5ex}Capitalized articles and other tokens that appear at the beginning of phrases \\
+        7  -- & \rule{0pt}{2.5ex}Objective pronouns and other words with similar functions \\
+        8  -- & \rule{0pt}{2.5ex}Nouns
+      \end{tabular}\qquad%
+      \begin{tabular}[t]{r@{\hspace{0.28em}}p{10em}}
+        9  -- & \rule{0pt}{2.5ex}Nouns \\
+        10 -- & \rule{0pt}{2.5ex}Helping verbs \\
+        11 -- & \rule{0pt}{2.5ex}Nominative pronouns \\
+        12 -- & \rule{0pt}{2.5ex}Articles \\
+        13 -- & \rule{0pt}{2.5ex}Conjunctions \\
+        14 -- & \rule{0pt}{2.5ex}Prepositions \\
+        15 -- & \rule{0pt}{2.5ex}Relative pronouns
+      \end{tabular}}\\[2.0ex]
+      \begin{tabular}{|@{\hspace{0.10em}}r@{\hspace{0.40em}}|*{10}{@{\hspace{0.28em}}l@{\hspace{0.28em}}}|}
+        \hline
+        \rule{0pt}{2.0ex} 1  & other & first  & American & same   & new   & own        & whole    & great  & Puritan & very    \\
+        \rule{0pt}{2.0ex} 2  & .     & ,      & ;        & that   & ]     & ?          & "        & and    & -       & !       \\
+        \rule{0pt}{2.0ex} 3  & more  & be     & out      & not    & X     & only       & on       & much   & up      & make    \\
+        \rule{0pt}{2.0ex} 4  & "     & indeed & Carrie   & York   & Sec   & Titan      & Gerhardt & Here   & )       & W       \\
+        \rule{0pt}{2.0ex} 5  & to    & -      & not      & no     & as    & so         & a        & be     & and     & been    \\
+        \rule{0pt}{2.0ex} 6  & "     & The    & [        & and    & A     & In         & New      & His    & in      & ,       \\
+        \rule{0pt}{2.0ex} 7  & it    & all    & them     & him    & life  & us         & which    & course & what    & Dreiser \\
+        \rule{0pt}{2.0ex} 8  & man   & hand   & book     & artist & men   & literature & books    & end    & story   & work    \\
+        \rule{0pt}{2.0ex} 9  & book  & sort   & work     & sense  & man   & way        & thing    & story  & books   & out     \\
+        \rule{0pt}{2.0ex} 10 & is    & was    & are      & has    & have  & had        & were     & would  & may     & could   \\
+        \rule{0pt}{2.0ex} 11 & he    & it     & "        & He     & there & they       & It       & But    & I       & we      \\
+        \rule{0pt}{2.0ex} 12 & the   & a      & his      & its    & an    & their      & that     & this   & any     & such    \\
+        \rule{0pt}{2.0ex} 13 & and   & but    & as       & that   & or    & "          & even     & not    & so      & if      \\
+        \rule{0pt}{2.0ex} 14 & of    & in     & and      & to     & for   & with       & by       & as     & at      & from    \\
+        \rule{0pt}{2.0ex} 15 & ,     & --     & that     & ;      & "     & which      & who      & and    & as      & (       \\[0.5ex]
+        \hline
+      \end{tabular}
+    }\end{center}
+  \label{tab:POS}
+\end{table}
+
+\subsection{Remarks}
+\label{sec:DHMMRemarks}
+
+One might imagine that HMMs are simply higher order Markov processes.
+For example, consider the suggestion that the states depicted in
+Fig.~\ref{fig:Statesintro} correspond to sequential pairs of
+observations and that the model is a second order Markov model that is
+characterized by $P_{\ti{Y}{t+1}|\ti{Y}{t},\ti{Y}{t-1}}$, the set of
+observation probabilities conditioned on the \emph{two} previous
+observations.  Although the number of unique sequential pairs
+$\ts{y}{t}{t+1}$ that occur in our data is in fact twelve, the fact
+that some of the states in Fig.~\ref{fig:Statesintro} straddle the
+quantization boundaries at $x = -10$ and $x=10$ belies the suggestion.
+In general, the class of HMMs is more powerful than the class of
+simple Markov models in the sense that the former includes the later
+but not vice versa.
+
+Let us emphasize the following points about discrete HMMs:
+\begin{enumerate}
+\item Although the hidden process is first order Markov, the observation
+process may not be a Markov process (of any order). \label{noX}
+\item Any Markov model of any order can be represented by an HMM.
+\item Even if the functions governing the dynamics and
+  observations of a continuous state space system are nonlinear, a
+  discrete HMM can approximate the system arbitrarily well by using
+  large numbers of states $N_S$ and possible observation values $N_Y$.
+\item For estimating model parameters, larger numbers of training data
+  are required as $N_S$ and $N_Y$ are increased. \label{point:large}
+\end{enumerate}
+
+\longpage%% FixMe: Maybe not when set with MathTime fonts
+As an illustration of Point \ref{noX},\ consider the process depicted in
+Fig.~\ref{fig:nonmm}, which produces observation strings with runs of about
+seven $a$'s interspersed with occasional $b$'s and $c$'s.  In the
+observation stream, the $b$'s and $c$'s alternate no matter how many $a$'s
+fall in between.  Such behavior can not be captured by a simple Markov
+process of any order.
+
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \input{figs/nonmm.eps_t}}
+  \caption[\comment{fig:nonmm }An HMM that cannot be represented by a Markov model.]%
+  {An HMM that cannot be represented by a Markov model of any order.
+    Consider the string of observations ``$b,a,a,\ldots,a,a,a$''.
+    Since the previous non-''$a$'' observation was ``$b$'' and the
+    model will not produce another ``$b$'' before it produces a
+    ``$c$'', the next observation can be either a ``$c$'' or another
+    ``$a$'', but not a ``$b$''.  Because there is no limit on the
+    number of consecutive ``$a$'s'' that can appear, there is no limit
+    on how far back in the observation sequence you might have to look
+    to know the probabilities of the next observation.}
+  \label{fig:nonmm}
+\end{figure}
+%%%\afterpage{\clearpage}%% Print this right here or let it float to end of chapter?
+
+The possibility of long term memory makes state space models, \eg,
+HMMs, more powerful than Markov models.  That observation suggests
+that if there is noise, then the \emph{\index*{delay vector} reconstructions}
+described in the chaos
+literature\cite{Packard80,Takens81,Fraser86,Sauer91} are suboptimal
+because they discard information from earlier observations that could
+be used to more accurately specify the state.
+
+
+\begin{CVSID}
+%%%$Id: introduction.tex,v 1.85 2007-06-07 05:12:02 karlheg Exp $
+\end{CVSID}
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% eval: (load-file "hmmkeys.el")
+%%% End:
