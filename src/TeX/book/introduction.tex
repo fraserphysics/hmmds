@@ -123,8 +123,8 @@ the laser system is governed by the Lorenz equations.
     \def\t{$t$}%		% of \plotsize for why it exists and
     \def\yt{$\ti{y}{t}$}%	% why these labels are macros.
     \def\Laser{Laser}%
-    \def\Simulation{Simulation}%
-    \input{figs/LaserLP5.eps_t}}
+    \def\Simulation{Simulation}% FixMe: useless defs here and elsewhere?
+    \includegraphics{LaserLP5.pdf}}
   \caption[\comment{fig:LaserLP5 }Laser intensity measurements.]%
   {Laser intensity measurements.  The trace labeled \emph{Laser} is a
     plot of laser intensity measurements provided by Tang \etal.  The
@@ -201,7 +201,7 @@ piece of the log-likelihood function.
     \def\s{\mbox{\kern2.0em\lower2.0ex\hbox{$s$}}}%
     \def\b{\mbox{\lower1.5ex\hbox{$b$}}}%
     \def\LogLikely{$\log\left(P(\ts{y}{1}{250}|\theta) \right)$}%
-    \input{figs/LaserLogLike.eps_t}}
+    \includegraphics{LaserLogLike.pdf}}
   \caption[\comment{fig:LaserLogLike }Log likelihood as function of $s$ and $b$.]%
   {Log likelihood as function of $s$ and $b$.  Other parameters were
     taken from the vector $\hat \theta$ that maximizes the likelihood
@@ -229,7 +229,7 @@ highest probability given the first 250 observations, \ie,
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \input{figs/LaserStates.eps_t}}
+    \includegraphics{LaserStates.pdf}}
   \caption[\comment{fig:LaserStates }State trajectory $\ts{\hat x}{1}{250}$.]%
   {State trajectory $\ts{\hat x}{1}{250}$ estimated from
     observation sequence $\ts{y}{1}{250}$. (see
@@ -244,7 +244,7 @@ highest probability given the first 250 observations, \ie,
     \def\tiyt{$\ti{y}{t}$}%
     \def\Lase{Laser}%
     \def\Forecas{Forecast}%
-    \input{figs/LaserForecast.eps_t}}
+    \includegraphics{LaserForecast.pdf}}
   \caption[\comment{fig:LaserForecast }Forecast observation sequence.]%
   {Forecast observation sequence.  We set the noise terms $\eta$ and
     $\epsilon$ to zero and iterated Eqn.~\eqref{eq:FandG} 400 times to
@@ -333,24 +333,13 @@ One can use a parameterized class of state space models $\left\{
   If $R(\ts{y}{1}{T})$ is above some threshold, it is classified as defective.
 \end{description}
 
-\ReviewerNote{Reviewer 1 wants a discussion of Kalman vs HMM and
-  suggests citing Roweis.}
-\ReviewerNote{ Reviewer 2 wants:
-  \begin{itemize}
-  \item A more leisurely introduction
-  \item He also wants exercises, and so does Patrick Campbell
-  \end{itemize}
-}
-
-
 
 \section{Discrete Hidden Markov Models}
 \label{sec:intro_hmm}
 \index{discrete hidden Markov model}%
 
-In this section we describe the simplest HMMs: those that are
-discrete in time, state, and observation.  \ReviewerNote{Reviewer 2
-  wants more on unhidden Markov models.}  We begin with a couple of
+In this section we describe the simplest HMMs: those that are discrete
+in time, state, and observation.  We begin with a couple of
 definitions.  Three random variables $\ti{X}{1}$, $\ti{X}{2}$, and
 $\ti{X}{3}$ constitute a \emph{\index*{Markov chain}} if
 \begin{equation}
@@ -411,10 +400,6 @@ $P_{\ts{S}{1}{T}}\left( \ts{s}{1}{T} \right)$.  For example we
 calculate the probability that a sequence of 4 states has the values
 $\ts{s}{1}{4} = (u,v,w,v)$, (\ie, $\ti{s}{1} = u$, $\ti{s}{2} = v$,
 $\ti{s}{3} = w$, and $\ti{s}{4} = v$) as follows:
-\ReviewerNote{Reviewer 2 thinks that this is about transients not
-  about a sequence.  I should expand until it's clear.  Probably
-  mention \emph{relaxation to stationary measure}.  $\ldots$ which
-  should perhaps be defined in a ``nomenclature'' entry.}
 
 \begin{align}
   \label{eq:intro_hmm1}
@@ -442,11 +427,7 @@ which says that in determining the probability of the $t^\text{th}$
 state given any sequence of previous states only the $(t-1)^\text{th}$
 state is relevant. %
 %%%
-\ReviewerNote{Reviewer 2 wants an example in section
-  \ref{sec:intro_hmm} with a more concrete interpretation of states
-  and transition probabilities.  It might be fun to use Markov's
-  original example.  PC says if I do that, I should put it at the end
-  of the section.}
+
 
 A common exercise is to find a \emph{\index*{stationary}} probability
 distribution, \ie, given a transition matrix $T$ find the probability
@@ -480,7 +461,7 @@ that
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \input{figs/Markov_mm.eps_t}}
+    \input{Markov_mm.pdf_t}}
   \caption[\comment{fig:Markov }A Markov model.]{A Markov model}
   \label{fig:mm}
 \end{figure}
@@ -526,7 +507,7 @@ that depends only on the state $\ti{s}{t}$.
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \input{figs/Markov_dhmm.eps_t}}
+    \input{Markov_dhmm.pdf_t}}
   \caption[\comment{fig:Markov_dhmm }A hidden Markov model.]{A hidden Markov model}
   \label{fig:dhmm}
 \end{figure}
@@ -629,7 +610,7 @@ assumptions about \emph{conditional independence} relations.  Figure
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \input{figs/Markov_dhmm_net.eps_t}}
+    \input{Markov_dhmm_net.pdf_t}}
   \caption[\comment{fig:dhmm-net }Bayes net schematic for a hidden Markov model.]%
   {Bayes net schematic for a hidden Markov model.  The drawn edges
     indicate the dependence and independence relations: Given
@@ -767,7 +748,7 @@ Figure~\ref{fig:TSintro} depicts the first few observations.
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \input{figs/TSintro.eps_t}}
+    \includegraphics{TSintro.pdf}}
   \caption[\comment{fig:TSintro }Generating the observations $\ts{y}{1}{40}$.]%
   {Generating the observations $\ts{y}{1}{40}$.  The curve in the
     upper plot depicts the first component $\ti{x_1}{\tau}$ of an
@@ -813,7 +794,7 @@ algorithm to find the most likely state sequence
  %%
  \begin{figure}[htbp]
    \centering{\plotsize%
-     \input{figs/STSintro.eps_t}}
+     \includegraphics{STSintro.pdf}}
    \caption[\comment{fig:STSintro }A plot of a state sequence found by Viterbi decoding.]%
    {A plot of the state sequence found by Viterbi decoding a quantized
      time series from the Lorenz system.  Here the number of the
@@ -834,7 +815,7 @@ algorithm to find the most likely state sequence
 %%%
  \begin{figure}[p]
    \centering{\plotsize%
-     \includegraphics[width=1.0\textwidth]{figs/Statesintro}}%
+     \includegraphics[width=1.0\textwidth]{Statesintro}}%
    \caption[\comment{fig:Statesintro }Relationship between states of HMM and Lorenz system.]%
    {The relationship between the hidden states of an HMM and the
      original coordinates of the Lorenz system.}
@@ -842,14 +823,7 @@ algorithm to find the most likely state sequence
  \end{figure}
 %%%\afterpage{\clearpage}%% Print this right here or let it float to end of chapter?
 \ToDo{Transition diagram for back cover}
-\ReviewerNote{
-  \begin{itemize}
-  \item Reviewer 2 suggests a transition diagram
-  \item Reviewer 2 wants suggested applications that justify the
-    effort
-  \item Review 3 wants connections between HMMs and other approaches
-  \end{itemize}
-}
+
 
 \subsection{Example: Hidden States as Parts of Speech}
 \label{sec:POSpeech}
@@ -994,7 +968,7 @@ process of any order.
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \input{figs/nonmm.eps_t}}
+    \input{nonmm.pdf_t}}
   \caption[\comment{fig:nonmm }An HMM that cannot be represented by a Markov model.]%
   {An HMM that cannot be represented by a Markov model of any order.
     Consider the string of observations ``$b,a,a,\ldots,a,a,a$''.
@@ -1016,11 +990,6 @@ described in the chaos
 literature\cite{Packard80,Takens81,Fraser86,Sauer91} are suboptimal
 because they discard information from earlier observations that could
 be used to more accurately specify the state.
-
-
-\begin{CVSID}
-%%%$Id: introduction.tex,v 1.85 2007-06-07 05:12:02 karlheg Exp $
-\end{CVSID}
 
 %%% Local Variables:
 %%% TeX-master: "main"

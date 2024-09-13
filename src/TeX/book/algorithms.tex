@@ -1,9 +1,7 @@
 \chapter{Basic Algorithms}
 \label{chap:algorithms}
 
-\ReviewerNote{Reviewer5 says to increase the intuition to equation ratio.
-  Reviewer4 wants more illustrations and examples.  Shari says put
-  Viterbi before Forward.  Patrick says put Forward first. }
+
 
 In Section~\ref{sec:intro_hmm} we mentioned the Viterbi algorithm for
 finding the state sequence that has the highest probability given an
@@ -113,7 +111,7 @@ impossible to do the sum for even modest lengths $T$.
         new $\alpha$'s\\%
         Eqn.~\eqref{eq:forwardD}
       \end{minipage}}%
-    \input{figs/forward.eps_t}}
+    \input{forward.pdf_t}}
   \vspace{5 em}
   \caption[\comment{fig:forward }Dependency relations in the forward algorithm.]%
   {Dependency relations in the forward algorithm (See
@@ -144,28 +142,28 @@ avoids underflow:
 %%%
 %%% #1 = time #2 = state
 \newcommand{\alphax}[2]{%
-  \psdblframebox{%
-    P_{S(#1)|\ts{Y}{1}{#1}}\left(#2 |\ts{y}{1}{#1} \right)%
+  \doublebox{%
+    $P_{S(#1)|\ts{Y}{1}{#1}}\left(#2 |\ts{y}{1}{#1} \right)$%
   }%
 }%
 %%%
 %%%
 \newcommand{\prealpha}{%
-  \psframebox{%
-    P_{\ti{S}{t}|\ts{Y}{1}{t-1}} \left(s | \ts{y}{1}{t-1} \right)%
+  \fbox{%
+    $P_{\ti{S}{t}|\ts{Y}{1}{t-1}} \left(s | \ts{y}{1}{t-1} \right)$%
   }%
 }%
 %%%
 \newcommand{\gammax}{%
-  \psdblframebox[framearc=0.3]{%
-    P(\ti{y}{t}|\ts{y}{1}{t-1})%
+  \ovalbox{%
+    $P(\ti{y}{t}|\ts{y}{1}{t-1})$%
   }%
 }%
 %%%
 %%%
 \newcommand{\pregamma}{%
-  \psframebox[framearc=0.3]{%
-    P_{\ti{S}{t},\ti{Y}{t}|\ts{Y}{1}{t-1}} \left(s,\ti{y}{t}|\ts{y}{1}{t-1}\right)%
+  \fbox{%
+    $P_{\ti{S}{t},\ti{Y}{t}|\ts{Y}{1}{t-1}} \left(s,\ti{y}{t}|\ts{y}{1}{t-1}\right)$%
   }%
 }%
 %%%
@@ -332,9 +330,7 @@ Roughly, the forward algorithm does a sum over predecessor states,
 while the Viterbi algorithm finds a maximum. We use the following
 notation and equations to describe and justify the algorithm.
 
-\ReviewerNote{Reviewer 3 wants a little more informal verbal
-  discussion of how the different algorithms work.  He specifically
-  mentions the Viterbi algorithm.  Patrick wants ``more structure''.}
+
 
 \subsubsection*{Notation:}
 \begin{description}
@@ -509,7 +505,7 @@ the entire highest utility path.
         \qquad$+ \nu(s'(s,t),t-1)$.
       \end{minipage}}
     %%
-    \input{figs/viterbiB.eps_t}}
+    \input{viterbiB.pdf_t}}
   \vspace{7em}
   \caption[\comment{fig:viterbiB }Dependency relations in the Viterbi algorithm.]%
   {Dependency relations in the Viterbi algorithm.}
@@ -1122,21 +1118,7 @@ estimates using
   \frac{\sum_{t}w(i,t)}{\sum_{j,t}w(j,t)}
 \end{equation}
 
-\ReviewerNote{Reviewer4 says ``To make this point plausible and serious,
-  it is very important to explain clearly what are the assumptions
-  from a theoretical as well as a practical viewpoint.''  He wants
-  this in the preface or introduction, but I think this may be the
-  place to put it.  Similar subsections could discuss assumption
-  testing.  Reviewer4 also wants to know, ``which types of dynamical
-  systems can be treated appropriately with HMM and what are the data
-  requirements?''  Patrick says to put assumptions in the
-  introduction.  Nick says look up David Pollard wrt data
-  requirements.  LeCam, M Law, L. Brown; Amari, f. divergences; LeCam
-  and Yang, Asymptotic Methods in Statistics (Springer)
 
-  Response to this comment: See \eqref{eq:assume_markov} and
-  \eqref{eq:assume_output} for assumptions.  See
-  \ref{sec:EstWholeDist} for data requirements}
 
 \subsection{Maximizing likelihood over unrealistic classes}
 \label{sec:incredible}
@@ -1162,9 +1144,9 @@ re-running the experiment with five different seeds for the random
 number generator, we obtained the five different results that appear
 in Fig.~\ref{fig:TrainChar}.
 \begin{figure}
-  \centering{\plotsize%
+  \centering{\plotsize% FixMe: is def useless
     \def\llps{$\frac{\log \left( P \left(\ts{y}{1}{T}|\ti{\parameters}{n} \right)\right)}{T}$}%
-    \input{figs/TrainChar.eps_t}}
+    includegraphics{TrainChar.pdf}}
   \caption[\comment{fig:TrainChar }Convergence of the Baum Welch algorithm.]{%
     Convergence of the Baum Welch algorithm.  Here we have
     plotted $\frac{\log \left( P
@@ -1233,8 +1215,7 @@ distributions for HMMs using \emph{Markov chain Monte Carlo} and
 and \cite{Beal03}), we will restrict our attention to point estimates
 from the Baum Welch algorithm and simple variations.
 
-\ReviewerNote{Reviewer 2: Give citations for these other optimization
-  schemes.}
+
 
 \section{The EM algorithm}
 \label{sec:EM}
@@ -1367,8 +1348,8 @@ $\lambda = 0.674601277409$, $\mu_1 = -1.81907548168$, and $\mu_2 =
     \def\ptheta{$P_{\ti{\parameters}{1}}$}%
     \def\px{$P_{\parameters}$}%
     \def\Pthetax{$P_{\ti{\parameters}{3}}$}%
-    \input{figs/gaussmixA.eps_t}\\[-2.5ex]
-    \input{figs/gaussmix.eps_t}}
+    \resizebox{\textwidth}{!}{\includegraphics{GaussMix.pdf}}
+  }
   \caption[\comment{fig:GaussMix }Two iterations of the EM algorithm.]%
   {Two iterations of the EM algorithm.  We use the algorithm to search
     for parameters of Eqn.~\eqref{eq:GaussMix} to maximize the
@@ -1751,17 +1732,8 @@ find that the algorithm implements an obviously stable \emph{linear}
 map $\EMmap$.
 
 \begin{figure}[htbp]
-  \centering
-  {\plotsize%
-    { \def\x#1{\mbox{\lower1.0ex\hbox{$#1$}}}%
-      \def\xlab{\mbox{\lower4.0ex\hbox{$\parameters$}}}%
-      \def\y#1{\mbox{\kern-0.5em\lower1.0ex\hbox{$#1$}}}%
-      \def\ylab{\mbox{\kern-0.5em\lower1.5ex\hbox{$\parametersPrime$}}}%
-      \def\zlab{$Q(\parametersPrime,\parameters)$}%
-      \input{figs/EM1.eps_t}}%
-    {\def\xlab{$\parameters$}%
-      \def\ylab{$\EMmap(\parameters)$}%
-      \input{figs/EM2.eps_t}}}
+  \centering{\resizebox{\textwidth}{!}{\includegraphics{EM.pdf}}
+  }
   \caption[\comment{fig:EM }An illustration of the EM algorithm.]%
   {An illustration of the EM algorithm for an experiment in which a
     coin is thrown four times, first a head is observed
@@ -1780,10 +1752,6 @@ map $\EMmap$.
     because the slope of $\EMmap$ is less than one.}
   \label{fig:EM}
 \end{figure}
-
-\begin{CVSID}
-%%%$Id: algorithms.tex,v 1.139 2007/06/07 05:12:02 karlheg Exp $
-\end{CVSID}
 
 %%% Local Variables:
 %%% TeX-master: "main"

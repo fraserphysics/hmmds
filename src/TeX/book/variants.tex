@@ -40,7 +40,7 @@ and algorithms for fitting and using the models.
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \input{figs/LaserHist.eps_t}}
+    \includegraphics{LaserHist.pdf}}
   \caption[\comment{fig:LaserHist }Histogram of Tang's laser measurements.]%
   {Histogram of Tang's laser measurements.  Even though neither $y=5$
     nor $y=93$ occurs in $\ts{y}{1}{600}$, it is more plausible that
@@ -87,27 +87,30 @@ observations.
         \def\prbb{$0.13$}%
         \def\prbc{$0.07$}%
         \def\prbd{$0.87$}%
-        \def\lbla{\parbox[t]{1.8in}{$\mu=-1$\\$\sigma=1$}}%
-        \def\lblb{\parbox[t]{1.8in}{$\mu=1$\\$\sigma=1$}}%
-        \input{figs/SGO.eps_t}}%
+        \def\lbla{\parbox[t]{1.8in}{$\mu=-1$\\$\sigma^2=1$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=1$\\$\sigma^2=1$}}%
+        \input{ScalarGaussian.pdf_t}
+      }%
       %\smallskip%
       &
       \begin{picture}(0,0)
         \put(0.0,0.8){\makebox{\normalsize\textbf{(b)}}}
       \end{picture}%
-      \input{figs/SGOsimS.eps_t}%
+      \hspace{2em}
+      \resizebox{0.37\textwidth}{!}{\includegraphics{SGO_b.pdf}}
+      %
       %\smallskip%
       \\
       \begin{picture}(0,0)
         \put(0.0,0.8){\makebox{\normalsize\textbf{(c)}}}
       \end{picture}%
-      \input{figs/SGOsimY.eps_t}%
+      \hspace{2em}\resizebox{0.37\textwidth}{!}{\includegraphics{SGO_c.pdf}}%
       \smallskip%
       &
       \begin{picture}(0,0)
         \put(0.0,0.8){\makebox{\normalsize\textbf{(d)}}}
       \end{picture}%
-      \input{figs/SGOdecodeS.eps_t}%
+      \hspace{2em}\resizebox{0.37\textwidth}{!}{\includegraphics{SGO_d.pdf}}%
       %\smallskip%
       \\
       \begin{picture}(0,0)
@@ -117,9 +120,10 @@ observations.
         \def\prbb{$0.5$}%
         \def\prbc{$0.5$}%
         \def\prbd{$0.5$}%
-        \def\lbla{\parbox[t]{1.8in}{$\mu=-2$\\$\sigma=2$}}%
-        \def\lblb{\parbox[t]{1.8in}{$\mu=2$\\$\sigma=2$}}%
-        \input{figs/SGO.eps_t}}&
+        \def\lbla{\parbox[t]{1.8in}{$\mu=-2$\\$\sigma^2=2$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=2$\\$\sigma^2=2$}}%
+        \input{ScalarGaussian.pdf_t}
+      }&
       \begin{picture}(0,0)
         \put(-0.1,0.8){\makebox{\normalsize\textbf{(f)}}}
       \end{picture}%
@@ -127,23 +131,24 @@ observations.
         \def\prbb{$0.12$}%
         \def\prbc{$0.08$}%
         \def\prbd{$0.88$}%
-        \def\lbla{\parbox[t]{1.8in}{$\mu=-0.74$\\$\sigma=1.05$}}%
-        \def\lblb{\parbox[t]{1.8in}{$\mu=1.17$\\$\sigma=1.13$}}%
-        \input{figs/SGO.eps_t}}
+        \def\lbla{\parbox[t]{1.8in}{$\mu=-0.74$\\$\sigma^2=1.09$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=1.17$\\$\sigma^2=1.27$}}%
+        \input{ScalarGaussian.pdf_t}
+      }
       \end{tabular}}
   \caption[\comment{fig:ScalarGaussian }An HMM with scalar Gaussian observations.]%
   {An HMM with scalar Gaussian observations.  A state diagram appears in
-    (a).  The half-life of the first state is about ten and the half
+    \emph{(a)}.  The half-life of the first state is about ten and the half
     life of the second state is about five, \ie, $0.93^{10} \approx
     0.87^5 \approx 0.5$.  A simulated state sequence and observation
-    sequence appear in (b) and (c) respectively.  Using the model
-    parameters from (a) and the observation sequence from (c) the
-    Viterbi algorithm estimates the state sequence that appears in (d)
-    which is satisfyingly similar to the state sequence in (b).
-    Finally, starting from the initial model depicted in (e) and using
-    the observation sequence depicted in (c), 50 iterations of the
-    Baum Welch algorithm produces the model depicted in (f) which is
-    satisfyingly similar to (a).}
+    sequence appear in \emph{(b)} and \emph{(c)} respectively.  Using the model
+    parameters from \emph{(a)} and the observation sequence from \emph{(c)}, the
+    Viterbi algorithm estimates the state sequence that appears in \emph{(d)}
+    which is satisfyingly similar to the state sequence in \emph{(b)}.
+    Finally, starting from the initial model depicted in \emph{(e)} and using
+    the observation sequence depicted in \emph{(c)}, 50 iterations of the
+    Baum-Welch algorithm produces the model depicted in \emph{(f)} which is
+    satisfyingly similar to \emph{(a)}.}
   \label{fig:ScalarGaussian}
 \end{figure}
 
@@ -241,9 +246,10 @@ limit as $\sigma_2 \rightarrow 0$, \ie,
         \def\prbb{$0.5$}%
         \def\prbc{$0.5$}%
         \def\prbd{$0.5$}%
-        \def\lbla{\parbox[t]{1.8in}{$\mu=0.0$\\$\sigma=4.0$}}%
-        \def\lblb{\parbox[t]{1.8in}{$\mu=3.6$\\$\sigma=0.126$}}%
-        \input{figs/SGO.eps_t}}&
+        \def\lbla{\parbox[t]{1.8in}{$\mu=0.0$\\$\sigma^2=16$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=3.6$\\$\sigma^2=0.016$}}%
+        \input{ScalarGaussian.pdf_t}
+      }&
       \begin{picture}(0,0)
         \put(-0.1,0.8){\makebox{\normalsize\textbf{(b)}}}
       \end{picture}%
@@ -251,20 +257,21 @@ limit as $\sigma_2 \rightarrow 0$, \ie,
         \def\prbb{$1.0$}%
         \def\prbc{$0.01$}%
         \def\prbd{$0.0$}%
-        \def\lbla{\parbox[t]{1.8in}{$\mu=-0.08$\\$\sigma=1.38$}}%
-        \def\lblb{\parbox[t]{1.8in}{$\mu=3.60$\\$\sigma=0.08$}}%
-        \input{figs/SGO.eps_t}}%
+        \def\lbla{\parbox[t]{1.8in}{$\mu=-0.09$\\$\sigma^2=1.90$}}%
+        \def\lblb{\parbox[t]{1.8in}{$\mu=3.62$\\$\sigma^2=1.7\times 10^{-6}$}}%
+        \input{ScalarGaussian.pdf_t}
+      }%
     \end{tabular}}%
   \caption[\comment{fig:MLEfail }An illustration of trouble with maximum likelihood.]%
-  {An illustration of trouble with maximum likelihood.  Here we have
-    used the same implementation of the Baum Welch algorithm that we
-    used to produce Fig.~\ref{fig:ScalarGaussian}~(f), but rather than
-    starting with the model in Fig.~\ref{fig:ScalarGaussian}~(c), we
+  {An illustration of trouble with maximum likelihood.  Here I have
+    used the same implementation of the Baum-Welch algorithm that I
+    used to produce Fig.~3.2\emph{(f)}, but rather than
+    starting with the model in Fig.~\ref{fig:ScalarGaussian}~\emph{(c)}, I
     started the algorithm with the initial model depicted in (a)
-    above.  Five iterations of the algorithm produced the suspicious
-    model depicted in (b) above.}
+    above.  Six iterations of the algorithm produced the suspicious
+    model depicted in \emph{(b)} above.}
   \label{fig:MLEfail}% numbers from ScalarGaussian.py
-\end{figure}
+\end{figure} \marginpar{FixMe: Two rather than six.}
 
 Such singularities of likelihood are common among parametric
 probability density functions.  A particularly simple example is the
@@ -709,22 +716,7 @@ basic ideas we've described:
   particles that seem inconsistent with measurements are eliminated
   and new particles are created. 
 \end{description}
-\ReviewerNote{Reviewer4 wants ``other main approaches \ldots which
-  approach for which problem \ldots Unscented Kalman Filtering''
-  }
 
-
-\ReviewerNote{Reviewer4 wants more illustrations and examples.}
-
-\ReviewerNote{Reviewer 1 wants comparison to AR, ARMAX, etc. \medskip\\
-                                %
-  Reviewer 3 wants comparison to Iterated Function Systems
-}
-
-
-\begin{CVSID}
-%%%$Id: variants.tex,v 1.62 2007-06-07 05:12:02 karlheg Exp $
-\end{CVSID}
 %%%
 %%% Local Variables:
 %%% TeX-master: "main"

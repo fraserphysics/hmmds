@@ -1,11 +1,4 @@
 %%%
-%%% bibTeX doesn't understand "\includeonly".
-%%%
-%%% \includeonly{introduction, algorithms, variants, continuous, toys, apnea, appendix}
-%%% \includeonly{introduction, algorithms, variants, continuous, toys, appendix}
-%%%
-
-%%%
 %%% "hmmdsbook" is a subclass of "newsiambook", unless you use the
 %%% 'ltxbook' option, in which case it is a subclass of the standard
 %%% LaTeX "book".
@@ -15,28 +8,6 @@
 %%%       tocbibind.sty by hmmdsbook.cls.
 %%%
 
-%%% I'm guessing that the paper size given to 'crop' might change for
-%%% actual printing runs.  The logical paper size is determined by the
-%%% newsiambook.cls where it arbitrarily sets \pageheight 10in
-%%% \pagewidth 7in (line 1121), regardless of any \documentclass
-%%% options such as 'letterpaper' or 'a4'.  (Those will set it
-%%% initially, but by the time the .cls file is done loaded, they are
-%%% set to those hard-coded values.)
-%%%
-%%% The effective default options are (AFAICT):
-%%%
-%%% plain-opener,10pt,twoside,onecolumn,openright,final
-%%%
-%%% It doesn't seem to honor or implement 'twoside' at all.  I'm not
-%%% sure what happens at the the publisher with that.  They must have
-%%% a style that they load that sets it up for the press run or
-%%% something.  The way it is not, it's not really set for two sided
-%%% printing the way I would expect.  It looks like every page is a
-%%% right-page to me.  It's too bad that the Development and
-%%% Aquisitions Editor would not provide me with a direct-contact
-%%% email address to a LaTeX Compositor, because it would be useful
-%%% and valuable for me to be able to communicate with that expert.
-%%%
 \documentclass[]{hmmdsbook}
 
 %%% Note: The following settings will cause many overfull hbox false alarms:
@@ -44,41 +15,6 @@
 % %%% Show index entries in margin
 % \proofmodetrue
 
-%%% For MathTime fonts:
-%%%
-%%% Does not work for me: \usepackage{siammathtime}
-%%% Does not work either: \usepackage{mathtime}
-%%%                       \usepackage{mathpi}
-%%%
-%%% It bombs where there's a call to a macro for a bold-math font.  A
-%%% test document typeset with 'mathtime' works... I'm not sure what's
-%%% happening.  I think that either the Postscript viewer or 'dvips'
-%%% is performing a font substitution, since I'm certain that the
-%%% actual MathTime fonts are not installed on my computer.  There are
-%%% TeX font metrics for them, but no actual fonts.  From what I can
-%%% tell, they are slightly smaller than CM glyphs, so the labels on
-%%% the illustrations should come out fine, and probably won't cause
-%%% any over-typing from boxes being bigger than with CM.
-%%%
-%%%
-%%% Note: SIAM Compositor: Please see the definition of and comment
-%%% Note:                  regarding the '\plotsize' macro, which you
-%%% Note:                  will find in "hmmdsbook.cls".
-%%% Note:
-%%% Note:                  Also, please grep the document for
-%%% Note:                  occurances of "\longpage", and see if when
-%%% Note:                  you run it with MathTime fonts whether
-%%% Note:                  those pages need to be squashed or not.
-%%% Note:
-%%% Note:                  There is some trouble around sec:gaussian
-%%% Note:                  where, in our runs, just under
-%%% Note:                  fig:ScalarGaussian there is a paragraph
-%%% Note:                  fragment; some awkward whitespace.  I put
-%%% Note:                  a commented off \newpage above the heading
-%%% Note:                  "Reestimation" that I think will fix it,
-%%% Note:                  but you need to run it with MathTime first
-%%% Note:                  of course.
-%%%
 %%% I'm putting this in here for our own runs, since I think that it
 %%% provides a reasonable facimile of the font metrics that the final
 %%% document will have, at least for the plot labels.  This should
@@ -98,21 +34,8 @@
 \usepackage[letter,center]{crop}
 \crop
 
-
-%%% rubber: paper letter
-%%% rubber: dvips.options -Z
-%%% rubber: path ./SiamTeX
-%%% rubber: path ./figs
-%%% rubber: module graphicx
-%%% rubber: module bibtex
-%%% rubber: module index
-%%% rubber: onchange main.nlo "makeindex main.nlo -s nomencl.ist -o main.nls"
-%%% rubber: watch main.nls
-%%% rubber: clean main.loa
-%%% rubber: clean main.nlo
-%%% rubber: clean main.nls
-%%% rubber: clean main.out
-
+\usepackage{fancybox,framed}
+\usepackage{rotating}
 
 \author{\copyright Andrew M. Fraser}
 \title{Hidden Markov Models and Dynamical Systems}
@@ -261,14 +184,13 @@ office support work on Chapter~\ref{chap:apnea} through project \#
 %%% \listofalgorithms%% There are none, since at this point they are done as figures.
 
 \mainmatter
-%\include{introduction}
-%\include{algorithms}
-%\include{variants}
-%\include{continuous}
-%\include{toys}
+\include{introduction}
+\include{algorithms}
+\include{variants}
+\include{continuous}
+\include{toys}
 \include{apnea}
 \include{appendix}
-%%% \include{pointers}
 
 
 \backmatter

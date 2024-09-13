@@ -131,7 +131,7 @@ plot on the right.
     \def\dev{$\ti{\sigma_\gamma}{t}$}%
     \def\errorerrore{$\ti{y}{t} - \ti{\mu_\gamma}{t}$}%
     \def\yt{$\ti{y}{t}$}%
-    \input{figs/ToyTS1.eps_t}}
+    \includegraphics{ToyTS1.pdf}}
   \caption[\comment{fig:ToyTS1 }Extended Kalman filter for one step forecasting.]%
     {Extended Kalman filter for one step forecasting with simulation
     parameters:\\
@@ -156,11 +156,8 @@ plot on the right.
 \end{figure}
 %%%
 \begin{figure}[htbp]
-  \centering{\plotsize%
-    \def\S{$P_a\text{ and } P_\alpha\text{ at }t=118$}%
-    \input{figs/ToyStretch118.eps_t}%
-    \def\S{$P_a\text{ and } P_\alpha\text{ at }t=119$}%
-    \input{figs/ToyStretch119.eps_t}}
+  \centering{\resizebox{\textwidth}{!}{\includegraphics{ToyStretch.pdf}}
+  }
   \caption[\comment{fig:ToyStretch }Dynamical stretching increases state variance.]%
   {These plots illustrate dynamical stretching increasing the variance
     of the conditional distribution in state space corresponding to
@@ -257,7 +254,7 @@ Benettin procedure described in Section~\ref{sec:Benettin}.
     \def\y#1{\mbox{\kern-1.0em\lower2.0ex\hbox{$#1$}}}%
     \def\tsb{\mbox{\lower6.0ex\hbox{$t_s$}}}%
     \def\ailly{$-\hat h$}%
-    \input{figs/ToyH.eps_t}}
+    \includegraphics{ToyH.pdf}}
   \caption[\comment{fig:ToyH }Average log likelihood of one step forecasts.]%
   {Average log likelihood of one step forecasts as a function of time
     step $t_s$ and filter parameter $\tilde \sigma_\epsilon$.  To
@@ -1046,7 +1043,7 @@ system appear in Fig.~\ref{fig:benettin}.
     \def\Mfour{$ \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} $}%
     \def\Mfive{$ \begin{bmatrix} 5 & 0.15 \\ 0 & 0.2 \end{bmatrix} $}%
     \def\Msix{$ \begin{bmatrix}3 & 0.25 \\ -4 & 0 \end{bmatrix} $}%
-    \input{figs/QR.eps_t}}
+    \input{QR.pdf_t}}
   \caption[\comment{fig:QR }The action of the $Q$ $R$ factors of a matrix on a unit square.]%
   {The action of the $Q$ $R$ factors of a matrix on a unit square.
     Here $A=
@@ -1060,16 +1057,8 @@ system appear in Fig.~\ref{fig:benettin}.
   \label{fig:QR}
 \end{figure}
 \begin{figure}[htb]
-  \centering{\plotsize%
-    \def\NFp{95\%}%
-    \def\SamOne{Sample1}%
-    \def\SamTwo{Sample2}%
-    \def\SamThr{Sample3}%
-    \def\Fp{5\%}%
-    \def\ylabel{$\hat\lambda(t)$}%
-    \input{figs/benettinA.eps_t}
-    \def\t{$t$}%
-    \input{figs/benettinAug0.eps_t}}
+  \centering{\includegraphics[width=1.0\textwidth]{benettin.pdf}
+  }
   \caption[\comment{fig:benettin }Lyapunov exponent calculation for the Lorenz system.]%
   {Lyapunov exponent calculation for the Lorenz system.  In the upper
     part, the three lighter traces are plots of $\frac{1}{T}
@@ -1393,7 +1382,7 @@ build larger models and extend the plot to the right.
     \def\Nstates{$n_{\text{states}}$}%
     \def\h{$\hat h(\mathcal{B},F,\mu||\theta)$ (nats)}%
     \def\bits{$\hat h$ (bits)}%
-    \input{figs/LikeLor.eps_t}}
+    \includegraphics{LikeLor.pdf}}
   \caption[\comment{fig:LikeLor }Entropy gap, $\hat \delta_{\mu||\theta}$ vs number of states in HMMs]%
   {Entropy gap, $\hat \delta_{\mu||\theta}$ vs number of
     states in HMMs.  The upper trace plots estimates of cross entropy
@@ -1418,12 +1407,6 @@ build larger models and extend the plot to the right.
 % ph\_barbe at hotmail.com recommends Biscarat '94 (a paper on
 % stochastic EM)}
 
-\ReviewerNote{Reviewer 2 asks, ``If ARHMMs are not very good, why bother?''}
-
-
-\begin{CVSID}
-%%%$Id: toys.tex,v 1.62 2007-06-07 05:12:02 karlheg Exp $
-\end{CVSID}
 %%%
 %%% Local Variables:
 %%% TeX-master: "main"
