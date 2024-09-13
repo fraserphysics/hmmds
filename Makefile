@@ -21,7 +21,7 @@ BUILD = $(ROOT)/build
 XFIGS = $(PLOTSCRIPTS)/xfigs
 
 # Default target.  Rule in src/TeX/skeleton/Rules.mk
-$(BUILD)/TeX/skeleton/figures.pdf:
+$(BUILD)/TeX/book/main.pdf:
 
 #$(BUILD)/TeX/laser/laser_fit.pdf:
 

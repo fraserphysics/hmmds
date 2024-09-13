@@ -3,7 +3,7 @@
 # dshmm, TEX_SKELTON is the directory where this file is located and
 # BUILD is where results are written.
 
-TEX_OUT = $(BUILD)/TeX/skeleton
+BOOK_OUT = $(BUILD)/TeX/book
 
 # Define a function with arguments prefix=$(1) names=$(2) that
 # prepends prefix and appends pdf and pdf_t to names
@@ -55,11 +55,12 @@ $(APNEA_XFIGS) \
 $(ECG_FIGS) \
 $(ECG_XFIGS)
 
-$(TEX_OUT)/figures.pdf: $(TEX_SKELETON)/figures.tex $(TEX_BOOK)/apnea.tex $(SKELETON_FIGS) $(TEX_INCULDES)
+$(BOOK_OUT)/main.pdf: $(TEX_BOOK)/main.tex $(TEX_BOOK)/apnea.tex $(BOOK_FIGS) $(TEX_INCULDES)
 	mkdir -p $(@D)
-	export TEXINPUTS=$(TEX_SKELETON):$(abspath $(BUILD))//:;  \
-pdflatex --output-directory $(@D) $(TEX_SKELETON)/figures.tex; \
-pdflatex --output-directory $(@D) $(TEX_SKELETON)/figures.tex;
+	export TEXINPUTS=$(TEX_BOOK)//:$(abspath $(BUILD))//:; \
+export BIBINPUTS=$(TEX_BOOK)//:; export BSTINPUTS=$(TEX_BOOK)//:; \
+latexmk --outdir=$(@D) -pdflatex main.tex;
+
 
 # Local Variables:
 # mode: makefile

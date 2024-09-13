@@ -37,7 +37,7 @@
 %%% email address to a LaTeX Compositor, because it would be useful
 %%% and valuable for me to be able to communicate with that expert.
 %%%
-\documentclass[dvips]{hmmdsbook}
+\documentclass[]{hmmdsbook}
 
 %%% Note: The following settings will cause many overfull hbox false alarms:
 % \documentclass[dvips,prelim,showlabels]{hmmdsbook}
@@ -150,10 +150,6 @@ was not part of that community, but I have a copy of the blue book.
 It explains the basic algorithms and illustrates them with simple
 concrete examples.  I hope my book is as simple, useful, and clear.
 
-\ReviewerNote{Reviewer4 wants emphasis on applications and discussion of
-  characteristics that suggest using HMMs in preface and
-  introduction.}
-
 Although there are other books and papers that are about HMMs
 exclusively or in part, I believe that the present volume is unique in
 that:
@@ -255,16 +251,7 @@ Kamm for arranging to have the Los Alamos National Laboratory LDRD
 office support work on Chapter~\ref{chap:apnea} through project \#
 20030037DR.
 %
-\ReviewerNote{
 
-  \begin{itemize}
-  \item Reviewer 1 suggests using Bayes nets for time series.
-  \item Reviewer 4 says that I \emph{should} discuss these things
-    briefly and have references.  I agree.  Perhaps put it at the end of
-    the book so that I can describe the ideas in terms of HMMs that I
-    will have already covered.
-  \end{itemize}
-}
 
 \tableofcontents
 %%%\addcontentsline{toc}{chapter}{Table of Contents}%
@@ -274,14 +261,15 @@ office support work on Chapter~\ref{chap:apnea} through project \#
 %%% \listofalgorithms%% There are none, since at this point they are done as figures.
 
 \mainmatter
-\include{introduction}
-\include{algorithms}
-\include{variants}
-\include{continuous}
-\include{toys}
+%\include{introduction}
+%\include{algorithms}
+%\include{variants}
+%\include{continuous}
+%\include{toys}
 \include{apnea}
 \include{appendix}
 %%% \include{pointers}
+
 
 \backmatter
 % Begin ``Notation'' material
@@ -356,8 +344,7 @@ office support work on Chapter~\ref{chap:apnea} through project \#
 
 \chapter*{Bibliography}
 \addcontentsline{toc}{chapter}{Bibliography}%
-\ReviewerNote{Reviewer4 wants bibliography structured into basic books,
-  comprehensive books, etc.}
+
 \bibliography{hmmds}% \bibliographystyle is set in class definition.
 
 %%% \printindex prints the label ``Index'' already, and also seems to
@@ -367,9 +354,6 @@ office support work on Chapter~\ref{chap:apnea} through project \#
 \printindex[default][Page numbers set in \textbf{bold} type indicate
 that the entry refers to a definition.]
 
-\begin{CVSID}
-%%%$Id: main.tex,v 1.69 2009/05/22 22:27:59 amfsr Exp $
-\end{CVSID}
 \end{document}
 %%%---------------
 %%% Local Variables:
