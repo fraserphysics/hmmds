@@ -38,7 +38,6 @@ elgendi a03a10b03c02 constant_a03 a01c02_states simulated ecg2hr))
 ECG_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/ecg/, ecg_hmm)
 
 TEX_INCLUDES = $(APNEA_TEX_INCLUDES)
-TEX_SKELETON = $(TEX)/skeleton
 TEX_BOOK = $(TEX)/book
 
 BOOK_FIGS = $(INTRODUCTION_FIGS) \
@@ -55,7 +54,10 @@ $(APNEA_XFIGS) \
 $(ECG_FIGS) \
 $(ECG_XFIGS)
 
-$(BOOK_OUT)/main.pdf: $(TEX_BOOK)/main.tex $(TEX_BOOK)/apnea.tex $(BOOK_FIGS) $(TEX_INCULDES)
+BOOK_CHAPTERS = $(addprefix $(TEX_BOOK)/, $(addsuffix .tex, \
+algorithms apnea appendix continuous introduction main toys variants))
+
+$(BOOK_OUT)/main.pdf: $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_INCULDES)
 	mkdir -p $(@D)
 	export TEXINPUTS=$(TEX_BOOK)//:$(abspath $(BUILD))//:; \
 export BIBINPUTS=$(TEX_BOOK)//:; export BSTINPUTS=$(TEX_BOOK)//:; \

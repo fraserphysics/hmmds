@@ -25,7 +25,7 @@ def parse_args(argv):
 
 
 def main(argv=None):
-    """Make Fig. 2.7.  Illustration of EM estimation for Gaussian Mixture
+    """Make fig:GaussMix  Illustration of EM estimation for Gaussian Mixture
     model.
 
     """
@@ -39,12 +39,12 @@ def main(argv=None):
     # Y is a set of 10 observations.  alpha and mu_i are sequences of
     # model parameters.
 
-    def subplot(axis, i_label):
-        """Plot the distribution for a means[i], alpha[i].
+    def subplot(axis, i_labels):
+        """Plot the distributions for means[i], alpha[i].
         
         Args:
             axis: An axis from pyplot.subplots
-            i_label: (i, label) where i is the index for means and alpha.
+            i_labels: A tuple of pairs (i, label)
 
         """
         x = numpy.arange(-6, 6, 0.05)
@@ -60,7 +60,7 @@ def main(argv=None):
             return alpha * gauss(means[0], _var) + (1 - alpha) * gauss(
                 means[1], _var)
 
-        for i, label in i_label:
+        for i, label in i_labels:
             y = mix(_dict['alpha'][i], _dict['mu_i'][i])
             axis.plot(x, y, label=label)
         axis.legend()
@@ -68,10 +68,17 @@ def main(argv=None):
     fig, axes = pyplot.subplots(2, 1, figsize=(6, 5))
 
     # Plot the distributions for the initial and true parameters
-    subplot(axes[0], ((0, r'$\theta(1)$'), (-1, r'$\theta$')))
+    subplot(axes[0], (
+        (0, r'$\theta(1)$'),  # Initial parameters
+        (-1, r'$\theta$')  # True parameters
+    ))
 
-    # Plot the distribution for parameters after one EM iteration
-    subplot(axes[1], ((1, r'$\theta(2)$'),))
+    # Plot the distribution for parameters after one and two EM
+    # iterations
+    subplot(axes[1], (
+        (1, r'$\theta(2)$'),  # Parameters after one iteration
+        (2, r'$\theta(3)$'),  # Parameters after two iterations
+    ))
 
     # Plot the observations
     x = _dict['Y']

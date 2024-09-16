@@ -29,7 +29,7 @@ $(SYNTHETIC_DATA)/lorenz.xyz: $(SYNTHETIC_CODE)/lorenz.py
 $(SYNTHETIC_DATA)/TrainChar: $(SYNTHETIC_CODE)/train_char.py  $(SYNTHETIC_DATA)/lorenz.flag
 	python $< --n_iterations=500 $(SYNTHETIC_DATA)/lorenz.4 $@
 
-$(SYNTHETIC_DATA)/em.pickle: $(SYNTHETIC_CODE)/em.py
+$(SYNTHETIC_DATA)/gauss_mix.pickle: $(SYNTHETIC_CODE)/gauss_mix.py
 	python $< $@
 
 # Sentinel for SGO_sim and SGO_train
