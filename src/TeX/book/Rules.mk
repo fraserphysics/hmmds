@@ -63,6 +63,11 @@ $(BOOK_OUT)/main.pdf: $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_INCULDES)
 export BIBINPUTS=$(TEX_BOOK)//:; export BSTINPUTS=$(TEX_BOOK)//:; \
 latexmk --outdir=$(@D) -pdflatex main.tex;
 
+# Note that latexmk seems to detect changes in dependencies without
+# using file change times.  Thus deleting and regenerating a figure
+# will not cause the document to be rebuilt if the regenerated figure
+# is the same as the old one.
+
 
 # Local Variables:
 # mode: makefile

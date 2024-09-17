@@ -29,8 +29,9 @@ $(SYNTHETIC_DATA)/lorenz.xyz: $(SYNTHETIC_CODE)/lorenz.py
 $(SYNTHETIC_DATA)/TrainChar: $(SYNTHETIC_CODE)/train_char.py  $(SYNTHETIC_DATA)/lorenz.flag
 	python $< --n_iterations=500 $(SYNTHETIC_DATA)/lorenz.4 $@
 
-$(SYNTHETIC_DATA)/gauss_mix.pickle: $(SYNTHETIC_CODE)/gauss_mix.py
-	python $< $@
+$(SYNTHETIC_DATA)/gauss_mix.pkl: $(SYNTHETIC_CODE)/gauss_mix.py
+	mkdir -p $(@D)
+	python $< --random_seed 10 $(@D)
 
 # Sentinel for SGO_sim and SGO_train
 $(SYNTHETIC_DATA)/SGO: $(SYNTHETIC_CODE)/scalar_gaussian.py

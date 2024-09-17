@@ -34,9 +34,9 @@ def main(argv=None):
         parse_args, argv)
 
     _dict = pickle.load(open(args.dict_file, 'rb'))
-    assert set(_dict.keys()) == set(('Y', 'alpha', 'mu_i'))
+    assert set(_dict.keys()) == set(('Y', 'alpha', 'mu'))
 
-    # Y is a set of 10 observations.  alpha and mu_i are sequences of
+    # Y is a set of 10 observations.  alpha and mu are sequences of
     # model parameters.
 
     def subplot(axis, i_labels):
@@ -61,24 +61,30 @@ def main(argv=None):
                 means[1], _var)
 
         for i, label in i_labels:
-            y = mix(_dict['alpha'][i], _dict['mu_i'][i])
+            y = mix(_dict['alpha'][i], _dict['mu'][i])
             axis.plot(x, y, label=label)
         axis.legend()
 
-    fig, axes = pyplot.subplots(2, 1, figsize=(6, 5))
+    scale = 0.9  # Changes the size of the text as it appears in the
+    # document
+    fig, axes = pyplot.subplots(2, 1, figsize=(6 / scale, 5 / scale))
 
     # Plot the distributions for the initial and true parameters
-    subplot(axes[0], (
-        (0, r'$\theta(1)$'),  # Initial parameters
-        (-1, r'$\theta$')  # True parameters
-    ))
+    subplot(
+        axes[0],
+        (
+            (0, r'$\theta(1)$'),  # Initial parameters
+            (-1, r'$\theta$')  # True parameters
+        ))
 
     # Plot the distribution for parameters after one and two EM
     # iterations
-    subplot(axes[1], (
-        (1, r'$\theta(2)$'),  # Parameters after one iteration
-        (2, r'$\theta(3)$'),  # Parameters after two iterations
-    ))
+    subplot(
+        axes[1],
+        (
+            (1, r'$\theta(2)$'),  # Parameters after one iteration
+            (2, r'$\theta(3)$'),  # Parameters after two iterations
+        ))
 
     # Plot the observations
     x = _dict['Y']

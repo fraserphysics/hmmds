@@ -8,7 +8,8 @@
 %%%       tocbibind.sty by hmmdsbook.cls.
 %%%
 
-\documentclass[]{hmmdsbook}
+%\documentclass[]{hmmdsbook} % For old siam style
+\documentclass[ltxbook,showlabels]{hmmdsbook}
 
 %%% Note: The following settings will cause many overfull hbox false alarms:
 % \documentclass[dvips,prelim,showlabels]{hmmdsbook}
@@ -52,12 +53,20 @@ This book arose from a pair of symposia on hidden Markov models that
 Kevin Vixie organized at the 2001 SIAM Dynamical Systems meeting.  At
 the end of the first symposium someone asked for a simple reference
 that explains the basic ideas and algorithms for applying HMMs.  We
-were stumped.  A group of the participants suggested writing this book
-to answer the question.  Two years later, I delivered a proposal for
-the book that included about two chapters to SIAM at the 2003
-Dynamical Systems meeting.  The book is intended for readers who have
-backgrounds and interests typical of those who attend that conference.
-In particular, my view is that HMMs are discrete state discrete time
+were stumped\footnote{In subsequent years several FixMe.}.  A group of
+the participants suggested writing this book to answer the question.
+Two years later, I delivered a proposal for the book that included
+about two chapters to SIAM at the 2003 Dynamical Systems meeting.
+Sometime after SIAM published the first edition in 2008, I began
+working on updating the software I used to generate the book.  In an
+effort to use better software practices, I wrote tests, and one of
+those tests revealed a conceptual error in the last chapter of the
+book.  In the current edition Chapter~\ref{chap:apnea} is a thorough
+revision that addresses the same tasks with a simpler approach.
+
+The book is intended for readers who have backgrounds and interests
+typical of those who attend the SIAM Dynamical Systems meetings.  In
+particular, my view is that HMMs are discrete state discrete time
 stochastic dynamical systems, and that they are often used to
 approximate dynamical systems with continuous state spaces operating
 in continuous time.  Thus, by using familiar analogies, it should be
@@ -73,7 +82,7 @@ was not part of that community, but I have a copy of the blue book.
 It explains the basic algorithms and illustrates them with simple
 concrete examples.  I hope my book is as simple, useful, and clear.
 
-Although there are other books and papers that are about HMMs
+Although there are now other books and papers that are about HMMs
 exclusively or in part, I believe that the present volume is unique in
 that:
 \begin{description}
@@ -91,14 +100,15 @@ that:
   variants.
 \item[I provide code implementing the algorithms and data for the
   examples] Although algorithms are given in pseudo code in the text,
-  at \url{http://www.fraserphysics.com/~andy/hmmdsbook} and
+  at \url{http://www.fraserphysics.com/~andy/hmmdsbook} and % FixMe
   \url{www.siam.org/~fraser/XXXX} I provide a working implementation
   of each of the algorithms I describe.  I have chosen to write the
   programs in the python language because it is easy to read and the
   interpreter is free software.  I have written the programs to follow
   the descriptions and notation in the text.  I provide data and
   scripts (makefiles, shell scripts, etc.)  that make all of the
-  figures in the text.  On a gnu system, issuing ``make book.pdf''
+  figures in the text.  On a gnu system, % FixMe What systems?
+  issuing ``make book.pdf''
   from a command line compiles the software, runs the numerical
   experiments, makes the figures, and formats the entire book.
 \item[It uses analogies to dynamical systems] For example, I
@@ -129,16 +139,14 @@ that:
 \longpage%%% Maybe not required for MathTime... look for partial
          %%% paragraph on page by itself before TOC begins.
 
-In writing this book, I have used much that I learned from
-colleagues in Portland.  In particular, Todd Leen kept me informed
-about developments in the machine learning community and explained the
-use of a prior and maximum a posteriori estimation for regularization.
-I've relied on the review of the ergodic theory of dynamical systems
-in Kevin Vixie's dissertation\cite{vixie02} for
-Chapter~\ref{chap:toys} of this book.  Shari Matzner and Gerardo
-Lafferriere helped me understand the convergence properties of the EM
-algorithm.  Also the following colleagues have given me constructive
-comments on drafts of the book:
+In writing this book, I have used much that I learned from colleagues
+in Portland.  In particular, Todd Leen kept me informed about
+developments in the machine learning community.  I've relied on the
+review of the ergodic theory of dynamical systems in Kevin Vixie's
+dissertation\cite{vixie02} for Chapter~\ref{chap:toys} of this book.
+Shari Matzner and Gerardo Lafferriere helped me understand the
+convergence properties of the EM algorithm.  Also the following
+colleagues have given me constructive comments on drafts of the book:
 % 
 Patrick Campbell, %
 Ralf Juengling, %
@@ -152,27 +160,23 @@ that I used for examples:
 \begin{description}
 \item[Carl Otto Weiss], for providing Tang's\cite{Tang92} laser data
 \item[PhysioNet] For providing Penzel's\cite{Penzel02} ECG data and
-  George Moody's \emph{wfdb} software \cite{PhysioToolkit}
+  % FixMe
+  https://physionet.org/content/wfdb-python/4.1.0/ \cite{PhysioToolkit}
 \item[Project Gutenberg] For digitizing and distributing \emph{A
     Book of Prefaces},\\ by H.~L.~Mencken
 %%% I hate to put a line break in there like that, but it was hanging
 %%% out into the margin without it. -- karlheg
 \end{description}
 
-I was fortunate to meet Karl Hegbloom in Portland.  Karl contributes
-to several free software projects and he helped me with the figures
-and software.  Ralf Juengling also helped with the software.  In
-addition to personal help with software, I relied on free software
-written by too many contributers to mention.  Almost all of the tools
-I used are available at \url{http://www.debian.org/} or
-\url{http://www.ubuntu.com}.
+I was fortunate to meet the late Karl Hegbloom in Portland.  Karl
+contributed to several free software projects and he helped me with
+the figures and software for the fist edition.  In addition to
+personal help with software, I relied on free software written by too
+many contributers to list.  I used the NixOS distribution of Linux to
+organize the software.
 
-I acknowledge Portland State University for support of a sabbatical
-leave during which I started the book and for a computer on which I
-did much of the development.  I thank Principal Investigator James
-Kamm for arranging to have the Los Alamos National Laboratory LDRD
-office support work on Chapter~\ref{chap:apnea} through project \#
-20030037DR.
+For writing the first edition, I acknowledge Portland State University
+for support of a sabbatical leave
 %
 
 
@@ -277,6 +281,14 @@ office support work on Chapter~\ref{chap:apnea} through project \#
 that the entry refers to a definition.]
 
 \end{document}
+
+ToDo:
+
+fig:LaserLP5: Need 2 traces
+fig:LaserForecast: Need 2 traces
+Figure 2.4 (MAP sequence of states is not sequence of MAP states) is gone.
+fig:LikeLor: Extend n_states to at least 8e6.  Try 10^8.  Draw bound.
+
 %%%---------------
 %%% Local Variables:
 %%% eval: (load-file "hmmkeys.el")

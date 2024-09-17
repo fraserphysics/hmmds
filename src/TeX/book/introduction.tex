@@ -124,7 +124,7 @@ the laser system is governed by the Lorenz equations.
     \def\yt{$\ti{y}{t}$}%	% why these labels are macros.
     \def\Laser{Laser}%
     \def\Simulation{Simulation}% FixMe: useless defs here and elsewhere?
-    \includegraphics{LaserLP5.pdf}}
+    \includegraphics[width=1.0\textwidth]{LaserLP5.pdf}}
   \caption[\comment{fig:LaserLP5 }Laser intensity measurements.]%
   {Laser intensity measurements.  The trace labeled \emph{Laser} is a
     plot of laser intensity measurements provided by Tang \etal.  The
@@ -201,7 +201,7 @@ piece of the log-likelihood function.
     \def\s{\mbox{\kern2.0em\lower2.0ex\hbox{$s$}}}%
     \def\b{\mbox{\lower1.5ex\hbox{$b$}}}%
     \def\LogLikely{$\log\left(P(\ts{y}{1}{250}|\theta) \right)$}%
-    \includegraphics{LaserLogLike.pdf}}
+    \includegraphics[width=1.0\textwidth]{LaserLogLike.pdf}}
   \caption[\comment{fig:LaserLogLike }Log likelihood as function of $s$ and $b$.]%
   {Log likelihood as function of $s$ and $b$.  Other parameters were
     taken from the vector $\hat \theta$ that maximizes the likelihood
@@ -229,7 +229,7 @@ highest probability given the first 250 observations, \ie,
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \includegraphics{LaserStates.pdf}}
+    \includegraphics[width=1.0\textwidth]{LaserStates.pdf}}
   \caption[\comment{fig:LaserStates }State trajectory $\ts{\hat x}{1}{250}$.]%
   {State trajectory $\ts{\hat x}{1}{250}$ estimated from
     observation sequence $\ts{y}{1}{250}$. (see
@@ -244,7 +244,7 @@ highest probability given the first 250 observations, \ie,
     \def\tiyt{$\ti{y}{t}$}%
     \def\Lase{Laser}%
     \def\Forecas{Forecast}%
-    \includegraphics{LaserForecast.pdf}}
+    \includegraphics[width=1.0\textwidth]{LaserForecast.pdf}}
   \caption[\comment{fig:LaserForecast }Forecast observation sequence.]%
   {Forecast observation sequence.  We set the noise terms $\eta$ and
     $\epsilon$ to zero and iterated Eqn.~\eqref{eq:FandG} 400 times to
@@ -338,10 +338,11 @@ One can use a parameterized class of state space models $\left\{
 \label{sec:intro_hmm}
 \index{discrete hidden Markov model}%
 
-In this section we describe the simplest HMMs: those that are discrete
-in time, state, and observation.  We begin with a couple of
-definitions.  Three random variables $\ti{X}{1}$, $\ti{X}{2}$, and
-$\ti{X}{3}$ constitute a \emph{\index*{Markov chain}} if
+In this section we describe the simplest state space models: those
+that are discrete in time, state, and observation.  We begin with a
+couple of definitions.  Three random variables $\ti{X}{1}$,
+$\ti{X}{2}$, and $\ti{X}{3}$ constitute a \emph{\index*{Markov chain}}
+if
 \begin{equation}
   \label{eq:MarkovChain}
   P_{\ti{X}{3}|\ti{X}{1},\ti{X}{2}} = P_{\ti{X}{3}|\ti{X}{2}},
@@ -390,16 +391,16 @@ sequence of states $\ts{s}{1}{T}$, which we write\footnote{We use
   upper case letters to denote random variables and $P$ to denote
   probability distribution functions.  A random variable used as
   subscript on $P$ specifies that we mean the distribution of that
-  random variable.  We can give $P$ an argument to specify th value of
-  the distribution function at that value, \eg $P_X(3)$ is the
-  probability that the random variable $X$ has the value 3 and $P_X(x)$
-  is the probability that the random variable $X$ has the value $x$.
-  We usually drop subscripts on $P$ when the context or argument
-  resolves ambiguity as to which probability function we mean.} as
-$P_{\ts{S}{1}{T}}\left( \ts{s}{1}{T} \right)$.  For example we
-calculate the probability that a sequence of 4 states has the values
-$\ts{s}{1}{4} = (u,v,w,v)$, (\ie, $\ti{s}{1} = u$, $\ti{s}{2} = v$,
-$\ti{s}{3} = w$, and $\ti{s}{4} = v$) as follows:
+  random variable.  We can give $P$ an argument to specify the value
+  of the distribution function at that value, \eg $P_X(3)$ is the
+  probability that the random variable $X$ has the value 3 and
+  $P_X(x)$ is the probability that the random variable $X$ has the
+  value $x$.  We usually drop subscripts on $P$ when the context or
+  argument resolves ambiguity as to which probability function we
+  mean.} as $P_{\ts{S}{1}{T}}\left( \ts{s}{1}{T} \right)$.  For
+example we calculate the probability that a sequence of 4 states has
+the values $\ts{s}{1}{4} = (u,v,w,v)$, (\ie, $\ti{s}{1} = u$,
+$\ti{s}{2} = v$, $\ti{s}{3} = w$, and $\ti{s}{4} = v$) as follows:
 
 \begin{align}
   \label{eq:intro_hmm1}
@@ -690,15 +691,11 @@ observation probabilities,
     \ts{\hat s}{1}{T} = \argmax_{\ts{s}{1}{T}} P
     \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters\right).
   \end{equation}
-  In speech recognition algorithms, $\ts{y}{1}{T}$ is a representation
-  of the sound pressure waveform, $\ts{s}{1}{T}$ determines a sequence
-  of words, and a variant of the Viterbi algorithm estimates the later
-  from the former.
-\item[The Baum Welch Algorithm:] \index{Baum Welch algorithm}
-  \index{forward backward algorithm|see{Baum Welch algorithm}}(Often
+\item[The Baum-Welch Algorithm:] \index{Baum-Welch algorithm}
+  \index{forward backward algorithm|see{Baum-Welch algorithm}}(Often
   called the \emph{Forward Backward Algorithm}) Given a sequence of
   observations $\ts{y}{1}{T}$ and an initial set of model parameters
-  $\parameters_0$, a single pass of the Baum Welch algorithm
+  $\parameters_0$, a single pass of the Baum-Welch algorithm
   calculates a new set of parameters $\parameters_1$ that has higher
   likelihood
   \begin{equation}
@@ -709,7 +706,7 @@ observation probabilities,
   Equality can only occur at critical points of the likelihood
   function (where $\partial_\parameters P\left(
     \ts{y}{1}{T}|\parameters \right) = 0$).  In generic cases,
-running many iterations of the Baum Welch algorithm yields a sequence
+running many iterations of the Baum-Welch algorithm yields a sequence
 $\ts{\parameters}{0}{n}$ that approaches a local maximum of the
 likelihood.
 \item[The Forward Algorithm:] For each time step $t$ and each state
@@ -727,7 +724,7 @@ likelihood.
       |\parameters \right) \cdot  \prod_{t=2}^T P
     \left(\ti{y}{t}|\ts{y}{1}{t-1}, \parameters \right).
   \end{equation*}
-  The forward algorithm is the first phase of the Baum Welch algorithm.
+  The forward algorithm is the first phase of the Baum-Welch algorithm.
 \end{description}
 
 \subsection{Example: Quantized Lorenz Time Series}
@@ -748,16 +745,18 @@ Figure~\ref{fig:TSintro} depicts the first few observations.
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \includegraphics{TSintro.pdf}}
-  \caption[\comment{fig:TSintro }Generating the observations $\ts{y}{1}{40}$.]%
+    \includegraphics[width=1.0\textwidth]{TSintro.pdf}}
+  \caption[\comment{fig:TSintro }Generating the observations
+  $\ts{y}{1}{40}$.]%
   {Generating the observations $\ts{y}{1}{40}$.  The curve in the
     upper plot depicts the first component $\ti{x_1}{\tau}$ of an
     orbit of the Lorenz system (Eqn.~\ref{eq:Lorenz}), and the points
-    marked {\scriptsize\raise0.5ex\hbox{$\bm{+}\!$}} indicate the
-    values sampled with an interval $\Delta \tau = 0.15$.  The points
-    in the lower plot are the quantized values $\ti{y}{t} \equiv
-    \bceil{\frac{\ti{x_1}{t \cdot \Delta \tau}}{10} + 2}$, where
-    $\ceil{u}$ is the least integer greater than or equal to $u$.  }
+    marked with red dots indicate the values sampled with an interval
+    $\Delta \tau = 0.15$.  The points in the lower plot are the
+    quantized values
+    $\ti{y}{t} \equiv \bceil{\frac{\ti{x_1}{t \cdot \Delta \tau}}{10}
+      + 2}$, where $\ceil{u}$ is the least integer greater than or
+    equal to $u$.  }
   \label{fig:TSintro} 
 \end{figure}
  
@@ -765,7 +764,7 @@ We randomly generated an HMM with twelve hidden states\footnote{We
   chose the number of hidden state to be twelve capriciously so that
   we could organize Fig.~\ref{fig:Statesintro} on a $4\times 4$ grid.}
 and 4 possible observations, and then used 1,000 iterations of the
-Baum Welch algorithm to select a set of parameters $\hat \parameters$
+Baum-Welch algorithm to select a set of parameters $\hat \parameters$
 with high likelihood for the data.  Finally we used the Viterbi
 algorithm to find the most likely state sequence
  \begin{equation*}
@@ -786,7 +785,7 @@ algorithm to find the most likely state sequence
  number one, \ie, the set of pairs $\left\{
    (\ti{x_1}{t\cdot\Delta\tau},\ti{x_3}{t\cdot\Delta\tau}) :\ti{\hat
      s}{t} = 1 \right\}$.  In searching for model parameters that give
- the observed data high likelihood, the Baum Welch algorithm
+ the observed data high likelihood, the Baum-Welch algorithm
  ``discovers'' a discrete hidden state structure, and
  Fig.~\ref{fig:Statesintro} shows that the discrete hidden state
  structure is an approximation of the continuous state space that
@@ -794,7 +793,7 @@ algorithm to find the most likely state sequence
  %%
  \begin{figure}[htbp]
    \centering{\plotsize%
-     \includegraphics{STSintro.pdf}}
+     \includegraphics[width=1.0\textwidth]{STSintro.pdf}}
    \caption[\comment{fig:STSintro }A plot of a state sequence found by Viterbi decoding.]%
    {A plot of the state sequence found by Viterbi decoding a quantized
      time series from the Lorenz system.  Here the number of the
@@ -840,11 +839,11 @@ dynamics.''  The parts of speech are like hidden states and the
 particular words are like observations.
 
 Rather than using a dictionary or our own knowledge to build a model
-of language, here we describe the experiment of applying the Baum
-Welch algorithm to some sample text to create an HMM.  We hope that
-the experiment will \emph{discover} parts of speech.  We fetched the
-fourth edition of \emph{A Book of Prefaces} by H.~L.~Mencken from
-www.gutenberg.org, fit an HMM with the Baum Welch algorithm, and
+of language, here we describe the experiment of applying the
+Baum-Welch algorithm to some sample text to create an HMM.  We hope
+that the experiment will \emph{discover} parts of speech.  We fetched
+the fourth edition of \emph{A Book of Prefaces} by H.~L.~Mencken from
+www.gutenberg.org, fit an HMM with the Baum-Welch algorithm, and
 decoded a state sequence with the Viterbi algorithm.  We chose a book
 of essays rather than a novel because we expected that it would not
 have as much dialog.  We feared that different speakers in a novel
@@ -869,7 +868,7 @@ The experiment consisted of the following steps:
   times, we set $\ti{y}{t}=2,760$.  Otherwise, we set  $\ti{y}{t}$ to
   $R(\ti{w}{t})$.
 \item[Train an HMM:] Starting from a fifteen state model with random
-  parameters, we used 100 iterations of the Baum Welch algorithm to
+  parameters, we used 100 iterations of the Baum-Welch algorithm to
   obtain a trained model.
 \item[Decode a sequence of states:] By applying the Viterbi algorithm
   to $\ts{y}{1}{T}$ we obtained $\ts{s}{1}{T}$ where $\ti{s}{t}\in

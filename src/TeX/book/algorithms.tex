@@ -6,7 +6,7 @@
 In Section~\ref{sec:intro_hmm} we mentioned the Viterbi algorithm for
 finding the state sequence that has the highest probability given an
 observation sequence, the forward algorithm for calculating the
-probability of an observation sequence, and the Baum Welch algorithm
+probability of an observation sequence, and the Baum-Welch algorithm
 for finding a parameter vector that at least locally maximizes the
 likelihood given an observation sequence.  This chapter explains the
 details of those algorithms.  Much of the literature on the algorithms
@@ -16,20 +16,21 @@ widely cited article follows Ferguson's notation.  Let us begin by
 establishing our notation for the model parameters.
 \setlength{\nomlabelwidth}{2.7cm}%
 \begin{symbdescription}
-\item[$\bm{P_{\ti{S}{t+1}|\ti{S}{t}}(s|{\tilde s})}$] The probability that
-  at time $t+1$ the system will be in state $s$ given that at time
-  $t$ it was in state ${\tilde s}$.  Notice that the parameter is independent
-  of time $t$.  Ferguson called these parameters \emph{the $A$ matrix}
-  with $a_{i,j} = P_{\ti{S}{t+1}|\ti{S}{t}}(s|{\tilde s})$.
+\item[$\bm{P_{\ti{S}{t+1}|\ti{S}{t}}(s|{\tilde s})}$] The probability
+  that at time $t+1$ the system will be in state $s$ given that at
+  time $t$ it was in state ${\tilde s}$.  Notice that the parameter is
+  independent of time $t$.  Ferguson called these parameters \emph{the
+    $A$ matrix} with
+  $a_{i,j} = P_{\ti{S}{t+1}|\ti{S}{t}}(s|{\tilde s})$.
 \item[$\bm{P_{\ti{S}{1}}(s)}$] The probability that the system will
   start in state $s$ at time 1.  Ferguson used $a$ to represent this
   vector of probabilities with $a_i = P_{\ti{S}{1}} \left(s \right)$.
-\item[$\bm{P_{\ti{Y}{t}|\ti{S}{t}}(y_k|{\tilde s})}$] The probability that
-  the observation value is $y_k$ given that the system is in state ${\tilde s}$.
-  Ferguson used $b$ to represent this with $b_j(k) =
-  P_{\ti{Y}{t}|\ti{S}{t}} \left(y_k|{\tilde s} \right)$.
+\item[$\bm{P_{\ti{Y}{t}|\ti{S}{t}}(y_k|{\tilde s})}$] The probability
+  that the observation value is $y_k$ given that the system is in
+  state ${\tilde s}$.  Ferguson used $b$ to represent this with
+  $b_j(k) = P_{\ti{Y}{t}|\ti{S}{t}} \left(y_k|j \right)$.
 \item[$\bm{\parameters}$] The entire collection of parameters.  For
-  example, iteration of the Baum Welch algorithm produces a sequence
+  example, iteration of the Baum-Welch algorithm produces a sequence
   of parameter vectors $\ts{\parameters}{1}{N}$ with
   $P\left(\ts{y}{1}{T}|\ti{\parameters}{n+1}\right) \geq
   P\left(\ts{y}{1}{T}|\ti{\parameters}{n}\right)\, : 1 < n < N$.
@@ -49,7 +50,7 @@ Figure~\ref{fig:forward} sketches the basic recursion's structure.
 Since we are considering only one set of parameters, we will drop the
 dependence of probabilities on $\parameters$ from the notation for the
 remainder of this section.  In the example of Eqn.~\eqref{eq:pcalc} we
-found that we could calculate the right hand terms of
+found that we could write the right hand terms of
 \begin{equation*}
    P\left( \ts{y}{1}{T} \right) = \sum_{\ts{s}{1}{T}}
    P\left( \ts{y}{1}{T},\ts{s}{1}{T} \right)
@@ -59,9 +60,7 @@ possible sequences $\ts{s}{1}{T}$ is exponential in $T$, and it is
 impossible to do the sum for even modest lengths $T$.
 
 \begin{sidewaysfigure}[htbp]
-  %% 0.75\textheight is approx 5.7 in.  The .eps is exactly that size.
-  %% The widths for the minipages below are taken by measuring the
-  %% ovals inside of XFig.
+  %% The following definitions are invoked by the XFig forward.fig.
   \centering{\plotsize%
     %% Column a
     \def\colaa{$\alpha(s_1,t-1)$}%
@@ -142,27 +141,27 @@ avoids underflow:
 %%%
 %%% #1 = time #2 = state
 \newcommand{\alphax}[2]{%
-  \doublebox{%
+  \colorbox{yellow}{%
     $P_{S(#1)|\ts{Y}{1}{#1}}\left(#2 |\ts{y}{1}{#1} \right)$%
   }%
 }%
 %%%
 %%%
 \newcommand{\prealpha}{%
-  \fbox{%
+  \colorbox{green}{%
     $P_{\ti{S}{t}|\ts{Y}{1}{t-1}} \left(s | \ts{y}{1}{t-1} \right)$%
   }%
 }%
 %%%
 \newcommand{\gammax}{%
-  \ovalbox{%
+  \colorbox{cyan}{%
     $P(\ti{y}{t}|\ts{y}{1}{t-1})$%
   }%
 }%
 %%%
 %%%
 \newcommand{\pregamma}{%
-  \fbox{%
+  \colorbox{pink}{%
     $P_{\ti{S}{t},\ti{Y}{t}|\ts{Y}{1}{t-1}} \left(s,\ti{y}{t}|\ts{y}{1}{t-1}\right)$%
   }%
 }%
@@ -172,8 +171,9 @@ avoids underflow:
 For each time step we do the four calculations specified in the
 equations below\footnote{In Section~\ref{sec:Clarity} we present four
   lines of python code that implement these four calculations.}.  In
-these equations we use boxes to emphasize repeated instances of the
-same quantity.  The algorithm saves the intermediate results
+these equations we use color highlighting to emphasize repeated
+instances of the same quantity.  The algorithm saves the following
+intermediate results
 %
 \nomenclature[ga]{$\alpha(s,t)$}{The conditional probability that at time
   $t$ the system is in state $s$ given the observations up to the
@@ -211,10 +211,11 @@ the previous observations.  To initialize the algorithm, one assigns
 ~\forall s \in \states
 \end{equation*}
 where the distributions $P_{\ti{S}{1}}$ and $P_{\ti{Y}{t}|\ti{S}{t}}$
-are model parameters.
+are model parameters.  After initialization, the algorithm iterates in
+a loop doing the following four calculations: 
 \begin{description}
 \item[Forecast the Distribution of States] Find for time $t$ and each
-  possible state $s$, the conditional probability, given the
+  possible state $s$ the conditional probability, given the
   previous observations, of the state being $s$ at time $t$:
   \begin{subequations}
     \label{eq:forwardA}
@@ -243,7 +244,7 @@ are model parameters.
 \item[Update the Joint Probability of States and the Current
   Observation] Find for time $t$ and each possible state $s$, the
   conditional probability, given the previous observations, of the
-  state being $s$ and the observation being $\ti{y}{t}$ (the observation
+  state being $s$ and the observation being $\ti{y}{t}$ (the value
   actually observed):
   \begin{subequations}
     \label{eq:forwardB}
@@ -276,8 +277,8 @@ Equation~\eqref{eq:forwardC} is an application of $P(a) = \sum_b P(a,b)$.
 \item[Normalize the Updated Distribution of States] For each possible
   state $s$, find the conditional probability of being in that state
   at time $t$ given all of the observations up to time $t$.  Note that
-  this differs from the first calculation in that the
-  conditioning event includes $\ti{y}{t}$:%
+  this differs from the first calculation, \eqref{eq:forwardA}, in that
+  the conditioning event includes $\ti{y}{t}$:%
   \begin{subequations}
     \label{eq:forwardD}
     \begin{align}
@@ -309,7 +310,7 @@ monotonic, ie,
   P(\ts{s}{1}{T}|\ts{y}{1}{T})\\
   &= \argmax_{\ts{s}{1}{T}} \left( P(\ts{s}{1}{T}|\ts{y}{1}{T}) \cdot
     P(\ts{y}{1}{T}) \right)\\
-  &= \argmax_{\ts{s}{1}{T}} \log \left( P(\ts{y}{1}{T}),\ts{s}{1}{T}
+  &= \argmax_{\ts{s}{1}{T}} \log \left( P(\ts{y}{1}{T},\ts{s}{1}{T})
   \right).
 \end{align*}
 As in the implementation of the forward algorithm, we use logs to
@@ -319,18 +320,17 @@ avoid numerical underflow.  If we define $\log \left( P\left(
 given the observation sequence $\ts{y}{1}{t}$, then the Viterbi
 algorithm finds the maximum utility state sequence.
 
-Initially one calculates $\log\left(P_{\ti{Y}{1},\ti{S}{1}}
-  \left(\ti{y}{1}, s \right) \right)$ for each state $s \in
-\states$.  Then for each successive time step $t: 1 < t \leq T$ one
-considers each state and determines the best predecessor for that
-state and the utility of the best state sequence ending in that state.
-The Viterbi algorithm and the forward algorithm have similar
-structures (see Fig.~\ref{fig:forward} and Fig.~\ref{fig:viterbiB}).
-Roughly, the forward algorithm does a sum over predecessor states,
-while the Viterbi algorithm finds a maximum. We use the following
-notation and equations to describe and justify the algorithm.
-
-
+Initially one calculates
+$\log\left(P_{\ti{Y}{1},\ti{S}{1}} \left(\ti{y}{1}, s \right) \right)$
+for each state $s \in \states$.  Then for each successive time step
+$t: 1 < t \leq T$ one considers each state and determines the best
+predecessor for that state and the utility of the best state sequence
+ending in that state.  The Viterbi algorithm and the forward algorithm
+have similar structures (see Fig.~\ref{fig:forward} and
+Fig.~\ref{fig:viterbiB}).  Roughly, the forward algorithm does a sum
+over predecessor states, while the Viterbi algorithm finds a maximum
+over predecessor states. We use the following notation and equations
+to describe and justify the algorithm.
 
 \subsubsection*{Notation:}
 \begin{description}
@@ -339,7 +339,7 @@ notation and equations to describe and justify the algorithm.
   $\ts{\hat s}{1}{t}(s)$ to be the sequence with the highest joint
   probability with the data, \ie,
   \begin{equation*}
-    \ts{\hat s}{1}{t}(s) = \argmax_{ \ts{s}{1}{t}:\ti{s}{t}=s}
+    \ts{\hat s}{1}{t}(s) \equiv \argmax_{ \ts{s}{1}{t}:\ti{s}{t}=s}
     P\left(\ts{y}{1}{t}, \ts{s}{1}{t} \right).
   \end{equation*}
 \item[$\bm{\nu(t,s)}$ The \emph{utility} of the best sequence ending
@@ -348,7 +348,7 @@ notation and equations to describe and justify the algorithm.
     algorithm to denote the \emph{utility} of the best sequence ending
     in state $s$.
     \begin{equation*}
-      \nu(t,s) = \log\left( P\left(\ts{y}{1}{t}, \ts{\hat s}{1}{t}(s)
+      \nu(t,s) \equiv \log\left( P\left(\ts{y}{1}{t}, \ts{\hat s}{1}{t}(s)
         \right) \right)
     \end{equation*}} % end nomenclature
   This is simply the log of the joint
@@ -358,6 +358,11 @@ notation and equations to describe and justify the algorithm.
     \nu(t,s) = \log\left( P\left(\ts{y}{1}{t}, \ts{\hat s}{1}{t}(s)
       \right) \right)
   \end{equation*}
+\item[$\bm{s'(s,t+1)}$ The immediate predecessor of state $s$ in
+  $\ts{\hat s}{1}{t+1}(s)$] In other words, given that the best
+  sequence of length $t+1$ that ends in $s$ is $\ts{\hat
+    s}{1}{t+1}(s)$, the best predecessor of $s$ is the penultimate
+  element of that sequence.
 \end{description}
 \subsubsection*{Equations:}
 Equations~\eqref{eq:cat} and \eqref{eq:nuprop} summarize the Viterbi
@@ -513,12 +518,12 @@ the entire highest utility path.
 \end{sidewaysfigure}
 
 
-\section{The Baum Welch Algorithm}
+\section{The Baum-Welch Algorithm}
 \label{sec:baum_welch}
 
 Given an initial vector of model parameters $\parameters$ for an HMM
-and a sequence of observations $\ts{y}{1}{T}$, iteration of the Baum
-Welch algorithm \index{Baum Welch algorithm|textbf} produces a
+and a sequence of observations $\ts{y}{1}{T}$, iteration of the
+Baum-Welch algorithm \index{Baum-Welch algorithm|textbf} produces a
 sequence of parameter vectors $\ts{\parameters}{1}{N}$ that almost
 always converges to a local maximum of the likelihood function
 $P_{\parameters} \left( \ts{y}{1}{T} \right)$.  The algorithm was
@@ -529,8 +534,8 @@ and then maximizes the expected log likelihood with respect to that
 estimate.  Although Baum et al.\ limited their attention to HMMs, the
 same kind of iteration works on other models that have unobserved
 variables.  In 1977, Dempster Laird and Rubin \cite{Dempster77} called
-the general procedure the \emph{EM algorithm}.
-\index{EM (expectation-maximization) algorithm}%
+the general procedure the \emph{EM algorithm}.  \index{EM
+  (expectation-maximization) algorithm}%
 \index{expectation-maximization (EM) algorithm}%
 
 The EM algorithm operates on models $P_{\Y,\bS,\parameters} $ with
@@ -571,7 +576,7 @@ are:
 
 We defer further discussion of the general EM algorithm to Section
 \ref{sec:EM} and now proceed to the details of its application to
-HMMs, \ie, the Baum Welch algorithm.  The work of an iteration of the
+HMMs, \ie, the Baum-Welch algorithm.  The work of an iteration of the
 EM algorithm is done in step~\ref{EM_loop}.  To apply it to an HMM, we
 first characterize $P \left(\ts{s}{1}{T}|\ts{y}{1}{T}, \parameters
 \right)$ by a combination of the \emph{forward algorithm} that we
@@ -704,7 +709,7 @@ Finally by substituting these values into the fraction of
 \subsection{Weights and Reestimation}
 \label{sec:reestimation}
 
-Each pass of the Baum Welch algorithm consists of the following steps:
+Each pass of the Baum-Welch algorithm consists of the following steps:
 Run the forward algorithm described in Section~\ref{sec:forward} to
 calculate the values of $\alpha(s,t)$ and $\gamma(t)$ for each time $t
 \in [1,\ldots,T]$ and each state $s \in \states$; Run the backward
@@ -722,7 +727,7 @@ the data by
   w(s,t) \equiv P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s|\ts{y}{1}{T}
   \right),
 \end{equation}
-\nomenclature[rwst]{$w(s,t)$}{In the reestimation phase of the Baum Welch
+\nomenclature[rwst]{$w(s,t)$}{In the reestimation phase of the Baum-Welch
   algorithm, the \emph{weight} assigned to state $s$ at time $t$,
   \begin{equation*}
     w(s,t) \equiv P_{\ti{S}{t}"|\ts{Y}{1}{T}} \left(s"|\ts{y}{1}{T}
@@ -737,7 +742,7 @@ $t+1$ by
   \left({\tilde s},s|\ts{y}{1}{T} \right).
 \end{equation}
 \nomenclature[rwsst]{$ {\tilde w}({\tilde s},s,t)$}{In the reestimation phase
-  of the Baum Welch algorithm, the \emph{weight} assigned to the
+  of the Baum-Welch algorithm, the \emph{weight} assigned to the
   transition from state $s$ at time $t$ to state $\tilde s$ at time $t+1$,
   \begin{equation*}
      {\tilde w}({\tilde s},s,t) \equiv P_{\ti{S}{t+1},\ti{S}{t}"|\ts{Y}{1}{T}}
@@ -745,7 +750,7 @@ $t+1$ by
   \end{equation*}}
 Table~\ref{tab:reestimation} (page \pageref{tab:reestimation})
 summarizes the formulas for the updated model parameters after one
-pass of the Baum Welch algorithm.
+pass of the Baum-Welch algorithm.
 
 To derive reestimation formulas for $P_{S(1)}$ and
 $P_{\ti{Y}{t}|\ti{S}{t}}$ we will consider a sum over all possible
@@ -980,7 +985,7 @@ Optimization yields
 %%%
 %%% fig:train
 %%%
-%%% FixMe: \addcontentsline{loa}{section}{Baum Welch model parameter optimization}
+%%% FixMe: \addcontentsline{loa}{section}{Baum-Welch model parameter optimization}
 %%% FixMe: Is this a "figure" or an "algorithm"?
 \begin{figure}[htbp]
   \begin{center}
@@ -1002,7 +1007,7 @@ Optimization yields
       Notation: \> \+ \\ \\
       \begin{minipage}[b]{1.0\textwidth}
         $\oldmodel$ is the model, or equivalently the set of
-        parameters, after $n$ iterations of the Baum Welch algorithm.
+        parameters, after $n$ iterations of the Baum-Welch algorithm.
       \end{minipage}\\ \\%
       %%
       \begin{minipage}[b]{1.0\textwidth}
@@ -1059,9 +1064,9 @@ Optimization yields
     \end{tabbing}
   \end{minipage}
 }
-\caption[\comment{fig:train }Baum Welch model parameter optimization.]%
+\caption[\comment{fig:train }Baum-Welch model parameter optimization.]%
 {Summary and pseudo-code for optimizing model parameters by iterating
-  the Baum Welch algorithm. \index{Baum Welch algorithm}}
+  the Baum-Welch algorithm. \index{Baum-Welch algorithm}}
     \label{fig:train}
   \end{center}
 \end{figure}
@@ -1075,7 +1080,7 @@ Optimization yields
 \index{training on multiple segments}
 \index{multiple segments, training on}
 
-Simple modifications to code for the Baum Welch algorithm enable it to
+Simple modifications to code for the Baum-Welch algorithm enable it to
 train on data that consists of a collection of independent segments
 $\mathbf{\vec y} \equiv \left\{ \mathbf{y}_1, \mathbf{y}_2, \ldots,
   \mathbf{y}_n \right\}$ where $ \mathbf{y}_k = \ts{(y_k)}{1}{T_k}$.
@@ -1102,7 +1107,7 @@ In particular for each iteration, one should:
 
 %\ToDo{Ralf doesn't like this.}
 Using the procedure of the previous section for a few independent
-observation sequences with several iterations of the Baum Welch
+observation sequences with several iterations of the Baum-Welch
 algorithm produces a model in which the estimates of the probabilities
 of the initial states, $P_{\ti{S}{1}} \left(s \right)\,\forall s \in
 \states$, reflect the characteristics at the beginning of the given
@@ -1110,11 +1115,11 @@ sequences.  Those estimates are appropriate if all observation
 sequences come from state sequences that start in a similar fashion.
 Such models are not \index*{stationary}.  To accommodate the many
 applications in which we wish to model the state dynamics as
-\index*{ergodic}, we also calculate ergodic initial state probability
+\index*{stationary}, we also calculate stationary initial state probability
 estimates using
 \begin{equation}
-  \label{eq:Ps0ergodic}
-  P_{\ti{S}{1}(\text{ergodic})} \left(s \right) =
+  \label{eq:Ps0stationary}
+  P_{\ti{S}{1}(\text{stationary})} \left(s \right) =
   \frac{\sum_{t}w(i,t)}{\sum_{j,t}w(j,t)}
 \end{equation}
 
@@ -1124,35 +1129,35 @@ estimates using
 \label{sec:incredible}
 
 We often fit simple hidden Markov models to data that come from
-systems that have complicated continuous state spaces.  For example we fit
-models with roughly 10 states to electrocardiograms even though we
-believe that it would require at least scores of continuous valued
-parameters to specify the states of the physiological parameters that
-affect the signal.  By fitting unrealistically simple models we reduce
-the variance of the parameter estimates at the expense of having
-parameters that are harder to interpret.  It is a version of the
-classic \index{bias-variance tradeoff} bias-variance tradeoff.
+systems that have complicated continuous state spaces.  For example we
+fit models with roughly 50 states to electrocardiograms even though we
+believe that partial differential equations over vector fields better
+describe physiological dynamics that affect the signal.  By fitting
+unrealistically simple models we reduce the variance of the parameter
+estimates at the expense of having parameters that are harder to
+interpret.  It is a version of the classic \index{bias-variance
+  tradeoff} bias-variance tradeoff.
 
 \subsection{Multiple Maxima}
 \label{sec:MultiMax}
 
-The Baum Welch algorithm generically converges to a \emph{local}
+The Baum-Welch algorithm generically converges to a \emph{local}
 maximum of the likelihood function.  For example, we obtained the
 model used to generate Fig.~\ref{fig:Statesintro} by iterating the
-Baum Welch algorithm on an initial model with random parameters.  By
+Baum-Welch algorithm on an initial model with random parameters.  By
 re-running the experiment with five different seeds for the random
 number generator, we obtained the five different results that appear
 in Fig.~\ref{fig:TrainChar}.
 \begin{figure}
-  \centering{\plotsize% FixMe: is def useless
-    \def\llps{$\frac{\log \left( P \left(\ts{y}{1}{T}|\ti{\parameters}{n} \right)\right)}{T}$}%
-    includegraphics{TrainChar.pdf}}
-  \caption[\comment{fig:TrainChar }Convergence of the Baum Welch algorithm.]{%
-    Convergence of the Baum Welch algorithm.  Here we have
-    plotted $\frac{\log \left( P
-        \left(\ts{y}{1}{T}|\ti{\parameters}{n} \right)\right)}{T}$
-    (the log likelihood per step) as a function of the number of
-    iterations $n$ of the Baum Welch algorithm for five different
+  \centering
+  % \resizebox{\textwidth}{!}{\includegraphics{TrainChar.pdf}}
+  % The result of resizebox seems to be the same as the
+  % includegraphics below.
+  \includegraphics[width=1.0\textwidth]{TrainChar.pdf}
+  \caption[\comment{fig:TrainChar }Convergence of the Baum-Welch algorithm.]{%
+    Convergence of the Baum-Welch algorithm.  Here we have
+    plotted the log likelihood per step as a function of the number of
+    iterations $n$ of the Baum-Welch algorithm for five different
     initial models $\ti{\parameters}{1}$.  We used the same sequence
     of observations $\ts{y}{1}{T}$ that we used for
     Fig.~\ref{fig:Statesintro}, and we used different seeds for a
@@ -1171,9 +1176,9 @@ in Fig.~\ref{fig:TrainChar}.
 
 %\ToDo{Ralf wants more discussion.  Is this just a hack?}
 For some observation sequences $\ts{y}{1}{T}$ and initial models,
-multiple iterations of the Baum Welch algorithm leads to state
+multiple iterations of the Baum-Welch algorithm leads to state
 transition probabilities that are too small to be represented in
-double precision.  As part of our implementation of the Baum Welch
+double precision.  As part of our implementation of the Baum-Welch
 algorithm, we prune transitions with conditional probabilities of less
 than $1\times 10^{-20}$.  Such pruning:
 \begin{itemize}
@@ -1191,18 +1196,19 @@ values are possible and then uses Bayes rule to combine that knowledge
 with observed data $y$ to calculate an \emph{a posteriori}
 distribution of parameters $P_{\parameters|y}$.  We don't really
 believe that the maximum likelihood estimate (MLE) produced by the
-Baum Welch algorithm is precisely the \emph{one true answer}.  It is
+Baum-Welch algorithm is precisely the \emph{one true answer}.  It is
 what Bayesians call a \emph{point estimate}.  Parameter values near
 the MLE are entirely consistent with the data.  A proper Bayesian
 procedure characterizes the plausibility of other parameter values
 with an \emph{a posteriori} distribution.  In the next chapter, we
-present a variant on the Baum Welch algorithm that uses a prior
+present a variant on the Baum-Welch algorithm that uses a prior
 distribution on parameter values and produces an estimate that
 maximizes the \emph{a posteriori} probability, \ie, a \emph{MAP}
-estimate.  However, like the MLE, the MAP is a point estimate.  It
-does a poor job of characterizing the set of plausible parameters.
+estimate.  However, like the MLE, the MAP is a point estimate.
+Neither does a good job of characterizing the set of plausible
+parameters.
 
-In addition to yielding only a point estimate, the Baum Welch
+In addition to yielding only a point estimate, the Baum-Welch
 algorithm is indirect in that each pass optimizes an auxiliary
 function rather than optimizing the likelihood, and it converges to
 \emph{local} maxima.  A Bayesian \emph{Markov chain Monte Carlo}
@@ -1213,7 +1219,7 @@ Although others have obtained Bayesian \emph{a posteriori} parameter
 distributions for HMMs using \emph{Markov chain Monte Carlo} and
 \emph{variational Bayes} procedures (see for example \cite{Rosales04}
 and \cite{Beal03}), we will restrict our attention to point estimates
-from the Baum Welch algorithm and simple variations.
+from the Baum-Welch algorithm and simple variations.
 
 
 
@@ -1222,16 +1228,16 @@ from the Baum Welch algorithm and simple variations.
 \index{EM (expectation-maximization) algorithm|textbf}%
 \index{expectation-maximization (EM) algorithm|textbf}%
 
-In Section \ref{sec:baum_welch}, we described the Baum Welch algorithm
+In Section \ref{sec:baum_welch}, we described the Baum-Welch algorithm
 for finding parameters of an HMM that maximize the likelihood, and we
-noted that the Baum Welch algorithm is a special case of the EM
+noted that the Baum-Welch algorithm is a special case of the EM
 algorithm.  Here, we examine the general EM algorithm in more detail.
-Readers willing to accept the Baum Welch algorithm without further
-discussion of Eqn.~\ref{eq:EMmax} should skip this section.
-Dempster Laird and Rubin\cite{Dempster77} coined the term \emph{EM
-  algorithm} in 1977.  More recent treatments include Redner and
+Readers willing to accept the Baum-Welch algorithm without further
+discussion of Eqn.~\ref{eq:EMmax} should skip this section.  Dempster
+Laird and Rubin\cite{Dempster77} coined the term \emph{EM algorithm}
+in 1977.  More recent treatments include Redner and
 Walker\cite{Redner84}, McLachlan and Krishnan\cite{McLachlan96} and
-Watanabe and Yamaguchi\cite{Watanabe04}.
+Watanabe and Yamaguchi\cite{Watanabe04}.  \marginpar{Want 2024 recent}
 %
 Recall that the algorithm operates on models $P_{\Y,\bS,\parameters} $
 with parameters $\parameters$ for a mix of data that is observed
@@ -1307,70 +1313,35 @@ As an initial model we set $\ti{\parameters}{1} = \left( \frac{1}{2}, -1, 1
   \end{itemize}
 \end{description}
 
-The first two iterations of the EM algorithm produces the estimates
-$\lambda =0.603$, $\mu_1 = -2.028$, and $\mu_2 = 1.885$.  Intermediate
-calculations and density plots appear in Fig.~\ref{fig:GaussMix}.  The
-estimates repeat without change to a precision of twelve decimal
-digits after a total of 53 iterations, and the final estimate is
-$\lambda = 0.674601277409$, $\mu_1 = -1.81907548168$, and $\mu_2 =
-2.31697397996$.
+Intermediate calculations and density plots for the first two
+iterations of the EM algorithm appear in Fig.~\ref{fig:GaussMix}.
 
 \begin{figure}[htbp]
   \centering{\plotsize%
     %%
-    %% Data generated by code/python/em.py
+    %% Data generated by gauss_mix.py
     %%
-    %%
-    %% 0 0.592235464363 -2.02434657272 1.77965344905 \\%
-    %%
-    %%
-    %% 1 0.602707378184 -2.02772188643 1.88504047255 \\%
-    %%
-    $\qquad \ti{\parameters}{1}=(0.5, -1, 1) \qquad \ti{\parameters}{2}=(0.592, -2.024, 1.779) \qquad \ti{\parameters}{3}=(0.603, -2.028, 1.885)$\\[2.0ex]
-    \def\cs{\hspace{0.10em}}%
-    \def\st{\rule{0pt}{2.25ex}}%
-    \def\v{\vline}%
-    %% '.' is decimal aligned, see "hmmdsbook.cls", search "dcolumn" or "columntype".
-    \begin{tabular}{r@{}c@{\cs}|*{10}{@{\cs}.@{\cs}|}}
-      \st                  & \bch{t}                     & \bch{1}   & \bch{2}   & \bch{3}   & \bch{4}   & \bch{5}   & \bch{6}   & \bch{7}   & \bch{8}   & \bch{9}   & \bch{10} \\
-                            \cline{2-12}
-      \st                \v&\cs $\ti{y}{t}$              &   -1.02   &   -3.39   &   -3.38   &   2.45    &   -0.13   &   -1.66   &   3.09    &   2.01    &   0.03    &   -2.73  \\
-                            \cline{2-12}
-      \st                \v&\cs $\ti{w}{t}$              &    0.89   &    1.00   &    1.00   &   0.01    &    0.56   &    0.97   &   0.00    &   0.02    &   0.49    &    1.00  \\
-\st$\ti{\parameters}{1}$ \v&\cs $\ti{w}{t}\ti{y}{t}$     &   -0.91   &   -3.39   &   -3.38   &   0.02    &   -0.07   &   -1.61   &   0.01    &   0.04    &   0.01    &   -2.71  \\
-      \st                \v&\cs $(1-\ti{w}{t})\ti{y}{t}$ &   -0.12   &   -0.00   &   -0.00   &   2.44    &   -0.06   &   -0.06   &   3.08    &   1.98    &   0.01    &   -0.01  \\
-                            \cline{2-12}
-      \st                \v&\cs $\ti{w}{t}$              &    0.98   &    1.00   &    1.00   &   0.00    &    0.60   &    1.00   &   0.00    &   0.00    &   0.45    &    1.00  \\
-\st$\ti{\parameters}{2}$ \v&\cs $\ti{w}{t}\ti{y}{t}$     &   -1.00   &   -3.39   &   -3.38   &   0.00    &   -0.08   &   -1.66   &   0.00    &   0.00    &   0.01    &   -2.73  \\
-      \st                \v&\cs $(1-\ti{w}{t})\ti{y}{t}$ &   -0.02   &   -0.00   &   -0.00   &   2.45    &   -0.05   &   -0.00   &   3.09    &   2.01    &   0.01    &   -0.00  \\
-                            \cline{2-12}
-    \end{tabular}\\[2.0ex]
-    \def\ptheta{$P_{\ti{\parameters}{1}}$}%
-    \def\px{$P_{\parameters}$}%
-    \def\Pthetax{$P_{\ti{\parameters}{3}}$}%
+    \input{gauss_mix_weights} \bigskip \\
+    \input{gauss_mix_theta}
     \resizebox{\textwidth}{!}{\includegraphics{GaussMix.pdf}}
   }
-  \caption[\comment{fig:GaussMix }Two iterations of the EM algorithm.]%
+  \caption[\comment{fig:GaussMix }Two iterations of the EM
+  algorithm.]%
   {Two iterations of the EM algorithm.  We use the algorithm to search
-    for parameters of Eqn.~\eqref{eq:GaussMix} to maximize the
-    likelihood of ten simulated observations that appear above in the
-    row labeled $\ti{y}{t}$.  The next three lines report the
-    weighting used for recalculating the conditional means, $\mu_1$
-    and $\mu_2$ for $\ti{\parameters}{2}$ in the M step, and the
-    following three lines report the same quantities for the
-    calculation of $\ti{\parameters}{3}$.  The first three models
-    appear in the last line of the table.  On the top axes, we
-    illustrate $P(x|\parameters)$ as defined in
+    for parameters of Eqn.~\eqref{eq:GaussMix} that maximize the
+    likelihood of the ten simulated observations that appear in the upper
+    table in the row labeled $\ti{y}{t}$.  The following rows of the
+    upper table report the weighting used for recalculating the
+    conditional means for two iterations of the EM algorithm.
+    Parameters for the first three models appear in the lower table.
+    In the top plot, we illustrate $P(x|\parameters)$ as defined in
     Eqn.~\eqref{eq:GaussMix} for two sets of model parameters: The
-    dashed line depicts $\parameters = (0.5, -2, 2)$, the distribution
-    used to simulate the data, and the solid line depicts
-    $\ti{\parameters}{1} = (0.5, -1, 1)$, the starting distribution we
-    chose for the EM algorithm.  On the bottom axes we plot the
-    simulated observations as marks on the abscissa and
-    $P(y|\ti{\parameters}{3})$ as a solid line;
-    $\ti{\parameters}{3}$ is the triple of parameters produced by two
-    iterations of the EM algorithm, $\lambda = 0.603, ~ \mu_1 =
-    -2.028,~ \mu_2 = 1.885$.}
+    distribution with $\parameters = (0.5, -2, 2)$ that we used to simulate
+    the data, and the distribution with
+    $\ti{\parameters}{1} = (0.5, -1, 1)$ that we used to initialize
+    the EM algorithm.  In the bottom plot the simulated observations
+    appear as marks on the abscissa and $P(y|\ti{\parameters}{2})$ and
+    $P(y|\ti{\parameters}{3})$ appear as solid lines.}
   \label{fig:GaussMix}
 \end{figure}
 \afterpage{\clearpage}%% Print this right here please.

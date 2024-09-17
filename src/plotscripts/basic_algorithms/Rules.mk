@@ -3,7 +3,7 @@
 
 SYNTHETIC_DATA = $(BUILD)/derived_data/synthetic
 TrainCharData = $(SYNTHETIC_DATA)/TrainChar
-GaussMixData =  $(SYNTHETIC_DATA)/gauss_mix.pickle
+GaussMixData =  $(SYNTHETIC_DATA)/gauss_mix.pkl
 BasicPlotScripts = $(PLOTSCRIPTS)/basic_algorithms
 FIGS_Basic = $(BUILD)/figs/basic_algorithms
 
