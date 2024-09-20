@@ -131,7 +131,7 @@ plot on the right.
     \def\dev{$\ti{\sigma_\gamma}{t}$}%
     \def\errorerrore{$\ti{y}{t} - \ti{\mu_\gamma}{t}$}%
     \def\yt{$\ti{y}{t}$}%
-    \includegraphics{ToyTS1.pdf}}
+    \includegraphics[width=1.0\textwidth]{ToyTS1.pdf}}
   \caption[\comment{fig:ToyTS1 }Extended Kalman filter for one step forecasting.]%
     {Extended Kalman filter for one step forecasting with simulation
     parameters:\\
@@ -254,7 +254,7 @@ Benettin procedure described in Section~\ref{sec:Benettin}.
     \def\y#1{\mbox{\kern-1.0em\lower2.0ex\hbox{$#1$}}}%
     \def\tsb{\mbox{\lower6.0ex\hbox{$t_s$}}}%
     \def\ailly{$-\hat h$}%
-    \includegraphics{ToyH.pdf}}
+    \includegraphics[width=1.0\textwidth]{ToyH.pdf}}
   \caption[\comment{fig:ToyH }Average log likelihood of one step forecasts.]%
   {Average log likelihood of one step forecasts as a function of time
     step $t_s$ and filter parameter $\tilde \sigma_\epsilon$.  To
@@ -1313,7 +1313,7 @@ states we needed.
 
 Our first attempt was to train a sequence of models with ever more
 hidden states.  We initialized each model randomly and ran many
-iterations of the Baum Welch algorithm on quantized observations.
+iterations of the Baum-Welch algorithm on quantized observations.
 Even with with many iterations, we did not build any promising models.
 
 In our second attempt, we exploited our knowledge of the Lorenz
@@ -1339,7 +1339,7 @@ dynamics in $X=\REAL^3$ as follows:
   h(\mathcal{B},F,\mu||\theta)$ See Eqn.~\eqref{eq:ToyCE}) of the
   initial model by calculating its log likelihood per time step on the
   testing data.
-\item \label{step:train} Improve the model with several Baum Welch
+\item \label{step:train} Improve the model with several Baum-Welch
   iterations.
 \item \label{step:estimate2} Estimate the cross entropy of the trained
   model by calculating its log likelihood per time step on the testing
@@ -1357,7 +1357,7 @@ resolution enough, omitting steps~\ref{step:train}
 and~\ref{step:estimate2}, and using the estimate from
 step~\ref{step:estimate1}.
 
-Since there is no training, \ie, Baum Welch iterations, in this
+Since there is no training, \ie, Baum-Welch iterations, in this
 abbreviated procedure, we could calculate the likelihood with a
 variant of the forward algorithm that does not store or return
 $\alpha$ or $\gamma$ values for the entire sequence.  In fact, given
@@ -1382,7 +1382,7 @@ build larger models and extend the plot to the right.
     \def\Nstates{$n_{\text{states}}$}%
     \def\h{$\hat h(\mathcal{B},F,\mu||\theta)$ (nats)}%
     \def\bits{$\hat h$ (bits)}%
-    \includegraphics{LikeLor.pdf}}
+    \includegraphics[width=1.0\textwidth]{LikeLor.pdf}}
   \caption[\comment{fig:LikeLor }Entropy gap, $\hat \delta_{\mu||\theta}$ vs number of states in HMMs]%
   {Entropy gap, $\hat \delta_{\mu||\theta}$ vs number of
     states in HMMs.  The upper trace plots estimates of cross entropy

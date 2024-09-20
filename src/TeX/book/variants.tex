@@ -40,7 +40,7 @@ and algorithms for fitting and using the models.
 
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \includegraphics{LaserHist.pdf}}
+    \includegraphics[width=1.0\textwidth]{LaserHist.pdf}}
   \caption[\comment{fig:LaserHist }Histogram of Tang's laser measurements.]%
   {Histogram of Tang's laser measurements.  Even though neither $y=5$
     nor $y=93$ occurs in $\ts{y}{1}{600}$, it is more plausible that
@@ -73,6 +73,8 @@ depicted in Fig.~\ref{fig:ScalarGaussian} in which we estimated an
 approximate state sequence and model parameters from a sequence of
 observations.
 
+FixMe: All defs in fig:ScalarGaussian should be read from a file
+written by scalar\_gaussian.py
 %%%
 %%% fig:ScalarGaussian
 %%%
@@ -217,12 +219,12 @@ Eqn.~\eqref{eq:NewOut}).
 \subsection{Singularities of the likelihood function and regularization}
 \label{sec:regularization}
 
-Running five iterations of the Baum Welch algorithm on the observation
+Running five iterations of the Baum-Welch algorithm on the observation
 sequence in Fig.~\ref{fig:ScalarGaussian}~(c) starting with the model
 in Fig.~\ref{fig:MLEfail}~(a) produces the model in
 Fig.~\ref{fig:MLEfail}~(b) in which the variance of the observations
 produced by the second state looks suspiciously small.  In fact with
-additional iterations of the Baum Welch algorithm that variance
+additional iterations of the Baum-Welch algorithm that variance
 continues to shrink, and after the seventh iteration, our code stops
 with a floating point exception.  The algorithm is pursuing a
 singularity in the likelihood function in which the second state fits
@@ -271,7 +273,7 @@ limit as $\sigma_2 \rightarrow 0$, \ie,
     above.  Six iterations of the algorithm produced the suspicious
     model depicted in \emph{(b)} above.}
   \label{fig:MLEfail}% numbers from ScalarGaussian.py
-\end{figure} \marginpar{FixMe: Two rather than six.}
+\end{figure} \marginpar{FixMe: Two rather than six.  Get data from scalar\_gaussian.py}
 
 Such singularities of likelihood are common among parametric
 probability density functions.  A particularly simple example is the
@@ -350,7 +352,7 @@ is called the MAP estimate.  \index{MAP estimate|see{maximum a
 approximate\footnote{Although it is every bit as reasonable to use the
   mean to characterize the \emph{a posteriori} distribution as it is to
   use the maximum, we prefer the maximum because changing from MLE to
-  MAP requires only minor modifications to the Baum Welch algorithm.
+  MAP requires only minor modifications to the Baum-Welch algorithm.
   A strictly Bayesian approach would retain the entire \emph{a
     posteriori} distribution in parameter space rather than
   characterizing the distribution by a single point estimate.}
@@ -414,7 +416,7 @@ with
   \end{align}
 \end{subequations}
 With a suitable prior, the simple form of Eqn.~\eqref{eq:QseparateMAP}
-makes it easy to convert a program that implements the Baum Welch
+makes it easy to convert a program that implements the Baum-Welch
 algorithm for \index{maximum likelihood estimate} maximum likelihood
 estimation into a program that implements maximum a posteriori
 estimation.
@@ -443,7 +445,7 @@ Gaussians as follows:
   and a fixed offset, with components
   \begin{equation}
     \label{eq:ARVGout1}
-    \mu\left(s,\ts{y}{t-d}{t-1}\right) = \bar y_{s,i} + \sum_{\tau =
+    \mu_i\left(s,\ts{y}{t-d}{t-1}\right) = \bar y_{s,i} + \sum_{\tau =
     1}^d \sum_{j=1}^n c_{s,i,\tau,j} \ti{y_j}{t-\tau}.
   \end{equation}
   We implement this as a \emph{linear} function of a \emph{context
@@ -464,7 +466,7 @@ Gaussians as follows:
     \ti{x_{k}}{t} = \begin{cases} \ti{y_i}{t-\tau} & 1\leq \tau \leq d
     \\ 1 & \tau = d+1,~~ i = 1, \end{cases},
   \end{equation}
-  where $k=d\cdot(\tau-1) + i$, and
+  where $k=n\cdot(\tau-1) + i$, and
   \begin{equation}
     \label{eq:ARVGout2}
     \mu_s\left(s,\ts{y}{t-d}{t-1}\right) = A_s \ti{x}{t}
@@ -490,7 +492,7 @@ mean $A_s \ti{x}{t}$ and covariance $\Sigma_s$, \ie,
 \end{align}
 where
 \begin{equation*}
-z_k(t) \equiv y(t) - A_k x(t).  
+z_s(t) \equiv y(t) - A_s x(t).  
 \end{equation*}
 
 The model accounts for relationships between an observation and its
@@ -635,6 +637,7 @@ exist that can exploit knowledge of nonlinear generating equations,
 \eg \emph{extended Kalman filters} and \emph{particle filters} that we
 mention below.
 
+\marginpar{FixMe: No empty boxes.  Try other random seeds.}
 %%% This is a large color figure on a page by itself. (butterfly)
 \begin{figure}[p]
   \centering{\plotsize%
@@ -675,8 +678,8 @@ basic ideas we've described:
   simple one dimensional two component example in
   Eqn.~\eqref{eq:GaussianMixture}.  Although a simple Gaussian mixture
   model does not use the notion of \emph{state}, they are frequently
-  used as observation models in HMMs.  Note a Gaussian mixture model
-  is equivalent to the degenerate case of an HMM with Gaussian
+  used as observation models in HMMs.  Note that a Gaussian mixture
+  model is equivalent to the degenerate case of an HMM with Gaussian
   observations in which all state transition probabilities are
   identical.
 \item[Cluster weighted modeling] For an HMM, the state transition

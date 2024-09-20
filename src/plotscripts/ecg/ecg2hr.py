@@ -110,7 +110,12 @@ def main(argv=None):
         (t_start.to('minutes').magnitude, t_stop.to('minutes').magnitude))
     times = hr_times[n_start:n_stop].to('minutes').magnitude
     hr_axes.plot(times, hr[n_start:n_stop])
-    hr_axes.plot(times, hr[n_start:n_stop], marker='.', color='black', linestyle='', markersize=8)
+    hr_axes.plot(times,
+                 hr[n_start:n_stop],
+                 marker='.',
+                 color='black',
+                 linestyle='',
+                 markersize=8)
     hr_axes.set_ylabel(r'Heart Rate $\times$ minute')
     hr_axes.set_xlabel(r'Time $/$ minute')
 

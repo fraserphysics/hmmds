@@ -66,6 +66,7 @@
 %%%
 \ifthenelse{\boolean{@ltxbook}}{%
   \LoadClassWithOptions{book}%
+  \newtheorem{theorem}{Theorem}
 }{%
   \LoadClassWithOptions{newsiambook}%
 }
@@ -168,10 +169,6 @@
 \newcommand{\Green}[1]{{\color{Green}#1}}
 \newcommand{\Blue}[1]{{\color{Blue}#1}}
 \newcommand{\Grey}[1]{{\color{Grey}#1}}
-
-%%% PStricks is used for boxed equations.
-%%%
-\RequirePackage{pstricks}
 
 %%% Siam asks for this...  Will we use it?
 %%% See: multicol.pdf

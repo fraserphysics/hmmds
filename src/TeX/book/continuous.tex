@@ -40,7 +40,7 @@ functions $F$ and $G$ are linear in $X$ and the noise terms
 $\ti{\eta}{t}$ and $\ti{\epsilon}{t}$ are independent and Gaussian,
 then the forward algorithm is called \emph{Kalman Filtering}.
 
-In this chapter we go over the forward an backward algorithms for
+In this chapter we go over the forward and backward algorithms for
 continuous states and observations three times.  First in
 Section~\ref{sec:integrals} we emphasize the parallel to
 Chapter~\ref{chap:algorithms} by simply replacing sums in the
@@ -130,7 +130,7 @@ Here we justify \eqref{eq:t274} by Bayes rule, \eqref{eq:t275} by
 the model assumptions, and \eqref{eq:t277} by the definition of a
 marginal distribution.
 \item[Calculate the joint forecast] Leaving the state at the next time
-  as a free parameter but fixing the next observation at $\ti{y}{t}$,
+  as a free parameter but fixing the next observation at $\ti{y}{t+1}$,
   calculate the joint conditional distribution of the next state and
   observation given the observations up to the present time.
 \begin{align}
@@ -165,6 +165,7 @@ the model assumptions.
     \right)}{\ti{\gamma}{t+1}}.
 \end{align}
 \end{description}
+\marginpar{Maybe use highlight?}
 
 \subsection{Backward Algorithm}
 \index{backward algorithm!for continuous states}
@@ -246,7 +247,11 @@ Defining and evaluating a \emph{\index*{backwards update}} term
     \right)}{P_{\ts{Y}{t}{T}|\ts{Y}{1}{t-1}}
     \left(\ts{y}{t}{T}|\ts{y}{1}{t-1} \right)} \nonumber
 \end{align}
-can make evaluating the integral in Eqn.~\eqref{eq:contback} easier.
+lets one write Eqn.~\eqref{eq:contback} as
+\begin{equation*}
+  \beta(x,t-1) = \int b(x',t) {P\left(\ti{y}{t}|\ts{y}{1}{t-1} \right)} dx'
+\end{equation*}
+which may make evaluating the integral easier.
 
 \section{Linear Gaussian Systems}
 \label{sec:LinearGaussian}

@@ -479,13 +479,13 @@ cache.
 
 Also, we needed different C code for each different type of
 observation model.  Reorganizing the code so that before each
-iteration of the Baum Welch algorithm and before the Viterbi
+iteration of the Baum-Welch algorithm and before the Viterbi
 algorithm, a single call to an observation method calculates and
 stores $P(\ti{y}{t}|s)$ for every value of $s$ and $t$, resolved the
 drawbacks at the expense of using more memory.  The additional memory
 required is the same as that required for all of the $\alpha$ values.
 It reduces the maximum amount of training data that we could use with
-the Baum Welch algorithm by a multiplier between $\frac{2}{3}$ and
+the Baum-Welch algorithm by a multiplier between $\frac{2}{3}$ and
 $1$.
 
 %%% Local Variables:

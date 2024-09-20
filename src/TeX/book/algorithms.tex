@@ -1361,14 +1361,14 @@ summarize and augment some of that analysis.
 \subsection{Monotonicity}
 
 Denoting the log likelihood of the observed data given the model
-$\parameters$ as
+$\parameters'$ as
 \begin{equation*}
-  L(\parameters) \equiv \log \left( P \left(\y|\parameters \right)\right)
+  L(\parameters') \equiv \log \left( P \left(\y|\parameters' \right)\right)
 \end{equation*}
 and the cross entropy of the unobserved data with respect to a model
-$\parameters$ given a model $\parameters$ as
+$\parameters'$ given a model $\parameters$ as
 \begin{equation*}
-  H(\parameters' || \parameters) \equiv - \EV_{P
+  H(\parameters, \parameters') \equiv - \EV_{P
     \left(\bS|\y,\parameters \right)} \left( \log P(\bS|\y,\parameters')
   \right),
 \end{equation*}
@@ -1379,18 +1379,18 @@ we can write the auxiliary function as
   &= \EV_{P \left(\bS|\y ,\parameters \right)} \left( \log
     P(\bS|\y,\parameters') + \log \left( P(\y|\parameters') \right)
   \right)\\
-  &= L(\parameters') - H(\parameters' || \parameters)
+  &= L(\parameters') - H(\parameters, \parameters')
 \end{align*}
 or
 \begin{equation}
   \label{eq:LQH}
-   L(\parameters') = Q(\parameters',\parameters) + H(\parameters' ||
-   \parameters).
+   L(\parameters') = Q(\parameters',\parameters) + H(\parameters,
+   \parameters').
 \end{equation}
 The fact that
 \begin{equation}
   \label{eq:GibbsIE}
-  H(\parameters' || \parameters) \geq  H(\parameters || \parameters)
+  H(\parameters, \parameters') \geq  H(\parameters, \parameters)
   \forall \parameters'
 \end{equation}
 with equality \emph{iff}
@@ -1406,8 +1406,8 @@ is called the \emph{\index*{Gibbs Inequality}}\footnote{While most
 Given the model $\ti{\parameters}{n}$ after $n$ iterations of the EM
 algorithm, we can write
 \begin{equation}
-  L(\ti{\parameters}{n}) = Q(\ti{\parameters}{n},\ti{\parameters}{n}) +
-  H(\ti{\parameters}{n} || \ti{\parameters}{n}).
+  L(\ti{\parameters}{n}) = Q(\ti{\parameters}{n}, \ti{\parameters}{n}) +
+  H(\ti{\parameters}{n}, \ti{\parameters}{n}).
 \end{equation}
 If for some other model $\parameters'$
 \begin{equation}
@@ -1415,8 +1415,7 @@ If for some other model $\parameters'$
   Q(\parameters',\ti{\parameters}{n}) >
   Q(\ti{\parameters}{n},\ti{\parameters}{n}),
 \end{equation}
-then the Gibbs inequality implies $H(\parameters' ||
-\ti{\parameters}{n}) \geq H(\ti{\parameters}{n} ||
+then the Gibbs inequality implies $H(\ti{\parameters}{n}, \parameters') \geq H(\ti{\parameters}{n},
 \ti{\parameters}{n})$ and consequently, $L(\parameters') >
 L(\ti{\parameters}{n})$.  Monotonicity of the log function further
 implies
@@ -1428,6 +1427,9 @@ for $\parameters' = \ti{\parameters}{n+1}$, the algorithm
 monotonically increases the likelihood.
 
 \subsection{Convergence}
+
+FixMe: Do something different with this section.  Perhaps examples of
+degenerate models (flat directions in parameter space)
 
 \newcommand{\EMmap}{{\cal T}} %
 The EM algorithm operates on $\Theta$, a set of allowed parameter
@@ -1442,8 +1444,11 @@ considered $\EMmap$ to be a point to set map.  However, there are many
 model classes --including all of the HMMs the we describe in this
 book-- for which one can write algorithms that calculate a unique
 $\EMmap(\theta)$.  Thus we consider the case of $\EMmap$ being a
-simple function.  If there is a bound $\bar P$ on $ P
-\left(\y|\parameters \right) $ with
+simple function.  If there is a bound\footnote{See
+  Section~\ref{sec:regularization} for an example involving
+  probability densities with no such bound.  For discrete $\y$,
+  however the bound $ P \left(\y|\parameters \right) \leq 1$ holds.}
+$\bar P$ on $ P \left(\y|\parameters \right) $ with
 \begin{equation*}
    P \left(\y|\parameters \right) \leq \bar P ~ \forall \parameters \in \Theta
 \end{equation*}
@@ -1489,7 +1494,7 @@ summary:
   \forall \parameters \in \Omega(\ti{\parameters}{1})
   \begin{cases}
     L(\parameters) = L^*\\
-    H(\parameters || \EMmap(\parameters)) = H(\parameters || \parameters) = H^* \\
+    H(\EMmap(\parameters), \parameters) = H(\parameters, \parameters) = H^* \\
     P(\s|\y,\parameters) = P^*(\s|\y)~\forall \s \\
     \frac{\partial L(\parameters)}{\partial \parameters} = 0
   \end{cases}
@@ -1695,6 +1700,9 @@ both $\parameters$ and $L$.
 
 \subsubsection{A contrived example}
 \label{sec:contrived}
+
+FixMe: Look at analysis of second derivatives in section 2.5 of
+https://arxiv.org/pdf/1105.1476.  Also, consider using his notation.
 
 Figure~\ref{fig:EM} illustrates stable convergence for the case of a
 coin being tossed 4 times and observed twice.  By pretending that the
