@@ -1,6 +1,6 @@
 # Rules.mk: This file can be included by a makefile anywhere as long
 # as ROOT and BUILD are defined.  ROOT is the top directory of
-# dshmm, TEX_SKELTON is the directory where this file is located and
+# dshmm, TEX_BOOK is the directory where this file is located and
 # BUILD is where results are written.
 
 BOOK_OUT = $(BUILD)/TeX/book
@@ -12,7 +12,7 @@ ADD_PDF_PDF_T = $(addprefix $(1)/, $(addsuffix .pdf, $(2)) $(addsuffix .pdf_t, $
 LASER_FIG_DIR = $(BUILD)/figs/laser/
 # FixMe: Some of these figures may not be required
 LASER_FIGS = $(addsuffix .pdf, $(addprefix $(LASER_FIG_DIR), \
-LaserLP5 LaserLogLike LaserStates LaserForecast LaserHist))
+LaserLP5 LaserLikeOptTS LaserLogLike LaserStates LaserForecast LaserHist))
 
 INTRODUCTION_FIGS = $(addsuffix .pdf, $(addprefix $(BUILD)/figs/introduction/, \
 TSintro STSintro Statesintro))
@@ -37,8 +37,8 @@ ECG_FIGS =  $(addprefix $(BUILD)/figs/ecg/,  $(addsuffix .pdf, \
 elgendi a03a10b03c02 constant_a03 a01c02_states simulated ecg2hr))
 ECG_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/ecg/, ecg_hmm)
 
-TEX_INCLUDES = $(APNEA_TEX_INCLUDES)
-TEX_BOOK = $(TEX)/book
+TEX_INCLUDES = $(addsuffix .tex, $(addprefix $(ROOT)/build/derived_data/apnea/, score test_score))
+TEX_BOOK = $(ROOT)/src/TeX/book
 
 BOOK_FIGS = $(INTRODUCTION_FIGS) \
 $(LASER_FIGS) \
@@ -57,7 +57,7 @@ $(ECG_XFIGS)
 BOOK_CHAPTERS = $(addprefix $(TEX_BOOK)/, $(addsuffix .tex, \
 algorithms apnea appendix continuous introduction main toys variants))
 
-$(BOOK_OUT)/main.pdf: $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_INCULDES)
+$(BOOK_OUT)/main.pdf: $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_INCLUDES)
 	mkdir -p $(@D)
 	export TEXINPUTS=$(TEX_BOOK)//:$(abspath $(BUILD))//:; \
 export BIBINPUTS=$(TEX_BOOK)//:; export BSTINPUTS=$(TEX_BOOK)//:; \

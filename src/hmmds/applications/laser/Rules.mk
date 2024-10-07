@@ -7,8 +7,7 @@ SHELL=bash
 LASER_DATA = $(BUILD)/derived_data/synthetic
 LASER_CODE = $(HMMDS)/applications/laser
 # LASER_CODE is this directory
-RAW_DATA = $(ROOT)/raw_data
-LP5DAT = $(RAW_DATA)/LP5.DAT
+LP5DAT = $(ROOT)/raw_data/LP5.DAT
 
 # This is to ensure Cython code is compiled
 LORENZ_SDE = $(HMMDS)/synthetic/filter/lorenz_sde.flag
@@ -67,16 +66,23 @@ $(LASER_DATA)/ekf_powell2876.parameters: $(LASER_CODE)/optimize_ekf.py $(POWELL2
 	python $< --parameter_type parameter --laser_data $(LP5DAT) --length 2876 \
 --method Powell $(POWELL250) $@
 
-$(POWELL250): $(LASER_CODE)/optimize_ekf.py $(LASER_CODE)/explore.txt $(LORENZ_SDE)
+$(LASER_DATA)/l2.parameters: $(LASER_CODE)/optimize_ekf.py $(LASER_CODE)/explore.txt $(LORENZ_SDE)
 	mkdir -p $(LASER_DATA)
 	python $< --parameter_type GUI_out --laser_data $(LP5DAT) --length 250 \
---method Powell $(word 2, $^) $@
+--method Powell --objective_function l2 $(word 2, $^) $@
+
+$(POWELL250): $(LASER_CODE)/optimize_ekf.py $(LASER_DATA)/l2.parameters $(LORENZ_SDE)
+	mkdir -p $(LASER_DATA)
+	python $< --parameter_type parameter --laser_data $(LP5DAT) --length 250 \
+--method Powell --objective_function likelihood $(word 2, $^) $@
 
 # $(LASER_CODE)/explore.txt is under version control
 $(LASER_CODE)/explore.txt: $(LASER_CODE)/explore.py
 	echo Adjust sliders for period 5 orbit, match laser data, and press "write" button
-	python explore.py
-	mv explore.txt $@
+	cd $(LASER_CODE); python $(LASER_CODE)/explore.py
+
+$(LASER_DATA)/LaserLikeOptTS: $(LASER_CODE)/figure_data.py $(LASER_DATA)/l2.parameters
+	python $< --parameters $(word 2, $^) --laser_data $(LP5DAT) --LaserLP5 $@
 
 # Pattern rule for LaserLP5 LaserLogLike LaserStates LaserForecast LaserHist
 $(LASER_DATA)/Laser%: $(LASER_CODE)/figure_data.py $(POWELL250)

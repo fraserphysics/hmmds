@@ -56,7 +56,9 @@ def LaserLP5(data, matplotlib, pyplot):
     """
     fig = pyplot.figure()
     ax = fig.add_subplot()
-    ax.plot(data['250_simulated_observations'])
+    ax.plot(data['250_simulated_observations'], label='simulation')
+    ax.plot(data['250_laser_data'], label='Laser Data')
+    ax.legend()
     return fig
 
 
@@ -68,12 +70,11 @@ def LaserLogLike(data, matplotlib, pyplot):
     log_like = data['log_likelihood']
     fig = pyplot.figure(figsize=(12, 8))
     ax = fig.add_subplot(1, 1, 1, projection='3d', azim=-13, elev=20)
-    ax.set_xlabel('$s$')
-    ax.set_ylabel('$b$')
+    ax.set_xlabel('$b$')
+    ax.set_ylabel('$s$')
     ax.set_zlabel(r'$\log(P(y_1^{250}|\theta))$')
     X, Y = numpy.meshgrid(b, s)
-    ax.contour(X, Y, log_like, zdir='z', offset=-7600)
-    ax.set(zlim=(-7600, -6400))
+    ax.contour(X, Y, log_like, zdir='z', offset=log_like.min())
     surf = ax.plot_surface(X,
                            Y,
                            log_like,

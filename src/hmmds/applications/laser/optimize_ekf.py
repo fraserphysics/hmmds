@@ -33,10 +33,15 @@ def parse_args(argv):
                         type=str,
                         default='LP5.DAT',
                         help='path of data file')
+    parser.add_argument('--objective_function',
+                        type=str,
+                        default='likelihood',
+                        help='l2 or likelihood')
     parser.add_argument('--length',
                         type=int,
                         default=2876,
                         help='optimize over this number of data samples')
+    # FixMe: Write new module instead of using --skip
     parser.add_argument('--method',
                         type=str,
                         default='Powell',
@@ -57,10 +62,10 @@ def explore_to_parameters(in_path="explore.txt"):
             name, value_str = line.split()
             in_dict[name] = float(value_str)
     # pylint: disable = invalid-name
-    s = 10.0
+    s = in_dict['s']
     r = in_dict['r']
-    b = 8.0 / 3
-    fixed_point = explore.FixedPoint(r)
+    b = in_dict['b']
+    fixed_point = hmmds.applications.laser.utilities.FixedPoint(r, s, b)
     # No type info for lorenz_sde pylint: disable = c-extension-no-member
     initial_state = hmmds.synthetic.filter.lorenz_sde.lorenz_integrate(
         fixed_point.initial_state(in_dict['delta_x']), 0.0, in_dict['delta_t'],
@@ -77,101 +82,46 @@ def explore_to_parameters(in_path="explore.txt"):
     return parameters
 
 
-def objective_function(values_in, laser_data, parameter_class):
-    """For optimization"""
+def likelihood_objective(values_in, laser_data, parameter_class):
+    """Log likelihood of EKF for optimization"""
+    numpy.seterr(all='raise')
     parameter = parameter_class(*values_in)
-    non_stationary, initial_distribution, _ = make_non_stationary(
+    non_stationary, initial_distribution, _ = hmmds.applications.laser.utilities.make_non_stationary(
         parameter, None)
-    result = non_stationary.log_likelihood(initial_distribution, laser_data)
+    try:
+        result = non_stationary.log_likelihood(initial_distribution, laser_data)
+    except FloatingPointError:
+        result = -1e100
     print(f"""objective_function = {result}""")
 
     return -result
 
 
-def make_non_stationary(parameters, rng):
-    """Make an SDE system instance
+def l2_objective(values_in, laser_data, parameter_class):
+    """L2 difference between data and simulation for optimization"""
+    parameters = parameter_class(*values_in)
+    simulation = hmmds.applications.laser.utilities.observe(
+        parameters, len(laser_data))
+    difference = laser_data[:, 0] - simulation
+    result = numpy.sqrt(difference * difference).sum()
+    print(f"""objective_function = {result}""")
 
-    Args:
-        parameters: A Parameters instance
-        rng: Dummy
-
-    Returns:
-        (An SDE instance, an initial state, an inital distribution)
-
-    """
-
-    # The next three functions are passed to SDE.__init__
-    # Will use t, s, r, b pylint: disable = invalid-name
-    def dx_dt(_, x, s, r, b):
-        return numpy.array([
-            s * (x[1] - x[0]), x[0] * (r - x[2]) - x[1], x[0] * x[1] - b * x[2]
-        ])
-
-    def tangent(t, x_dx, s, r, b):
-        result = numpy.empty(12)  # Allocate storage for result
-
-        # Unpack state and derivative from argument
-        x = x_dx[:3]
-        dx_dx0 = x_dx[3:].reshape((3, 3))
-
-        # First three components are the value of the vector field F(x)
-        result[:3] = dx_dt(t, x, s, r, b)
-
-        dF = numpy.array([  # The derivative of F wrt x
-            [-s, s, 0], [r - x[2], -1, -x[0]], [x[1], x[0], -b]
-        ])
-
-        # Assign the tangent part of the return value.
-        result[3:] = numpy.dot(dF, dx_dx0).reshape(-1)
-
-        return result
-
-    def observation_function(
-            _, state) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
-        """Calculate observation and its derivative
-        """
-        y = numpy.array([parameters.x_ratio * state[0]**2 + parameters.offset])
-        dy_dx = numpy.array([[parameters.x_ratio * 2 * state[0], 0, 0]])
-        return y, dy_dx
-
-    x_dim = 3
-    state_noise = numpy.ones(x_dim) * parameters.state_noise
-    y_dim = 1
-    observation_noise = numpy.eye(y_dim) * parameters.observation_noise
-
-    # lorenz_sde.SDE only uses Cython for methods forecast and simulate
-    dt = parameters.laser_dt * parameters.t_ratio  # pylint: disable = invalid-name
-    # No type info for lorenz_sde pylint: disable = c-extension-no-member
-    system = hmmds.synthetic.filter.lorenz_sde.SDE(dx_dt,
-                                                   tangent,
-                                                   state_noise,
-                                                   observation_function,
-                                                   observation_noise,
-                                                   dt,
-                                                   x_dim,
-                                                   ivp_args=(parameters.s,
-                                                             parameters.r,
-                                                             parameters.b),
-                                                   fudge=parameters.fudge)
-    initial_mean = numpy.array([
-        parameters.x_initial_0, parameters.x_initial_1, parameters.x_initial_2
-    ])
-    initial_covariance = numpy.outer(state_noise, state_noise)
-    initial_distribution = hmm.state_space.MultivariateNormal(
-        initial_mean, initial_covariance)
-    result = hmm.state_space.NonStationary(system, dt, rng)
-    return result, initial_distribution, initial_mean
+    return result
 
 
 # Powell, BFGS, Nelder-Mead
-def optimize(initial_parameters, laser_data, method='Powell', options=None):
+def optimize(initial_parameters,
+             laser_data,
+             objective,
+             method='Powell',
+             options=None):
     """Call scipy.optimize.minimize.
     """
 
     # Like optimize_particle. pylint: disable = duplicate-code
     defaults = initial_parameters.values()
     result = scipy.optimize.minimize(
-        objective_function,
+        objective,
         defaults,
         method=method,
         options=options,
@@ -217,13 +167,15 @@ def main(argv=None):
     laser_data = laser_data_y_t[1, :].astype(int).reshape((2876, 1))
 
     if args.method != 'skip':
-        #options = {'maxiter': 2}
-        parameters_max, result = optimize(
-            parameters,
-            laser_data[:args.length],
-            method=args.method,
-            #options=options
-        )
+        options = {'maxiter': 20000}
+        parameters_max, result = optimize(parameters,
+                                          laser_data[:args.length],
+                                          {
+                                              'l2': l2_objective,
+                                              'likelihood': likelihood_objective
+                                          }[args.objective_function],
+                                          method=args.method,
+                                          options=options)
     else:
         parameters_max = parameters
     if len(args.parameters_in_out) == 2:
@@ -238,7 +190,8 @@ n_data {args.length}""")
 
     if args.plot_data is None:
         return 0
-    sde, initial_distribution, _ = make_non_stationary(parameters_max, None)
+    sde, initial_distribution, _ = hmmds.applications.laser.utilities.make_non_stationary(
+        parameters_max, None)
     forward_means, forward_covariances = sde.forward_filter(
         initial_distribution, laser_data)
     cross_entropy = sde.log_likelihood(initial_distribution,

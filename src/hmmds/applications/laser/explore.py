@@ -22,81 +22,6 @@ import hmmds.applications.laser.utilities
 from hmmds.synthetic.filter.lorenz_sde import lorenz_integrate
 
 
-class FixedPoint:
-    """Characterizes the focus of the Lorenz system at x_i > 0
-    """
-
-    def __init__(
-            self,  # FixedPoint
-            r):
-        s = 10.0
-        b = 8.0 / 3
-        self.r = r
-        root = numpy.sqrt(b * (r - 1))
-        self.fixed_point = numpy.array([root, root, r - 1])
-        df_dx = numpy.array([  # derivative of x_dot wrt x
-            [-s, s, 0], [1, -1, -root], [root, root, -b]
-        ])
-        values, right_vectors = numpy.linalg.eig(df_dx)
-        left_vectors = numpy.linalg.inv(right_vectors)
-        for i in range(3):
-            assert numpy.allclose(numpy.dot(left_vectors[i], df_dx),
-                                  values[i] * left_vectors[i])
-            assert numpy.allclose(numpy.dot(df_dx, right_vectors[:, i]),
-                                  values[i] * right_vectors[:, i])
-        assert values[
-            0].imag == 0.0, f"First eigenvalue is not real: values={values}"
-        self.projection = numpy.dot(right_vectors[:, 1:],
-                                    left_vectors[1:, :]).real
-        # projection onto subspace of complex eigenvectors
-        self.image_2d = numpy.dot(numpy.array([[1, 0, 0], [0, 0, 1]]),
-                                  self.projection)
-        # Components 0 and 2 of projection
-        assert numpy.allclose(numpy.dot(self.projection, right_vectors[:, -1]),
-                              right_vectors[:, -1])
-        self.omega = numpy.abs(values[-1].imag)
-        self.period = 2 * numpy.pi / self.omega
-        self.relax = values[-1].real
-
-    def initial_state(
-            self,  # FixedPoint
-            delta_x):
-        """Find initial state that is distance delta_x from fixed point
-        """
-        coefficients = numpy.linalg.lstsq(self.image_2d,
-                                          numpy.array([delta_x, 0]),
-                                          rcond=None)[0]
-        return numpy.dot(self.projection, coefficients) + self.fixed_point
-
-    def map_time(
-            self,  # FixedPoint
-            x_initial):
-        """Find time and position that x_initial maps to x[2] = r-1
-        """
-        h_max = 0.0025
-        tenths = numpy.empty((20, 3))
-        t_step = self.period / 10
-        # Integrate at least once because x_initial is on boundary
-        x_last = lorenz_integrate(x_initial, 0, t_step, h_max=h_max, r=self.r)
-        for i in range(20):
-            x_next = lorenz_integrate(x_last, 0, t_step, h_max=h_max, r=self.r)
-            if x_next[2] > self.r - 1 > x_last[2]:
-                break
-            x_last = x_next
-        else:
-            raise RuntimeError("Failed to find bracket")
-
-        def func(time):
-            x_time = lorenz_integrate(x_last, 0, time, h_max=h_max, r=self.r)
-            result = x_time[2] - (self.r - 1)
-            return result
-
-        delta_t = scipy.optimize.brentq(func, 0, t_step)
-        t_final = (i + 1) * t_step + delta_t
-        x_final = lorenz_integrate(x_last, 0, delta_t, h_max=h_max, r=self.r)
-        return t_final, x_final
-
-
 def make_data(
         values,  # MainWindow,
         laser_t: float,
@@ -108,10 +33,10 @@ def make_data(
         laser_t Sampling period of laser data
         over_sample Number of synthetic data points per laser data point
     """
-    s = 10.0
+    s = values.s()
     r = values.r()
-    b = 8.0 / 3
-    fixed_point = FixedPoint(r)
+    b = values.b()
+    fixed_point = hmmds.applications.laser.utilities.FixedPoint(r, s, b)
     initial_state = lorenz_integrate(  #
         fixed_point.initial_state(values.delta_x()), 0.0, values.delta_t(), s,
         r, b)
@@ -151,17 +76,23 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         write_button.clicked.connect(self.write_values)
         read_button = PyQt5.QtWidgets.QPushButton('Read values from file', self)
         read_button.clicked.connect(self.read_values)
+        likelihood_button = PyQt5.QtWidgets.QPushButton('Calculate Likelihood',
+                                                        self)
+        likelihood_button.clicked.connect(self.calculate_likelihood)
 
         # Layout button section
         buttons_layout.addWidget(quit_button)
         buttons_layout.addWidget(write_button)
         buttons_layout.addWidget(read_button)
+        buttons_layout.addWidget(likelihood_button)
 
         self.variable = {}  # A dict so that I can print all values someday
 
         # Layout first row of sliders
         for name, minimum, maximum in (
-            ('r', 22.0, 37.0),
+            ('s', 1.0, 3.0),
+            ('r', 10.0, 25.0),
+            ('b', 0.2, 3.0),
             ('delta_x', 0, 6),
             ('delta_t', 0, 5.0),
         ):
@@ -170,10 +101,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         # Layout second row of sliders
         for name, minimum, maximum in (
-            ('t_ratio', .3, 1.2),
-            ('x_ratio', .5, 2.0),
+            ('t_ratio', 1.0, 20.0),
+            ('x_ratio', 5.0, 20.0),
             ('offset', 10, 20),
-            ('T_total', 1, 20),
+            ('T_total', 10, 50),
         ):
             self.variable[name] = Variable(name, minimum, maximum, self)
             control2_layout.addWidget(self.variable[name])
@@ -188,12 +119,20 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         time_series = pyqtgraph.GraphicsLayoutWidget(title="Time Series")
         ts_plot = time_series.addPlot()
-        self.ts_curve = ts_plot.plot(pen='g')
-        self.laser_plot = ts_plot.plot(pen='r')
+        ts_plot.addLegend()
+        self.ts_curve = ts_plot.plot(pen='g', name='simulation')
+        self.laser_plot = ts_plot.plot(pen='r', name='LP5DAT')
+
+        likelihood = pyqtgraph.GraphicsLayoutWidget(
+            title="Log Likelihood per Step")
+        ll_plot = likelihood.addPlot()
+        ll_plot.addLegend()
+        self.like_curve = ll_plot.plot(pen='g', name='log likelihood')
 
         # Layout plot section
         plot_layout.addWidget(phase_portrait)
         plot_layout.addWidget(time_series)
+        plot_layout.addWidget(likelihood)
 
         # Make self the central widget
         widget = PyQt5.QtWidgets.QWidget()
@@ -206,6 +145,49 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         assert self.laser_data.shape == (2, 2876)
 
         self.update_plot()  # Plot data for initial settings
+
+    def get_parameters(self):
+        """Return a Parameters instance for make_non_stationary with
+        values from self
+
+        """
+        s = self.variable['s']()
+        r = self.variable['r']()
+        b = self.variable['b']()
+        delta_t = self.variable['delta_t']()
+        delta_x = self.variable['delta_x']()
+        t_ratio = self.variable['t_ratio']()
+        x_ratio = self.variable['x_ratio']()
+        offset = self.variable['offset']()
+        fixed_point = hmmds.applications.laser.utilities.FixedPoint(r, s, b)
+        initial_state = lorenz_integrate(  #
+            fixed_point.initial_state(delta_x), 0.0, delta_t, s, r, b)
+        values = {
+            's': s,
+            'r': r,
+            'b': b,
+            'initial_state': initial_state,
+        }
+        return hmmds.applications.laser.utilities.Parameters(
+            s,
+            r,
+            b,
+            *initial_state,
+            t_ratio,
+            x_ratio,
+            offset,
+        )
+
+    def calculate_likelihood(self):
+        n_data = 100
+        non_stationary, initial_distribution, _ = hmmds.applications.laser.utilities.make_non_stationary(
+            self.get_parameters(), None)
+        like_per_step = numpy.empty(n_data)
+        laser_data = self.laser_data[1:, :n_data].T
+        result = non_stationary.log_likelihood(initial_distribution, laser_data,
+                                               like_per_step)
+        print(f"""objective_function = {result}""")
+        self.like_curve.setData(like_per_step)
 
     def write_values(self):
         with open('explore.txt', 'w') as file_:
@@ -233,6 +215,14 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
                                endpoint=False)
         self.ts_curve.setData(times, simulated_data)
         self.laser_plot.setData(self.laser_data[:, :n_data].T)
+
+        non_stationary, initial_distribution, _ = hmmds.applications.laser.utilities.make_non_stationary(
+            self.get_parameters(), None)
+        like_per_step = numpy.empty(n_data)
+        laser_data = self.laser_data[1:, :n_data].T
+        result = non_stationary.log_likelihood(initial_distribution, laser_data,
+                                               like_per_step)
+        self.like_curve.setData(like_per_step)
 
 
 class Variable(PyQt5.QtWidgets.QWidget):

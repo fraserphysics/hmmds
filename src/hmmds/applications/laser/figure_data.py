@@ -9,7 +9,6 @@ import copy
 
 import numpy
 
-import optimize_ekf
 import hmmds.synthetic.filter.lorenz_sde
 import hmmds.applications.laser.utilities
 
@@ -52,57 +51,34 @@ def register(func):
     return func
 
 
-def simulate(parameters, n_samples):
-    """Integrate the Lorenz system for n_samples without noise.
-
-    Args:
-        parameters: System parameters
-        n_samples: Number of samples to return
-
-    Return:
-        A numpy array n_samples x 3
-"""
-    t_sample = 0.04 * parameters.t_ratio
-    samples = numpy.empty((n_samples, 3))
-    samples[0] = numpy.array([
-        parameters.x_initial_0, parameters.x_initial_1, parameters.x_initial_2
-    ])
-    for i in range(1, n_samples):
-        # No typing for lorenz_sde.  pylint: disable = c-extension-no-member
-        samples[i] = hmmds.synthetic.filter.lorenz_sde.lorenz_integrate(
-            samples[i - 1], 0, t_sample, parameters.s, parameters.r,
-            parameters.b)
-    return samples
-
-
-def observe(parameters, n_samples):
-    """Simulate noiseless observations of noiseless dynamics.
-    """
-    states = simulate(parameters, n_samples)
-    return (parameters.x_ratio * states[:, 0]**2 +
-            parameters.offset).astype(int)
-
-
 @register
 def LaserLP5(args):
     """Return simulated laser data over fit range.
     """
-    return {'250_simulated_observations': observe(args.parameters, 250)}
+    length = 250
+    return {
+        '250_simulated_observations':
+            hmmds.applications.laser.utilities.observe(args.parameters, length),
+        '250_laser_data':
+            args.laser_data[:length]
+    }
 
 
 @register
 def LaserLogLike(args):
     """Dependence of Log Likelihood on s and b
     """
-    s = numpy.linspace(7.0, 10.0, 7, endpoint=True)
-    b = numpy.linspace(2.35, 2.6, 6, endpoint=True)
+    s_center = args.parameters.s
+    b_center = args.parameters.b
+    s = numpy.linspace(s_center * .9, s_center * 1.1, 7, endpoint=True)
+    b = numpy.linspace(b_center * .95, b_center * 1.05, 6, endpoint=True)
     log_likelihood = numpy.empty((len(s), len(b)))
     for i, s_ in enumerate(s):
         for j, b_ in enumerate(b):
             parameters = copy.deepcopy(args.parameters)
             parameters.s = s_
             parameters.b = b_
-            sde, initial_distribution, _ = optimize_ekf.make_non_stationary(
+            sde, initial_distribution, _ = hmmds.applications.laser.utilities.make_non_stationary(
                 parameters, None)
             log_likelihood[i, j] = sde.log_likelihood(initial_distribution,
                                                       args.laser_data)
@@ -113,9 +89,10 @@ def LaserLogLike(args):
 def LaserStates(args):
     """Sequence of 250 states from particle filter
     """
-    sde, initial_distribution, _ = optimize_ekf.make_non_stationary(
+    sde, initial_distribution, _ = hmmds.applications.laser.utilities.make_non_stationary(
         args.parameters, None)
-    forward_means, _ = sde.forward_filter(initial_distribution, args.laser_data)
+    forward_means, _ = sde.forward_filter(initial_distribution,
+                                          args.laser_data[:250])
     return {'forward_means': forward_means}
 
 
@@ -125,7 +102,10 @@ def LaserForecast(args):
 
     FixMe: Should run filter to estimate state at 250 and then forecast.
     """
-    return {'400_simulated_observations': observe(args.parameters, 400)}
+    return {
+        '400_simulated_observations':
+            hmmds.applications.laser.utilities.observe(args.parameters, 400)
+    }
 
 
 @register

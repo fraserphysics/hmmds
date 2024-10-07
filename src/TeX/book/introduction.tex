@@ -129,15 +129,21 @@ the laser system is governed by the Lorenz equations.
   {Laser intensity measurements.  The trace labeled \emph{Laser} is a
     plot of laser intensity measurements provided by Tang \etal.  The
     trace labeled \emph{Simulation} plots a numerical simulation of
-    the Lorenz system \eqref{eq:Lorenz} with parameters $r=21.16$,
-    $s=1.792$, $b=0.3670$, and measurement parameters $\Delta
-    \tau=0.1435$, $S_g = 7.071$, and $O_g =15.16$.  We used the
-    optimization procedure described in the text to select these
-    parameters.  The simulated intensities were derived from the
-    state by $\ti{y}{t} = S_g \cdot (\ti{x_1}{t})^2 + O_g$.  We
-    specified an absolute error tolerance of $10^{-7}$ per time step
-    for the numerical integrator.}
+    the Lorenz system \eqref{eq:Lorenz} with parameters that maximize
+    the likelihood of the model FixMe.}
   \label{fig:LaserLP5}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering{
+    \includegraphics[width=1.0\textwidth]{LaserLikeOptTS.pdf}}
+  \caption[\comment{fig:LaserLikeOptTS }Laser intensity measurements.]%
+  {Laser intensity measurements.  The trace labeled \emph{Laser} is a
+    plot of laser intensity measurements provided by Tang \etal.  The
+    trace labeled \emph{Simulation} plots a numerical simulation of
+    the Lorenz system \eqref{eq:Lorenz} with parameters  that optimize
+    the match in L2 FixMe}
+  \label{fig:LaserLikeOptTS}
 \end{figure}
 
 In working with Tang's laser data, we used a stochastic state space
