@@ -167,7 +167,7 @@ class Model:
         result = 0.0
         for y_t in quantized:
             # Now temp is the forecast or prior, ie, temp[0,i] = P(s[t]=i|y[:t])
-            temp = self.p_measurement_state.getrow(y_t).multiply(temp)
+            temp = self.p_measurement_state[[y_t]].multiply(temp)
             # getrow(y) is the likelihood, ie, getrow(y)[i] =
             # P(y[t]|s[t]=i)
             assert temp.shape == (1, n_states)

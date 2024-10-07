@@ -14,6 +14,7 @@ support multiple free parameters in a rule.
 import sys
 import argparse
 import subprocess
+import os.path
 
 import utilities
 
@@ -53,7 +54,7 @@ def register(func):
 
 
 @register
-def multi_state(args):
+def multi_state(args, dirname):
     """
     ar AR_order
     fs model_sample_frequency  samples per minute
@@ -64,9 +65,10 @@ def multi_state(args):
 
     Observation components: hr_respiration class
     """
+    pathname = os.path.join(dirname, 'model_init.py')
     d = parse_pattern(args.pattern, 'ar fs lpp rc rw rs')
     run_model_init = f"""
-      python model_init.py
+      python {pathname} --root {args.root}
       --AR_order {d['ar']}
       --model_sample_frequency {d['fs']}
       --low_pass_period {d['lpp']}
@@ -92,17 +94,25 @@ def parse_pattern(pattern, key_string):
 def main(argv=None):
     """Create an hmm and write it as a pickle.
     """
-    if argv is None:  # Usual case
-        argv = sys.argv[1:]
+    assert argv is None
+    dirname = os.path.dirname(sys.argv[0])
+    argv = sys.argv[1:]
 
     args = parse_args(argv)
-    for call_string in MODELS[args.key](args):
-        if args.debug:
-            print(f'''
-from make_init.py issue:
-{call_string}
+    for call_string in MODELS[args.key](args, dirname):
+        rv = subprocess.run(call_string.split(), check=False)
+        if rv.returncode == 0:
+            continue
+        print(f'''
+{sys.argv=}
+{rv.returncode=}
+{rv.args=}
+{rv.stdout=}
+{rv.stderr=}
+{call_string=}
 ''')
-        subprocess.run(call_string.split(), check=True)
+        print(" ".join(rv.args))
+        raise subprocess.CalledProcessError(rv.returncode, rv.args)
 
 
 if __name__ == "__main__":

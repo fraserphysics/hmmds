@@ -89,7 +89,7 @@ def main(argv=None):
     mod.train(y_data, args.n_iterations)
 
     # Strip and then save model in <model_file>
-    mod.deallocate()
+    mod.strip()
     with open(os.path.join(args.data_dir, args.model_file), mode='wb') as _file:
         pickle.dump(mod, _file)
     return 0

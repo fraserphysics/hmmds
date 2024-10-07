@@ -9,8 +9,7 @@ ApneaCode = $(HMMDS)/applications/apnea
 # This file is in the ApneaCode directory
 
 # Data built elsewhere
-RAW_DATA = /mnt/precious/home/andy_nix/projects/dshmm/raw_data
-EXPERT =  $(RAW_DATA)/apnea/summary_of_training
+EXPERT =  $(ROOT)/raw_data/apnea/summary_of_training
 PHYSIONET_WFDB = $(ROOT)/raw_data/apnea/apnea-ecg-database
 
 MODELS = ${ROOT}/build/derived_data/apnea/models
@@ -61,26 +60,26 @@ RS = .47
 # Detection threshold
 THRESHOLD = 0.7
 
-$(MODELS)/%_init: $(ApneaCode)/make_init.py model_init.py
+$(MODELS)/%_init: $(ApneaCode)/make_init.py $(ApneaCode)/model_init.py
 	mkdir -p  $(@D)
-	python $< multi_state $* $@
+	python $< --root $(ROOT) multi_state $* $@
 
 BEST = $(MODELS)/ar$(AR)fs$(FS)lpp$(LPP)rc$(RC)rw$(RW)rs$(RS)_masked
 
 $(MODELS)/%_masked: $(ApneaCode)/apnea_train.py $(MODELS)/%_init
-	python $< --records $(TRAIN_NAMES) --iterations 40 $(MODELS)/$*_init $@
+	python $< --root $(ROOT) --records $(TRAIN_NAMES) --iterations 40 $(MODELS)/$*_init $@
 
 $(DERIVED_APNEA_DATA)/pass2.out: $(ApneaCode)/pass2.py $(BEST)
-	python $^ $@ --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
+	python $^ $@  --root $(ROOT) --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
 
 $(DERIVED_APNEA_DATA)/test_pass2.out: $(ApneaCode)/pass2.py $(BEST)
-	python $^ $@ --records $(XNAMES) --threshold $(THRESHOLD)
+	python $^ $@  --root $(ROOT) --records $(XNAMES) --threshold $(THRESHOLD)
 
 $(DERIVED_APNEA_DATA)/score.tex: $(ApneaCode)/score.py $(DERIVED_APNEA_DATA)/pass2.out
-	python $^ $@  --tex
+	python $^ $@  --tex  --root $(ROOT)
 
 $(DERIVED_APNEA_DATA)/test_score.tex: $(ApneaCode)/score.py $(DERIVED_APNEA_DATA)/test_pass2.out
-	python $^ $@ $(XNAMES) --expert raw_data/apnea/event-2-answers --tex
+	python $^ $@ $(XNAMES)  --root $(ROOT) --expert raw_data/apnea/event-2-answers --tex
 
 ########################Build data for hand_opt.pdf#############################
 
@@ -142,7 +141,7 @@ $(DERIVED_APNEA_DATA)/errors_vs_rs.pkl: $(ApneaCode)/compare_models.py $(addpref
     --parameter_name "Respiration Smoothing Filter" \
     $@ > $(DERIVED_APNEA_DATA)/errors_vs_rs.txt
 
-COMPARE = python $(ApneaCode)/compare_models.py --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
+COMPARE = python $(ApneaCode)/compare_models.py --root $(ROOT) --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
 
 # Local Variables:
 # mode: makefile

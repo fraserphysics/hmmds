@@ -6,7 +6,6 @@
 ApneaFigDir = $(ROOT)/build/figs/apnea
 ApneaDerivedData = $(ROOT)/build/derived_data/apnea
 EXPERT =  $(ROOT)/raw_data/apnea/summary_of_training
-RESPIRE = $(ApneaDerivedData)/Respire
 APNEA_PLOTSCRIPTS = $(ROOT)/src/plotscripts/apnea
 
 ALL_SELVES = ${ROOT}/build/derived_data/ECG/all_selves
@@ -22,11 +21,11 @@ $(ApneaFigDir)/a03erA.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er.pkl
 $(ApneaFigDir)/a03erN.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er.pkl
 	$(PLOT_COMMAND)   $@
 
-$(ApneaFigDir)/a03HR.pdf: $(APNEA_TS_PLOTS)
+$(ApneaFigDir)/a03HR.pdf: $(APNEA_TS_PLOTS) $(ALL_SELVES)
 	$(PLOT_COMMAND)   $@
 
 $(ApneaFigDir)/ApneaNLD.pdf: $(APNEA_TS_PLOTS) $(ALL_SELVES)
-	$(PLOT_COMMAND)    $@
+	$(PLOT_COMMAND)   $@
 
 $(ApneaFigDir)/sgram.pdf:  $(APNEA_PLOTSCRIPTS)/spectrogram.py $(ApneaDerivedData)/a11.sgram
 	mkdir -p $(@D)
