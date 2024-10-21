@@ -130,9 +130,9 @@ Here we justify \eqref{eq:t274} by Bayes rule, \eqref{eq:t275} by
 the model assumptions, and \eqref{eq:t277} by the definition of a
 marginal distribution.
 \item[Calculate the joint forecast] Leaving the state at the next time
-  as a free parameter but fixing the next observation at $\ti{y}{t+1}$,
-  calculate the joint conditional distribution of the next state and
-  observation given the observations up to the present time.
+  as a free parameter, calculate the joint conditional distribution of
+  the next state and observation given the observations up to the
+  present time.
 \begin{align}
   \label{eq:t279}
   P\left(\ti{x}{t+1},\ti{y}{t+1}|\ts{y}{1}{t} \right) &=
@@ -144,9 +144,9 @@ marginal distribution.
 \end{align}
 Here we justify \eqref{eq:t279} by Bayes rule and \eqref{eq:t280} by
 the model assumptions.
-\item[Conditional probability of the observation] Integrate out
-  $\ti{x}{t+1}$ to get the conditional probability of the next
-  observation given the observations up to the present time.
+\item[Calculate the conditional probability of the observation]
+  Integrate out $\ti{x}{t+1}$ to get the conditional probability of
+  the next observation given the observations up to the present time.
 \begin{equation}
   \label{eq:Igamma}
   \ti{\gamma}{t+1} \equiv P\left(\ti{y}{t+1}|\ts{y}{1}{t} \right) = \int
@@ -171,13 +171,12 @@ the model assumptions.
 \index{backward algorithm!for continuous states}
 
 Similarly, the backward algorithm finds a function called the
-\index*{backwards forecast}
+\index*{backwards forecast},
 \begin{equation}
   \label{eq:contbeta}
   \beta(x,t) \equiv \frac{P_{\ts{Y}{t+1}{T}|\ti{X}{t}}
   \left(\ts{y}{t+1}{T}|x \right)}{P\left(\ts{y}{t+1}{T}|\ts{y}{1}{t}
-  \right)} = \frac{P_{\ti{X}{t}|\ts{Y}{1}{T}} \left(x|\ts{y}{1}{T}
-  \right)}{P_{\ti{X}{t}|\ts{Y}{1}{t}} \left(x|\ts{y}{1}{t} \right)}
+               \right)},
 \end{equation}
 for each time $t$ by starting with $\beta(x,T) = 1$ and following with
 the recursion
@@ -188,68 +187,27 @@ the recursion
   P_{\ti{X}{t}|\ti{X}{t-1}}\left(x'|x \right)}
   {P\left(\ti{y}{t}|\ts{y}{1}{t-1} \right)} dx'.
 \end{equation}
-To justify Eqn.~\eqref{eq:contback} note that
-\begin{align}
-  \beta(x',t) &= \frac{P_{\ts{Y}{t+1}{T}|\ti{X}{t}}
-  \left(\ts{y}{t+1}{T}|x' \right)}{P
-  \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right)}\\
-&= \frac{P_{\ts{Y}{t+1}{T}|\ti{X}{t},\ts{Y}{1}{t}}
-  \left(\ts{y}{t+1}{T}|x',\ts{y}{1}{t} \right) P \left(\ti{y}{t}|\ts{y}{1}{t-1}
-  \right)}{P \left(\ts{y}{t}{T}|\ts{y}{1}{t-1} \right)} 
-\end{align}
-and
-\begin{alignat}{1}
-  P_{\ti{Y}{t}|\ti{X}{t}}&\left(\ti{y}{t}|x' \right) %
-  P_{\ti{X}{t}|\ti{X}{t-1}}\left(x'|x \right)\notag\\
-  &= P_{\ti{Y}{t}|\ti{X}{t},\ts{Y}{1}{t-1}}%
-    \left(\ti{y}{t}|x',\ts{y}{1}{t-1}\right) %
-      P_{\ti{X}{t}|\ti{X}{t-1},\ts{Y}{1}{t-1}}%
-    \left(x'|x,\ts{y}{1}{t-1}\right)\\
-  &= P_{\ti{Y}{t},\ti{X}{t}|\ti{X}{t-1},\ts{Y}{1}{t-1}}%
-    \left(\ti{y}{t},x'|x,\ts{y}{1}{t-1}\right)
-\end{alignat}
-and consider the integrand of \eqref{eq:contback}
-\begin{align}
-  I &= \frac{\beta(x',t) P_{\ti{Y}{t}|\ti{X}{t}}\left(\ti{y}{t}|x'
-    \right) P_{\ti{X}{t}|\ti{X}{t-1}}\left(x'|x \right)}
-  {P\left(\ti{y}{t}|\ts{y}{1}{t-1} \right)}\\
-   &= \frac{P_{\ts{Y}{t+1}{T}|\ti{X}{t},\ts{Y}{1}{t}}
-     \left(\ts{y}{t+1}{T}|x',\ts{y}{1}{t} \right) }{P
-    \left(\ts{y}{t}{T}|\ts{y}{1}{t-1} \right)}
-   P_{\ti{Y}{t},\ti{X}{t}|\ti{X}{t-1},\ts{Y}{1}{t-1}}
-   \left(\ti{y}{t},x'|x,\ts{y}{1}{t-1} \right) \\
-  &= \frac{P_{\ts{Y}{t}{T},\ti{X}{t}|\ti{X}{t-1}}
-    \left(\ts{y}{t}{T},x'|x \right)}{P
-    \left(\ts{y}{t}{T}|\ts{y}{1}{t-1} \right)}.
-\end{align}
-Integrating out $x'$ leaves $\frac{P_{\ts{Y}{t}{T}|\ti{X}{t-1}}
-  \left(\ts{y}{t}{T}|x \right)}{P \left(\ts{y}{t}{T}|\ts{y}{1}{t-1}
-  \right)} = \beta(x,t-1)$.
-
-Notice that we have chosen to define $\beta(x,t)$ so that the
-conditional distribution of the state at time $t$ given all of the
-observations is
+Note that by replacing the sum over discrete states $s$ in
+\eqref{eq:back4} with an integral over continuous states $x'$ one
+obtains \eqref{eq:contback}, and that as with the discrete case we
+have chosen to define $\beta(x,t)$ so that the conditional
+distribution of the state at time $t$ given all of the observations is
 \begin{equation}
   \label{eq:contalphabeta}
   \alpha(x,t) \beta(x,t) = P_{\ti{X}{t}|\ts{Y}{1}{T}}
   \left(x|\ts{y}{1}{T} \right).
 \end{equation}
-Defining and evaluating a \emph{\index*{backwards update}} term
-\begin{align}
+Defining and evaluating a \emph{\index*{backwards update}} function
+\begin{equation}
   \label{eq:bdef}
-  b(x,t) &\equiv \frac{\beta(x,t)
+  b(x,t) \equiv \frac{\beta(x,t)
     P_{\ti{Y}{t}|\ti{X}{t}}\left(\ti{y}{t}|x
-    \right)} {P\left(\ti{y}{t}|\ts{y}{1}{t-1} \right)} \\
-  &= \frac{P_{\ti{X}{t}|\ts{Y}{1}{T}} \left(x|\ts{y}{1}{T}
-    \right)}{P_{\ti{X}{t}|\ts{Y}{1}{t-1}} \left(x|\ts{y}{1}{t-1}
-    \right)}\nonumber\\
-  & = \frac{P_{\ts{Y}{t}{T}|\ti{X}{t}} \left(\ts{y}{t}{T}|x
-    \right)}{P_{\ts{Y}{t}{T}|\ts{Y}{1}{t-1}}
-    \left(\ts{y}{t}{T}|\ts{y}{1}{t-1} \right)} \nonumber
-\end{align}
+    \right)} {P\left(\ti{y}{t}|\ts{y}{1}{t-1} \right)}
+\end{equation}
 lets one write Eqn.~\eqref{eq:contback} as
 \begin{equation*}
-  \beta(x,t-1) = \int b(x',t) {P\left(\ti{y}{t}|\ts{y}{1}{t-1} \right)} dx'
+  \beta(x,t-1) = \int b(x',t) P_{\ti{X}{t}|\ti{X}{t-1}}\left(x'|x
+  \right) dx'
 \end{equation*}
 which may make evaluating the integral easier.
 
@@ -360,8 +318,9 @@ distributions described by these parameters are also Gaussian.
 \subsection{Kalman Filter: The Forward Algorithm}
 \index{Kalman filter}
 
-The following two step recursion is called Kalman
-filtering\footnote{There are many longer presentations of Kalman
+The following two step recursion is called Kalman \marginpar{FixMe:
+  Cite bibliography not inline.}
+filtering\footnote{There are many more detailed presentations of Kalman
   filters, \eg, Maybeck\cite{Maybeck82}, \cite{KSH00}, OLR Jacobs,
   \emph{Introduction to control theory,} Oxford 1993, and RG Brown and
   PYC Hwang \emph{Introduction to Random Signals and Applied Kalman
@@ -551,7 +510,7 @@ directly to step~\ref{PYforecast}.
   \begin{equation*}
     \ti{x}{t} = \ti{F}{t} \ti{x}{t-1} + \ti{\eta}{t}
   \end{equation*}
-  the mean is
+  the mean is\marginpar{Use $\EV_{\ti{X}{t-1},\ti{\eta}{t}|\ts{y}{1}{t-1}}$?}
   \begin{align}
     \ti{\mu_a}{t} &= \EV_{P
       \left(\ti{x}{t-1},\ti{\eta}{t}|\ts{y}{1}{t-1} \right)} \left[
@@ -587,7 +546,7 @@ directly to step~\ref{PYforecast}.
 \item \label{PYforecast} \textbf{Calculate
     $\bm{P\left(\ti{y}{t}|\ts{y}{1}{t-1} \right)}$.}  Using
   \begin{equation*}
-    \ti{y}{t} = \ti{G}{t-1}\ti{x}{t} + \ti{\epsilon}{t-1}
+    \ti{y}{t} = \ti{G}{t}\ti{x}{t} + \ti{\epsilon}{t}
   \end{equation*}
   we calculate the mean and covariance of the distribution of the
   forecast observation as follows
@@ -645,7 +604,7 @@ directly to step~\ref{PYforecast}.
       \\ \ti{G}{t} \ti{\Sigma_a}{t}&\ti{\Sigma_\gamma}{t} 
     \end{bmatrix}.
   \end{equation}
-  We found the off diagonal terms of $\Sigma_z$ in
+  We derive the off diagonal terms of $\Sigma_z$ in
   Eqn.~\eqref{eq:cont-temp} as follows
   \begin{align}
     C &= \EV_{P\left(\ti{x}{t},\ti{\epsilon}{t}|\ts{y}{1}{t-1} \right)}
@@ -663,7 +622,7 @@ directly to step~\ref{PYforecast}.
     &= \ti{\Sigma_{a}}{t} \big(\ti{G}{t} \big)\transpose .
   \end{align}
 \item \label{PXupdate} \textbf{Calculate the state update,
-    $\bm{P\left(\ti{x}{t}|\ts{y}{1}{t} \right)}$.}  From the
+    $\bm{P\left(\ti{x}{t}|\ts{y}{1}{t} \right)}$.}  With the
   actual value of $\ti{y}{t}$ and the joint distribution of
   $\ti{x}{t}$ and $\ti{y}{t}$ given $\ts{y}{1}{t-1}$, we use
   Eqn.~\eqref{eq:Gauss-Conditional} to write the parameters of

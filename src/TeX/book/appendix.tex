@@ -90,7 +90,8 @@ that $\left( G + HJK \right)$ makes sense, and $\left(KG^{-1}H +
   J^{-1}\right)^{-1}KG^{-1}.
 \end{equation}
 Multiplying both sides by $\left( G + HJK \right)$ verifies the
-formula.  The special case
+formula.  Equation~\eqref{eq:SMW} is called the Sherman Morrison
+Woodbury formula.  The special case
 \begin{equation}
   \label{eq:MatrixInversion}
   \left(L^{-1} + H\transpose J^{-1}H \right)^{-1} = L - LH\transpose
@@ -288,6 +289,8 @@ In words the product of two Gaussian density functions is an
 unnormalized Gaussian density function in which the inverse covariance
 is the sum of the inverse covariances of the factors and the mean is
 the average of the factor means weighted by the inverse covariances.
+
+\marginpar{FixMe: The rest of the appendix is out of date}
 
 \chapter{Notes on Software}
 \label{cha:Software}

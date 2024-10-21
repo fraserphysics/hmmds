@@ -6,9 +6,9 @@ The challenge for the \emph{Computers in Cardiology} %
 meeting in 2000 (CINC2000) %
 \index{CINC2000 (Computers in Cardiology 2000)}%
 was to identify \emph{obstructive sleep apnea} on the basis of
-electrocardiograms alone.  My colleague James \index*{McNames} at
-Portland State University, with some support from me, won the prize
-for the best minute by minute analysis of data.  I prepared our first
+electrocardiograms alone.  Our colleague James \index*{McNames} at
+Portland State University, with some support from us, won the prize
+for the best minute by minute analysis of data.  We prepared our first
 entry using HMMs, and McNames prepared the subsequent (and winning)
 entries by hand using spectrograms\footnote{A spectrogram is display
   of power in Fourier spectral bands as a function of time.  The
@@ -16,9 +16,9 @@ entries by hand using spectrograms\footnote{A spectrogram is display
   point $(t,f)$ is the power in that frequency estimated in a window
   centered at that time.} to visualize the data.  \index{spectrogram}
 
-In preparing the first entry, I noticed that apnea produced many
+In preparing the first entry, we noticed that apnea produced many
 different characteristics in heart rate time series while the
-characteristics in non-apnea times were more similar to each other.  I
+characteristics in non-apnea times were more similar to each other.  We
 used a larger number of states in HMMs to model the various
 characteristics of apnea and a smaller number of states to model the
 more consistent normal times.  However using the maximum a posteriori
@@ -32,15 +32,15 @@ to estimate the sequence of classifications $\hat {\ts{c}{1}{T}}$ with
 \begin{equation*}
   \hat {\ti{c}{t}} \equiv c:\hat {\ti{s}{t}} \in c
 \end{equation*}
-produced obvious errors.  I found that during many periods of apnea
+produced obvious errors.  We found that during many periods of apnea
 the probability of being in each of the apnea states was lower than
 the probability of being in the normal state with the highest
 probability while the sum of the probabilities of apnea states was
-larger than the sum over normal states.  My effort to model the
+larger than the sum over normal states.  Our effort to model the
 diversity of apnea characteristics led to decoded sequences that were
 normal too often.
 
-I tried to address the issue by estimating the MAP sequence of classes
+We tried to address the issue by estimating the MAP sequence of classes
 rather than the MAP sequence of states, ie,
 \begin{equation}
   \label{eq:decode_class}
@@ -51,13 +51,13 @@ While the computational complexity of Viterbi algorithm which finds
 the MAP sequence of states is linear in $T$, the length of the
 sequence of observations, the computational complexity required to
 solve \eqref{eq:decode_class} is exponential\footnote{In the first
-  edition of this book, I presented an algorithm that I claimed solved
+  edition of this book, we presented an algorithm that we claimed solved
   \eqref{eq:decode_class} in linear complexity.  In some cases that
   algorithm yields plausible but not necessarily correct results and
   in others it simply crashes.} in $T$.
 
-In this chapter, I will first describe the CINC2000 challenge and how
-McNames addressed it.  Then I will address the challenge using HMMs.
+In this chapter, we will first describe the CINC2000 challenge and how
+McNames addressed it.  Then we will address the challenge using HMMs.
 
 \section{The  Challenge and the Data}
 \label{sec:challenge}
@@ -180,7 +180,7 @@ Briefly, one can fetch the following records from PhysioNet:
   \emph{apnea}
 \item[b01-b05:] The \emph{b records}\footnote{The amplitude of the
     \emph{b05} record varies dramatically over different segments of
-    time.  I found it unusable and discarded it entirely.} from
+    time.  We found it unusable and discarded it entirely.} from
   individuals diagnosed as \emph{borderline}
 \item[c01-c10:] The \emph{c records} from \emph{control} or normal
   individuals
@@ -192,18 +192,18 @@ Briefly, one can fetch the following records from PhysioNet:
 \item[summary\_of\_training:] Expert classifications of each minute in
   the $a$, $b$, and $c$ records
 \item[x01-x35:] The test set\footnote{The records \emph{x33} and
-    \emph{x34} are so similar that I suspect they are simultaneous
-    recordings from different ECG leads.  I did not explicitly exploit
-  the similarity in my analysis.}; records without classification
+    \emph{x34} are so similar that we suspect they are simultaneous
+    recordings from different ECG leads.  We did not explicitly exploit
+  the similarity in our analysis.}; records without classification
 \end{description}
 
 Using data visualization tools\footnote{One can use the script
-  hmmds.applications.apnea.explore.py from the software I used to
+  hmmds.applications.apnea.explore.py from the software we used to
   create this book to explore aspects of the data.} one can see
 striking oscillations in the apnea time series.  The patients stop
 breathing for tens of seconds, gasp a few breaths, and stop again.
 Each cycle takes about 45 seconds and can go on for most of the night.
-I've plotted two periods of such an oscillation from record \emph{a03}
+We've plotted two periods of such an oscillation from record \emph{a03}
 in Fig.~\ref{fig:a03erA}.  The reference or \emph{expert}
 classifications provided with the data indicate these are the last
 oscillations in the first apnea episode of the night.  Over the entire
@@ -214,6 +214,7 @@ breathing.  Ten and a half minutes after the end of the first apnea
 episode, the record, as plotted in Fig.~\ref{fig:a03erN}, looks
 normal.
 
+\marginpar{FixMe: Units of ECG?}
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{\includegraphics{a03erA.pdf}}
   }
@@ -222,8 +223,8 @@ normal.
     induced oscillation in $SpO_2$ are drawn in the lower plot.  The
     middle plot is the oronasal airflow signal, and the upper plot is
     the ECG (units of both ONR and ECG are unknown).  The time
-    axis is marked in \emph{hours:minutes}.  Notice the increased
-    heart rate just after 0:58 and just before 0:59.}
+    axis is marked in \emph{hours:minutes:seconds}.  Notice the increased
+    heart rate just after 0:58:00 and just before 0:59:00.}
   \label{fig:a03erA}
 \end{figure}
 
@@ -232,19 +233,19 @@ normal.
   }
   \caption[A segment of record a03]%
   {A segment of record a03 taken during a period of normal
-    respiration.  Signals the same as in Fig.~6.1.}
+    respiration.  The signals are the same as in Fig.~6.1.}
   \label{fig:a03erN}
 \end{figure}
 
 In plots like Fig.~\ref{fig:a03erA}, the heart rate visibly increases
 at the end of the gasping phase and then decreases during the phase of
-interrupted respiration.  That heart rate oscillation is the key I
-used in my initial attempts to classify periods of apnea.  In
-Fig.~\ref{fig:a03erHR}, I've plotted both a heart rate derived from
+interrupted respiration.  That heart rate oscillation is the key we
+used in our initial attempts to classify periods of apnea.  In
+Fig.~\ref{fig:a03erHR}, we've plotted both a heart rate derived from
 the ECG \nomenclature[rECG]{ECG}{Electrocardiogram} and the $SpO_2$
 signal.  The oscillations in the signals track each other, and the
 expert classifies only the region of large heart rate oscillation as
-apnea.
+apnea.  \marginpar{FixMe: HR in bpm}
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{\includegraphics{a03HR.pdf}}
   }
@@ -258,25 +259,25 @@ apnea.
 
 \section{Using Information from Experts to Train}
 
-I first considered the CINC2000 challenge when Andreas
-Rechtsteiner told me that he was going to use it as a final project
-for a class that James was teaching.  I suggested that he try a two
-state HMM with autoregressive observation models, \ie, a model like
-those described in section~\ref{sec:ARVGaussian} but with scalar
+We first considered the CINC2000 challenge when Andreas Rechtsteiner
+told us that he was going to use it as a final project for a class
+that James was teaching.  We suggested that Andreas try a two state
+HMM with autoregressive observation models, \ie, a model like those
+described in section~\ref{sec:ARVGaussian} but with scalar
 observations.
 
-To use the expert classification information in training, Andreas and
-I found that we need only modify the observation model.  The technique
+To use the expert classification information in training, Andreas
+found that one can just modify the observation model.  The technique
 is not limited to HMMs with only two states or two classes; it applies
 to an arbitrary number of classes and to arbitrary numbers of states
 associated with each class.  At each time $t$, let $\ti{c}{t}$ denote
 classification information from an expert about which states are
 possible.  Specifically $\ti{c}{t}$ is a vector that indicates that
-some states are possible and that the others are impossible.  We
-simply replace $P_{\ti{Y}{t}|\ti{S}{t},\ts{Y}{1}{t-1}}$ with
+some states are possible and that the others are impossible.  One
+simply replaces $P_{\ti{Y}{t}|\ti{S}{t},\ts{Y}{1}{t-1}}$ with
 $P_{\ti{Y}{t},\ti{C}{t}|\ti{S}{t},\ts{Y}{1}{t-1}}$ wherever it occurs
-in the Baum-Welch algorithm.  Roughly, the modification forces the
-system into states associated with the right class during training.
+in the Baum-Welch algorithm.  The modification forces the system into
+states associated with the right class during training.
 
 While the performance of Andreas' two state model was not memorable,
 models with more states were promising.
@@ -288,13 +289,13 @@ To diagnose the errors, McNames printed spectrograms of every record.
 As he reported in \cite{mcnames2000}, the first step in McNames
 analysis was implementing his own QRS detection algorithm.  Then he
 derived spectrograms from the resulting QRS analyses.  Although the
-spectrograms discarded phase information that I hoped was important,
-they clearly indicated the oscillations that I had tried to capture
+spectrograms discarded phase information that we hoped was important,
+they clearly indicated the oscillations that we had tried to capture
 with complicated HMMs as intense bands of power at frequencies below 2
-cpm (cycles per minute).%
-\nomenclature[rcpm]{cpm}{Cycles per minute.}%
+bpm (beats per minute).%
+\nomenclature[rbpm]{bpm}{Beats per minute.}%
 In addition to those low frequency oscillations, he noticed bands of
-power between 10 and 20 cpm in the spectrograms (See
+power between 10 and 20 bpm in the spectrograms (See
 Fig.~\ref{fig:sgram}).  That higher frequency power was evidence of
 respiration.  Using both of those features, he classified the test
 data by hand.  First he classified each entire record for \emph{event
@@ -303,20 +304,20 @@ apnea, he classified each minute in those records as normal.  His
 third attempt at \emph{event 2} was the best entry at the close of the
 contest.
 
+\marginpar{FixMe: cpm -> bpm}
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{\includegraphics{sgram.pdf}}
   }
   \caption[Information about respiration in high
   frequency phase variations]% FixMe: Use the same parameters for this
                              % plot as used for the HMM
-  {Information about respiration in high frequency phase variations.
-    This is the $a11$ record roughly between minutes 00 and 150.  The
-    upper plot is heart rate (bandpass filtered 0.09-3.66 cpm), the
-    middle plot is a spectrogram of the phase jitter in the heart
-    rate, and the lower plot is the expert classification.  A single
-    band of spectral power between about 10 and 20 cpm without much
-    power below the band in the spectrogram indicates normal
-    respiration.}
+  {Information about respiration in high frequency bands of power
+    spectra.  This is the $a11$ record roughly between minutes 20 and
+    150.  The upper plot is heart rate (bandpass filtered 0.09-3.66
+    bpm), the middle plot is a spectrogram of the heart rate, and the
+    lower plot is the expert classification.  A single band of
+    spectral power between about 10 and 20 bpm without much power
+    below the band in the spectrogram indicates normal respiration.}
   \label{fig:sgram}
 \end{figure}
 
@@ -325,9 +326,9 @@ ECG alone sufficient to classify apnea?'' McNames work answered the
 question affirmatively.  For attempts to do the classification
 automatically, his work suggests the following points:
 \begin{enumerate}
-\item Heart rate oscillations at about 1.3 cpm indicate apnea.
-\item A clean phase jitter signal at about 14 cpm
-  indicates normal respiration.
+\item Heart rate oscillations at about 1.3 bpm indicate apnea.
+\item A clean band at about 14 bpm in the power spectrum indicates
+  normal respiration.
 \end{enumerate}
 
 \afterpage{\clearpage}%% Print this right here please.
@@ -335,18 +336,19 @@ automatically, his work suggests the following points:
 \section{Using HMMs to Address the Challenge}
 \label{sec:apnea_hmms}
 
-In the following sections, as the final example in the book, I use
-HMMs to address the CINC2000 challenge.  I begin with an HMM scheme
-for estimating heart rate because, like McNames, I find off-the-shelf
+In the following sections, as the final example in the book, we use
+HMMs to address the CINC2000 challenge.  We begin with an HMM scheme
+for estimating heart rate because, like McNames, we find off-the-shelf
 QRS detection codes are not adequate for the variety of the CINC2000
-data.  From the estimated heart rate signal for each record, I derive
+data.  From the estimated heart rate signal for each record, we derive
 a sequence of two dimensional observations.  The first component is
 the low pass filtered heart rate, and the second is roughly the
 intensity of the spectrogram in the range of respiration near 15
-cycles per minute.  Next I fit an HMM with the vector autoregressive
-observation models described in Section~\ref{sec:ARVGaussian} to the
-training data.  And finally I apply that HMM to classify each minute
-of the test data.
+beats per minute.  Next we fit an HMM with vector autoregressive
+observation models as described in Section~\ref{sec:ARVGaussian} to
+the two dimensional observations derived from the training data
+records.  And finally we apply that HMM to classify each minute of the
+test data.
 
 \subsection{Estimating Heart Rate}
 \label{sec:ecg_hmms}
@@ -372,7 +374,7 @@ of the test data.
   \label{fig:a03a10b03c02}
 \end{figure}
 
-\marginpar{FixMe: Label PQRST}
+\marginpar{FixMe: Label PQRST. (t-56minutes)/seconds}
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{\includegraphics{constant_a03.pdf}}}
   \caption[Invariant PQRST shape]%
@@ -383,16 +385,16 @@ of the test data.
   \label{fig:constant_a03}
 \end{figure}
 
-At first I tried using off-the-shelf code to extract heart rates from
-the Physionet ECG data.  Figure~\ref{fig:elgendi} illustrates results
+At first we tried using off-the-shelf code to extract heart rates from
+the PhysioNet ECG data.  Figure~\ref{fig:elgendi} illustrates results
 of using one of the detectors\footnote{Elgendi, Mohamed \& Jonkman,
   Mirjam \& De Boer, Friso. (2010). "Frequency Bands Effects on QRS
   Detection" The 3rd International Conference on Bio-inspired Systems
   and Signal Processing (BIOSIGNALS2010). 428-431.} implemented by
 Porr et al.\footnote{https://github.com/berndporr/py-ecg-detectors},
 and Figure~\ref{fig:a03a10b03c02} illustrates the challenging
-diversity of waveforms in the Physionet data.  To address the
-diversity of waveforms, I developed an approach to estimating heart
+diversity of waveforms in the PhysioNet data.  To address the
+diversity of waveforms, we developed an approach to estimating heart
 rates from ECGs based on HMMs that relies on the observation that for
 each record the shape and duration of the $PQRST$ pattern doesn't
 vary.  For different heart rates the time between the $T$ wave and the
@@ -414,7 +416,7 @@ little.  Figure~\ref{fig:constant_a03} illustrates the invariance.
   \label{fig:ecg_hmm}
 \end{figure}
 
-Figure~\ref{fig:ecg_hmm} illustrates the topology of the HMMs I built
+Figure~\ref{fig:ecg_hmm} illustrates the topology of the HMMs we built
 to capture the invariant shapes of the PQRST sequences for each
 individual record.  In addition to the states drawn, there is a
 special \emph{outlier} state accommodates ECG-lead noise.  Here are
@@ -439,17 +441,18 @@ appropriate for heart rates above 120~bpm.
 \subsubsection{Observation models and training}
 \label{sec:ecg_training}
 
-I used a Gaussian scalar autoregressive observation model with means
+We used a Gaussian scalar autoregressive observation model with means
 for each state being an affine function of the previous three
 observations and variances fit to each state separately.  The models
 are one dimensional versions of those described in
 Section~\ref{sec:ARVGaussian}.
 
-I used scipy.signal.find\_peaks to supervise training of an initial
-model for one of the records from CINC 2000.  I derived models for the
-most\footnote{For a few of the records I used other techniques to
-  obtain initial models.} other records from that initial model via
-unsupervised training.
+We used scipy.signal.find\_peaks to supervise training of an initial
+model for one of the records from CINC 2000.  we derived models for
+the most\footnote{For a few of the records we used other techniques to
+  obtain initial models.  However models for all records were trained
+  similarly.} other records from that initial model via unsupervised
+training.
 
 \subsubsection{Applying trained ECG models}
 \label{sec:applying_ECG_models}
@@ -457,8 +460,9 @@ unsupervised training.
 As intended, the trained HMMs track PQRST shapes in the ECG data well.
 Figure~\ref{fig:a01c02_states} illustrates the performance on two
 records, \emph{a01} and \emph{c02}, in which the ECG shapes are quite
-different.  To be clear, I note that a separate HMM gets trained on
+different.  To be clear, we repeat that a separate HMM gets trained on
 each record.
+\marginpar{FixMe: sharex. label axes}
 \begin{figure}
   \centering{\resizebox{0.8\textwidth}{!}{\includegraphics{a01c02_states.pdf}}
   }
@@ -472,6 +476,7 @@ each record.
 
 In addition to analyzing measured ECGs, the models can generate
 simulated ECGs, eg, Figure~\ref{fig:simulated}.
+\marginpar{FixMe: ecg units}
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{0.8\includegraphics{simulated.pdf}}
   }
@@ -485,6 +490,7 @@ simulated ECGs, eg, Figure~\ref{fig:simulated}.
 \subsubsection{Mapping state sequences to heart rate}
 \label{sec:states2hr}
 
+\marginpar{FixMe: (time - 5:52)/second}
 \begin{figure}
   \centering{\resizebox{0.8\textwidth}{!}{\includegraphics{ecg2hr.pdf}}
   }
@@ -494,14 +500,14 @@ simulated ECGs, eg, Figure~\ref{fig:simulated}.
     decoded state sequence appears in the middle plot.  The $\times$
     marks in the middle plot indicate the times when the state is 31.
     The same times are also indicated in the upper plot.  The inverse
-    of the difference in time between adjacent $x$s provides the
+    of the difference in time between adjacent $\times$s provides the
     estimated heart rate.  A smoothed version of those estimates
     sampled periodically at 2 Hz appears in the lower plot. }
   \label{fig:ecg2hr}
 \end{figure}
 
-I've built HMMs of ECG signals to estimate heart rate signals because
-I believe that it is the heart rate that is relevant for detecting
+We've built HMMs of ECG signals to estimate heart rate signals because
+We believe that it is the heart rate that is relevant for detecting
 apnea.  Decoded state sequences like those that appear in
 Figure~\ref{fig:a01c02_states} are sufficient for estimating heart
 rate.  Considering the circular character of the topology depicted in
@@ -518,44 +524,45 @@ Figure~\ref{fig:ecg2hr}.
 \label{sec:apnea_observation_model}
 
 While the previous section was about designing HMMs of ECG signals in
-order to estimate heart rate signals, here I will address designing
+order to estimate heart rate signals, here we will address designing
 HMMs of heart rate signals in order to detect apnea.  In
-Section~\ref{sec:mcnames} I described two characteristics of apnea
+Section~\ref{sec:mcnames} we described two characteristics of apnea
 that McNames used for classifying apnea, namely:
 \begin{itemize}
-\item Oscillations of the heart rate with periods about 45 seconds.
+\item Oscillations of the heart rate with periods of about 45 seconds.
   Such oscillations appear in Fig.~\ref{fig:a03erA}.
-\item Modulation of the heart rate by respiration at around 15 cycles
+\item Modulation of the heart rate by respiration at around 15 beats
   per minute. Such modulation is captured by the spectrogram in
   Fig.~\ref{fig:sgram}.
 \end{itemize}
-I derive these two characteristics from heart rate signals (as appears
+We derive these two characteristics from heart rate signals (as appears
 in Fig.~\ref{fig:ecg2hr}) sampled at 2 Hz using spectral techniques
-that begin with a fast Fourier transform (FFT) of each entire 8 hour
-record.  Figure~\ref{fig:explore} illustrates a transition into apnea
-in which both characteristics indicate the transition.  The HMM I
+that begin with a fast Fourier transform (FFT) of each entire record
+of about 8 hours.  Figure~\ref{fig:explore} illustrates a transition into apnea
+in which both characteristics indicate the transition.  The HMM we
 built for detecting apnea has six states and uses $8^{\text{th}}$
 order vector autoregressive observation models of two dimensional
 observations, with components called \textbf{low pass heart rate} and
 \textbf{respiration}.
 
+\marginpar{FixMe: t/minutes, a03 Raw Heart Rate/bpm}
 \begin{figure}
   \centering{\resizebox{1.0\textwidth}{!}{\includegraphics{explore.pdf}}
   }
   \caption[Apnea characteristics derived from estimated heart rate
   signal.]{An illustration of apnea characteristic data derived from
-    heart rate at a transition into apnea.  The reference expert
-    marked a transition from normal respiration to apnea in record
-    \emph{a03} at minute 427.  A low pass Gaussian filter applied to
-    the raw heart rate signal produces the trace labeled \emph{Low
-      Pass}, and the dots on that trace indicate the data passed as
-    one component of the observation data to the HMM.  A Gaussian
-    filter that passes frequencies in a band typical for respiration
-    yields the \emph{Band Pass} trace.  The \emph{Respiration} trace
-    is a low pass filtered version of the envelope of the \emph{Band
-      Pass} trace.  Again, the dots indicate data passed to the HMM.
-    The characteristics of apnea are the large slow oscillations in
-    the \emph{Low Pass} signal and the drops of the \emph{Respiration}
+    heart rate at a transition into apnea.  The expert marked a
+    transition from normal respiration to apnea in record \emph{a03}
+    at minute 427.  A low pass Gaussian filter applied to the raw
+    heart rate signal produces the trace labeled \emph{Low Pass}, and
+    the dots on that trace indicate the data passed as one component
+    of the observation data to the HMM.  A Gaussian filter that passes
+    frequencies in a band typical for respiration yields the
+    \emph{Band Pass} trace.  The \emph{Respiration} trace is a low
+    pass filtered version of the envelope of the \emph{Band Pass}
+    trace.  Again, the dots indicate data passed to the HMM.  The
+    characteristics of apnea are the large slow oscillations in the
+    \emph{Low Pass} signal and the drops of the \emph{Respiration}
     signal to low levels.}
   \label{fig:explore}
 \end{figure}
@@ -569,14 +576,16 @@ and for apnea episodes.
   \centering{\resizebox{1.0\textwidth}{!}{\includegraphics{viz.pdf}} }
   \caption[Topology of HMM for detecting apnea.]{Topology and some
     parameters of a six state HMM for detecting apnea is shown.  The
-    figure was generated by the pygraphviz software from the trained
-    HMM.  A transition between every pair of states is possible.  The
-    meaning of the colors of the transitions are: \textbf{black}
-    fixed/untrained probability; \textbf{red} transition from an apnea
-    state; \textbf{blue} transition from a normal state.}
+    figure was generated by the \emph{pygraphviz} software from the
+    trained HMM.  A transition between every pair of states is
+    possible.  The meaning of the colors of the transitions are:
+    \textbf{black} fixed/untrained probability; \textbf{red}
+    transition from an apnea state; \textbf{blue} transition from a
+    normal state.}
   \label{fig:viz}
 \end{figure}
 
+\marginpar{FixMe: Min is at 3 but 4 is used}
 \begin{figure}
   \centering{\resizebox{1.0\textwidth}{!}{\includegraphics{errors_vs_fs.pdf}} }
   \caption[Error rate as a function of sample frequency.]{Performance
@@ -587,16 +596,17 @@ and for apnea episodes.
   \label{fig:errors_vs_fs}
 \end{figure}
 
-Of the host of parameters, I chose the following for the observation
+Of the host of parameters, we chose the following for the observation
 model by hand using one dimensional studies on the training data like
 Figure~\ref{fig:errors_vs_fs}:
+\marginpar{FixMe: Get values from code}
 \begin{description}
-\item[Autoregressive Order 8]
-\item[Model Sample Frequency 4 cpm]
-\item[Low Pass Period 65 seconds]
-\item[Respiration Center Frequency 12 cpm]
-\item[Respiration Filter Width 3.6 cpm]
-\item[Respiration Smoothing 0.47 cpm]
+\item[Autoregressive Order] 8
+\item[Model Sample Frequency] 4 samples per minute
+\item[Low Pass Period] 65 seconds
+\item[Respiration Center Frequency] 12 bpm
+\item[Respiration Filter Width] 3.6 bpm
+\item[Respiration Smoothing] 0.47 bpm
 \end{description}
 Figure~\ref{fig:explore} illustrates the derivation of HMM observation
 data from the estimated raw heart rate signal using these parameters.
@@ -609,14 +619,14 @@ Equation \eqref{eq:wit}, ie,
   w(s,t) \equiv P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s|\ts{y}{1}{T}
   \right),
 \end{equation*}
-gives the probability of each state at each time given the model and
-all of the observations.  From such state weights, I construct the
-sequence of ratios
+provides the probability of each state at each time given the model and
+all of the observations.  From such state weights, we construct a
+sequence of ratios with
 \begin{equation*}
   \ti{r}{t} \equiv \frac{\sum_{s\in A} w(s,t)}{\sum_{s\in N} w(s,t)}
 \end{equation*}
 where $A$ is the set of apnea states and $N$ is the set of normal
-states.  Finally I derive a sequence of classifications,
+states.  Finally we derive a sequence of classifications,
 $\ts{c}{1}{T}$, from the sequence of ratios, $\ts{r}{1}{T}$, by
 comparing to a threshold, $R$,
 \begin{equation}
@@ -634,17 +644,17 @@ classification errors on the training data.
 \section{Results}
 \label{sec:results}
 
-I trained an HMM with the structure and parameters described in
+We trained an HMM with the structure and parameters described in
 Section~\ref{sec:apnea_observation_model} on the training data (the
-usable \emph{a}, \emph{b} and \emph{c} records) and then use it to
+usable \emph{a}, \emph{b} and \emph{c} records) and then used it to
 classify each minute of the training data as either normal, $N$, or
 apnea, $A$.  The results appear in Table~\ref{tab:score}.  Results of
 applying the HMM to the test data (the \emph{x} records appear in
-Table~\ref{tab:test_score}.  I am disappointed that the score on the
+Table~\ref{tab:test_score}.  We are disappointed that the score on the
 test data does not place among those listed as \emph{CinC Challenge
   2000 Top Scores} at
 https://archive.physionet.org/challenge/2000/top-scores.shtml which
-have error rates from 0.0738 to 0.1551.  While I was able to get
+have error rates from 0.0738 to 0.1551.  While we were able to get
 slightly better performance with more complex ideas, the small
 improvements did not seem to justify the complexity.
 
@@ -667,18 +677,18 @@ improvements did not seem to justify the complexity.
 \section{Classification Versus Estimation}
 \label{sec:ClassVsEst}
 
-In the early chapters of this book, I have emphasized choosing model
+In the early chapters of this book, we have emphasized choosing model
 parameters to maximize the likelihood of the data, the tweaks and
-fudges I've used in this chapter are not concerned with improving
+fudges we've used in this chapter are concerned with improving
 classification performance rather than improving likelihood.  While it
 is true that if one had access to accurate probabilistic
 characterizations of observations conditional on class membership the
 best classifier would be a likelihood ratio classifier, it is not true
 that without such characterizations the best approach to
 classification is to estimate them.  This point was made forcefully by
-Vapnik\cite{Vapnik98} who said, ``one should solve the [classification]
-problem directly and never solve a more general problem as an
-intermediate step.''
+Vapnik\cite{Vapnik98} who said, ``one should solve the
+[classification] problem directly and never solve a more general
+problem as an intermediate step.''
 
 %%%
 %%% Local Variables:

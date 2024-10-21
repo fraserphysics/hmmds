@@ -59,7 +59,7 @@ measurements has the following characteristics:
     \end{equation*}
   \item[Time step] We obtain the map $F$ by numerically integrating
     Eqn.~\eqref{eq:Lorenz} for time intervals of length $t_s$ with an
-    absolute error tolerance of $10^{-7}$.
+    absolute error tolerance of $10^{-7}$. \marginpar{FixMe: Really?}
   \item[iid state noise] 
     \begin{equation*}
       \ti{\eta}{t} \sim \Normal(0, \begin{bmatrix} 1 & 0 & 0\\0 & 1 &
@@ -81,8 +81,9 @@ measurements has the following characteristics:
     functions rather than \emph{coordinate dependent} probability
     density functions.
 \end{description}
-Recall that $\ti{\mu_\gamma}{t}$ and $\ti{\sigma_\gamma}{t}$
-completely characterize $ P(\ti{y}{t}|\ts{y}{1}{t-1},\theta)$ with
+Recall that for the extended Kalman filter $\ti{\mu_\gamma}{t}$ and
+$\ti{\sigma_\gamma}{t}$ completely characterize
+$ P(\ti{y}{t}|\ts{y}{1}{t-1},\theta)$ with
 \begin{equation*}
   P(\ti{y}{t}|\ts{y}{1}{t-1},\theta) =
   \NormalE{\ti{\mu_\gamma}{t}}{\ti{\sigma^2_\gamma}{t}}{\ti{y}{t}}.
@@ -118,13 +119,15 @@ between the mean of the forecast and the actual observation is much
 larger than the predicted deviation, \ie, $\ti{\sigma^2_\gamma}{t} <<
 \left(\ti{y}{t}-\ti{\mu_\gamma}{t}\right)^2$.
 
-The largest excursion of $\ti{\sigma_\gamma}{t}$ in
+The largest excursion of $\ti{\sigma_\gamma}{t}$ in \marginpar{FixMe:
+  Really?  Put values on x axis.}
 Fig.~\ref{fig:ToyTS1} occurs between $t=117$ and $t=122$.
 Figure~\ref{fig:ToyStretch} illustrates the stretching action of
 the map $[DF]$ that occurs in that interval; the dynamics maps the
 smaller ellipse in the plot on the left into the larger ellipse in the
 plot on the right.
 
+\marginpar{FixMe: Get values from code.  t axis values.}
 \begin{figure}[htbp]
   \centering{\plotsize%
     \def\loglikelihood{$\log\left( P_{\gamma} \left(\ti{y}{t} \right)\right)$}%
@@ -155,6 +158,7 @@ plot on the right.
   \label{fig:ToyTS1}
 \end{figure}
 %%%
+\marginpar{FixMe: Values from code.  Label traces.}
 \begin{figure}[htbp]
   \centering{\resizebox{\textwidth}{!}{\includegraphics{ToyStretch.pdf}}
   }
@@ -246,6 +250,7 @@ estimate $\hat \lambda_1 = 0.906$ (base $e$) that we obtain using the
 Benettin procedure described in Section~\ref{sec:Benettin}.
 %%% code/python/lorenzLyap.py
 
+\marginpar{FixMe: Values from code}
 \begin{figure}[htbp]
   \centering{\plotsize%
     \def\tsa{$t_s$}%
@@ -264,23 +269,23 @@ Benettin procedure described in Section~\ref{sec:Benettin}.
      $\sigma_\epsilon = 10^{-10}$ & Standard deviation of measurement noise \\
      $\Delta = 10^{-4}$ & Measurement quantization \\
      $T=5,000$ & Number of samples
-   \end{tabular}\\
-   For both plots, the vertical axis is the average log likelihood of
-   the one-step forecast $-\hat h \equiv \frac{1}{T} \sum_{t=1}^T
-   \log \left( P \left(\ti{y}{t}|\ts{y}{1}{t-1}, \theta
-     \right)\right)$.  On the left we plot $-\hat h$ as a function of
-   both $t_s$, the time step, and $\tilde \sigma_\epsilon$, the
-   standard deviation of the measurement noise model used by the
-   Kalman filter.  On the right ``$\circ$''%% Top row of dots
-   indicates the
-   performance of filters that use measurement noise models that depend on the
-   sampling time through the formula $\tilde \sigma_\epsilon(t_s) =
-   10^{0.4 t_s -4.85}$, which closely follows the ridge top in the plot
-   on the left, ``$\diamond$''%% Bottom row of dots
-   indicates the performance of
-   filters that use $\tilde \sigma_\epsilon = 10^{-4}$, \ie the
-   measurement quantization level, and the solid line traces
-   Eqn.~\eqref{eq:ToyH} in the text.}
+    \end{tabular}\\
+    For both plots, the vertical axis is the average log likelihood of
+    the one-step forecast $-\hat h \equiv \frac{1}{T} \sum_{t=1}^T
+    \log \left( P \left(\ti{y}{t}|\ts{y}{1}{t-1}, \theta
+      \right)\right)$.  On the left we plot $-\hat h$ as a function of
+    both $t_s$, the time step, and $\tilde \sigma_\epsilon$, the
+    standard deviation of the measurement noise model used by the
+    extended Kalman filter.  On the right ``$\circ$''%% Top row of dots
+    indicates the
+    performance of filters that use measurement noise models that depend on the
+    sampling time through the formula $\tilde \sigma_\epsilon(t_s) =
+    10^{0.4 t_s -4.85}$, which closely follows the ridge top in the plot
+    on the left, ``$\diamond$''%% Bottom row of dots
+    indicates the performance of
+    filters that use $\tilde \sigma_\epsilon = 10^{-4}$, \ie the
+    measurement quantization level, and the solid line traces
+    Eqn.~\eqref{eq:ToyH} in the text.}
    \label{fig:ToyH}
 \end{figure}
 %\afterpage{\clearpage}%% Print this right here please.
@@ -345,7 +350,7 @@ system, the log-likelihood is tied to $D(\mu||\theta)$, the
 not an appropriate performance measure for every application, it is a
 common tool for problems in information theory and statistics.  See
 Cover and Thomas\cite{Cover91} for many of these including the
-application of relative entropy to the theory of gambling.  Relative
+application of relative entropy to a theory of gambling.  Relative
 entropy is exactly the right performance measure for data compression.
 The arithmetic coding algorithm (see the review by Witten, Neal, and
 Cleary\cite{Witten87}) for compressing a sequence of symbols uses a
@@ -626,7 +631,7 @@ the coordinates or labeling used, the fact that $h_{KS}(F_3,\mu) \neq
 h_{KS}(F_2,\mu)$ provided a negative answer to the question.
 
 Notice that the Kolmogorov entropy is equal to the average of the log
-of slope of the map.  Specifically, the slope of $F_2$ is 2 and
+of the slope of the map.  Specifically, the slope of $F_2$ is 2 and
 $h_{KS}(F_2,\mu) = \log(2)$ while the slope of $F_3$ is 3 and
 $h_{KS}(F_3,\mu) = \log(3)$.  The rule that entropy is proportional to
 the log of the average slope is not true in general.  The next example
@@ -676,11 +681,11 @@ $(F_2,\mu)$ to $(F_3,\mu_c)$:
   expansion $\ts{d}{0}{\infty}$
 \end{enumerate}
 
-The \index*{Hausdorff dimension}\footnote{We sometimes refer to sets and
-  characteristics of sets with non-integer dimensions as
-  \emph{fractal}.} of the middle third Cantor set is $\delta =
-\frac{\log(2)}{\log(3)}$, and that is the factor that is missing in
-the formula connecting entropy and stretching.
+The \index*{Hausdorff dimension}\footnote{Sets and characteristics of
+  sets with non-integer dimensions are sometimes called
+  \emph{fractal}.} of the middle third Cantor set is
+$\delta = \frac{\log(2)}{\log(3)}$, and that is the factor that is
+missing in the formula connecting entropy and stretching.
 \begin{align}
   h_{KS}(F_3,\mu_c) &= \log(2) \nonumber \\
   &= \frac{\log(2)}{\log(3)} \log(3) \nonumber \\
@@ -714,7 +719,7 @@ We define the asymptotic growth rate of the direction $v$ at $x$ as
   \lambda(F,x,v) \equiv \lim_{t\rightarrow \infty} \frac{1}{t} \log
   \left( \left\| [DF^t(x)] v \right\| \right).
 \end{equation}
-\index*{Oseledec's theorem} (~\cite{young95-1,katok95, mane87}) says
+\index*{Oseledec's theorem} ~\cite{young95-1,katok95, mane87} says
 that at almost every $x$ the limit exists for every $v$, and that
 although the value of the limit depends on $v$, that as $v$ varies, it
 only takes on $r \leq n$ discrete values called the \emph{spectrum of
@@ -1059,13 +1064,15 @@ system appear in Fig.~\ref{fig:benettin}.
 \begin{figure}[htb]
   \centering{\includegraphics[width=1.0\textwidth]{benettin.pdf}
   }
-  \caption[\comment{fig:benettin }Lyapunov exponent calculation for the Lorenz system.]%
+  \caption[\comment{fig:benettin }Lyapunov exponent calculation for
+  the Lorenz system.]%
   {Lyapunov exponent calculation for the Lorenz system.  In the upper
-    part, the three lighter traces are plots of $\frac{1}{T}
-    \sum_{t=1}^T \log\left( \left| \ti{r_{1,1}}{t} \right| \right)$
-    and the heavier traces the 5\% and 95\% limits on 1,000 separate
-    runs.  The lower part is the same except that $\left|
-      \ti{r_{1,1}}{t} \right|$ is augmented by a noise term with
+    part, the colored traces are plots of
+    $\frac{1}{T} \sum_{t=1}^T \log\left( \left| \ti{r_{1,1}}{t}
+      \right| \right)$ for three different initial conditions and the
+    black traces the 5\% and 95\% limits on 1,000 separate runs.  The
+    lower part is the same except that
+    $\left| \ti{r_{1,1}}{t} \right|$ is augmented by a noise term with
     amplitude $\frac{\sigma_\eta}{\Delta} = 0.01$ (See
     Eqn.~\eqref{eq:LE.aug}).}
   \label{fig:benettin}
