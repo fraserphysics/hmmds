@@ -27,7 +27,7 @@ def parse_args(argv):
                         help="display figure using Qt5")
     parser.add_argument('--t_start',
                         type=float,
-                        default=352.07,
+                        default=352.06666667,
                         help="Time in minutes")
     parser.add_argument('--t_stop',
                         type=float,
@@ -79,7 +79,8 @@ def main(argv=None):
     n_start, n_stop = numpy.searchsorted(
         state_times.to('minutes').magnitude,
         (t_start.to('minutes').magnitude, t_stop.to('minutes').magnitude))
-    times = ecg_times[n_start:n_stop].to('minutes').magnitude
+    times = (ecg_times[n_start:n_stop] -
+             ecg_times[n_start]).to('seconds').magnitude
     state_interval = states[n_start:n_stop]
     state_axes.plot(times, state_interval)
 
@@ -102,13 +103,15 @@ def main(argv=None):
                   color='red',
                   linestyle='',
                   markersize=5)
-    ecg_axes.set_ylabel(r'ECG $/$ mv')
+    ecg_axes.set_ylabel(r'ECG $/$ mV')
 
     # Heart rate in lower plot.
     n_start, n_stop = numpy.searchsorted(
         hr_times.to('minutes').magnitude,
         (t_start.to('minutes').magnitude, t_stop.to('minutes').magnitude))
-    times = hr_times[n_start:n_stop].to('minutes').magnitude
+    n_stop += 2
+    times = (hr_times[n_start:n_stop] -
+             hr_times[n_start]).to('seconds').magnitude
     hr_axes.plot(times, hr[n_start:n_stop])
     hr_axes.plot(times,
                  hr[n_start:n_stop],
@@ -116,8 +119,9 @@ def main(argv=None):
                  color='black',
                  linestyle='',
                  markersize=8)
-    hr_axes.set_ylabel(r'Heart Rate $\times$ minute')
-    hr_axes.set_xlabel(r'Time $/$ minute')
+    hr_axes.set_ylabel(r'Heart Rate $/$ bpm')
+    t_start_str = plotscripts.utilities.format_time(t_start)
+    hr_axes.set_xlabel(fr'$(t-${t_start_str}$)/$ seconds')
 
     if args.show:
         pyplot.show()

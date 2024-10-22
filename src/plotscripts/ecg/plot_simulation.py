@@ -51,10 +51,10 @@ def main(argv=None):
 
     fig, axes = pyplot.subplots(nrows=2, sharex='all', figsize=(5, 4))
     axes[0].plot(times, ecg)
-    axes[0].set_ylabel('ecg')
+    axes[0].set_ylabel('ecg/mV')
     axes[1].plot(times, states)
     axes[1].set_ylabel('state')
-    axes[1].set_xlabel('seconds')
+    axes[1].set_xlabel(r'$t$/seconds')
 
     if args.show:
         pyplot.show()

@@ -49,6 +49,7 @@ def main(argv=None):
     for name, signal in zip(record.sig_name, record.p_signal.T):
         result_dict[name] = signal
     result_dict['sample_frequency'] = (header.fs, 'Hz')
+    result_dict['units'] = header.units
 
     with open(args.output, mode='wb') as _file:
         pickle.dump(result_dict, _file)

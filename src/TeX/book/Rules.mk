@@ -57,7 +57,10 @@ $(ECG_XFIGS)
 BOOK_CHAPTERS = $(addprefix $(TEX_BOOK)/, $(addsuffix .tex, \
 algorithms apnea appendix continuous introduction main toys variants))
 
-$(BOOK_OUT)/main.pdf: $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_INCLUDES)
+VALUE_FILES = $(addprefix $(BOOK_OUT)/, $(addsuffix .tex, \
+apnea_values))
+
+$(BOOK_OUT)/main.pdf: $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_INCLUDES) $(VALUE_FILES)
 	mkdir -p $(@D)
 	export TEXINPUTS=$(TEX_BOOK)//:$(abspath $(BUILD))//:; \
 export BIBINPUTS=$(TEX_BOOK)//:; export BSTINPUTS=$(TEX_BOOK)//:; \

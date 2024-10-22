@@ -118,7 +118,7 @@ def main(argv=None):
     t_start, t_stop = (x * PINT('minute') for x in (423, 429))
 
     for signal, key, axes in (
-        (heart_rate.raw_hr, 'a03 Raw Heart Rate', ax_heart_rate),
+        (heart_rate.raw_hr, 'a03 (Raw Heart Rate)/bpm', ax_heart_rate),
         (heart_rate.slow, 'Low Pass', ax_low_pass),
         (heart_rate.resp_pass, 'Band Pass', ax_band_pass),
         (heart_rate.envelope, 'Envelope', ax_band_pass),
@@ -129,6 +129,12 @@ def main(argv=None):
         plot_signal(signal, heart_rate.hr_sample_frequency, key, axes, t_start,
                     t_stop)
 
+    x_label_times = [time * PINT('minutes') for time in (424, 426, 428)]
+    ax_respiration.set_xticks(
+        [time.to('minutes').magnitude for time in x_label_times])
+    ax_respiration.set_xticklabels(
+        [plotscripts.utilities.format_time(t) for t in x_label_times])
+    ax_respiration.set_xlabel(r'$t$')
     plot_signal(heart_rate.get_slow(),
                 heart_rate.model_sample_frequency,
                 '',

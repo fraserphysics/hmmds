@@ -64,23 +64,6 @@ def interval2times(start, stop, frequency=100 * PINT('Hz')):
                                                          frequency)) / frequency
 
 
-def format_time(time: pint.Quantity) -> str:
-    """Return a LaTeX representation of a pint time
-
-    """
-    float_seconds = time.to('seconds').magnitude
-    assert float_seconds >= 0.0
-    int_seconds = int(float_seconds)
-    fraction = float_seconds - int_seconds
-    int_minutes = int_seconds // 60
-    seconds = int_seconds - 60 * int_minutes
-    hours = int_minutes // 60
-    minutes = int_minutes - 60 * hours
-    if fraction < 0.01:
-        return f'{hours:2d}:{minutes:02d}:{seconds:02d}'
-    return f'${hours:2d}:{minutes:02d}:{int_seconds+fraction:05.2f}$'
-
-
 def read_lphr(record: str) -> numpy.ndarray:
     """Read raw heart rate and return result as an array"""
     with open(data_file, 'rb') as _file:
@@ -127,7 +110,8 @@ def plot_ECG_ONR_O2(args, start: pint.Quantity, stop: pint.Quantity,
         ax.plot(times, y_data[n_start:n_stop], 'k-')
         ax.set_ylabel(y_label)
         ax.set_xticks([depint(time) for time in label_times])
-        ax.set_xticklabels([format_time(t) for t in label_times])
+        ax.set_xticklabels(
+            [plotscripts.utilities.format_time(t) for t in label_times])
         if label_yvalues is not None:
             ax.set_yticks(numpy.array(label_yvalues))
             ax.set_yticklabels([f'$ {x:2.0f}$' for x in label_yvalues])
@@ -135,7 +119,7 @@ def plot_ECG_ONR_O2(args, start: pint.Quantity, stop: pint.Quantity,
         ax.set_xlim((n_start, n_stop))
 
     times = interval2times(start, stop).to('centiseconds').magnitude.astype(int)
-    subplot(ax_ecg, a03er_dict['ECG'], times, r'$ECG$', label_times,
+    subplot(ax_ecg, a03er_dict['ECG'], times, r'$ECG/$mV', label_times,
             numpy.arange(-1, 4))
     subplot(ax_onr, a03er_dict['Resp N'], times, r'$ONR$', label_times)
     subplot(ax_O2, a03er_dict['SpO2'], times, r'$SpO_2$', label_times,
@@ -217,7 +201,8 @@ def plot_heart_rate(args,
 
     axes.set_xticks([time.to('minutes').magnitude for time in x_ticks])
     if x_labels:
-        axes.set_xticklabels([format_time(time) for time in x_ticks])
+        axes.set_xticklabels(
+            [plotscripts.utilities.format_time(time) for time in x_ticks])
     else:
         axes.set_xticklabels([])
 
@@ -240,7 +225,7 @@ def a03HR(args, subplots):
                     numpy.arange(45, 86, 10), x_label_times)
 
     ax_hr.set_ylim(40, 90)
-    ax_hr.set_ylabel(r'$HR$')
+    ax_hr.set_ylabel(r'$HR/$bpm')
 
     # Plot SpO2 in lower plot
     with open(os.path.join(args.derived_apnea_data, 'a03er.pkl'),
@@ -261,7 +246,8 @@ def a03HR(args, subplots):
     ax_o2.set_yticklabels(['$% 2.0f$' % x for x in label_yvalues])
 
     ax_o2.set_xticks([time.to('minutes').magnitude for time in x_label_times])
-    ax_o2.set_xticklabels([format_time(time) for time in x_label_times])
+    ax_o2.set_xticklabels(
+        [plotscripts.utilities.format_time(time) for time in x_label_times])
     ax_o2.set_xlim(
         t_start.to('minutes').magnitude,
         t_stop.to('minutes').magnitude)

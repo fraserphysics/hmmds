@@ -38,7 +38,10 @@ def main(argv=None):
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
-    fig, axeses_2x2 = pyplot.subplots(nrows=2, ncols=2, figsize=(6, 6))
+    fig, axeses_2x2 = pyplot.subplots(nrows=2,
+                                      ncols=2,
+                                      figsize=(6, 6),
+                                      sharex=True)
     axeses = axeses_2x2.flatten()[[0, 2, 1, 3]]
     for i, name in enumerate('a01 c02'.split()):
 
@@ -51,14 +54,19 @@ def main(argv=None):
         t_stop = args.t_stop * PINT('minutes')
         n_start, n_stop = numpy.searchsorted(
             ecg_times.to('minutes').magnitude, (args.t_start, args.t_stop))
-        times = ecg_times[n_start:n_stop].to('minutes').magnitude
-        axeses[i * 2].plot(times, ecg[n_start:n_stop], label=name)
+        times = (ecg_times[n_start:n_stop] -
+                 ecg_times[n_start]).to('seconds').magnitude
+        axeses[i * 2].plot(times, ecg[n_start:n_stop], label=f'{name} ecg')
         axeses[i * 2].legend()
 
     for i, path in enumerate((args.a01state_file, args.c02state_file)):
         with open(path, "rb") as _file:
             states = pickle.load(_file)
-            axeses[i * 2 + 1].plot(times, states[n_start:n_stop])
+            axeses[i * 2 + 1].plot(times,
+                                   states[n_start:n_stop],
+                                   label=f'{name} state')
+            axeses[i * 2 + 1].set_xlabel(r'($t$-05:00:00)/seconds')
+            axeses[i * 2 + 1].legend()
 
     if args.show:
         pyplot.show()

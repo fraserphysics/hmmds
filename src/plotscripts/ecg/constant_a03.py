@@ -43,19 +43,27 @@ def main(argv=None):
         ecg = _dict['ecg']
         ecg_times = _dict['times'] * PINT('seconds')
 
+    delta = 0.012
     for minute_start, minute_stop, axes in ((56.1, 56.2, axeses[0]),
                                             (56.3, 56.4, axeses[1]),
-                                            (56.108, 56.120, axeses[2]),
-                                            (56.346, 56.358, axeses[3])):
+                                            (56.1083, 56.1083 + delta,
+                                             axeses[2]), (56.346,
+                                                          56.346 + delta,
+                                                          axeses[3])):
         n_start, n_stop = numpy.searchsorted(
             ecg_times.to('minutes').magnitude, (minute_start, minute_stop))
         times = 60 * (ecg_times[n_start:n_stop].to('minutes').magnitude - 56)
         axes.plot(times, ecg[n_start:n_stop])
 
     for axes in (axeses[1], axeses[3]):
-        axes.set_xlabel(r'$t$/seconds -56 minutes')
+        axes.set_xlabel(r'($t-$00:56:00)/seconds')
     for axes in (axeses[0], axeses[1]):
         axes.set_ylabel(r'$a03$ ecg/mV')
+    axeses[3].text(20.82, 0.215, 'P')
+    axeses[3].text(20.925, -0.9, 'Q')
+    axeses[3].text(20.96, 2.74, 'R')
+    axeses[3].text(21.01, -0.4, 'S')
+    axeses[3].text(21.29, 0.10, 'T')
     if args.show:
         pyplot.show()
     fig.savefig(args.fig_path)

@@ -56,7 +56,7 @@ RC = 12
 # Respiration Width cpm
 RW = 3.6
 # Filter for Respiration Smoothing in cpm.
-RS = .47
+RS = 0.47
 # Detection threshold
 THRESHOLD = 0.7
 
@@ -143,6 +143,8 @@ $(DERIVED_APNEA_DATA)/errors_vs_rs.pkl: $(ApneaCode)/compare_models.py $(addpref
 
 COMPARE = python $(ApneaCode)/compare_models.py --root $(ROOT) --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
 
+$(BUILD)/TeX/book/apnea_values.tex: $(ApneaCode)/tex_values.py
+	python $< --command_line ArOrder $(AR) ModelSampleFrequency $(FS) LowPassPeriod $(LPP) RespirationCenterFrequency $(RC) RespirationFilterWidth $(RW) RespirationSmoothing $(RS) -- $@
 # Local Variables:
 # mode: makefile
 # End:

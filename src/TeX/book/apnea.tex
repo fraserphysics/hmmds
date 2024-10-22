@@ -1,3 +1,4 @@
+\input{apnea_values.tex}
 \chapter{Obstructive Sleep Apnea}
 \label{chap:apnea}
 
@@ -214,7 +215,6 @@ breathing.  Ten and a half minutes after the end of the first apnea
 episode, the record, as plotted in Fig.~\ref{fig:a03erN}, looks
 normal.
 
-\marginpar{FixMe: Units of ECG?}
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{\includegraphics{a03erA.pdf}}
   }
@@ -245,7 +245,7 @@ Fig.~\ref{fig:a03erHR}, we've plotted both a heart rate derived from
 the ECG \nomenclature[rECG]{ECG}{Electrocardiogram} and the $SpO_2$
 signal.  The oscillations in the signals track each other, and the
 expert classifies only the region of large heart rate oscillation as
-apnea.  \marginpar{FixMe: HR in bpm}
+apnea.
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{\includegraphics{a03HR.pdf}}
   }
@@ -304,7 +304,6 @@ apnea, he classified each minute in those records as normal.  His
 third attempt at \emph{event 2} was the best entry at the close of the
 contest.
 
-\marginpar{FixMe: cpm -> bpm}
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{\includegraphics{sgram.pdf}}
   }
@@ -312,12 +311,13 @@ contest.
   frequency phase variations]% FixMe: Use the same parameters for this
                              % plot as used for the HMM
   {Information about respiration in high frequency bands of power
-    spectra.  This is the $a11$ record roughly between minutes 20 and
-    150.  The upper plot is heart rate (bandpass filtered 0.09-3.66
-    bpm), the middle plot is a spectrogram of the heart rate, and the
-    lower plot is the expert classification.  A single band of
-    spectral power between about 10 and 20 bpm without much power
-    below the band in the spectrogram indicates normal respiration.}
+    spectra.  This is derived from the $a11$ record between 20 minutes
+    and 2 hours and 30 minutes after the start.  The upper plot is
+    heart rate (bandpass filtered 0.09-3.66 bpm), the middle plot is a
+    spectrogram of the heart rate, and the lower plot is the expert
+    classification.  A single band of spectral power between about 10
+    and 20 bpm without much power below the band in the spectrogram
+    indicates normal respiration.}
   \label{fig:sgram}
 \end{figure}
 
@@ -374,7 +374,6 @@ test data.
   \label{fig:a03a10b03c02}
 \end{figure}
 
-\marginpar{FixMe: Label PQRST. (t-56minutes)/seconds}
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{\includegraphics{constant_a03.pdf}}}
   \caption[Invariant PQRST shape]%
@@ -462,7 +461,6 @@ Figure~\ref{fig:a01c02_states} illustrates the performance on two
 records, \emph{a01} and \emph{c02}, in which the ECG shapes are quite
 different.  To be clear, we repeat that a separate HMM gets trained on
 each record.
-\marginpar{FixMe: sharex. label axes}
 \begin{figure}
   \centering{\resizebox{0.8\textwidth}{!}{\includegraphics{a01c02_states.pdf}}
   }
@@ -476,7 +474,6 @@ each record.
 
 In addition to analyzing measured ECGs, the models can generate
 simulated ECGs, eg, Figure~\ref{fig:simulated}.
-\marginpar{FixMe: ecg units}
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{0.8\includegraphics{simulated.pdf}}
   }
@@ -490,7 +487,6 @@ simulated ECGs, eg, Figure~\ref{fig:simulated}.
 \subsubsection{Mapping state sequences to heart rate}
 \label{sec:states2hr}
 
-\marginpar{FixMe: (time - 5:52)/second}
 \begin{figure}
   \centering{\resizebox{0.8\textwidth}{!}{\includegraphics{ecg2hr.pdf}}
   }
@@ -545,7 +541,6 @@ order vector autoregressive observation models of two dimensional
 observations, with components called \textbf{low pass heart rate} and
 \textbf{respiration}.
 
-\marginpar{FixMe: t/minutes, a03 Raw Heart Rate/bpm}
 \begin{figure}
   \centering{\resizebox{1.0\textwidth}{!}{\includegraphics{explore.pdf}}
   }
@@ -599,14 +594,14 @@ and for apnea episodes.
 Of the host of parameters, we chose the following for the observation
 model by hand using one dimensional studies on the training data like
 Figure~\ref{fig:errors_vs_fs}:
-\marginpar{FixMe: Get values from code}
+% \ArOrder et al come from apnea_values.tex
 \begin{description}
-\item[Autoregressive Order] 8
-\item[Model Sample Frequency] 4 samples per minute
-\item[Low Pass Period] 65 seconds
-\item[Respiration Center Frequency] 12 bpm
-\item[Respiration Filter Width] 3.6 bpm
-\item[Respiration Smoothing] 0.47 bpm
+\item[Autoregressive Order] \ArOrder
+\item[Model Sample Frequency] \ModelSampleFrequency samples per minute
+\item[Low Pass Period] \LowPassPeriod seconds
+\item[Respiration Center Frequency] \RespirationCenterFrequency bpm
+\item[Respiration Filter Width] \RespirationFilterWidth bpm
+\item[Respiration Smoothing] \RespirationSmoothing bpm
 \end{description}
 Figure~\ref{fig:explore} illustrates the derivation of HMM observation
 data from the estimated raw heart rate signal using these parameters.

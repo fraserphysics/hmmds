@@ -13,6 +13,7 @@ import pint
 import numpy
 import matplotlib
 
+import plotscripts.utilities
 from hmmds.applications.apnea import utilities
 
 matplotlib.use("Qt5Agg")
@@ -88,7 +89,7 @@ def main(argv=None):
         time_series[n_start:n_stop].to('1/minutes').magnitude)
     ax_time_series.set_ylim([55, 95])
     ax_time_series.set_yticks([60, 80])
-    ax_time_series.set_ylabel('HR/cpm')
+    ax_time_series.set_ylabel('HR/bpm')
 
     # Plot spectrogram
     if args.time_window:
@@ -104,16 +105,16 @@ def main(argv=None):
         f_start = 0
         f_stop = len(frequencies) - 1
     times_minutes = times.to('minutes').magnitude[n_start:n_stop]
-    frequencies_cpm = frequencies.to('1/minute').magnitude[f_start:f_stop]
+    frequencies_bpm = frequencies.to('1/minute').magnitude[f_start:f_stop]
     z = -10 * numpy.log10(psds[f_start:f_stop, n_start:n_stop])
     ax_spectrogram.pcolormesh(
         times_minutes,
-        frequencies_cpm,
+        frequencies_bpm,
         z,
         cmap=matplotlib.cm.hsv,
         shading='gouraud',
     )
-    ax_spectrogram.set_ylabel('f/cpm')
+    ax_spectrogram.set_ylabel('f/bpm')
     ax_spectrogram.set_yticks([10, 20])
 
     # Plot annotations
@@ -130,7 +131,12 @@ def main(argv=None):
 
     ax_annotation.plot(times_minutes,
                        list(annotation(time) for time in times_minutes))
-    ax_annotation.set_xlabel('t/minutes')
+    ax_annotation.set_xlabel(r'$t$')
+    x_label_times = [time * PINT('minutes') for time in (30, 60, 90, 120, 150)]
+    ax_annotation.set_xticks(
+        [time.to('minutes').magnitude for time in x_label_times])
+    ax_annotation.set_xticklabels(
+        [plotscripts.utilities.format_time(t) for t in x_label_times])
     ax_annotation.set_ylim(-0.2, 1.2)
     ax_annotation.set_yticks([0, 1])
     ax_annotation.set_yticklabels(['$N$', '$A$'])

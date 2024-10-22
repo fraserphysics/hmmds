@@ -145,6 +145,23 @@ def import_and_parse(parse_args, argv):
     return args, matplotlib, matplotlib.pyplot
 
 
+def format_time(time: pint.Quantity) -> str:
+    """Return a LaTeX representation of a pint time
+
+    """
+    float_seconds = time.to('seconds').magnitude
+    assert float_seconds >= 0.0
+    int_seconds = int(float_seconds)
+    fraction = float_seconds - int_seconds
+    int_minutes = int_seconds // 60
+    seconds = int_seconds - 60 * int_minutes
+    hours = int_minutes // 60
+    minutes = int_minutes - 60 * hours
+    if fraction < 0.01:
+        return f'{hours:2d}:{minutes:02d}:{seconds:02d}'
+    return f'${hours:2d}:{minutes:02d}:{seconds+fraction:05.2f}$'
+
+
 #---------------
 # Local Variables:
 # eval: (python-mode)
