@@ -102,9 +102,13 @@ def LaserForecast(args):
 
     FixMe: Should run filter to estimate state at 250 and then forecast.
     """
+    initial_state = LaserStates(args)['forward_means'][-1]
+    args.parameters.set_initial_state(initial_state)
     return {
-        '400_simulated_observations':
-            hmmds.applications.laser.utilities.observe(args.parameters, 400)
+        '250_next_data':
+            args.laser_data[250:500],
+        '250_simulated_observations':
+            hmmds.applications.laser.utilities.observe(args.parameters, 251)[1:]
     }
 
 

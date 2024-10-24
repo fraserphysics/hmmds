@@ -113,37 +113,18 @@ measured quantity corresponds to $(\ti{x_1}{t})^2$.
 Figure~\ref{fig:LaserLP5} shows a sequence of Tang's measurements.  We
 produced the second trace in the figure by numerically integrating
 Eqn.~\eqref{eq:Lorenz} with initial conditions and parameters selected
-to optimize the match.  We used the \emph{fmin\_powell} function in
-Travis Oliphant's \emph{scipy} package\cite{scipy} to implement the
-optimization. % LaserFigs.py
-The similarity of the two traces convincingly supports the claim that
-the laser system is governed by the Lorenz equations.
+to optimize the match.  The similarity of the two traces convincingly
+supports the claim that the laser system is like the Lorenz system.
 \begin{figure}[htbp]
-  \centering{\plotsize%		% See the comment at the definition
-    \def\t{$t$}%		% of \plotsize for why it exists and
-    \def\yt{$\ti{y}{t}$}%	% why these labels are macros.
-    \def\Laser{Laser}%
-    \def\Simulation{Simulation}% FixMe: useless defs here and elsewhere?
+  \centering{
     \includegraphics[width=1.0\textwidth]{LaserLP5.pdf}}
   \caption[\comment{fig:LaserLP5 }Laser intensity measurements.]%
   {Laser intensity measurements.  The trace labeled \emph{Laser} is a
-    plot of laser intensity measurements provided by Tang \etal.  The
-    trace labeled \emph{Simulation} plots a numerical simulation of
-    the Lorenz system \eqref{eq:Lorenz} with parameters that maximize
-    the likelihood of the model FixMe.}
-  \label{fig:LaserLP5}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering{
-    \includegraphics[width=1.0\textwidth]{LaserLikeOptTS.pdf}}
-  \caption[\comment{fig:LaserLikeOptTS }Laser intensity measurements.]%
-  {Laser intensity measurements.  The trace labeled \emph{Laser} is a
-    plot of laser intensity measurements provided by Tang \etal.  The
+    plot of laser intensity measurements provided by Tang \etal  The
     trace labeled \emph{Simulation} plots a numerical simulation of
     the Lorenz system \eqref{eq:Lorenz} with parameters  that optimize
-    the match in L2 FixMe}
-  \label{fig:LaserLikeOptTS}
+    the match.}
+  \label{fig:LaserLP5}
 \end{figure}
 
 In working with Tang's laser data, we used a stochastic state space
@@ -167,15 +148,15 @@ independently identically distributed Gaussian noise with mean zero
 and covariance $\id\sigma_\epsilon^2$.  The model has the following
 eleven free parameters:
 \begin{description}
-\item[Initial state distribution] We model the distribution of the
-  initial state as a Gaussian.  We treated the mean as three
-  parameters and set the covariance to $\id \cdot 10^{-2}$.
 \item[Lorenz system parameters] The values of $r$, $s$, and $b$ in
   \eqref{eq:Lorenz} constitute three free parameters.
 \item[Integration time] The single parameter $\Delta \tau$.
 \item[Offset and scale] The pair of parameters $O_g$ and $S_g$.
-\item[State noise] The single parameter $\sigma_\eta$.
 \item[Measurement noise] The single parameter $\sigma_\epsilon$.
+\item[State noise] The single parameter $\sigma_\eta$.
+\item[Initial state distribution] We model the distribution of the
+  initial state as a Gaussian.  We treat the mean as three
+  parameters and set the covariance to $\sigma_\eta$.
 \end{description}
 
 Using this parameterization, we wrote a routine based on the
@@ -202,11 +183,7 @@ of the parameter vector.  Figure~\ref{fig:LaserLogLike} sketches a
 piece of the log-likelihood function.
 
 \begin{figure}[htbp]
-  \centering{\plotsize%
-    \def\l#1{\mbox{\lower1.5ex\hbox{$#1$}}}%
-    \def\s{\mbox{\kern2.0em\lower2.0ex\hbox{$s$}}}%
-    \def\b{\mbox{\lower1.5ex\hbox{$b$}}}%
-    \def\LogLikely{$\log\left(P(\ts{y}{1}{250}|\theta) \right)$}%
+  \centering{
     \includegraphics[width=1.0\textwidth]{LaserLogLike.pdf}}
   \caption[\comment{fig:LaserLogLike }Log likelihood as function of $s$ and $b$.]%
   {Log likelihood as function of $s$ and $b$.  Other parameters were
@@ -231,7 +208,6 @@ highest probability given the first 250 observations, \ie,
   \label{eq:xhat250}
   \hat x = \argmax_{\ti{x}{250}} P(\ti{x}{250}|\ts{y}{1}{250},\hat \theta).
 \end{equation}
-%%% \ToDo{ Note that I need smoothing to do this right.}
 
 \begin{figure}[htbp]
   \centering{\plotsize%
@@ -246,20 +222,19 @@ highest probability given the first 250 observations, \ie,
 \end{figure}
 
 \begin{figure}[htbp]
-  \centering{\plotsize%
-    \def\tiyt{$\ti{y}{t}$}%
-    \def\Lase{Laser}%
-    \def\Forecas{Forecast}%
+  \centering{
     \includegraphics[width=1.0\textwidth]{LaserForecast.pdf}}
-  \caption[\comment{fig:LaserForecast }Forecast observation sequence.]%
+  \caption[\comment{fig:LaserForecast }Forecast observation
+  sequence.]%
   {Forecast observation sequence.  We set the noise terms $\eta$ and
-    $\epsilon$ to zero and iterated Eqn.~\eqref{eq:FandG} 400 times to
-    generate the forecast $\ts{\hat y}{251}{650}$.  We started with
+    $\epsilon$ to zero and iterated Eqn.~\eqref{eq:FandG} 250 times to
+    generate the forecast $\ts{\hat y}{251}{500}$.  We started with
     the initial condition $\hat x$ defined by Eqn.~\eqref{eq:xhat250}.
-    The forecast begins to fail noticeably after $t=500$.  The failure
-    suggests that the period five cycle in the forecast is unstable.
-    The laser cycle must have been stable to appear in the data.  Thus
-    an essential characteristic of the model is wrong.}
+    The forecast begins to fail noticeably around $t=450$.  The failure
+    suggests that the period five cycle in the model is unstable.  The
+    period five cycle must have been stable in the actual laser system
+    to appear in the data.  Thus an essential characteristic of the
+    model is wrong.}
   \label{fig:LaserForecast}
 \end{figure}
 
@@ -313,8 +288,8 @@ One can use a parameterized class of state space models $\left\{
 \item[Short Term Forecasting] Given a model $P_{*|\theta}$ and a
   distribution of states at time $t$, $P_{\ti{X}{t}}$, one can
   calculate the conditional distribution of future states or
-  observations.  For example,
-  Fig.~\ref{fig:LaserForecast} plots the result of a calculation of
+  observations.  For example, Fig.~\ref{fig:LaserForecast} plots the
+  result of a calculation of
   \begin{equation*}
     \ts{\hat y}{251}{500} = \argmax_{\ts{y}{251}{500}}
     P(\ts{y}{251}{500}|\ts{y}{1}{250},\theta).
@@ -443,7 +418,7 @@ vector $V$ (nonnegative entries that sum to one) that satisfies
   \label{eq:statCond}
   VT = V.  
 \end{equation}
-If \eqref{eq:statCond} holds, then
+If \eqref{eq:statCond} holds for $V = P_{\ti{S}{1}}$, then
 \begin{equation*}
   P_{\ti{S}{2}}  = P_{\ti{S}{1}}T = P_{\ti{S}{1}} = P_{\ti{S}{t}}
   \forall t,
@@ -503,7 +478,6 @@ specifies the random map from states to observations, \ie%
       & w      & 0 & \frac{2}{3} & \frac{1}{3}
   \end{array}%,
 \end{equation*}
-$\ldots$ %
 combined with the distribution of initial states
 \eqref{eq:InitialProbabilites} and transition matrix
 \eqref{eq:TransitionMatrix} specifies this hidden Markov model.  The
@@ -628,7 +602,8 @@ assumptions about \emph{conditional independence} relations.  Figure
   \label{fig:dhmm_net}
 \end{figure}
 
-Bayes rule and the assumptions justify
+Bayes rule and the assumptions justify\marginpar{FixMe: $P_{X}$ not
+  $P(X)$?}
 \begin{align}
   P(\ts{Y}{1}{T},\ts{S}{1}{T}) &= P(\ts{S}{1}{T}) \, %
                                    P(\ts{Y}{1}{T}|\ts{S}{1}{T}),\notag\\
@@ -744,7 +719,8 @@ synthesized by numerically integrating the Lorenz system
 $b=\frac{8}{3}$) and recording 40,000 vectors $x(\tau)$ with a
 sampling interval $\Delta \tau = 0.15$.  Then we produced a sequence
 of integer valued observations $y_1^{40,000}$ by dividing the $x_1$
-values by 10 adding 2 and keeping the integer part.  The result is
+values by 10 adding 2 and keeping the integer part.\marginpar{FixMe:
+  May need a generating partition in Chap.~5}  The result is
 that for each integer $1\leq t \leq 40,000$, $\ti{x_1}{t\cdot0.15}$
 yields $\ti{y}{t} \in \left\{0,1,2,3\right\}$.
 Figure~\ref{fig:TSintro} depicts the first few observations.
@@ -858,7 +834,7 @@ would require different models.
 The experiment consisted of the following steps:
 \begin{description}
 \item[Parse the text:] We reduced the text to a sequence of tokens.
-  Each token was a word, a number, or a special character such as
+  Each token is a word, a number, or a special character such as
   punctuation.  We retained distinctions between lower and upper case.
   The length of the resulting sequence was 68,857 tokens, \ie,
   $\ts{w}{1}{T}$ with $T=68,857$.
@@ -955,15 +931,18 @@ Let us emphasize the following points about discrete HMMs:
 \item Although the hidden process is first order Markov, the observation
 process may not be a Markov process (of any order). \label{noX}
 \item Any Markov model of any order can be represented by an HMM.
-\item Even if the functions governing the dynamics and
-  observations of a continuous state space system are nonlinear, a
-  discrete HMM can approximate the system arbitrarily well by using
-  large numbers of states $N_S$ and possible observation values $N_Y$.
+\item Even if the functions governing the dynamics and observations of
+  a continuous state space system are nonlinear, a discrete HMM can
+  approximate the system arbitrarily well\footnote{By using a discrete
+    HMM to approximate dynamics governed by a continuous function one
+    sacrifices the opportunity to exploit continuity.  That sacrifice
+    will degrade model performance in many applications.} by
+  using large numbers of states $N_S$ and possible observation values
+  $N_Y$.
 \item For estimating model parameters, larger numbers of training data
   are required as $N_S$ and $N_Y$ are increased. \label{point:large}
 \end{enumerate}
 
-\longpage%% FixMe: Maybe not when set with MathTime fonts
 As an illustration of Point \ref{noX},\ consider the process depicted in
 Fig.~\ref{fig:nonmm}, which produces observation strings with runs of about
 seven $a$'s interspersed with occasional $b$'s and $c$'s.  In the

@@ -14,7 +14,7 @@ $(FIGS_LASER)/forecast_errors.pdf: $(LaserPlotscripts)/cumulative.py $(LASER_DAT
 	mkdir -p $(FIGS_LASER)
 	python $^ $@
 
-$(FIGS_LASER)/LaserLikeOptTS.pdf: $(LaserPlotscripts)/laser_figures.py $(LASER_DATA)/LaserLikeOptTS
+$(FIGS_LASER)/LaserLP5.pdf: $(LaserPlotscripts)/laser_figures.py $(LASER_DATA)/LaserLikeOptTS
 	mkdir -p $(FIGS_LASER)
 	python $< --LaserLP5 $(word 2, $^) $@
 

@@ -52,11 +52,11 @@ def register(func):
 
 @register
 def LaserLP5(data, matplotlib, pyplot):
-    """Plot simulated laser data over fit range.
+    """Plot real and simulated laser data over fit range.
     """
     fig = pyplot.figure()
     ax = fig.add_subplot()
-    ax.plot(data['250_simulated_observations'], label='simulation')
+    ax.plot(data['250_simulated_observations'], label='Simulation')
     ax.plot(data['250_laser_data'], label='Laser Data')
     ax.legend()
     return fig
@@ -99,9 +99,13 @@ def LaserStates(data, matplotlib, pyplot):
 @register
 def LaserForecast(data, matplotlib, pyplot):
     """400_simulated_observations"""
-    fig = pyplot.figure()
+    fig = pyplot.figure(figsize=(7, 4))
     ax = fig.add_subplot()
-    ax.plot(data['400_simulated_observations'])
+    times = numpy.arange(250, 250 + len(data['250_next_data']))
+    ax.plot(times, data['250_simulated_observations'], label='Forecast')
+    ax.plot(times, data['250_next_data'], label='Laser Data')
+    ax.set_xlabel(r'$t$')
+    ax.legend()
     return fig
 
 

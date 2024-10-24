@@ -12,7 +12,7 @@ ADD_PDF_PDF_T = $(addprefix $(1)/, $(addsuffix .pdf, $(2)) $(addsuffix .pdf_t, $
 LASER_FIG_DIR = $(BUILD)/figs/laser/
 # FixMe: Some of these figures may not be required
 LASER_FIGS = $(addsuffix .pdf, $(addprefix $(LASER_FIG_DIR), \
-LaserLP5 LaserLikeOptTS LaserLogLike LaserStates LaserForecast LaserHist))
+LaserLP5 LaserLogLike LaserStates LaserForecast LaserHist))
 
 INTRODUCTION_FIGS = $(addsuffix .pdf, $(addprefix $(BUILD)/figs/introduction/, \
 TSintro STSintro Statesintro))

@@ -67,6 +67,9 @@ state_noise observation_noise""".split()
         self.fudge = fudge  # Roll into state_noise
         self.laser_dt = laser_dt
 
+    def set_initial_state(self, initial_state):
+        self.x_initial_0, self.x_initial_1, self.x_initial_2 = initial_state
+
     def values(self: Parameters):
         """Make a tuple out of self for use in optimization code.
         """
