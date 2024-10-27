@@ -1,9 +1,9 @@
 r"""lorenz.py
 
 The functions in this module may be imported into other scripts to
-provide a python interface to tools for integrating the lorenz system
-(eg, scipy.integrate or gsl).  It may also be called as "main" to make
-data files.  Here is the Lorenz system
+provide a python interface to tools for integrating the lorenz system.
+It may also be called as "main" to make data files.  Here is the
+Lorenz system
 
 .. math::
     \dot x = s(y-x)
@@ -120,6 +120,14 @@ def lorenz_tangent(  # pylint: disable=invalid-name
     return return_value
 
 
+def get_bins(args):
+    """Boundaries for quantization.
+
+    In a function so that other modules can access the results.
+    """
+    return numpy.linspace(-20, 20, args.levels + 1)[1:-1]
+
+
 def main(argv=None):
     """Writes time series to files specified by options --xyzfile,
     --quantfile, and or --TSintro.
@@ -146,26 +154,14 @@ def main(argv=None):
     xyz = scipy.integrate.odeint(lorenz_dx_dt, initial_conditions,
                                  t_array(args.n_samples, args.dt), lorenz_args)
 
-    # Calculate quantization parameters.  Use ceil and floor so that
-    # quantization will be the same for most long series.  The
-    # quantization results will range from 1 to args.levels including
-    # the end points.  I use 1 for the minimum so that plots look
-    # nice.
-    _max = xyz[:, 0].max()
-    _min = xyz[:, 0].min()
-    scale = numpy.ceil((_max - _min) / args.levels)
-    offset = numpy.floor(_min / scale)
-
-    def quant(x):
-        return int(numpy.ceil(x / scale - offset))
-
-    assert quant(_max) == args.levels
-    assert quant(_min) == 1
-
-    for vector in xyz:
+    #The quantization results will range from 1 to args.levels
+    # including the end points.  I use 1 for the minimum so that plots
+    # look nice.
+    for vector, quant in zip(xyz,
+                             numpy.digitize(xyz[:, 0], get_bins(args)) + 1):
         # pylint: disable = consider-using-f-string
         print('{0:6.3f} {1:6.3f} {2:6.3f}'.format(*vector), file=args.xyzfile)
-        print(f'{quant(vector[0]):d}', file=args.quantfile)
+        print(f'{quant}', file=args.quantfile)
     if args.TSintro is not None:
         xyz = scipy.integrate.odeint(lorenz_dx_dt, initial_conditions,
                                      t_array(args.n_samples, args.dt / 50),

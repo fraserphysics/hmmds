@@ -53,14 +53,15 @@ This book arose from a pair of symposia on hidden Markov models that
 Kevin Vixie organized at the 2001 SIAM Dynamical Systems meeting.  At
 the end of the first symposium someone asked for a simple reference
 that explains the basic ideas and algorithms for applying HMMs.  We
-were stumped\footnote{In subsequent years several FixMe.}.  A group of
-the participants suggested writing this book to answer the question.
-Two years later, I delivered a proposal for the book that included
-about two chapters to SIAM at the 2003 Dynamical Systems meeting.
-Sometime after SIAM published the first edition in 2008, I began
-working on updating the software I used to generate the book.  In an
-effort to use better software practices, I wrote tests, and one of
-those tests revealed a conceptual error in the last chapter of the
+were stumped\footnote{In subsequent years several good references that
+  explain the basic ideas of HMMs have appeared, \eg, FixMe.}.  A
+group of the participants suggested writing this book to answer the
+question.  Two years later, I delivered a proposal for the book that
+included about two chapters to SIAM at the 2003 Dynamical Systems
+meeting.  Sometime after SIAM published the first edition in 2008, I
+began working on updating the software I used to generate the book.
+In an effort to use better software practices, I wrote tests, and one
+of those tests revealed a conceptual error in the last chapter of the
 book.  In the current edition Chapter~\ref{chap:apnea} is a thorough
 revision that addresses the same tasks with a simpler approach.
 
@@ -246,9 +247,6 @@ for support of a sabbatical leave
     $P$ when the context permits us to drop it without ambiguity.
   \item[$P_{\ti{X}{t}} \left(x \right)$] The probability that the
     value of $\ti{X}{t}$ is $x$.
-  %% FixMe: This next label is a lot wider than the rest.  I cannot
-  %% FixMe: figure out how to move the margin for only one \item so
-  %% FixMe: I am leaving it the way it is.  Good Enough?
   \item[$P_{\ti{X}{t+1}|\ti{X}{t}} \left(x_1|x_2 \right)$] The
     conditional probability that the value of $\ti{X}{t+1}$ is $x_1$
     given that the value of $\ti{X}{t}$ is $x_2$.

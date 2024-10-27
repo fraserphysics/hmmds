@@ -70,7 +70,8 @@ def main(argv=None):
         axis.plot(x_list,
                   z_list,
                   color=plotcolor[state % 7],
-                  marker=',',
+                  markeredgecolor='none',
+                  marker='.',
                   markersize=markersize,
                   linestyle='None')
         axis.set_xlim(-20, 20)
@@ -83,12 +84,12 @@ def main(argv=None):
             n_subplot += 1  #figure with all the assembled pieces.
         # There are 2 kinds of calls to fig.add_subplot; one here
         # that's 4x4 and one before the next loop that's 2x2
-        subplot(fig.add_subplot(4, 4, n_subplot), state, 1)
+        subplot(fig.add_subplot(4, 4, n_subplot), state, 8)
 
     # Make a single plot in which colors identify the different states.
     axis_all = fig.add_subplot(2, 2, 1)
     for state in range(0, 12):
-        subplot(axis_all, state, 2)
+        subplot(axis_all, state, 8)
 
     if args.show:
         pyplot.show()

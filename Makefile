@@ -37,6 +37,11 @@ hand_opt: $(BUILD)/TeX/apnea/hand_opt.pdf
 .PHONY : ds23
 ds23: $(BUILD)/TeX/ecg/ds23.pdf
 
+raw_data/menken.txt:
+	mkdir -p $(@D)
+	cd $(@D); wget --no-check-certificate https://www.gutenberg.org/files/19355/19355.txt
+	mv raw_data/19355.txt $@
+
 raw_data/apnea/apnea-ecg-database:
 	mkdir -p $(@D)
 	cd $(@D); wget --no-check-certificate -r -N -c -np https://physionet.org/files/apnea-ecg/1.0.0/
@@ -48,6 +53,7 @@ include $(HMMDS)/synthetic/Rules.mk
 include $(HMMDS)/synthetic/filter/Rules.mk
 include $(HMMDS)/synthetic/bounds/Rules.mk
 include $(HMMDS)/applications/laser/Rules.mk
+include $(HMMDS)/applications/text/Rules.mk
 include $(HMMDS)/applications/apnea/Rules.mk
 include $(HMMDS)/applications/apnea/ECG/Rules.mk
 

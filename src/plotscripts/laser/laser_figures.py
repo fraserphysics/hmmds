@@ -54,7 +54,7 @@ def register(func):
 def LaserLP5(data, matplotlib, pyplot):
     """Plot real and simulated laser data over fit range.
     """
-    fig = pyplot.figure()
+    fig = pyplot.figure(figsize=(7, 4))
     ax = fig.add_subplot()
     ax.plot(data['250_simulated_observations'], label='Simulation')
     ax.plot(data['250_laser_data'], label='Laser Data')
@@ -68,7 +68,7 @@ def LaserLogLike(data, matplotlib, pyplot):
     s = data['s']
     b = data['b']
     log_like = data['log_likelihood']
-    fig = pyplot.figure(figsize=(12, 8))
+    fig = pyplot.figure(figsize=(6, 4))
     ax = fig.add_subplot(1, 1, 1, projection='3d', azim=-13, elev=20)
     ax.set_xlabel('$b$')
     ax.set_ylabel('$s$')

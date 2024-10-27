@@ -24,7 +24,8 @@ $(DERIVED_APNEA_DATA)/a03er.pkl: $(ApneaCode)/extract_wfdb.py
 	python $< --shorten 204 $(PHYSIONET_WFDB) a03er $@
 
 $(DERIVED_APNEA_DATA)/a11.sgram: $(ApneaCode)/spectrogram.py
-	python $< --root $(ROOT) --model_sample_frequency 120 --fft_width 256 a11 $@
+	python $< --root $(ROOT) --model_sample_frequency 120 --fft_width 256 \
+--band_pass_center $(RC) --band_pass_width $(RW) --low_pass_period $(LPP) a11 $@
 
 XNAMES = x01 x02 x03 x04 x05 x06 x07 x08 x09 x10 \
 x11 x12 x13 x14 x15 x16 x17 x18 x19 x20 \
@@ -144,6 +145,7 @@ $(DERIVED_APNEA_DATA)/errors_vs_rs.pkl: $(ApneaCode)/compare_models.py $(addpref
 COMPARE = python $(ApneaCode)/compare_models.py --root $(ROOT) --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
 
 $(BUILD)/TeX/book/apnea_values.tex: $(ApneaCode)/tex_values.py
+	mkdir -p $(@D)
 	python $< --command_line ArOrder $(AR) ModelSampleFrequency $(FS) LowPassPeriod $(LPP) RespirationCenterFrequency $(RC) RespirationFilterWidth $(RW) RespirationSmoothing $(RS) -- $@
 # Local Variables:
 # mode: makefile

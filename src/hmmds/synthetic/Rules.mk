@@ -6,6 +6,9 @@ SYNTHETIC_DATA = $(BUILD)/derived_data/synthetic
 SYNTHETIC_CODE = $(HMMDS)/synthetic
 # SYNTHETIC_CODE is this directory
 
+NLorenzBig = 40000
+LorenzTrainingIterations = 100
+
 $(SYNTHETIC_DATA)/lorenz.flag: $(SYNTHETIC_CODE)/lorenz.py
 	mkdir -p $(SYNTHETIC_DATA)/TSintro
 	python $< --n_samples 2050 --quantfile $(SYNTHETIC_DATA)/lorenz.4 --xyzfile $(SYNTHETIC_DATA)/lorenz.xyz  --TSintro $(SYNTHETIC_DATA)/TSintro
@@ -23,11 +26,11 @@ $(SYNTHETIC_DATA)/m12s.4y : $(SYNTHETIC_CODE)/make_model.py $(SYNTHETIC_DATA)/lo
 	python $< ${N_TRAIN} $(SYNTHETIC_DATA) lorenz.4 m12s.4y
 
 $(SYNTHETIC_DATA)/lorenz.xyz: $(SYNTHETIC_CODE)/lorenz.py
-	python $< --n_samples 20000 --levels 4 --quantfile $(SYNTHETIC_DATA)/lorenz.4 --xyzfile $@
+	python $< --n_samples $(NLorenzBig) --levels 4 --quantfile $(SYNTHETIC_DATA)/lorenz.4 --xyzfile $@
 
 # This takes about 11 minutes
 $(SYNTHETIC_DATA)/TrainChar: $(SYNTHETIC_CODE)/train_char.py  $(SYNTHETIC_DATA)/lorenz.flag
-	python $< --n_iterations=500 $(SYNTHETIC_DATA)/lorenz.4 $@
+	python $< --n_iterations=$(LorenzTrainingIterations) $(SYNTHETIC_DATA)/lorenz.4 $@
 
 $(SYNTHETIC_DATA)/gauss_mix.pkl: $(SYNTHETIC_CODE)/gauss_mix.py
 	mkdir -p $(@D)

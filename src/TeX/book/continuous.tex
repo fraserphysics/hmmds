@@ -318,17 +318,13 @@ distributions described by these parameters are also Gaussian.
 \subsection{Kalman Filter: The Forward Algorithm}
 \index{Kalman filter}
 
-The following two step recursion is called Kalman \marginpar{FixMe:
-  Cite bibliography not inline.}
-filtering\footnote{There are many more detailed presentations of Kalman
-  filters, \eg, Maybeck\cite{Maybeck82}, \cite{KSH00}, OLR Jacobs,
-  \emph{Introduction to control theory,} Oxford 1993, and RG Brown and
-  PYC Hwang \emph{Introduction to Random Signals and Applied Kalman
-    Filters} Wiley 1992} and it
-implements the forward algorithm:                              %
-\newcommand{\G}{ \ti{G}{t} }
-\newcommand{\GT}{\left( \G \right)\transpose}
-\newcommand{\SX}{ \ti{\Sigma_a}{t} }
+The following two step recursion is called Kalman
+filtering\footnote{There are many more detailed presentations of
+  Kalman filters, \eg, Maybeck\cite{Maybeck82}, Kailath et
+  al.\cite{KSH00}, Jacobs\cite{Jacobs93}, and Brown and
+  Hwang\cite{Brown97}.} and it implements the forward algorithm: %
+\newcommand{\G}{ \ti{G}{t} } \newcommand{\GT}{\left( \G
+  \right)\transpose} \newcommand{\SX}{ \ti{\Sigma_a}{t} }
 \begin{description}
 \item[Calculate the forecast of the distribution of the state]
   \begin{subequations}

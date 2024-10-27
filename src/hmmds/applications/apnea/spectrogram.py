@@ -54,8 +54,9 @@ def spectrogram(heart_rate: utilities.HeartRate, args):
     """
 
     heart_rate.filter_hr(
-        resp_pass_center=17 / PINT('minute'),
-        resp_pass_width=6 / PINT('minute'),
+        resp_pass_center=args.band_pass_center,
+        resp_pass_width=args.band_pass_width,
+        low_pass_width=2 / args.low_pass_period,
     )
     filtered_heart_rate = heart_rate.resp_pass
     time_series = heart_rate.get_slow() * PINT('1/minute')
