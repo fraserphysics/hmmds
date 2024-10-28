@@ -8,7 +8,7 @@ TEXT_CODE = $(HMMDS)/applications/text
 
 $(BUILD)/TeX/book/decoded_menken.tex: $(TEXT_CODE)/po_speech.py $(ROOT)/raw_data/menken.txt
 	mkdir -p $(@D)
-	python $^ $@
+	python $^ --random_seed 10 --n_iterations 100 $@
 
 # Local Variables:
 # mode: makefile

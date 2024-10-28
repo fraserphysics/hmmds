@@ -1,4 +1,7 @@
-''' po_speech.py input_book_path out_file_path
+''' po_speech.py: For discovering parts of speech for first chapter of book
+
+Use: python po_speech.py input_book_path out_file_path
+
 '''
 
 import sys
@@ -9,7 +12,6 @@ import numpy
 import numpy.random
 
 import hmm.simple
-
 import hmm.C
 
 
@@ -18,7 +20,7 @@ def parse_args(argv):
     """
     parser = argparse.ArgumentParser(
         description='Train an HMM on words in a book and decode states')
-    parser.add_argument('--n_iterations', type=int, default=100)
+    parser.add_argument('--n_iterations', type=int, default=200)
     parser.add_argument('--n_states', type=int, default=15)
     parser.add_argument('--random_seed', type=int, default=1)
     parser.add_argument('in_path', type=str)
@@ -26,12 +28,23 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def read_text(text):
-    ''' read from "text" and return sequence of words
+def read_text(text) -> list:
+    '''Read from "text" and return a sequence of words or "tokens".
+
+    Args:
+        text: A file open for reading
+
+    Return: A list of tokens
+
+    This code removes the first 334 tokens and the last 5,864 tokens
+    of the Project Gutenberg EBook of "A Book of Prefaces", by
+    H. L. Mencken.  That's a mix of stuff that project gutenberg added
+    and the index of the book.
+
     '''
-    all = re.sub('-\n', '', text.read())
-    all = re.sub('--+', '--', all)
-    all = re.sub('\.\.\.+', '\.\.\.', all)
+    all_ = re.sub('-\n', '', text.read())
+    all_ = re.sub('--+', '--', all_)
+    all_ = re.sub('\.\.\.+', '\.\.\.', all_)
     # The following sub-patterns match ordinary words, punctuation, times,
     # punctuated numbers and unpuncuated integers.
     pattern = "[a-zA-Z']+|"                   \
@@ -39,48 +52,66 @@ def read_text(text):
               +"[0-9]+:[0-9]+|"               \
               +"[0-9]+[0-9.,]*[0-9]+|"        \
               +"[0-9]+"
-    all = re.findall(pattern, all)
-    return all
+    token_sequence = re.findall(pattern, all_)[334:-5864]
+    return token_sequence
 
 
-def all2words(all):
+def make_token2int(token_sequence: list) -> tuple:
+    r'''Sort tokens in token_sequence by frequency and map tokens to integers
+
+    Args:
+        token_sequence: A list of tokens
+
+    Return: (token2int, cardinality_Y, token_list)
+
+    token2int: token2int['the']=1 because 'the' is second most frequent token.
+    cardinality_Y: Observations, y[t] \in [0:cardinality_Y]
+    token_list: List of pairs (token, max(occurances,2)) sorted by occurances
+
+    Infrequent tokens are all mapped to the same integer.
     '''
-    '''
-    words = {}
-    for word in all:
-        if word in words:
-            words[word] += 1
+    token2int = {}
+    for token in token_sequence:
+        if token in token2int:
+            token2int[token] += 1
         else:
-            words[word] = 1
-    # Now "words" is a dict of all words that occur.  Each key is a word
+            token2int[token] = 1
+    # Now "token2int" is a dict of all tokens that occur.  Each key is a token
     # and the value is the number of occurrences
-    word_list = list(words.items())
-    word_list.sort(key=lambda x: -x[1])
-    # Now "word_list" is list of tuples (word,occurrence) sorted by
-    # occurrence
 
-    # Identify "merge; the beginning of the tail of "word_list" where
-    # occurrence is <= 2
+    token_list = list(token2int.items())
+    token_list.sort(key=lambda x: -x[1])
+    # Now "token_list" is list of tuples (token,n_occurrence) sorted by
+    # n_occurrence
+
+    # Identify "merge; the beginning of the tail of "token_list" where
+    # occurrence is <= bottom.  All tokens that occur <= bottom often
+    # get mapped to the same integer value of y.
     bottom = 2
-    for n in range(len(word_list)):
-        key, count = word_list[n]
+    for n in range(len(token_list)):
+        key, count = token_list[n]
         if count <= bottom:
             merge = n
             break
-    word_list[merge] = ('****', bottom)
-    # Change value of each entry in dict "words" to be minimum of the word
-    # rank and "merge"
-    for n in range(len(word_list)):
-        key, count = word_list[n]
+    token_list[merge] = ('****', bottom)
+
+    # Change the value of each entry in the dict "token2int" to be
+    # minimum of the token rank and "merge"
+    for index, (key,count) in enumerate(token_list):
         if count > bottom:
-            words[key] = n
+            token2int[key] = index
         else:
-            words[key] = merge
-    return words, merge, word_list
+            token2int[key] = merge
+    return token2int, merge+1, token_list
 
 
-def random_hmm(n_y, n_states, seed):
+def random_hmm(cardinality_Y, n_states, seed):
     """Create and return a hmm.C.HMM
+
+    Args:
+       cardinality_Y: Possible values of y is [0:cardinality_Y]
+       n_states: Possible values of state is [0:n_states]
+       seed: For random number generator
     """
     rng = numpy.random.default_rng(seed)
 
@@ -90,37 +121,48 @@ def random_hmm(n_y, n_states, seed):
     p_s0 = random_prob((1, n_states))[0]
     p_s0_ergodic = random_prob((1, n_states))[0]
     p_s_to_s = random_prob((n_states, n_states))
-    p_s_to_y = random_prob((n_states, n_y))
+    p_s_to_y = random_prob((n_states, cardinality_Y))
     observation_model = hmm.simple.Observation(p_s_to_y, rng)
     return hmm.C.HMM(p_s0, p_s0_ergodic, p_s_to_s, observation_model, rng)
 
 
-def write_latex(args, merge, word_list, y, ss):
-    # Print the most frequent 10 words associated with each state
-    f = open(args.out_path, 'w')
+def write_latex(args, cardinality_Y:int, token_list:list, y_sequence:numpy.ndarray, state_sequence:numpy.ndarray):
+    '''Print the most frequent 10 tokens associated with each state
+
+    Args:
+        args: Command line arguments
+        cardinality_Y: Number of different values of y[t]
+        token_list: List of pairs (token, max(frequency,2)) sorted by frequency
+        y: Sequence of integer observations
+        state_sequence: Sequence of integer indices of states
+    '''
+    file_ = open(args.out_path, 'w', encoding='utf-8')
+
     print(r"""\begin{tabular}{
 |@{\hspace{0.10em}}r@{\hspace{0.40em}}|
 *{10}{@{\hspace{0.28em}}l@{\hspace{0.28em}}}
 |}
 \hline""",
-          file=f)
-    for s_n in range(args.n_states):
-        s_words = list(range(merge))
-        for n in range(merge):
-            s_words[n] = [n, 0]
-        for t in range(len(ss)):
-            if ss[t] != s_n:
+          file=file_)
+    for n_state in range(args.n_states):
+        token_counter = [[y_n,0] for y_n in range(cardinality_Y)]
+        for t, state_t in enumerate(state_sequence):
+            if state_t != n_state:
                 continue
-            if y[t] == merge:
+            if y_sequence[t] == cardinality_Y-1: # Ignore infrequent tokens
                 continue
-            s_words[int(y[t])][1] += 1
-        s_words.sort(key=lambda x: -x[1])
-        print('%d' % (s_n + 1), end=' ', file=f)
+            token_counter[int(y_sequence[t])][1] += 1
+        token_counter.sort(key=lambda x: -x[1])
+        print(f'{n_state+1:2d}', end=' ', file=file_)
         for i in range(10):
-            print('&%s' % word_list[s_words[i][0]][0], end=' ', file=f)
-        print(r'\\', file=f)
-    print("""\hline
-\end{tabular}""", file=f)
+            token = token_list[token_counter[i][0]][0]
+            if token == '&':
+                token = '\&'
+            print(f'& {token} ', end=' ', file=file_)
+        print(r'\\', file=file_)
+    print(r"""\hline
+\end{tabular}""", file=file_)
+    file_.close()
 
 
 def main(argv=None):
@@ -128,22 +170,19 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
-    all = read_text(open(args.in_path, 'r', encoding='utf-8'))
-    words, merge, word_list = all2words(all)
-    # Map words in "all" to integers in "y"
-    y = numpy.empty(len(all), numpy.int32)
-    for n in range(len(all)):
-        y[n] = words[all[n]]
-    Card_Y = merge + 1
-    model = random_hmm(Card_Y, args.n_states, args.random_seed)
-    print("""
-Begin training in po_speech.py.  100 iterations in 8 seconds on an AMD Ryzen 9 7950X.
-""",
-          file=sys.stderr)
-    LL = model.train(y, args.n_iterations, display=False)
+    with open(args.in_path, 'r', encoding='utf-8') as file_:
+        token_sequence = read_text(file_)
+    token2int, cardinality_Y, token_list = make_token2int(token_sequence)
+    # Map tokens in "token_sequence" to integers in Y
+    y = numpy.empty(len(token_sequence), numpy.int32)
+    for t, token in enumerate(token_sequence):
+        y[t] = token2int[token]
+    model = random_hmm(cardinality_Y, args.n_states, args.random_seed)
+    model.train(y, args.n_iterations, display=False)
     # Do Viterbi decoding
-    ss = model.decode(y)
-    write_latex(args, merge, word_list, y, ss)
+    state_sequence = model.decode(y)
+    assert state_sequence.shape == (len(token_sequence),)
+    write_latex(args, cardinality_Y, token_list, y, state_sequence)
 
 
 if __name__ == "__main__":
