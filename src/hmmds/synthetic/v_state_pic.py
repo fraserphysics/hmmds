@@ -24,6 +24,9 @@ def parse_args(argv):
         description=
         "Make data for figure of states from vector autoregressive model")
     parser.add_argument('--n_states', type=int, default=12)
+    parser.add_argument('--random_seed', type=int, default=1)
+    parser.add_argument('--nu', type=float, default=1.0e6)
+    parser.add_argument('--psi', type=float, default=4.0e6)
     parser.add_argument('data_dir', type=str)
     parser.add_argument('data_in', type=str)
     parser.add_argument('out_preface', type=str)
@@ -59,8 +62,7 @@ def main(argv=None):
     assert context_dim == 4
 
     # Make initial model
-    model = make_varg_hmm(args.n_states, vector_dim, context_dim, vectors,
-                          1.0e6, 4.0e6)
+    model = make_varg_hmm(args, vector_dim, context_dim, vectors)
 
     # Train while loosening prior.  Recall update formula: Cov[s] =
     # (Psi + rrsum)/(wsum[s]+nu+dimension+1).  FixMe: Don't modify
@@ -85,11 +87,11 @@ def main(argv=None):
     return 0
 
 
-def make_varg_hmm(n_states, out_dimension, context_dimension, vectors, nu, psi):
+def make_varg_hmm(args, out_dimension, context_dimension, vectors):
     """Returns a normalized random initial model.
 
     Args:
-        n_states:
+        args: Command line args, n_states, random_seed, nu, psi
         out_dimension:
         context_dimension:
         vectors: A sequence of observations
@@ -100,14 +102,14 @@ def make_varg_hmm(n_states, out_dimension, context_dimension, vectors, nu, psi):
     """
 
     # Make VARG observation model
-    rng = numpy.random.default_rng(0)
+    rng = numpy.random.default_rng(args.random_seed)
 
     # Generate a random time for each state
-    t_state = rng.integers(1, high=len(vectors), size=n_states)
+    t_state = rng.integers(1, high=len(vectors), size=args.n_states)
 
     # Setup forecast and to work perfectly for state s at time t_state[state]
-    a_forecast = numpy.zeros((n_states, out_dimension, context_dimension))
-    for state in range(n_states):
+    a_forecast = numpy.zeros((args.n_states, out_dimension, context_dimension))
+    for state in range(args.n_states):
         # Assign one column at a time
         a_forecast[state, :, 0] = [1, 0, 0]
         a_forecast[state, :, 1] = [0, 1, 0]
@@ -118,14 +120,16 @@ def make_varg_hmm(n_states, out_dimension, context_dimension, vectors, nu, psi):
     # Setup covariance of each state to be the covariance of all of the data
     covariance = numpy.cov(vectors.T)
     assert covariance.shape == (3, 3)
-    covariance_state = numpy.empty((n_states, 3, 3))
-    for state in range(n_states):
+    covariance_state = numpy.empty((args.n_states, 3, 3))
+    for state in range(args.n_states):
         covariance_state[state] = covariance
 
     # Make other parameters for HMM
-    p_s0 = hmm.simple.Prob(rng.random((1, n_states))).normalize()[0]
-    p_s0_ergodic = hmm.simple.Prob(rng.random((1, n_states))).normalize()[0]
-    p_s_to_s = hmm.simple.Prob(rng.random((n_states, n_states))).normalize()
+    p_s0 = hmm.simple.Prob(rng.random((1, args.n_states))).normalize()[0]
+    p_s0_ergodic = hmm.simple.Prob(rng.random(
+        (1, args.n_states))).normalize()[0]
+    p_s_to_s = hmm.simple.Prob(rng.random(
+        (args.n_states, args.n_states))).normalize()
 
     # Make the model
     model = hmm.base.HMM(
@@ -133,8 +137,8 @@ def make_varg_hmm(n_states, out_dimension, context_dimension, vectors, nu, psi):
         hmm.observe_float.VARG(a_forecast,
                                covariance_state,
                                rng,
-                               nu=nu,
-                               Psi=psi))
+                               nu=args.nu,
+                               Psi=args.psi))
     assert model.p_state_initial.shape == (12,)
     return model
 

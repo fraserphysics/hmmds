@@ -12,12 +12,12 @@ FIGS_Variants = $(BUILD)/figs/variants
 
 # Rule for SGO_b, SGO_c, and SGO_d
 $(FIGS_Variants)/SGO_bcd: $(VariantPlotScripts)/scalar_gaussian.py $(SGOFlag)
-	mkdir -p $(FIGS_Variants)
+	mkdir -p $(@D)
 	python $< $(SGOData) $(FIGS_Variants)
 	touch $@
 
 $(FIGS_Variants)/VARGstates.pdf: $(STATEPLOT) $(VARGData)
-	mkdir -p  $(FIGS_Variants)
+	mkdir -p  $(@D)
 	python $< --data_dir $(SYNTHETIC_DATA) --base_name varg_state --fig_path $@
 
 # Local Variables:

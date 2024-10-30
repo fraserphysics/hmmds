@@ -306,8 +306,7 @@ Our code relies on many free software packages.  Although we developed
 the code on NixOS systems, the code will run on any of the many other
 platforms for which the dependencies are available.  In addition to
 the standard gnu development tools, we require at least the following
-and their dependencies:\marginpar{FixMe: Find the minimum Nix
-      environment for building the book}
+and their dependencies:
   \begin{description}
   \item[python] An interpreted, interactive, object-oriented,
     extensible programming language.  The following python packages
@@ -315,19 +314,35 @@ and their dependencies:\marginpar{FixMe: Find the minimum Nix
     \item[numpy] 
     \item[scipy] 
     \item[matplotlib]
-    \item[pyqt5] 
     \item[cython] 
-    \item[pint]  
+    \item[pint] 
+    \item[pathlib2] For py-ecg-detectors
+    \item[pywavelets] For py-ecg-detectors
+    \item[pygraphviz] For making pdf graph of HMM
+    \item[pandas] For wfdb
+    \item[pyqtgraph] For GUIs
+    \item[pyqt5] GUIs import PyQt5 
+    \item[sortedcontainers] FixMe: Only used by ECG.develop.ItemScoreT
+      that may be dead code.
     \end{description}
+  \item[bash] 
+  \item[gnumake] 
   \item[xfig]
   \item[fig2dev] 
-  \item[transfig]
-  \item[gnumake] 
+  \item[wget]
+  \item[graphviz] 
   \item[texlive] TeX, LaTeX and much supporting software.  We use the
     following packages:
     \begin{description}
     \item[tcolorbox] 
+    \item[environ] 
+    \item[trimspaces] 
+    \item[listingssutf8] 
     \item[latexmk]
+    \item[type1cm] 
+    \item[showlabels] 
+    \item[xstring] 
+    \item[framed] 
     \end{description}
   \end{description}
 

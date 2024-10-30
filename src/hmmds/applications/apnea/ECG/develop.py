@@ -13,7 +13,6 @@ import argparse
 
 import numpy
 import sortedcontainers
-import anytree
 
 import hmm.base
 import hmm.C

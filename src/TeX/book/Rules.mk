@@ -10,7 +10,6 @@ BOOK_OUT = $(BUILD)/TeX/book
 ADD_PDF_PDF_T = $(addprefix $(1)/, $(addsuffix .pdf, $(2)) $(addsuffix .pdf_t, $(2)))
 
 LASER_FIG_DIR = $(BUILD)/figs/laser/
-# FixMe: Some of these figures may not be required
 LASER_FIGS = $(addsuffix .pdf, $(addprefix $(LASER_FIG_DIR), \
 LaserLP5 LaserLogLike LaserStates LaserForecast LaserHist))
 

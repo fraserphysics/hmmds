@@ -97,12 +97,12 @@ def make_token2int(token_sequence: list) -> tuple:
 
     # Change the value of each entry in the dict "token2int" to be
     # minimum of the token rank and "merge"
-    for index, (key,count) in enumerate(token_list):
+    for index, (key, count) in enumerate(token_list):
         if count > bottom:
             token2int[key] = index
         else:
             token2int[key] = merge
-    return token2int, merge+1, token_list
+    return token2int, merge + 1, token_list
 
 
 def random_hmm(cardinality_Y, n_states, seed):
@@ -126,7 +126,8 @@ def random_hmm(cardinality_Y, n_states, seed):
     return hmm.C.HMM(p_s0, p_s0_ergodic, p_s_to_s, observation_model, rng)
 
 
-def write_latex(args, cardinality_Y:int, token_list:list, y_sequence:numpy.ndarray, state_sequence:numpy.ndarray):
+def write_latex(args, cardinality_Y: int, token_list: list,
+                y_sequence: numpy.ndarray, state_sequence: numpy.ndarray):
     '''Print the most frequent 10 tokens associated with each state
 
     Args:
@@ -145,11 +146,11 @@ def write_latex(args, cardinality_Y:int, token_list:list, y_sequence:numpy.ndarr
 \hline""",
           file=file_)
     for n_state in range(args.n_states):
-        token_counter = [[y_n,0] for y_n in range(cardinality_Y)]
+        token_counter = [[y_n, 0] for y_n in range(cardinality_Y)]
         for t, state_t in enumerate(state_sequence):
             if state_t != n_state:
                 continue
-            if y_sequence[t] == cardinality_Y-1: # Ignore infrequent tokens
+            if y_sequence[t] == cardinality_Y - 1:  # Ignore infrequent tokens
                 continue
             token_counter[int(y_sequence[t])][1] += 1
         token_counter.sort(key=lambda x: -x[1])

@@ -8,6 +8,7 @@
 \def\NUniqueTokens{9,772}
 \def\TextTrainingIterations{100}
 \def\NLorenzBig{40,000} % synthetic/Rules.mk
+% FixMe: calculate and input these defs
 \chapter{Introduction}
 \label{chap:introduction}
 
@@ -612,20 +613,19 @@ assumptions about \emph{conditional independence} relations.  Figure
   \label{fig:dhmm_net}
 \end{figure}
 
-Bayes rule and the assumptions justify\marginpar{FixMe: $P_{X}$ not
-  $P(X)$?}
+Bayes rule and the assumptions justify
 \begin{align}
-  P(\ts{Y}{1}{T},\ts{S}{1}{T}) &= P(\ts{S}{1}{T}) \, %
-                                   P(\ts{Y}{1}{T}|\ts{S}{1}{T}),\notag\\
+  P_{\ts{Y}{1}{T},\ts{S}{1}{T}} &= P_{\ts{S}{1}{T}} \, %
+                                   P_{\ts{Y}{1}{T}|\ts{S}{1}{T}},\notag\\
   \label{eq:sseqprob}%
-  P(\ts{S}{1}{T})              &= P(\ti{S}{1}) %
-                                   \prod_{t=2}^T P(\ti{S}{t}|\ti{S}{t-1})\\
+  P_{\ts{S}{1}{T}}              &= P_{\ti{S}{1}} %
+                                   \prod_{t=2}^T P_{\ti{S}{t}|\ti{S}{t-1}}\\
   \label{eq:condyseqprob}%
-  P(\ts{Y}{1}{T}|\ts{S}{1}{T}) &= \prod_{t=1}^T P(\ti{Y}{t}|\ti{S}{t})\\
+  P_{\ts{Y}{1}{T}|\ts{S}{1}{T}} &= \prod_{t=1}^T P_{\ti{Y}{t}|\ti{S}{t}}\\
   \intertext{and we conclude}
-  P(\ts{Y}{1}{T},\ts{S}{1}{T}) &= P(\ti{S}{1}) %
-                                   \prod_{t=2}^T P(\ti{S}{t}|\ti{S}{t-1})\, %
-                                   \prod_{t=1}^T P(\ti{Y}{t}|\ti{S}{t}).\notag
+  P_{\ts{Y}{1}{T},\ts{S}{1}{T}} &= P_{\ti{S}{1}} %
+                                   \prod_{t=2}^T P_{\ti{S}{t}|\ti{S}{t-1}}\, %
+                                   \prod_{t=1}^T P_{\ti{Y}{t}|\ti{S}{t}}.\notag
 \end{align}
 
 Since the state $u$ produces the observation $d$ exclusively and no
@@ -728,11 +728,10 @@ synthesized by numerically integrating the Lorenz system
 (Eqn.~\eqref{eq:Lorenz} with parameter values $r=28$, $s=10$, and
 $b=\frac{8}{3}$) and recording \NLorenzBig vectors $x(\tau)$ with a
 sampling interval $\Delta \tau = 0.15$.  Then we produced a sequence
-of integer valued observations $y_1^{\NLorenzBig}$ by dividing the $x_1$
-values by 10 adding 2 and keeping the integer part.\marginpar{FixMe:
-  May need a generating partition in Chap.~5}  The result is
-that for each integer $1\leq t \leq \NLorenzBig$, $\ti{x_1}{t\cdot0.15}$
-yields $\ti{y}{t} \in \left\{0,1,2,3\right\}$.
+of integer valued observations $y_1^{\NLorenzBig}$ by binning $x_1$
+with boundaries at $\boundaryA,\boundaryB$ and $\boundaryC$.  The
+result is that for each integer $1\leq t \leq \NLorenzBig$,
+$\ti{x_1}{t\cdot0.15}$ yields $\ti{y}{t} \in \left\{1,2,3,4\right\}$.
 Figure~\ref{fig:TSintro} depicts the first few observations.
 
 \begin{figure}[htbp]
@@ -869,8 +868,7 @@ The experiment consisted of the following steps:
   corresponding the ten most frequently occurring integers (excluding
   the special value $y=\NMoreThanTwicePlusOne$).
 \end{description}
-The results appear in Table~\ref{tab:POS}.\marginpar{FixMe: Revise
-  upper table}
+The results appear in Table~\ref{tab:POS}.
 
 \begin{table}[htb]
   \caption[Words most frequently associated with each state.]%

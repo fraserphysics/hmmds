@@ -19,7 +19,8 @@ $(SYNTHETIC_DATA)/states: $(SYNTHETIC_CODE)/state_pic.py $(SYNTHETIC_DATA)/m12s.
 
 # vstates is a sentinel for varg_stateN (N in 0...11)  ToDo: implement this
 $(SYNTHETIC_DATA)/vstates: $(SYNTHETIC_CODE)/v_state_pic.py $(SYNTHETIC_DATA)/lorenz.flag
-	python $<  $(SYNTHETIC_DATA) lorenz.xyz varg_state
+	mkdir -p $(@D)
+	python $< --random_seed 7 $(SYNTHETIC_DATA) lorenz.xyz varg_state
 	touch $@
 
 $(SYNTHETIC_DATA)/m12s.4y : $(SYNTHETIC_CODE)/make_model.py $(SYNTHETIC_DATA)/lorenz.xyz
@@ -38,7 +39,9 @@ $(SYNTHETIC_DATA)/gauss_mix.pkl: $(SYNTHETIC_CODE)/gauss_mix.py
 
 # Sentinel for SGO_sim and SGO_train
 $(SYNTHETIC_DATA)/SGO: $(SYNTHETIC_CODE)/scalar_gaussian.py
-	python $< $(SYNTHETIC_DATA)
+	mkdir -p $(@D)
+	mkdir -p $(BUILD)/TeX/book/
+	python $< --random_seed 5 --iterations_fail 2 $(BUILD)/TeX/book/SGO_values.tex $(SYNTHETIC_DATA)
 	touch $@
 
 # Local Variables:
