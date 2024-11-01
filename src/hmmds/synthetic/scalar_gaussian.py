@@ -143,7 +143,6 @@ def main(argv=None):
     differences = numpy.abs(y_sequence[0] - model_3a.y_mod.mu[1])
     compare = (differences < 1e-3).nonzero()[0]
     assert compare.shape == (1,)
-        
 
     with open(os.path.join(args.out_dir, 'SGO_sim'), encoding='utf-8',
               mode='w') as sgo_sim:

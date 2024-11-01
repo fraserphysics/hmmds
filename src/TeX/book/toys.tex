@@ -1,3 +1,11 @@
+\def\toysLambdaOne{0.906}
+\input{toy_values.tex}
+% A typical def in toy_values.tex is \def\toyToyhnt{200}.  The initial
+% ``toy'' indicated it is for this chaper, toys.tex.  The following
+% ``Toyh'' indicates that the value is defined in the script toy_y.py.
+% Then final ``nt'' indicates that the value comes from args.n_t in that
+% script.
+
 \chapter{Toy Problems and Performance Bounds}
 \label{chap:toys}
 
@@ -59,7 +67,7 @@ measurements has the following characteristics:
     \end{equation*}
   \item[Time step] We obtain the map $F$ by numerically integrating
     Eqn.~\eqref{eq:Lorenz} for time intervals of length $t_s$ with an
-    absolute error tolerance of $10^{-7}$. \marginpar{FixMe: Really?}
+    absolute error tolerance of $\toyHviewatol$.
   \item[iid state noise] 
     \begin{equation*}
       \ti{\eta}{t} \sim \Normal(0, \begin{bmatrix} 1 & 0 & 0\\0 & 1 &
@@ -74,7 +82,7 @@ measurements has the following characteristics:
       \ti{\epsilon}{t} \sim \Normal(0, \sigma_\epsilon^2)
     \end{equation*}
   \item[Quantization] The observations are quantized with a resolution
-    $\Delta$.  We analyze quantized measurements rather than
+    $\Delta=\toyHviewystep$.  We analyze quantized measurements rather than
     continuous measurements because they provide a \emph{finite} rather
     than \emph{infinite} amount of information and they are
     characterized by \emph{coordinate invariant} probability mass
@@ -95,39 +103,36 @@ We obtain affine maps for the approximation $F(x+\delta,t) \approx
   of the function $F$ at $x$ applied to the vector $\delta$.  This
   notation emphasizes that $DF(x)$ is a linear map.}
 %
-by numerically integrating both the
-Lorenz system and the tangent equations.  We use those approximations
-with Eqns.~\eqref{eq:KForeMu} and \eqref{eq:KUpdate} on page
-\pageref{eq:KUpdate} to implement the recursive calculation of
-$\ti{\mu_\gamma}{t}$ and $\ti{\sigma_\gamma}{t}$ described by
-Eqns.~\eqref{eq:t274} to \eqref{eq:IUpdate} on page
-\pageref{eq:IUpdate}.
+by numerically integrating both the Lorenz system and the tangent
+equations.  We use those approximations with Eqns.~\eqref{eq:KForeMu}
+and \eqref{eq:KUpdate} on page \pageref{eq:KUpdate} to implement the
+recursive calculation of $\ti{\mu_\gamma}{t}$ and
+$\ti{\sigma_\gamma}{t}$ described by Eqns.~\eqref{eq:t274} to
+\eqref{eq:IUpdate} on page \pageref{eq:IUpdate}.
 
 Figures~\ref{fig:ToyTS1} and \ref{fig:ToyStretch} depict a simulation
-in which dynamical stretching, \ie, the linear instability of $\left[
-  DF(x)\right]$, occasionally limits predictability.  We chose the
-parameters, specified in the caption of Fig.~\ref{fig:ToyTS1}, so that
-dynamical noise and measurement quantization are negligible compared
-to the effects of measurement noise and dynamical stretching.  In the
-middle plot of Fig.~\ref{fig:ToyTS1} notice that while for most times
-the forecast deviation of the predictions $\ti{\sigma_\gamma}{t}$ is
-very close to the size of the measurement noise $(0.01)$, occasionally
-the forecast deviations are many times larger.  The log likelihood per
-time step which appears in bottom plot of the figure is low when
-either the forecast deviations are large or when the difference
-between the mean of the forecast and the actual observation is much
-larger than the predicted deviation, \ie, $\ti{\sigma^2_\gamma}{t} <<
+in which dynamical stretching, \ie, the linear instability of
+$\left[ DF(x)\right]$, occasionally limits predictability.  We chose
+the parameters, specified in the caption of Fig.~\ref{fig:ToyTS1}, so
+that dynamical noise and measurement quantization are negligible
+compared to the effects of measurement noise and dynamical stretching.
+In the middle plot of Fig.~\ref{fig:ToyTS1} notice that while for most
+times the forecast deviation of the prediction
+$\ti{\sigma_\gamma}{t}$ is very close to the size of the measurement
+noise $\sigma_\eta = \toyHviewSigmaEpsilon$, occasionally the forecast deviations are
+many times larger.  The log likelihood per time step which appears in
+bottom plot of the figure is low when either the forecast deviations
+are large or when the difference between the mean of the forecast and
+the actual observation is much larger than the predicted deviation,
+\ie,
+$\ti{\sigma^2_\gamma}{t} <<
 \left(\ti{y}{t}-\ti{\mu_\gamma}{t}\right)^2$.
 
-The largest excursion of $\ti{\sigma_\gamma}{t}$ in \marginpar{FixMe:
-  Really?  Put values on x axis.}
-Fig.~\ref{fig:ToyTS1} occurs between $t=117$ and $t=122$.
-Figure~\ref{fig:ToyStretch} illustrates the stretching action of
-the map $[DF]$ that occurs in that interval; the dynamics maps the
-smaller ellipse in the plot on the left into the larger ellipse in the
-plot on the right.
+The largest excursion of $\ti{\sigma_\gamma}{t}$ in
+Fig.~\ref{fig:ToyTS1} occurs at $t=\toyHviewTmaxSigma$.
+Figure~\ref{fig:ToyStretch} illustrates the stretching action of the
+map $[DF]$ that occurs then.
 
-\marginpar{FixMe: Get values from code.  t axis values.}
 \begin{figure}[htbp]
   \centering{
     \includegraphics[width=1.0\textwidth]{ToyTS1.pdf}}
@@ -135,54 +140,50 @@ plot on the right.
     {Extended Kalman filter for one step forecasting with simulation
     parameters:\\
     \begin{tabular}[c]{ll}
-       $t_s=0.25$ & Sample interval \\
-       $\sigma_\eta = 10^{-6}$ & Standard deviation of state noise \\
-       $\sigma_\epsilon = 0.01$ & Standard deviation of measurement
-       noise \\
-       $\Delta = 10^{-4}$ & Measurement quantization \\
-     \end{tabular}\\
+       $t_s=\toyHviewdt$ & Sample interval \\
+       $\sigma_\eta = \toyHviewSigmaEta$ & Standard deviation of state noise \\
+       $\sigma_\epsilon = \toyHviewSigmaEpsilon$ & Standard deviation of measurement noise \\
+       $\Delta = \toyHviewystep$ & Measurement quantization \\
+    \end{tabular}\\
     A time series of observations appears in the upper plot.  The
     middle plot characterizes the one-step forecast distributions
     $P_{\gamma} \left(\ti{y}{t} \right) \equiv P
     \left(\ti{y}{t}|\ts{y}{1}{t-1},\theta \right) =
-    \NormalE{\ti{\mu_\gamma}{t}}{\ti{\sigma^2_\gamma}{t}}{\ti{y}{t}}$;
-    the first trace is the standard deviations of the forecasts and
-    the second trace is the difference between the actual observation
-    and the mean of the forecast.  The logs of the likelihoods of the
-    forecasts, $\log(P_{\gamma} \left(\ti{y}{t} \right))$, appear in
-    the bottom plot.}
+    \NormalE{\ti{\mu_\gamma}{t}}{\ti{\sigma^2_\gamma}{t}}{\ti{y}{t}}$.
+    The standard deviations of the forecasts appear in the first
+    trace, and the differences between the actual observations
+    and the means of the forecasts appear in the second trace.  The
+    logs of the likelihoods of the forecasts, $\log(P_{\gamma}
+    \left(\ti{y}{t} \right))$, appear in the bottom plot.}
   \label{fig:ToyTS1}
 \end{figure}
 %%%
-\marginpar{FixMe: Values from code.  Label traces.}
+\marginpar{FixMe: $x_0$ or $x_1$?  19->20 or 20->21?}
 \begin{figure}[htbp]
   \centering{\resizebox{\textwidth}{!}{\includegraphics{ToyStretch.pdf}}
   }
-  \caption[\comment{fig:ToyStretch }Dynamical stretching increases state variance.]%
+  \caption[\comment{fig:ToyStretch }Dynamical stretching increases
+  state variance.]%
   {These plots illustrate dynamical stretching increasing the variance
-    of the conditional distribution in state space corresponding to
-    time steps 118 and 119 in Fig.~\ref{fig:ToyTS1}.  In each plot,
-    the larger ellipse represents the \emph{forecast} state
-    distribution $P_{a} \left(\ti{x}{t} \right) \equiv P
+    of the conditional distribution in state space between time steps
+    $\toyHviewTmaxSigma$ and $\toyHviewTmaxSigmaPlusOne$ in
+    Fig.~\ref{fig:ToyTS1}.  In each plot, the \emph{forecast} state
+    distribution ellipse represents
+    $P_{a} \left(\ti{x}{t} \right) \equiv P
     \left(\ti{x}{t}|\ts{y}{1}{t-1},\theta \right) =
-    \NormalE{\mu_a}{\Sigma_a}{\ti{x}{t}}$ and the smaller ellipse
-    represents the \emph{updated} state distribution $P_{\alpha}
-    \left(\ti{x}{t} \right) \equiv P \left(\ti{x}{t}|\ts{y}{1}{t},
-      \theta \right) =
+    \NormalE{\mu_a}{\Sigma_a}{\ti{x}{t}}$ and the \emph{update} state
+    distribution ellipse represents
+    $P_{\alpha} \left(\ti{x}{t} \right) \equiv P
+    \left(\ti{x}{t}|\ts{y}{1}{t}, \theta \right) =
     \NormalE{\mu_\alpha}{\Sigma_\alpha}{\ti{x}{t}}$.  For each
-    distribution, an ellipse depicts the level set $(x-\mu)\transpose
-    \Sigma^{-1} (x-\mu) =1$ in the $x_1\times x_3$ plane.  Since the
-    observations provide information about the value of $x_1$, the
-    updated distributions vary less in the $x_1$ direction than the
-    corresponding forecasts.  To aid comparisons, the $x_1$ range is
-    $0.2$ and the $x_3$ range is $0.01$ in each plot.  In the $x_1$
-    direction, the standard deviation of the updated distribution
-    $P_{\alpha}(\ti{x}{t})$ at $t=118$ (the smaller of the two
-    ellipses on the left) is 0.007.  The dynamics map that
-    distribution to the forecast distribution $P_{a}(\ti{x}{t})$ at
-    $t=119$ (the larger of the two ellipses on the right) for which
-    the standard deviation in the $x_1$ direction is more than ten
-    times larger.}
+    distribution, an ellipse depicts the level set
+    $(x-\mu)\transpose \Sigma^{-1} (x-\mu) =1$ in the $x_1\times x_3$
+    plane.  To support visual comparisons, the $x_1$ range the $x_3$
+    range are the same in each of the plots.  In mapping the updated
+    distribution at $t=\toyHviewTmaxSigma$ (on the left) to the
+    forecast distribution at time $t=\toyHviewTmaxSigmaPlusOne$ (on the
+    right), the function $F$ that implements state dynamics stretches
+    the ellipse by about a factor of 10 in both directions.}
   \label{fig:ToyStretch}
 \end{figure}
 
@@ -231,22 +232,21 @@ We have chosen the parameters\footnote{ In making Fig.~\ref{fig:ToyH},
   space.  By making $\tilde \sigma_\eta$ larger, the errors are
   accommodated as state noise.  We chose the state noise of the
   generating process to be an order of magnitude larger than the
-  absolute integration tolerance of $10^{-7}$.  We then chose the
+  absolute integration tolerance of $\toyHviewatol$.  We then chose the
   quantization level and sample times to be as large as possible, but
   still small enough that we could have $\tilde \sigma_\eta =
   \sigma_\eta$ without losing performance.  That led to the values
-  $\tilde \sigma_\eta = \sigma_\eta = 10^{-6}$, $\Delta = 10^{-4}$,
+  $\tilde \sigma_\eta = \sigma_\eta = \toyToyhdevstategenerate$, $\Delta = \toyToyhystep$,
   and $0 < t_s \leq 0.5$.} specified in the caption of
 Fig.~\ref{fig:ToyH} with a large measurement quantization size so that
 the log likelihood is limited primarily by dynamical stretching and
 the Gaussian assumption for $ P \left(\ti{y}{t}|\ts{y}{1}{t-1}, \theta
 \right)$.  We are pleased to observe that the overall slope of the
 plot on the left in Fig.~\ref{fig:ToyH} is consistent with the
-estimate $\hat \lambda_1 = 0.906$ (base $e$) that we obtain using the
+estimate $\hat \lambda_1 = \toysLambdaOne$ (base $e$) that we obtain using the
 Benettin procedure described in Section~\ref{sec:Benettin}.
 %%% code/python/lorenzLyap.py
 
-\marginpar{FixMe: Values from code}
 \begin{figure}[htbp]
   \centering{
     \includegraphics[width=1.0\textwidth]{ToyH.pdf}}
@@ -255,10 +255,10 @@ Benettin procedure described in Section~\ref{sec:Benettin}.
     step $t_s$ and filter parameter $\tilde \sigma_\epsilon$.  To
     simulate measurements for this figure, we used the parameters:\\
     \begin{tabular}[c]{ll}
-     $\sigma_\eta = 10^{-6}$ & Standard deviation of state noise \\
-     $\sigma_\epsilon = 10^{-10}$ & Standard deviation of measurement noise \\
-     $\Delta = 10^{-4}$ & Measurement quantization \\
-     $T=5,000$ & Number of samples
+     $\sigma_\eta = \toyToyhdevstategenerate$ & Standard deviation of state noise \\
+     $\sigma_\epsilon = \toyToyhdevmeasurement$ & Standard deviation of measurement noise \\
+     $\Delta = \toyToyhystep$ & Measurement quantization \\
+     $T=\toyToyhnt$ & Number of samples
     \end{tabular}\\
     For both plots, the vertical axis is the average log likelihood of
     the one-step forecast $-\hat h \equiv \frac{1}{T} \sum_{t=1}^T
@@ -273,11 +273,12 @@ Benettin procedure described in Section~\ref{sec:Benettin}.
     10^{0.4 t_s -4.85}$, which closely follows the ridge top in the plot
     on the left, ``$\diamond$''%% Bottom row of dots
     indicates the performance of
-    filters that use $\tilde \sigma_\epsilon = 10^{-4}$, \ie the
+    filters that use $\tilde \sigma_\epsilon = \toyToyhystep$, \ie the
     measurement quantization level, and the solid line traces
     Eqn.~\eqref{eq:ToyH} in the text.}
    \label{fig:ToyH}
-\end{figure}
+ \end{figure}
+ \marginpar{FixMe: formula $10^{0.4 t_s -4.85}$?} 
 %\afterpage{\clearpage}%% Print this right here please.
 
 In the plot on the right in Fig.~\ref{fig:ToyH} we see that for a
@@ -312,7 +313,8 @@ quantization interval yields
    &= \text{erf} \left( \frac{1}{2\sqrt{2}}\right) \\
    &\approx 0.3829 \\
    \log \left( P_{\ti{y}{t}|\theta}(\bar y) \right) &\approx -0.9599.
-\end{align*}
+ \end{align*}
+\marginpar{FixMe: 0.3829 and -0.9599?}
 Given the simplicity of the analysis, Eqn.~\eqref{eq:ToyH} fits the
 simulations in Fig.~\ref{fig:ToyH} remarkably well.
 
@@ -1059,11 +1061,11 @@ system appear in Fig.~\ref{fig:benettin}.
   {Lyapunov exponent calculation for the Lorenz system.  In the upper
     part, the colored traces are plots of
     $\frac{1}{T} \sum_{t=1}^T \log\left( \left| \ti{r_{1,1}}{t}
-      \right| \right)$ for three different initial conditions and the
-    black traces the 5\% and 95\% limits on 1,000 separate runs.  The
-    lower part is the same except that
-    $\left| \ti{r_{1,1}}{t} \right|$ is augmented by a noise term with
-    amplitude $\frac{\sigma_\eta}{\Delta} = 0.01$ (See
+      \right| \right)$ (See Eqn.~\eqref{eq:rii}) for three
+    different initial conditions and the black traces the 5\% and 95\%
+    limits on 1,000 separate runs.  The lower part is the same except
+    that $\left| \ti{r_{1,1}}{t} \right|$ is augmented by a noise term
+    with amplitude $\frac{\sigma_\eta}{\Delta} = 0.01$ (See
     Eqn.~\eqref{eq:LE.aug}).}
   \label{fig:benettin}
 \end{figure}
@@ -1304,6 +1306,7 @@ component into one of four levels.  Although the cross entropy of that
 twelve state model is not very close to the bound based on our
 Lyapunov exponent estimate ($\hat h(\mathcal{B},F,\mu)) = \hat
 \lambda_1 = 0.136~\text{nats} = 0.196~\text{bits}$), it seems
+\marginpar{FixMe: 0.15, 0.136, 0.196?}
 plausible that by using HMMs with more states, we might get higher
 likelihoods.  In fact it is true, but we are surprised at how many
 states we needed.
@@ -1366,6 +1369,7 @@ vanilla forward algorithm.
 \longpage%%% Maybe not required for MathTime... look for half
          %%% paragraph after the fig:LikeLor to see if it is needed.
 Results of the abbreviated procedure appear in Fig.~\ref{fig:LikeLor}.
+\marginpar{FixMe: numbers in this paragraph?}
 For the rightmost point on the curve we found a model with 1,490,202
 hidden states and a cross entropy of 0.153 nats or 0.221 bits.  By
 connecting this model to a simple data compression routine one could
@@ -1395,6 +1399,7 @@ build larger models and extend the plot to the right.
     estimates are based on a test sequence of 10,000 observations.}
   \label{fig:LikeLor}
 \end{figure}
+\marginpar{FixMe: Numbers in fig:LikeLor?}
 \afterpage{\clearpage}%% Print this right here please.
 \newpage
 % \ToDo{remember to cite Yariv Ephraim

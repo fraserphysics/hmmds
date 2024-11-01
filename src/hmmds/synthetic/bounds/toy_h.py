@@ -182,7 +182,7 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
-    result = {}
+    result = {'args': args}
 
     # Calculate intercept and slope for Eqn 5.2 in the book
     z = 0.5 / numpy.sqrt(2)

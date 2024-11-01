@@ -47,7 +47,7 @@ filters.
     with open(args.data, 'rb') as file_:
         data = pickle.load(file_)
     assert set(data.keys()) == set(
-        'intercept slope lower upper cross_entropy'.split())
+        'intercept slope lower upper cross_entropy args'.split())
 
     # Unpack entropy data
     entropy_dict = data['cross_entropy']

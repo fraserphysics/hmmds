@@ -50,25 +50,32 @@ def time_series(args: argparse.Namespace, pyplot, data):
 
     Return: figure
     """
+
+    assert data[
+        't_start'] == args.t_start, "Two sources of t_start don't match check h_cli.py"
+    assert data[
+        't_stop'] == args.t_stop, "Two sources of t_stop don't match check h_cli.py"
     y = data['y'][:, 0]
     error = data['y_means'] - y
     y_deviations = numpy.sqrt(data['y_variances'])
+    times = numpy.arange(args.t_start, args.t_stop)
 
     figure, (y_plot, error_plot, log_prob_plot) = pyplot.subplots(nrows=3,
                                                                   figsize=(6,
                                                                            5),
                                                                   sharex=True)
-    # Drop tick labels on some shared axes.
-    for axis in (y_plot, error_plot):
-        axis.set_xticklabels([])
 
-    y_plot.plot(y[args.t_start:args.t_stop], label=r'$y[t]$')
+    y_plot.plot(times, y[args.t_start:args.t_stop], label=r'$y[t]$')
 
-    error_plot.plot(y_deviations[args.t_start:args.t_stop],
+    error_plot.plot(times,
+                    y_deviations[args.t_start:args.t_stop],
                     label=r'$\sigma_y[t]$')
-    error_plot.plot(error[args.t_start:args.t_stop], label=r'$y[t] - \mu_y[t]$')
+    error_plot.plot(times,
+                    error[args.t_start:args.t_stop],
+                    label=r'$y[t] - \mu_y[t]$')
 
-    log_prob_plot.plot(data['log_probabilities'][args.t_start:args.t_stop],
+    log_prob_plot.plot(times,
+                       data['log_probabilities'][args.t_start:args.t_stop],
                        label=r'$\log(\rm{Prob}(y[t]))$')
     log_prob_plot.set_xlabel('$t$')
 
@@ -168,22 +175,26 @@ def stretch(args: argparse.Namespace, pyplot, data):
         for t in times
     ]
 
-    figure, both = pyplot.subplots(ncols=2, figsize=(12, 6))
+    figure, both = pyplot.subplots(ncols=2, figsize=(6, 3))
     assert len(both) == 2
     # assert isinstance(both[0], matplotlib.axes._subplots.AxesSubplot)
 
     ranges = find_ranges(*forecast_ellipses, *update_ellipses)
     for n_axes, axes in enumerate(both):
-        axes.plot(forecast_ellipses[n_axes][:, 0], forecast_ellipses[n_axes][:,
-                                                                             1])
-        axes.plot(update_ellipses[n_axes][:, 0], update_ellipses[n_axes][:, 1])
+        t = times[n_axes]
+        axes.plot(forecast_ellipses[n_axes][:, 0],
+                  forecast_ellipses[n_axes][:, 1],
+                  label='forecast')
+        axes.plot(update_ellipses[n_axes][:, 0],
+                  update_ellipses[n_axes][:, 1],
+                  label='update')
         axes.set_xlim(ranges[n_axes][0])
         axes.set_ylim(ranges[n_axes][1])
+        axes.set_ylabel(f'$x_2({t})$')
+        axes.set_xlabel(f'$x_0({t})$')
+        axes.legend()
 
-    for axes in both:
-        axes.set_ylabel(r'$x_2$')
-        axes.set_xlabel(r'$x_0$')
-
+    figure.tight_layout()
     return figure
 
 

@@ -1,6 +1,8 @@
 """h_cli.py A command line interface script that mimics h_view.py
 
-I wrote this to write data for building figures without launching the GUI.
+Use: python h_cli.py output.pkl
+
+This script writes data for building figures without using the GUI.
 
 """
 
@@ -12,6 +14,7 @@ import argparse
 import PyQt5.QtWidgets
 
 import hmmds.synthetic.bounds.h_view
+import hmm.state_space
 
 
 def parse_args(argv):
@@ -23,22 +26,27 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-class Wall(hmmds.synthetic.bounds.h_view.MainWindow):
-    """
+class MainWindow(hmmds.synthetic.bounds.h_view.MainWindow):
+    """Wrap h_view.MainWindow for calling without GUI.
+
     """
 
     def __init__(self):
-        super().__init__()
+        super().__init__()  # Runs self.update_filter
 
-    def save(self, out_path):
-        dump_dict = {}
-        for name in 'forecast_means forecast_covariances update_means update_covariances y y_means  y_variances log_probabilities'.split(
-        ):
-            dump_dict[name] = getattr(self, name)
+    def make_dict(self):
+        """Return variable values and results of call to
+        self.system.forward_filter in dict.
+
+        """
+        result = dict(((name, getattr(self, name)) for name in '''
+        forecast_means forecast_covariances update_means
+        update_covariances y y_means  y_variances log_probabilities'''.split()))
+
         for name, variable in self.variable.items():
-            dump_dict[name] = variable()
-        with open(out_path, 'wb') as _file:
-            pickle.dump(dump_dict, _file)
+            assert name not in result
+            result[name] = variable()
+        return result
 
 
 def main(argv=None):
@@ -50,8 +58,28 @@ def main(argv=None):
     args = parse_args(argv)
 
     app = PyQt5.QtWidgets.QApplication(sys.argv)
-    wall = Wall()
-    wall.save(args.result)
+    main_window = MainWindow()  # This initialization runs simulation
+    result = main_window.make_dict()
+
+    non_stationary = main_window.system
+    assert isinstance(non_stationary,
+                      hmmds.synthetic.bounds.lorenz.LocalNonStationary)
+    sde = non_stationary.system
+    assert isinstance(sde, hmm.state_space.SDE)
+
+    # For LaTeX book, get attributes of the non_stationary filter and
+    # the stochastic differential equation (SDE)
+    result['y_step'] = getattr(non_stationary, 'y_step')
+    for name in '''unit_state_noise observation_noise_multiplier dt ivp_args
+    atol'''.split():
+        result[name] = getattr(sde, name)
+
+    # Hack to get plot range into LaTeX
+    result['t_start'] = 0
+    result['t_stop'] = 120
+
+    with open(args.result, 'wb') as file_:
+        pickle.dump(result, file_)
     return 0
 
 

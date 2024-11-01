@@ -1,9 +1,12 @@
-""" benettin_data.py makes data illustrating Lyapunov exponent
-convergence
+"""benettin_data.py makes data for fig:benettin illustrating Lyapunov
+exponent convergence
 
 Call with: python benettin_data.py result_file
 
-Derived from hmmds3 LaypPlot.py
+plotscripts/bounds/benettin.py uses the r_run_time data produced here
+to make fig:benettin.  Each of the two sub-plots in the figure use the
+same r_run_time data.  The plotscript uses eq:LEaug from the book to
+estimate the effect of noise on the estimates to make the lower plots.
 
 """
 
@@ -35,11 +38,14 @@ def parse_args(argv):
     parser.add_argument('--grid_size',
                         type=float,
                         default=1e-3,
-                        help='Quantization resolution')
-    parser.add_argument('--perturbation',
-                        type=float,
-                        default=1.0,
-                        help='Standard deviation of perturbation')
+                        help=r'Quantization resolution, \Delta in the book')
+    parser.add_argument(
+        '--perturbation',
+        type=float,
+        default=1.0,
+        help=
+        'Standard deviation of perturbation of initial condition for different runs'
+    )
     parser.add_argument('--n_relax',
                         type=int,
                         default=50,

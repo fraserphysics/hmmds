@@ -16,12 +16,15 @@ $(BOUNDS_DATA)/toy_h: $(BOUNDS_CODE)/toy_h.py
 
 $(BOUNDS_DATA)/benettin: $(BOUNDS_CODE)/benettin.py
 	mkdir -p $(BOUNDS_DATA)
-	python $< --n_times=400 --n_runs=100 --n_relax 50 $@
+	python $< --n_times=400 --n_runs=1000 --dev_state 1e-5 --grid_size 1e-3 --n_relax 50 $@
 
-# This takes almost 8 minutes on cathcart
 $(BOUNDS_DATA)/like_lor: $(BOUNDS_CODE)/like_lor.py
 	mkdir -p $(BOUNDS_DATA)
 	python $< $@
+
+$(BUILD)/TeX/book/toy_values.tex: $(BOUNDS_CODE)/toy_values.py $(addprefix $(BOUNDS_DATA)/, data_h_view toy_h benettin like_lor)
+	mkdir -p $(@D)
+	python $^ $@
 
 # Local Variables:
 # mode: makefile

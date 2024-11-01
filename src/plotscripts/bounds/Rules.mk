@@ -11,7 +11,7 @@ $(FIGS_BOUNDS)/ToyTS1.pdf: $(BoundsPlotscripts)/toy.py $(BOUNDS_DATA)/data_h_vie
 
 $(FIGS_BOUNDS)/ToyStretch.pdf: $(BoundsPlotscripts)/toy.py $(BOUNDS_DATA)/data_h_view
 	mkdir -p $(@D)
-	python $< --ToyStretch $@ $(BOUNDS_DATA)/data_h_view
+	python $< --t_view 20 --ToyStretch $@ $(BOUNDS_DATA)/data_h_view
 
 $(FIGS_BOUNDS)/ToyH.pdf: $(BoundsPlotscripts)/toy_h.py $(BOUNDS_DATA)/toy_h
 	mkdir -p $(@D)
