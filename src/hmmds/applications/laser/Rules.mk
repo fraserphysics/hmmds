@@ -43,7 +43,7 @@ $(LASER_DATA)/pf_hand_noise.parameters $(LORENZ_SDE)
 	$(OVERRIDE)
 
 $(LASER_DATA)/gui.plot_data: $(LASER_CODE)/optimize_ekf.py $(LASER_CODE)/explore.txt $(LORENZ_SDE)
-	mkdir -p $(LASER_DATA)
+	mkdir -p $(@D)
 	python $< --method skip --plot_data $@ --parameter_type GUI_out --laser_data $(LP5DAT) \
 $(word 2, $^)
 
@@ -67,12 +67,12 @@ $(LASER_DATA)/ekf_powell2876.parameters: $(LASER_CODE)/optimize_ekf.py $(POWELL2
 --method Powell $(POWELL250) $@
 
 $(LASER_DATA)/l2.parameters: $(LASER_CODE)/optimize_ekf.py $(LASER_CODE)/explore.txt $(LORENZ_SDE)
-	mkdir -p $(LASER_DATA)
+	mkdir -p $(@D)
 	python $< --parameter_type GUI_out --laser_data $(LP5DAT) --length 250 \
 --method Powell --objective_function l2 $(word 2, $^) $@
 
 $(POWELL250): $(LASER_CODE)/optimize_ekf.py $(LASER_DATA)/l2.parameters $(LORENZ_SDE)
-	mkdir -p $(LASER_DATA)
+	mkdir -p $(@D)
 	python $< --parameter_type parameter --laser_data $(LP5DAT) --length 250 \
 --method Powell --objective_function likelihood $(word 2, $^) $@
 
@@ -87,6 +87,11 @@ $(LASER_DATA)/LaserLikeOptTS: $(LASER_CODE)/figure_data.py $(LASER_DATA)/l2.para
 # Pattern rule for LaserLP5 LaserLogLike LaserStates LaserForecast LaserHist
 $(LASER_DATA)/Laser%: $(LASER_CODE)/figure_data.py $(POWELL250)
 	python $< --parameters $(POWELL250) --laser_data $(LP5DAT) --Laser$* $@
+
+
+$(BUILD)/TeX/book/laser_values.tex: $(LASER_CODE)/laser_values.py $(addprefix $(LASER_DATA)/, LaserHist LaserLP5 LaserLogLike LaserStates LaserForecast)
+	mkdir -p $(@D)
+	python $^ $@
 
 # Local Variables:
 # mode: makefile

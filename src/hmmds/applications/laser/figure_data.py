@@ -20,6 +20,16 @@ def parse_args(argv):
     python figure_data.py --LaserLogLike path laser_data parameters """
     parser = argparse.ArgumentParser(
         description='Write data for figures in book about laser')
+    parser.add_argument('--TrainingInterval',
+                        type=int,
+                        nargs=2,
+                        default=[0,250],
+                        help='Segment of laser data')
+    parser.add_argument('--TestingInterval',
+                        type=int,
+                        nargs=2,
+                        default=[250,500],
+                        help='Segment of laser data')
     parser.add_argument('--LaserLP5',
                         type=str,
                         help='Write simulated laser data here')
@@ -55,12 +65,14 @@ def register(func):
 def LaserLP5(args):
     """Return simulated laser data over fit range.
     """
-    length = 250
+    t_start, t_stop = args.TrainingInterval
     return {
-        '250_simulated_observations':
-            hmmds.applications.laser.utilities.observe(args.parameters, length),
-        '250_laser_data':
-            args.laser_data[:length]
+        't_start':t_start,
+        't_stop':t_stop,
+        'training_simulated_observations':
+            hmmds.applications.laser.utilities.observe(args.parameters, t_stop),
+        'training_laser_data':
+            args.laser_data[t_start:t_stop]
     }
 
 
@@ -68,6 +80,9 @@ def LaserLP5(args):
 def LaserLogLike(args):
     """Dependence of Log Likelihood on s and b
     """
+    t_start, t_stop = args.TrainingInterval
+    training_data = args.laser_data[t_start:t_stop]
+    print(f'{training_data.shape=}')
     s_center = args.parameters.s
     b_center = args.parameters.b
     s = numpy.linspace(s_center * .9, s_center * 1.1, 7, endpoint=True)
@@ -81,34 +96,38 @@ def LaserLogLike(args):
             sde, initial_distribution, _ = hmmds.applications.laser.utilities.make_non_stationary(
                 parameters, None)
             log_likelihood[i, j] = sde.log_likelihood(initial_distribution,
-                                                      args.laser_data)
-    return {'s': s, 'b': b, 'log_likelihood': log_likelihood}
+                                                      training_data)
+    return {'t_start':t_start, 't_stop':t_stop, 's': s, 'b': b, 'log_likelihood': log_likelihood}
 
 
 @register
 def LaserStates(args):
-    """Sequence of 250 states from particle filter
+    """Sequence of states from particle filter
     """
+    t_start, t_stop = args.TrainingInterval
     sde, initial_distribution, _ = hmmds.applications.laser.utilities.make_non_stationary(
         args.parameters, None)
     forward_means, _ = sde.forward_filter(initial_distribution,
-                                          args.laser_data[:250])
-    return {'forward_means': forward_means}
+                                          args.laser_data[t_start:t_stop])
+    return {'t_start':t_start, 't_stop':t_stop, 'forward_means': forward_means}
 
 
 @register
 def LaserForecast(args):
-    """Return 400 simulated laser data points (150 beyond fit range).
+    """Return simulated laser data points over the testing range.
 
     FixMe: Should run filter to estimate state at 250 and then forecast.
     """
+    t_start, t_stop = args.TestingInterval
     initial_state = LaserStates(args)['forward_means'][-1]
     args.parameters.set_initial_state(initial_state)
     return {
-        '250_next_data':
-            args.laser_data[250:500],
-        '250_simulated_observations':
-            hmmds.applications.laser.utilities.observe(args.parameters, 251)[1:]
+        't_start':t_start,
+        't_stop':t_stop,
+        'next_data':
+            args.laser_data[t_start:t_stop],
+        'forecast_observations':
+            hmmds.applications.laser.utilities.observe(args.parameters, t_stop+1-t_start)[1:]
     }
 
 
@@ -116,10 +135,12 @@ def LaserForecast(args):
 def LaserHist(args):
     """Make a histogram of the first 600 samples.
     """
-    count = numpy.zeros(256, numpy.int32)
-    for y in args.laser_data[0:600]:
+    n_bins = 256
+    t_start, t_stop = (0,600)
+    count = numpy.zeros(n_bins, numpy.int32)
+    for y in args.laser_data[t_start:t_stop]:
         count[y] += 1
-    return {'count': count}
+    return {'n_bins':n_bins, 't_start':t_start, 't_stop':t_stop, 'count': count}
 
 
 def main(argv=None):

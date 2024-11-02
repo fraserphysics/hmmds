@@ -56,8 +56,8 @@ def LaserLP5(data, matplotlib, pyplot):
     """
     fig = pyplot.figure(figsize=(7, 4))
     ax = fig.add_subplot()
-    ax.plot(data['250_simulated_observations'], label='Simulation')
-    ax.plot(data['250_laser_data'], label='Laser Data')
+    ax.plot(data['training_simulated_observations'], label='Simulation')
+    ax.plot(data['training_laser_data'], label='Laser Data')
     ax.legend()
     return fig
 
@@ -98,12 +98,14 @@ def LaserStates(data, matplotlib, pyplot):
 
 @register
 def LaserForecast(data, matplotlib, pyplot):
-    """400_simulated_observations"""
+    """simulated_observations over testing range"""
     fig = pyplot.figure(figsize=(7, 4))
     ax = fig.add_subplot()
-    times = numpy.arange(250, 250 + len(data['250_next_data']))
-    ax.plot(times, data['250_simulated_observations'], label='Forecast')
-    ax.plot(times, data['250_next_data'], label='Laser Data')
+    t_start = data['t_start']
+    t_stop = data['t_stop']
+    times = numpy.arange(t_start, t_stop)
+    ax.plot(times, data['forecast_observations'], label='Forecast')
+    ax.plot(times, data['next_data'], label='Laser Data')
     ax.set_xlabel(r'$t$')
     ax.legend()
     return fig

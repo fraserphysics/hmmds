@@ -123,7 +123,7 @@ def lorenz_tangent(  # pylint: disable=invalid-name
 def get_bins(args):
     """Boundaries for quantization.
 
-    In a function so that other modules can access the results.
+    In a function so that other modules can access.
     """
     return numpy.linspace(-20, 20, args.levels + 1)[1:-1]
 
@@ -181,7 +181,7 @@ def main(argv=None):
                 coarse.write(f'{i*args.dt/50:6.3f} {xyz[i,0]:6.3f}\n')
 
         # Write quantized x[0] to TSintro_qtx with time step .15
-        quantized_data = numpy.ceil(xyz[:, 0] / 10 + 2)
+        quantized_data = numpy.digitize(xyz[:, 0], get_bins(args)) + 1
         with open(os.path.join(args.TSintro, 'quantized'),
                   encoding='utf',
                   mode='w') as quantized:
