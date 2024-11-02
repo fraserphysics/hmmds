@@ -1,10 +1,5 @@
-\def\NMoreThanTwice{2,759}
-\def\NMoreThanTwicePlusOne{2,760}
-\def\NTokens{68,857}
-\def\NUniqueTokens{9,772}
-\def\TextTrainingIterations{100}
-% FixMe: calculate and input these defs
 \input{synthetic_values.tex}
+\input{text_values.tex}
 \chapter{Introduction}
 \label{chap:introduction}
 
@@ -813,21 +808,21 @@ The experiment consisted of the following steps:
 \item[Parse the text:] We reduced the text to a sequence of tokens.
   Each token is a word, a number, or a special character such as
   punctuation.  We retained distinctions between lower and upper case.
-  The length of the resulting sequence was \NTokens tokens, \ie,
-  $\ts{w}{1}{T}$ with $T=\NTokens$.
-\item[Identify unique tokens:] There were \NUniqueTokens unique tokens of which
+  The length of the resulting sequence was \textNTokens tokens, \ie,
+  $\ts{w}{1}{T}$ with $T=\textNTokens$.
+\item[Identify unique tokens:] There were \textNUniqueTokens unique tokens of which
   2,759 appear in the text more than twice.
 \item[Create a map from tokens to rank:] We sorted the tokens by the
   frequency of their occurrence so that for the most frequent token
   $w'$, $R(w')=1$ and for the most infrequent token, $\bar w$, $R(\bar
-  w)=\NUniqueTokens$.
+  w)=\textNUniqueTokens$.
 \item[Map tokens to integers:] We created a sequence of integers
-  $\ts{y}{1}{T}$ where $\ti{y}{t} \in \{0,\ldots,\NMoreThanTwicePlusOne\} \forall
+  $\ts{y}{1}{T}$ where $\ti{y}{t} \in \{0,\ldots,\textMoreThanTwicePlusOne\} \forall
   t$.  If the token $\ti{w}{t}$ appeared in the text less than three
-  times, we set $\ti{y}{t}=\NMoreThanTwicePlusOne$.  Otherwise, we set  $\ti{y}{t}$ to
+  times, we set $\ti{y}{t}=\textMoreThanTwicePlusOne$.  Otherwise, we set  $\ti{y}{t}$ to
   $R(\ti{w}{t})$.
 \item[Train an HMM:] Starting from a fifteen state model with random
-  parameters, we used \TextTrainingIterations iterations of the
+  parameters, we used \textTrainingIterations iterations of the
   Baum-Welch algorithm to obtain a trained model.
 \item[Decode a sequence of states:] By applying the Viterbi algorithm
   to $\ts{y}{1}{T}$ we obtained $\ts{s}{1}{T}$ where $\ti{s}{t}\in
@@ -836,7 +831,7 @@ The experiment consisted of the following steps:
   $s$, count the number of times each integer $y$ occurs, \ie, $c(y,s)
   = \sum_{t:\ti{s}{t}=s} \delta(y,\ti{y}{t})$.  Then print the words
   corresponding the ten most frequently occurring integers (excluding
-  the special value $y=\NMoreThanTwicePlusOne$).
+  the special value $y=\textMoreThanTwicePlusOne$).
 \end{description}
 The results appear in Table~\ref{tab:POS}.
 
