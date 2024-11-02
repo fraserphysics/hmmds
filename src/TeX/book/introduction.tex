@@ -1,14 +1,10 @@
-\def\boundaryA{-10} % lorenz.get_bins()
-\def\boundaryB{0}
-\def\boundaryC{10}
-\def\LorenzTrainingIterations{1,000} % synthetic/Rules.mk
 \def\NMoreThanTwice{2,759}
 \def\NMoreThanTwicePlusOne{2,760}
 \def\NTokens{68,857}
 \def\NUniqueTokens{9,772}
 \def\TextTrainingIterations{100}
-\def\NLorenzBig{40,000} % synthetic/Rules.mk
 % FixMe: calculate and input these defs
+\input{synthetic_values.tex}
 \chapter{Introduction}
 \label{chap:introduction}
 
@@ -700,11 +696,11 @@ likelihood.
 To illustrate these algorithms we have applied them to data that we
 synthesized by numerically integrating the Lorenz system
 (Eqn.~\eqref{eq:Lorenz} with parameter values $r=28$, $s=10$, and
-$b=\frac{8}{3}$) and recording \NLorenzBig vectors $x(\tau)$ with a
+$b=\frac{8}{3}$) and recording syntheticNLorenzBig vectors $x(\tau)$ with a
 sampling interval $\Delta \tau = 0.15$.  Then we produced a sequence
-of integer valued observations $y_1^{\NLorenzBig}$ by binning $x_1$
-with boundaries at $\boundaryA,\boundaryB$ and $\boundaryC$.  The
-result is that for each integer $1\leq t \leq \NLorenzBig$,
+of integer valued observations $y_1^{syntheticNLorenzBig}$ by binning $x_1$
+with boundaries at $\syntheticboundaryA,\syntheticboundaryB$ and $\syntheticboundaryC$.  The
+result is that for each integer $1\leq t \leq syntheticNLorenzBig$,
 $\ti{x_1}{t\cdot0.15}$ yields $\ti{y}{t} \in \left\{1,2,3,4\right\}$.
 Figure~\ref{fig:TSintro} depicts the first few observations.
 
@@ -719,14 +715,14 @@ Figure~\ref{fig:TSintro} depicts the first few observations.
     marked with red dots indicate the values sampled with an interval
     $\Delta \tau = 0.15$.  The points in the lower plot are the
     $\ti{y}{t}$ values quantized with boundaries
-    $\left\{\boundaryA, \boundaryB, \boundaryC\right\}$.  }
+    $\left\{\syntheticboundaryA, \syntheticboundaryB, \syntheticboundaryC\right\}$.  }
   \label{fig:TSintro} 
 \end{figure}
  
 We randomly generated an HMM with twelve hidden states\footnote{We
   chose the number of hidden state to be twelve capriciously so that
   we could organize Fig.~\ref{fig:Statesintro} on a $4\times 4$ grid.}
-and 4 possible observations, and then used \LorenzTrainingIterations
+and 4 possible observations, and then used \syntheticLorenzTrainingIterations
 iterations of the Baum-Welch algorithm to select a set of parameters
 $\hat \parameters$ with high likelihood for the data.  Finally we used
 the Viterbi algorithm to find the most likely state sequence
@@ -881,10 +877,10 @@ observation probabilities conditioned on the \emph{two} previous
 observations.  Although the number of unique sequential pairs
 $\ts{y}{t}{t+1}$ that occur in our data is in fact twelve, the fact
 that some of the states in Fig.~\ref{fig:Statesintro} straddle the
-quantization boundaries at $x = \boundaryA$ and $x=\boundaryC$ belies the suggestion.
-In general, the class of HMMs is more powerful than the class of
-simple Markov models in the sense that the former includes the later
-but not vice versa.
+quantization boundaries at $x = \syntheticboundaryA$ and
+$x=\syntheticboundaryC$ belies the suggestion.  In general, the class
+of HMMs is more powerful than the class of simple Markov models in the
+sense that the former includes the later but not vice versa.
 
 Let us emphasize the following points about discrete HMMs:
 \begin{enumerate}

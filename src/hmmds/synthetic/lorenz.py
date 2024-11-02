@@ -26,42 +26,26 @@ def parse_args(argv):
     """
     parser = argparse.ArgumentParser(
         description='Make files derived from Lorenz simulations')
-    parser.add_argument('--n_samples',
-                        type=int,
-                        default=100,
-                        help='Number of samples')
+    parser.add_argument('--TSintro',
+                        help='Directory to write additional data to')
     parser.add_argument('--IC',
                         type=float,
                         nargs=3,
                         default=[11.580, 13.548, 28.677],
                         help='Initial conditions')
-    parser.add_argument('--s',
+    parser.add_argument('dt', type=float, help='Sample interval')
+    parser.add_argument('levels', type=int, help='Number of quatization levels')
+    parser.add_argument('n_samples', type=int, help='Number of samples')
+    parser.add_argument('sbr',
                         type=float,
-                        default=10.0,
-                        help='Lorenz s parameter')
-    parser.add_argument('--r',
-                        type=float,
-                        default=28.0,
-                        help='Lorenz r parameter')
-    parser.add_argument('--b',
-                        type=float,
-                        default=8.0 / 3,
-                        help='Lorenz b parameter')
-    parser.add_argument('--dt',
-                        type=float,
-                        default=0.15,
-                        help='Sample interval')
-    parser.add_argument('--levels',
-                        type=int,
-                        default=4,
-                        help='Number of quatization levels')
-    parser.add_argument('--quantfile',
+                        nargs=3,
+                        help='Parameters of Lorenz system')
+    parser.add_argument('quantfile',
                         type=argparse.FileType('w'),
                         help='Write quantized data to this file')
-    parser.add_argument('--xyzfile',
+    parser.add_argument('xyzfile',
                         type=argparse.FileType('w'),
                         help='Write x,y,z data to this file')
-    parser.add_argument('--TSintro', help='Directory to write data to')
     return parser.parse_args(argv)
 
 
@@ -139,7 +123,6 @@ def main(argv=None):
 
     args = parse_args(argv)
 
-    lorenz_args = (args.s, args.b, args.r)
     initial_conditions = numpy.array(args.IC)
 
     def t_array(n_times, delta_t):
@@ -152,7 +135,8 @@ def main(argv=None):
         return numpy.arange(n_times, dtype=float) * delta_t
 
     xyz = scipy.integrate.odeint(lorenz_dx_dt, initial_conditions,
-                                 t_array(args.n_samples, args.dt), lorenz_args)
+                                 t_array(args.n_samples, args.dt),
+                                 tuple(args.sbr))
 
     #The quantization results will range from 1 to args.levels
     # including the end points.  I use 1 for the minimum so that plots
@@ -165,7 +149,7 @@ def main(argv=None):
     if args.TSintro is not None:
         xyz = scipy.integrate.odeint(lorenz_dx_dt, initial_conditions,
                                      t_array(args.n_samples, args.dt / 50),
-                                     lorenz_args)
+                                     tuple(args.sbr))
         # Write x[0] to TSintro_fine with time step .003
         with open(os.path.join(args.TSintro, 'fine'),
                   encoding='utf-8',

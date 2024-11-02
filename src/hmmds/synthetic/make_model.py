@@ -21,6 +21,10 @@ def parse_args(argv):
     """
     parser = argparse.ArgumentParser(description="Make HMM for figure on cover")
     parser.add_argument('--random_seed', type=int, default=0)
+    parser.add_argument('--nstates',
+                        type=int,
+                        default=12,
+                        help="number of hidden states")
     parser.add_argument('n_iterations',
                         type=int,
                         help="number of training iterations")
@@ -70,17 +74,18 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     args = parse_args(argv)
-    nstates = 12
 
     y_data, cardy = read_data(args.data_dir, args.data_file)
 
     # Set random values of initial model parameters
     rng = numpy.random.default_rng(args.random_seed)
-    p_state_initial = hmm.simple.Prob(rng.random((1, nstates))).normalize()[0]
+    p_state_initial = hmm.simple.Prob(rng.random(
+        (1, args.nstates))).normalize()[0]
     p_state_time_average = hmm.simple.Prob(rng.random(
-        (1, nstates))).normalize()[0]
-    p_state2state = hmm.simple.Prob(rng.random((nstates, nstates))).normalize()
-    p_state2y = hmm.simple.Prob(rng.random((nstates, cardy))).normalize()
+        (1, args.nstates))).normalize()[0]
+    p_state2state = hmm.simple.Prob(rng.random(
+        (args.nstates, args.nstates))).normalize()
+    p_state2y = hmm.simple.Prob(rng.random((args.nstates, cardy))).normalize()
 
     # Train the model
     y_mod = hmm.simple.Observation(p_state2y, rng)

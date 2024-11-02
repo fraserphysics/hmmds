@@ -57,7 +57,7 @@ BOOK_CHAPTERS = $(addprefix $(TEX_BOOK)/, $(addsuffix .tex, \
 algorithms apnea appendix continuous introduction main toys variants))
 
 VALUE_FILES = $(addprefix $(BOOK_OUT)/, $(addsuffix .tex, \
-apnea_values decoded_menken toy_values))
+apnea_values decoded_menken toy_values synthetic_values))
 
 $(BOOK_OUT)/main.pdf: $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_INCLUDES) $(VALUE_FILES)
 	mkdir -p $(@D)

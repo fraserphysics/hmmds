@@ -84,7 +84,8 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     # List of targets in Rules.mk
-    arg_list = 'LaserHist LaserLP5 LaserLogLike LaserStates LaserForecast'.split()
+    arg_list = 'LaserHist LaserLP5 LaserLogLike LaserStates LaserForecast'.split(
+    )
     args = parse_args(argv, arg_list)
 
     result = {}

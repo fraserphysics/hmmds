@@ -23,12 +23,12 @@ def parse_args(argv):
     parser.add_argument('--TrainingInterval',
                         type=int,
                         nargs=2,
-                        default=[0,250],
+                        default=[0, 250],
                         help='Segment of laser data')
     parser.add_argument('--TestingInterval',
                         type=int,
                         nargs=2,
-                        default=[250,500],
+                        default=[250, 500],
                         help='Segment of laser data')
     parser.add_argument('--LaserLP5',
                         type=str,
@@ -67,8 +67,10 @@ def LaserLP5(args):
     """
     t_start, t_stop = args.TrainingInterval
     return {
-        't_start':t_start,
-        't_stop':t_stop,
+        't_start':
+            t_start,
+        't_stop':
+            t_stop,
         'training_simulated_observations':
             hmmds.applications.laser.utilities.observe(args.parameters, t_stop),
         'training_laser_data':
@@ -97,7 +99,13 @@ def LaserLogLike(args):
                 parameters, None)
             log_likelihood[i, j] = sde.log_likelihood(initial_distribution,
                                                       training_data)
-    return {'t_start':t_start, 't_stop':t_stop, 's': s, 'b': b, 'log_likelihood': log_likelihood}
+    return {
+        't_start': t_start,
+        't_stop': t_stop,
+        's': s,
+        'b': b,
+        'log_likelihood': log_likelihood
+    }
 
 
 @register
@@ -109,7 +117,11 @@ def LaserStates(args):
         args.parameters, None)
     forward_means, _ = sde.forward_filter(initial_distribution,
                                           args.laser_data[t_start:t_stop])
-    return {'t_start':t_start, 't_stop':t_stop, 'forward_means': forward_means}
+    return {
+        't_start': t_start,
+        't_stop': t_stop,
+        'forward_means': forward_means
+    }
 
 
 @register
@@ -122,12 +134,15 @@ def LaserForecast(args):
     initial_state = LaserStates(args)['forward_means'][-1]
     args.parameters.set_initial_state(initial_state)
     return {
-        't_start':t_start,
-        't_stop':t_stop,
+        't_start':
+            t_start,
+        't_stop':
+            t_stop,
         'next_data':
             args.laser_data[t_start:t_stop],
         'forecast_observations':
-            hmmds.applications.laser.utilities.observe(args.parameters, t_stop+1-t_start)[1:]
+            hmmds.applications.laser.utilities.observe(args.parameters,
+                                                       t_stop + 1 - t_start)[1:]
     }
 
 
@@ -136,11 +151,16 @@ def LaserHist(args):
     """Make a histogram of the first 600 samples.
     """
     n_bins = 256
-    t_start, t_stop = (0,600)
+    t_start, t_stop = (0, 600)
     count = numpy.zeros(n_bins, numpy.int32)
     for y in args.laser_data[t_start:t_stop]:
         count[y] += 1
-    return {'n_bins':n_bins, 't_start':t_start, 't_stop':t_stop, 'count': count}
+    return {
+        'n_bins': n_bins,
+        't_start': t_start,
+        't_stop': t_stop,
+        'count': count
+    }
 
 
 def main(argv=None):
