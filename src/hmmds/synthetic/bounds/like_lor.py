@@ -52,6 +52,10 @@ def parse_args(argv):
                         type=float,
                         default=1e-4,
                         help='Minimum conditional observation probability')
+    parser.add_argument('--atol',
+                        type=float,
+                        default=1e-7,
+                        help='Absolute error tolerance for integrator')
     parser.add_argument('result', type=str, help='Where to write result')
     return parser.parse_args(argv)
 
@@ -69,16 +73,14 @@ def make_data(args: argparse.Namespace):
     n_total = args.n_relax + args.n_train + args.n_test
     initial = numpy.array(args.x_initial)
     assert initial.shape == (3,)
-    x_all = hmmds.synthetic.bounds.lorenz.n_steps(initial, n_total,
-                                                  args.t_sample)
+    x_all = hmmds.synthetic.bounds.lorenz.n_steps(initial,
+                                                  n_total,
+                                                  args.t_sample,
+                                                  atol=args.atol)
     assert x_all.shape == (n_total, 3)
     xyz_train = x_all[args.n_relax:args.n_relax + args.n_train]
     x_train = xyz_train[:, 0]
-    x_min = x_train.min()
-    x_max = x_train.max()
-    assert x_min < 0 < x_max
-    size = max(x_max, -x_min) / (args.n_quantized / 2)
-    bins = numpy.linspace(-size, size, args.n_quantized + 1)[1:-1]
+    bins = numpy.linspace(-20, 20, args.n_quantized + 1)[1:-1]
     q_train = numpy.digitize(x_train, bins)
     x_test = x_all[args.n_relax + args.n_train:, 0]
     q_test = numpy.digitize(x_test, bins)
@@ -198,7 +200,7 @@ def main(argv=None):
         log_likelihood = hmm.log_likelihood(q_test)
         n_states = len(hmm.p_state_0)
         print(
-            f'log_resolution={log_resolution:4.1f}, resolution={resolution:5.1f} '
+            f'log_resolution={log_resolution:4.1f}, resolution={resolution:5.4f} '
             + f'n_states={n_states:3d} log_likelihood={log_likelihood:6.1f}')
         result[log_resolution] = {
             'log_likelihood': log_likelihood,

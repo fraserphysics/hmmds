@@ -24,8 +24,12 @@ def parse_args(argv):
     parser.add_argument('--n_states', type=int, default=15)
     parser.add_argument('--random_seed', type=int, default=1)
     parser.add_argument('in_path', type=str)
-    parser.add_argument('latex_values_path', type=str, help='Write a file of \defs to this path')
-    parser.add_argument('table_path', type=str, help='Write a LaTeX table to this path')
+    parser.add_argument('latex_values_path',
+                        type=str,
+                        help='Write a file of \defs to this path')
+    parser.add_argument('table_path',
+                        type=str,
+                        help='Write a LaTeX table to this path')
     return parser.parse_args(argv)
 
 
@@ -174,6 +178,7 @@ def write_values(args, value_dict):
         for key, value in value_dict.items():
             print(fr'\def\text{key}{{{value}}}', file=file_)
 
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
@@ -192,13 +197,15 @@ def main(argv=None):
     state_sequence = model.decode(y)
     assert state_sequence.shape == (len(token_sequence),)
     write_latex(args, cardinality_Y, token_list, y, state_sequence)
-    write_values(args, {
-        'MoreThanTwicePlusOne':cardinality_Y,
-        'MoreThanTwice':cardinality_Y-1,
-        'NTokens':len(token_sequence),
-        'NUniqueTokens':len(token2int),
-        'TrainingIterations':args.n_iterations,
-        'NStates':args.n_states})
+    write_values(
+        args, {
+            'MoreThanTwicePlusOne': cardinality_Y,
+            'MoreThanTwice': cardinality_Y - 1,
+            'NTokens': len(token_sequence),
+            'NUniqueTokens': len(token2int),
+            'TrainingIterations': args.n_iterations,
+            'NStates': args.n_states
+        })
 
 
 if __name__ == "__main__":

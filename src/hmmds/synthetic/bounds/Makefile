@@ -27,7 +27,6 @@ toy_h.data: toy_h.py
 BenettinData: benettin_data.py
 	python benettin_data.py --n_times=400 --n_runs=100 --n_relax 50 $@
 
-# This takes almost 8 minutes on cathcart
 like_lor_data: like_lor.py
 	python $< $@
 

@@ -42,14 +42,16 @@ def main(argv=None):
     # Read and unpack data
     with open(args.data, 'rb') as _file:
         _dict = pickle.load(_file)
-        r_run_time = _dict['r_run_time']
-        _args = _dict['args']
-        time_step = _args.time_step
-        augment = _args.dev_state / _args.grid_size
+    r_run_time = _dict['r_run_time']
+    _args = _dict['args']
+    time_step = _args.time_step
 
     n_runs, n_times, three = r_run_time.shape
     assert three == 3
-    times = numpy.arange(1.0, n_times + .5, 1.0)
+    divisors = numpy.arange(1.0, n_times + .5, 1.0)
+    times = numpy.linspace(0, _args.t_run, n_times)
+
+    augment = _args.dev_state / _args.grid_size
     five_percent = int(math.floor(0.05 * n_runs))
     ninety_five_percent = int(math.ceil(0.95 * n_runs))
 
@@ -61,16 +63,16 @@ def main(argv=None):
 
         _sorted = numpy.sort(cumsum, axis=0)
         axes.plot(times,
-                  _sorted[five_percent, :, 0] / times,
+                  _sorted[five_percent, :, 0] / divisors,
                   label=r'5\%',
                   color='k',
                   linewidth=2)
         for n_run in range(min(n_runs, args.n_traces)):
             axes.plot(times,
-                      cumsum[n_run, :, 0] / times,
+                      cumsum[n_run, :, 0] / divisors,
                       label=f'sample {n_run}')
         axes.plot(times,
-                  _sorted[ninety_five_percent, :, 0] / times,
+                  _sorted[ninety_five_percent, :, 0] / divisors,
                   label=r'95\%',
                   color='k',
                   linewidth=2)
@@ -85,7 +87,6 @@ def main(argv=None):
 
     calculate_and_plot(top_axes, r_run_time)
     calculate_and_plot(bottom_axes, r_run_time + augment)
-    top_axes.set_xticklabels([])
     bottom_axes.set_xlabel(r'$t$')
 
     if args.show:

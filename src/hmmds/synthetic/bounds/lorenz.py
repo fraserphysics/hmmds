@@ -200,7 +200,7 @@ def observation_function(_,
     return numpy.dot(observation_map, state), observation_map
 
 
-def n_steps(ic: numpy.ndarray, n: int, d_t: float) -> numpy.ndarray:
+def n_steps(ic: numpy.ndarray, n: int, d_t: float, atol=1e-7) -> numpy.ndarray:
     """
     Integrate Lorenz to produce n samples.
 
@@ -213,7 +213,6 @@ def n_steps(ic: numpy.ndarray, n: int, d_t: float) -> numpy.ndarray:
     s = 10.0
     r = 28.0
     b = 8.0 / 3
-    atol = 1e-7
     method = 'RK45'
 
     t_points = numpy.arange(0.0, n * d_t, d_t)[:n]
@@ -230,7 +229,7 @@ def n_steps(ic: numpy.ndarray, n: int, d_t: float) -> numpy.ndarray:
     return bunch.y.T
 
 
-def integrate_tangent(t, x, jacobian):
+def integrate_tangent(t, x, jacobian, atol=1e-7):
     """
     Args:
         t: time
@@ -240,7 +239,6 @@ def integrate_tangent(t, x, jacobian):
     s = 10.0
     r = 28.0
     b = 8.0 / 3
-    atol = 1e-7
     method = 'RK45'
     augmented_state = numpy.concatenate((x, jacobian.flatten()))
     bunch = scipy.integrate.solve_ivp(tangent, (0.0, t),
@@ -348,7 +346,7 @@ def main():
     atol = 1.0e-7
     fudge = 1.0
 
-    x = n_steps(numpy.ones(3), 10, 0.15)
+    x = n_steps(numpy.ones(3), 10, 0.15, atol=atol)
     assert x.shape == (10, 3)
 
     # Make two LocalNonStationary instances and initialization data

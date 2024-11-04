@@ -91,8 +91,9 @@ def benettin(dict_in):
     # args, check those values and use typed in strings.
     args = dict_in['args']
     result = {}
-    for key in 'n_runs dev_state grid_size n_times'.split():
+    for key in 'n_runs dev_state grid_size'.split():
         result[f"toyBenettin{key.replace('_', '')}"] = getattr(args, key)
+    result['n_times'] = int(args.t_run / args.time_step)
     return result
 
 
