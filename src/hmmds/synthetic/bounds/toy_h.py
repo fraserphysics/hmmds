@@ -184,13 +184,12 @@ def main(argv=None):
 
     result = {'args': args}
 
-    # Calculate intercept and slope for Eqn 5.2 in the book
+    # Calculate intercept for Eqn 5.2 in the book
     z = 0.5 / numpy.sqrt(2)
     like = (scipy.special.erf(z) - scipy.special.erf(-z)) / 2
     result['intercept'] = numpy.log(like)
     # The intercept for the "entropy line" is the log probability of
     # the interval +/- .5 for a normal distribution.
-    result['slope'] = -0.906
 
     # Create data for two lines.  One at -4.0 and one on the ridge
     dy1 = -4.0

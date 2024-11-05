@@ -152,8 +152,8 @@ def noiseless_lyapunov_spectrum(initial_state, args: argparse.Namespace):
     return spectrum
 
 
-def lyapunov_spectrum_with_noise(args, r_run_time: numpy.ndarray) -> dict:
-    """ Estimate characteristics of distribution of estimates
+def sde_spectrum(args, r_run_time: numpy.ndarray) -> dict:
+    """ Estimate distribution characteristics from running sde
 
     Args:
         args: Command line arguments
@@ -171,9 +171,7 @@ def lyapunov_spectrum_with_noise(args, r_run_time: numpy.ndarray) -> dict:
     assert mean.shape == (3,)
     std = numpy.std(log_r, axis=0, ddof=1)
 
-    print(f'{mean=}\n {std=}')
-
-    return {'mean': mean, 'std': std}
+    return mean, std
 
 
 def main(argv=None):
@@ -203,7 +201,15 @@ def main(argv=None):
         r_run_time[n_run] = one_run(n_times, initial_distribution, state_noise,
                                     args)
 
-    result = lyapunov_spectrum_with_noise(args, r_run_time)
+    sde_mean, sde_std = sde_spectrum(args, r_run_time)
+    augment = args.dev_state / args.grid_size
+    augmented_mean, augmented_std = sde_spectrum(args, r_run_time + augment)
+    result = {
+        'sde_mean': sde_mean,
+        'sde_std': sde_std,
+        'augmented_mean': augmented_mean,
+        'augmented_std': augmented_std
+    }
     result['r_run_time'] = r_run_time
     result['args'] = args
     result['spectrum'] = noiseless_lyapunov_spectrum(relaxed_x, args)

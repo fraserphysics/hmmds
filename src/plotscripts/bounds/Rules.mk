@@ -13,7 +13,7 @@ $(FIGS_BOUNDS)/ToyStretch.pdf: $(BoundsPlotscripts)/toy.py $(BOUNDS_DATA)/data_h
 	mkdir -p $(@D)
 	python $< --t_view 20 --ToyStretch $@ $(BOUNDS_DATA)/data_h_view
 
-$(FIGS_BOUNDS)/ToyH.pdf: $(BoundsPlotscripts)/toy_h.py $(BOUNDS_DATA)/toy_h
+$(FIGS_BOUNDS)/ToyH.pdf: $(BoundsPlotscripts)/toy_h.py $(BOUNDS_DATA)/toy_h $(BOUNDS_DATA)/benettin
 	mkdir -p $(@D)
 	python $^ $@
 
@@ -21,6 +21,6 @@ $(FIGS_BOUNDS)/benettin.pdf: $(BoundsPlotscripts)/benettin.py $(BOUNDS_DATA)/ben
 	mkdir -p $(@D)
 	python $^ $@
 
-$(FIGS_BOUNDS)/LikeLor.pdf: $(BoundsPlotscripts)/like_lor.py $(BOUNDS_DATA)/like_lor
+$(FIGS_BOUNDS)/LikeLor.pdf: $(BoundsPlotscripts)/like_lor.py $(BOUNDS_DATA)/like_lor $(BOUNDS_DATA)/benettin
 	mkdir -p $(@D)
 	python $^ $@

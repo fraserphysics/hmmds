@@ -87,7 +87,7 @@ def main(argv=None):
 
     calculate_and_plot(top_axes, r_run_time)
     calculate_and_plot(bottom_axes, r_run_time + augment)
-    bottom_axes.set_xlabel(r'$t$')
+    bottom_axes.set_xlabel(r'$\tau$')
 
     if args.show:
         pyplot.show()

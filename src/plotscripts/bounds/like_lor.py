@@ -20,7 +20,8 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
-    parser.add_argument('data', type=str, help='Path to data')
+    parser.add_argument('like_lor_data', type=str, help='Path to data')
+    parser.add_argument('benettin_data', type=str, help='Path to data')
     parser.add_argument('figure_path', type=str, help='Path to result')
     return parser.parse_args(argv)
 
@@ -55,7 +56,9 @@ def main(argv=None):
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     figure, axes = pyplot.subplots(figsize=(6, 4))
 
-    with open(args.data, 'rb') as file_:
+    with open(args.benettin_data, 'rb') as file_:
+        lyapunov_exponent = pickle.load(file_)['spectrum'][0]
+    with open(args.like_lor_data, 'rb') as file_:
         data = pickle.load(file_)
 
     n_test, n_states, log_likelihood = unpack_data(data)
@@ -65,6 +68,17 @@ def main(argv=None):
     axes.set_xlabel(r'$n_{\rm{states}}$')
     axes.set_ylabel(r'$\hat h/\rm{nats}$')
 
+    limit = numpy.ones(len(n_states)) * lyapunov_exponent * data['args'].t_sample
+    axes.semilogx(n_states, limit)
+    min_y = 0
+    max_y = 0.9
+    axes.set_ylim(min_y, max_y)
+
+    step2 = .25
+    axes.set_yticks(
+        numpy.arange(step2 * round(min_y / step2), step2 * round(max_y / step2),
+                     step2))
+
     min_y, max_y = axes.get_ylim()
     min_x, max_x = axes.get_xlim()
     ax2 = axes.twinx()
@@ -72,7 +86,6 @@ def main(argv=None):
     min_y2 = min_y / numpy.log(2)
     max_y2 = max_y / numpy.log(2)
     ax2.set_ylim(min_y2, max_y2)
-    step2 = .5
     ax2.set_yticks(
         numpy.arange(step2 * round(min_y2 / step2),
                      step2 * round(max_y2 / step2), step2))

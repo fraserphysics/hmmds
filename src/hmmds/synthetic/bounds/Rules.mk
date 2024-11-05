@@ -20,8 +20,8 @@ $(BOUNDS_DATA)/benettin: $(BOUNDS_CODE)/benettin.py
 
 $(BOUNDS_DATA)/like_lor: $(BOUNDS_CODE)/like_lor.py
 	mkdir -p $(@D)
-	python $< --log_resolution 3 -1.6 -0.5 --n_train 100000 --n_test 10000 $@
-#	python $< --log_resolution 3 -5.6 -0.5 --n_train 10000000 --n_test 10000 $@
+	python $< --log_resolution 3 -5.6 -0.5 --n_train 10000000 --n_test 10000 $@
+#	python $< --log_resolution 3 -1.6 -0.5 --n_train 100000 --n_test 10000 $@
 
 $(BUILD)/TeX/book/toy_values.tex: $(BOUNDS_CODE)/toy_values.py $(addprefix $(BOUNDS_DATA)/, data_h_view toy_h benettin like_lor)
 	mkdir -p $(@D)

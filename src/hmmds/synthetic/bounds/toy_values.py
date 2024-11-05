@@ -9,10 +9,16 @@ import pickle
 import os
 
 import numpy
+import scipy.special
 
 
 def parse_args(argv, arg_list):
     """Parse a command line.
+    Args:
+        argv: The command line
+        arg_list: List pickle file names, eg, like_lor
+
+    
     """
     parser = argparse.ArgumentParser(
         description='Translate picked values to LaTex')
@@ -42,24 +48,21 @@ def data_h_view(dict_in):
     """
     t_start = dict_in['t_start']
     t_stop = dict_in['t_stop']
-    t_max_dev = numpy.argmax(dict_in['y_variances'][t_start:t_stop])
-    # Return some nice formats for LaTeX.  Rather than formating
-    # values, check those values and use typed in strings.
-    result = {
-        'toyHviewSigmaEta': dict_in['unit_state_noise'][0, 0],
-        'toyHviewSigmaEpsilon': dict_in['observation_noise_multiplier'][0, 0],
-        'toyHviewTmaxSigma': t_max_dev,
-        'toyHviewTmaxSigmaPlusOne': t_max_dev + 1,
-    }
-    for key in 'y_step atol dt'.split():
+    dict_in['T_Max_Var'] = numpy.argmax(dict_in['y_variances'][t_start:t_stop])
+    dict_in['T_Max_Var_Plus_One'] = dict_in['T_Max_Var'] + 1
+    dict_in['StateNoise'] = dict_in['unit_state_noise'][0, 0]
+    dict_in['ObservationNoise'] = dict_in['observation_noise_multiplier'][0, 0]
+
+    result = {}
+    for key in 'y_step atol dt T_Max_Var T_Max_Var_Plus_One StateNoise ObservationNoise'.split(
+    ):
         result[f"toyHview{key.replace('_', '')}"] = dict_in[key]
     return result
 
 
 @register
 def toy_h(dict_in):
-    """return expressions for intercept slope and the following args:
-    n_t dev_measurement dev_state_generate dev_state_filter y_step
+    """return expressions for several args
 
     toyhSigmaEta toyhSigmaEpsilon toyhDelta
 
@@ -67,10 +70,7 @@ def toy_h(dict_in):
         dict_in: Result of running toy_h.py
 
     """
-    result = {
-        'toyToyhIntercept': dict_in['intercept'],
-        'toyToyhSlope': dict_in['slope'],
-    }
+    result = {}
 
     args = dict_in['args']
     for key in 'n_t dev_measurement dev_state_generate dev_state_filter y_step'.split(
@@ -81,25 +81,34 @@ def toy_h(dict_in):
 
 @register
 def benettin(dict_in):
-    """return expressions for n_runs dev_state grid_size n_times n_runs dev_state/grid_size
+    """return LaTeX expressions for values in dict_in and its args value
 
     Args:
         dict_in: Result of running benettin.py
 
     """
-    # Return nice formats for LaTeX.  Rather than formating values in
-    # args, check those values and use typed in strings.
     args = dict_in['args']
+    for key in 'n_runs dev_state grid_size t_run'.split():
+        dict_in[key] = getattr(args, key)
+
+    dict_in['LambdaOne'] = dict_in["spectrum"][0]
+    dict_in['N_times'] = int(args.t_run / args.time_step)
+    dict_in['ratio'] = args.dev_state / args.grid_size
+
+    for key in 'sde_mean sde_std augmented_mean augmented_std'.split():
+        dict_in[key] = dict_in[key][0]
+    dict_in['DeltaLambda'] = dict_in['augmented_mean'] - dict_in['sde_mean']
+
     result = {}
-    for key in 'n_runs dev_state grid_size'.split():
-        result[f"toyBenettin{key.replace('_', '')}"] = getattr(args, key)
-    result['n_times'] = int(args.t_run / args.time_step)
+    for key in 'n_runs dev_state grid_size N_times LambdaOne t_run ratio sde_mean sde_std augmented_mean augmented_std DeltaLambda'.split(
+    ):
+        result[f"toyBenettin{key.replace('_', '')}"] = dict_in[key]
     return result
 
 
 @register
 def like_lor(dict_in):
-    """return expressions for n_train n_test n_quantized t_sample min_prob
+    """return values from running like_lor.py
 
     Args:
         dict_in: Result of running like_lor.py
@@ -108,8 +117,29 @@ def like_lor(dict_in):
     """
     args = dict_in['args']
     result = {}
+
+    # Get some values from args
     for key in 'n_train n_test n_quantized t_sample min_prob'.split():
         result[f"toyLikeLor{key.replace('_', '')}"] = getattr(args, key)
+
+    # Find the key for the largest number of states (right end of plot)
+    min_resolution = 100.0
+    for key in dict_in.keys():
+        if not isinstance(key, float):
+            continue
+        if key < min_resolution:
+            min_resolution = key
+
+    # Get some values from the right end of the plot 
+    log_likelihood = dict_in[min_resolution]['log_likelihood']
+    dict_in['n_states'] = dict_in[min_resolution]['n_states']
+    dict_in[
+        'cross_entropy'] = -log_likelihood / args.n_test  # nats per time step
+    dict_in['cross_entropy_bits'] = dict_in['cross_entropy'] / numpy.log(2)
+
+    for key in 'n_states cross_entropy cross_entropy_bits'.split():
+        result[f"toyLikeLor{key.replace('_', '')}"] = dict_in[key]
+
     return result
 
 
@@ -132,6 +162,17 @@ def main(argv=None):
             dict_in = pickle.load(file_)
         result.update(FunctionDict[name](dict_in))
 
+    # Calculations of entropies per sample time
+    t_sample = result['toyLikeLortsample']
+    entropy = result['toyBenettinLambdaOne'] * t_sample
+    entropy_bits = entropy / numpy.log(2)
+    cross_entropy = result['toyLikeLorcrossentropy']
+    cross_entropy_bits = cross_entropy / numpy.log(2)
+
+    result['toyLikeLorGapPercent'] = 100 * (cross_entropy - entropy) / entropy
+    result['toyLikeLorEntropyBits'] = entropy_bits
+    result['toyLikeLorEntropy'] = entropy
+
     replacements = {
         1e-4: '10^{-4}',
         1e-5: '10^{-5}',
@@ -145,9 +186,19 @@ def main(argv=None):
     for key, value in result.items():
         if value in replacements:
             result[key] = replacements[value]
+        if key == 'toyLikeLorGapPercent':
+            result[key] = f'{int(value)}'
         elif isinstance(value, int) and value >= 1000:
             result[key] = f'{value:,}'
+        elif isinstance(value, float) and (0.01 < abs(value) < 10):
+            result[key] = f'{value:.3f}'
+        elif isinstance(value, float) and (0.001 < abs(value) < 10):
+            result[key] = f'{value:.4f}'
 
+    # Calculate values for the caption of fig:toyH
+    erf_inv_sqrt_8 = scipy.special.erf(1 / numpy.sqrt(8))
+    result['toyErfSqrtEight'] = f'{erf_inv_sqrt_8:.4}'
+    result['toyLogErfSqrtEight'] = f'{numpy.log(erf_inv_sqrt_8):.4}'
     with open(args.result, 'w', encoding='utf-8') as file_:
         for key, value in result.items():
             print(f'\def\{key}{{{value}}}', file=file_)

@@ -30,8 +30,9 @@ def parse_args(argv):
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
-    parser.add_argument('data', type=str, help='Path to data')
-    parser.add_argument('toy_h', type=str, help='path for result')
+    parser.add_argument('toy_h_data', type=str, help='Path to data')
+    parser.add_argument('benettin_data', type=str, help='Path to data')
+    parser.add_argument('result', type=str, help='path for result')
     return parser.parse_args(argv)
 
 
@@ -42,12 +43,14 @@ filters.
     """
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
-    figure = pyplot.figure(figsize=(9, 5))
+    figure = pyplot.figure(figsize=(6, 3.3))
 
-    with open(args.data, 'rb') as file_:
+    with open(args.benettin_data, 'rb') as file_:
+        slope = -pickle.load(file_)['spectrum'][0]
+    with open(args.toy_h_data, 'rb') as file_:
         data = pickle.load(file_)
     assert set(data.keys()) == set(
-        'intercept slope lower upper cross_entropy args'.split())
+        'intercept lower upper cross_entropy args'.split())
 
     # Unpack entropy data
     entropy_dict = data['cross_entropy']
@@ -84,7 +87,7 @@ filters.
                 'rd',
                 label=r'$\sigma_\epsilon=10^{-4}$')
     axis_1.plot(t_sample, data['upper'], 'go', label=r'ridge')
-    y = data['intercept'] + t_sample * data['slope']
+    y = data['intercept'] + t_sample * slope
     axis_1.plot(t_sample, y, 'b', label=r'theory')
     axis_1.legend()
     axis_1.set_ylabel(r'$-\hat h$')
@@ -92,7 +95,8 @@ filters.
 
     if args.show:
         pyplot.show()
-    figure.savefig(args.toy_h)
+    figure.tight_layout()
+    figure.savefig(args.result)
 
     return 0
 
