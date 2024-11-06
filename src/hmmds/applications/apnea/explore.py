@@ -63,10 +63,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         quit_button = PyQt5.QtWidgets.QPushButton('Quit', self)
         quit_button.clicked.connect(self.close)
 
-        self.root_box = PyQt5.QtWidgets.QLineEdit(self)
-        self.root_box.setText('../../../..')
-        root_ok = PyQt5.QtWidgets.QPushButton('Root', self)
-        root_ok.clicked.connect(self.new_root)
+        self.build_box = PyQt5.QtWidgets.QLineEdit(self)
+        self.build_box.setText('../../../../build')
+        build_ok = PyQt5.QtWidgets.QPushButton('Build', self)
+        build_ok.clicked.connect(self.new_build)
 
         self.record_box = PyQt5.QtWidgets.QLineEdit(self)
         self.record_box.setText('a03')
@@ -75,7 +75,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
         self.model_box = PyQt5.QtWidgets.QLineEdit(self)
         self.model_box.setText(
-            f'{self.root_box.text()}/build/derived_data/apnea/models/default')
+            f'{self.build_box.text()}/derived_data/apnea/models/default')
         model_ok = PyQt5.QtWidgets.QPushButton('Model', self)
         model_ok.clicked.connect(self.new_model)
 
@@ -85,10 +85,10 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         # Layout button section
         buttons_layout.addWidget(quit_button)
 
-        root_layout = PyQt5.QtWidgets.QHBoxLayout()
-        root_layout.addWidget(root_ok)
-        root_layout.addWidget(self.root_box)
-        buttons_layout.addLayout(root_layout)
+        build_layout = PyQt5.QtWidgets.QHBoxLayout()
+        build_layout.addWidget(build_ok)
+        build_layout.addWidget(self.build_box)
+        buttons_layout.addLayout(build_layout)
 
         record_layout = PyQt5.QtWidgets.QHBoxLayout()
         record_layout.addWidget(record_ok)
@@ -209,7 +209,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
 
     def open_file_dialog(self, directory=None):
         if directory is None:
-            directory = self.root_box.text()
+            directory = self.build_box.text()
         dialog = PyQt5.QtWidgets.QFileDialog(self)
         dialog.setDirectory(directory)
         dialog.setFileMode(PyQt5.QtWidgets.QFileDialog.FileMode.ExistingFiles)
@@ -217,7 +217,7 @@ class MainWindow(PyQt5.QtWidgets.QMainWindow):
         filename, ok = dialog.getOpenFileName()
         return filename
 
-    def new_root(self):
+    def new_build(self):
         pass  # No action
 
     def new_record(self):
@@ -238,8 +238,8 @@ make {file_name}
             self.model = pickle.load(_file)
 
     def new_model(self):
-        path_list = [self.root_box.text()
-                    ] + 'build derived_data apnea models'.split()
+        path_list = [self.build_box.text()
+                    ] + 'derived_data apnea models'.split()
         path = os.path.join(*path_list)
         file_name = self.open_file_dialog(path)
         self.model_box.setText(file_name)
@@ -281,7 +281,7 @@ make {file_name}
         Args:
             signal: ecg, state, likelihood or heart_rate
         """
-        return f'{self.root_box.text()}/build/derived_data/ECG/{self.record_box.text()}_self_AR3/{signal}'
+        return f'{self.build_box.text()}/derived_data/ECG/{self.record_box.text()}_self_AR3/{signal}'
 
     def read_calculate(self):
         """Do all this in one method because calculations depend on
@@ -293,8 +293,8 @@ make {file_name}
         self.read_model()
 
         # Read ECG
-        path = os.path.join(self.root_box.text(),
-                            'build/derived_data/apnea/ecgs',
+        path = os.path.join(self.build_box.text(),
+                            'derived_data/apnea/ecgs',
                             f'{self.record_box.text()}')
         with open(path, 'rb') as _file:
             _dict = pickle.load(_file)
