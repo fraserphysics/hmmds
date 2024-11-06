@@ -47,7 +47,7 @@ $(APNEA_FIG_DIR)/viz.pdf: $(ApneaCode)/model_viz.py $(BEST)
 
 $(APNEA_FIG_DIR)/threshold.pdf: $(APNEA_PLOTSCRIPTS)/survey_threshold.py $(BEST)
 	mkdir -p $(@D)
-	python $< --root $(ROOT) --expert_override $(ROOT)/raw_data/apnea/summary_of_training --heart_rate_path_format $(ECG_DERIVED)/{0}_self_AR3/heart_rate --records $(TRAIN_NAMES) --thresholds -0.3 0.3 21 \
+	python $< --root $(ROOT) --expert_override $(ROOT)/raw_data/apnea/summary_of_training --heart_rate_path_format $(ECG_DERIVED)/{0}_self_AR3/heart_rate --records $(TRAIN_NAMES) --thresholds 0.3 0.9 21 \
  $(BEST) $@ > $(DERIVED_APNEA_DATA)/threshold.txt
 
 
