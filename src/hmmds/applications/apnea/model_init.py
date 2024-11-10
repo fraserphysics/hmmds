@@ -253,10 +253,19 @@ def multi_state(args, rng):
     normal_noise
     normal_0
     normal_1
+    normal_2
     apnea_noise
     apnea_0
     apnea_1
+    apnea_2
+    apnea_3
+    apnea_4
+    apnea_5
     '''.split()
+    # 6A, 6N got 2299 errors after optimization
+    # 6A, 4N got 2309 errors after optimization
+    # 5A, 4N got 2365 errors after optimization
+    # 7A, 4N got 2247 errors after optimization
     n_states = len(state_keys)
     for state_index, state_key in enumerate(state_keys):
         p_successors = numpy.ones(n_states) / (n_states - 2)

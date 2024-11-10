@@ -68,7 +68,8 @@ def main(argv=None):
     axes.set_xlabel(r'$n_{\rm{states}}$')
     axes.set_ylabel(r'$\hat h/\rm{nats}$')
 
-    limit = numpy.ones(len(n_states)) * lyapunov_exponent * data['args'].t_sample
+    limit = numpy.ones(
+        len(n_states)) * lyapunov_exponent * data['args'].t_sample
     axes.semilogx(n_states, limit)
     min_y = 0
     max_y = 0.9

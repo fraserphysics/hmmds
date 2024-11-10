@@ -293,8 +293,7 @@ make {file_name}
         self.read_model()
 
         # Read ECG
-        path = os.path.join(self.build_box.text(),
-                            'derived_data/apnea/ecgs',
+        path = os.path.join(self.build_box.text(), 'derived_data/apnea/ecgs',
                             f'{self.record_box.text()}')
         with open(path, 'rb') as _file:
             _dict = pickle.load(_file)

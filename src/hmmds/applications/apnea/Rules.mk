@@ -50,15 +50,15 @@ AR = 5
 # Model sample frequency cpm
 FS = 4
 # Low Pass Period seconds
-LPP = 65
+LPP = 51.1
 # Respiration Center frequency cpm
-RC = 11.0
+RC = 11.53
 # Respiration Width cpm
-RW = 3.5
+RW = 3.2
 # Filter for Respiration Smoothing in cpm.
-RS = 0.48
+RS = 0.486
 # Detection threshold
-THRESHOLD = 3.4
+THRESHOLD = 6.2
 
 $(MODELS)/%_init: $(ApneaCode)/make_init.py $(ApneaCode)/model_init.py
 	mkdir -p  $(@D)
@@ -84,7 +84,7 @@ $(DERIVED_APNEA_DATA)/test_score.tex: $(ApneaCode)/score.py $(DERIVED_APNEA_DATA
 ########################Build data for hand_opt.pdf#############################
 
 # Sensitivity to AutoRegressive order
-ARs = 2 3 4 5 6 7 8 9 10
+ARs = 4 5 6 7 8 9
 AR_MODELS = $(addsuffix fs$(FS)lpp$(LPP)rc$(RC)rw$(RW)rs$(RS)_masked, $(addprefix ar, $(ARs)))
 
 $(DERIVED_APNEA_DATA)/errors_vs_ar.pkl: $(ApneaCode)/compare_models.py $(addprefix $(MODELS)/, $(AR_MODELS))
@@ -92,7 +92,7 @@ $(DERIVED_APNEA_DATA)/errors_vs_ar.pkl: $(ApneaCode)/compare_models.py $(addpref
 --parameter_name "AR order" $@ > $(DERIVED_APNEA_DATA)/errors_vs_ar.txt
 
 # Sensitivity to Sample Frequency (7 not allowed)
-FSs = 3 4 5 6 8
+FSs = 2 3 4 5 6 8
 FS_MODELS = $(addsuffix lpp$(LPP)rc$(RC)rw$(RW)rs$(RS)_masked, \
     $(addprefix ar$(AR)fs, $(FSs)))
 
@@ -101,7 +101,7 @@ $(DERIVED_APNEA_DATA)/errors_vs_fs.pkl: $(ApneaCode)/compare_models.py $(addpref
 --parameter_name "Sample Frequency" $@ > $(DERIVED_APNEA_DATA)/errors_vs_fs.txt
 
 # Sensitivity to Low Pass Period in seconds.
-LPPs = 55 60 63 65 67 70
+LPPs = 50.8 50.9 51 51.1 51.2 52
 LPP_MODELS = $(addsuffix rc$(RC)rw$(RW)rs$(RS)_masked, $(addprefix \
     ar$(AR)fs$(FS)lpp, \
     $(LPPs)))
@@ -111,7 +111,7 @@ $(DERIVED_APNEA_DATA)/errors_vs_lpp.pkl: $(ApneaCode)/compare_models.py $(addpre
 --parameter_name "Low Pass Period" $@ > $(DERIVED_APNEA_DATA)/errors_vs_lpp.txt
 
 # Sensitivity to Respiration Center frequency in cpm
-RCs = 10.5 10.8 11 11.2 11.5 12 13 14
+RCs = 11.5 11.51 11.52 11.53 11.54 11.55 11.6
 RC_MODELS = $(addsuffix rw$(RW)rs$(RS)_masked, $(addprefix \
     ar$(AR)fs$(FS)lpp$(LPP)rc, \
     $(RCs)))
@@ -121,7 +121,7 @@ $(DERIVED_APNEA_DATA)/errors_vs_rc.pkl: $(ApneaCode)/compare_models.py $(addpref
 --parameter_name "Center Frequency" $@ > $(DERIVED_APNEA_DATA)/errors_vs_rc.txt
 
 # Sensitivity to Respiration width frequency in cpm
-RWs = 2.0 3.0 3.3 3.4 3.5 3.6 4.0
+RWs = 3.1 3.15 3.2 3.25 3.3 3.4
 RW_MODELS = $(addsuffix rs$(RS)_masked, $(addprefix \
     ar$(AR)fs$(FS)lpp$(LPP)rc$(RC)rw, \
     $(RWs)))
@@ -131,7 +131,7 @@ $(DERIVED_APNEA_DATA)/errors_vs_rw.pkl: $(ApneaCode)/compare_models.py $(addpref
 --parameter_name "Frequency Width" $@ > $(DERIVED_APNEA_DATA)/errors_vs_rw.txt
 
 # Sensitivity to Respiration Smoothing frequency in cpm
-RSs = .46 .465 .47 .475 .48 .485 .49 .495 .5
+RSs = .48 .485 .486 .487 .49
 RS_MODELS = $(addsuffix _masked, $(addprefix \
     ar$(AR)fs$(FS)lpp$(LPP)rc$(RC)rw$(RW)rs, \
     $(RSs)))

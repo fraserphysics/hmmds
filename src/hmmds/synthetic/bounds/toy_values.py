@@ -130,7 +130,7 @@ def like_lor(dict_in):
         if key < min_resolution:
             min_resolution = key
 
-    # Get some values from the right end of the plot 
+    # Get some values from the right end of the plot
     log_likelihood = dict_in[min_resolution]['log_likelihood']
     dict_in['n_states'] = dict_in[min_resolution]['n_states']
     dict_in[
