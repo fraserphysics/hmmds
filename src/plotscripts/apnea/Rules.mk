@@ -29,7 +29,7 @@ $(ApneaFigDir)/ApneaNLD.pdf: $(APNEA_TS_PLOTS) $(ALL_SELVES)
 
 $(ApneaFigDir)/sgram.pdf:  $(APNEA_PLOTSCRIPTS)/spectrogram.py $(ApneaDerivedData)/a11.sgram
 	mkdir -p $(@D)
-	python $< --root $(ROOT) --time_window 20 150  --frequency_window 5 25 --record_name a11 \
+	python $< --root $(ROOT) --time_window 20 150  --frequency_window 4 25 --record_name a11 \
 $(ApneaDerivedData)/a11.sgram $(EXPERT) $@
 
 $(APNEA_FIG_DIR)/errors_vs_%.pdf: $(APNEA_PLOTSCRIPTS)/comparison_plot.py $(DERIVED_APNEA_DATA)/errors_vs_%.pkl

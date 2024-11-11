@@ -24,8 +24,12 @@ $(DERIVED_APNEA_DATA)/a03er.pkl: $(ApneaCode)/extract_wfdb.py
 	python $< --shorten 204 $(PHYSIONET_WFDB) a03er $@
 
 $(DERIVED_APNEA_DATA)/a11.sgram: $(ApneaCode)/spectrogram.py
-	python $< --root $(ROOT) --model_sample_frequency 120 --fft_width 256 \
---band_pass_center $(RC) --band_pass_width $(RW) --low_pass_period $(LPP) a11 $@
+	python $< --root $(ROOT) --model_sample_frequency 120 \
+ --fft_width 256 \
+--band_pass_center 16 \
+ --band_pass_width 6 \
+ --low_pass_period 8 \
+a11 $@
 
 XNAMES = x01 x02 x03 x04 x05 x06 x07 x08 x09 x10 \
 x11 x12 x13 x14 x15 x16 x17 x18 x19 x20 \
