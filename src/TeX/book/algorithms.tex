@@ -1103,7 +1103,6 @@ In particular for each iteration, one should:
 \subsection{Probabilities of the initial state}
 \label{sec:Ps0}
 
-%\ToDo{Ralf doesn't like this.}
 Using the procedure of the previous section for a few independent
 observation sequences with several iterations of the Baum-Welch
 algorithm produces a model in which the estimates of the probabilities
@@ -1172,7 +1171,6 @@ in Fig.~\ref{fig:TrainChar}.
 \subsection{Disappearing Transitions}
 \label{sec:disappear}
 
-%\ToDo{Ralf wants more discussion.  Is this just a hack?}
 For some observation sequences $\ts{y}{1}{T}$ and initial models,
 multiple iterations of the Baum-Welch algorithm leads to state
 transition probabilities that are too small to be represented in
@@ -1184,6 +1182,10 @@ than $1\times 10^{-20}$.  Such pruning:
 \item Simplifies the models
 \item Makes algorithms that process the models run faster
 \end{itemize}
+Bayesian methods can address situations in which one believes that
+some transitions should be allowed by a model even though maximizing
+the likelihood by the Baum-Welch algorithm drives their probability to
+zero.  We will not describe such methods in this book.
 
 \subsection{Bayesian Estimates Instead of Point Estimates}
 \label{sec:EstWholeDist}
@@ -1218,7 +1220,6 @@ distributions for HMMs using \emph{Markov chain Monte Carlo} and
 \emph{variational Bayes} procedures (see for example \cite{Rosales04}
 and \cite{Beal03}), we will restrict our attention to point estimates
 from the Baum-Welch algorithm and simple variations.
-
 
 
 \section{The EM algorithm}

@@ -93,6 +93,7 @@ def LaserStates(data, matplotlib, pyplot):
     ax = fig.add_subplot()
     x_t = data['forward_means']
     ax.plot(x_t[:, 0], x_t[:, 2])
+    ax.plot(x_t[:, 0], x_t[:, 2], linestyle='', marker='.', color='black')
     return fig
 
 

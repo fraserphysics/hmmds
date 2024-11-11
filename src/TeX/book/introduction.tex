@@ -193,7 +193,6 @@ highest probability given the first 250 observations, \ie,
     observation sequence $\ts{y}{1}{250}$. (see
     Eqn.~\eqref{eq:xhatSeq}.)  Components $x_1$ and $x_3$ of the
     Lorenz system (see Eqn.~\eqref{eq:Lorenz}) are plotted.}
-  %\ToDo{Plot interpolated trajectory with dots at sample points.}
   \label{fig:LaserStates}
 \end{figure}
 
@@ -686,16 +685,14 @@ likelihood.
 \subsection{Example: Quantized Lorenz Time Series}
 \label{sec:QuantizedLorenz}
 
-%\ToDo{Train on one set and decode another}
-
 To illustrate these algorithms we have applied them to data that we
 synthesized by numerically integrating the Lorenz system
 (Eqn.~\eqref{eq:Lorenz} with parameter values $r=28$, $s=10$, and
-$b=\frac{8}{3}$) and recording syntheticNLorenzBig vectors $x(\tau)$ with a
+$b=\frac{8}{3}$) and recording $\syntheticNLorenzBig$ vectors $x(\tau)$ with a
 sampling interval $\Delta \tau = 0.15$.  Then we produced a sequence
-of integer valued observations $y_1^{syntheticNLorenzBig}$ by binning $x_1$
+of integer valued observations $y_1^{\syntheticNLorenzBig}$ by binning $x_1$
 with boundaries at $\syntheticboundaryA,\syntheticboundaryB$ and $\syntheticboundaryC$.  The
-result is that for each integer $1\leq t \leq syntheticNLorenzBig$,
+result is that for each integer $1\leq t \leq \syntheticNLorenzBig$,
 $\ti{x_1}{t\cdot0.15}$ yields $\ti{y}{t} \in \left\{1,2,3,4\right\}$.
 Figure~\ref{fig:TSintro} depicts the first few observations.
 
@@ -758,14 +755,7 @@ the Viterbi algorithm to find the most likely state sequence
      are closely related to positions in the generating state space.}
    \label{fig:STSintro}
  \end{figure}
-%%%\afterpage{\clearpage}%% Print this right here or let it float to end of chapter?
-%%%
-%%% ToDo: fig:Statesintro -- Do these color figures need to be in
-%%% ToDo: their own "Chapter"-like section so that they can be printed
-%%% ToDo: together on a set of color plates?
-%%%
-%%% This is a large color figure on a page by itself. (butterfly)
-%%%
+
  \begin{figure}[p]
    \centering{\plotsize%
      \includegraphics[width=1.0\textwidth]{Statesintro}}%
@@ -774,7 +764,6 @@ the Viterbi algorithm to find the most likely state sequence
      original coordinates of the Lorenz system.}
    \label{fig:Statesintro}
  \end{figure}
-%%%\afterpage{\clearpage}%% Print this right here or let it float to end of chapter?
 \ToDo{Transition diagram for back cover}
 
 

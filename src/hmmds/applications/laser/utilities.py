@@ -3,6 +3,8 @@
 """
 from __future__ import annotations
 
+import typing
+
 import numpy
 
 import hmm.state_space

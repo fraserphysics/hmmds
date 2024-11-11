@@ -18,6 +18,7 @@ $(FIGS_LASER)/LaserLP5.pdf: $(LaserPlotscripts)/laser_figures.py $(LASER_DATA)/L
 	mkdir -p $(FIGS_LASER)
 	python $< --LaserLP5 $(word 2, $^) $@
 
+# For targets LaserLogLike LaserStates LaserForecast LaserHist
 $(FIGS_LASER)/Laser%.pdf: $(LaserPlotscripts)/laser_figures.py $(LASER_DATA)/Laser%
 	mkdir -p $(FIGS_LASER)
 	python $< --Laser$* $(LASER_DATA)/Laser$* $@

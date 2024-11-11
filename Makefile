@@ -73,6 +73,7 @@ include $(XFIGS)/Rules.mk
 # Rules for making documents
 include $(TEX)/book/Rules.mk
 include $(TEX)/skeleton/Rules.mk
+include $(TEX)/filter/Rules.mk
 include $(TEX)/laser/Rules.mk
 include $(TEX)/apnea/Rules.mk
 include $(TEX)/ecg/Rules.mk
@@ -127,7 +128,7 @@ test :
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo APNEA_PLOTSCRIPTS: $(APNEA_PLOTSCRIPTS)
+	@echo FILTER_TEX_OUT: $(FILTER_TEX_OUT)
 	@echo DERIVED_APNEA_DATA: $(DERIVED_APNEA_DATA)
 	@echo In root Makefile, ROOT: $(ROOT)
 ## help                           : Print comments on targets from makefile
