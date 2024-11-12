@@ -9,7 +9,7 @@
 %%%
 
 %\documentclass[]{hmmdsbook} % For old siam style
-\documentclass[ltxbook,showlabels]{hmmdsbook}
+\documentclass[ltxbook,showlabels, commentsvisible]{hmmdsbook}
 
 %%% Note: The following settings will cause many overfull hbox false alarms:
 % \documentclass[dvips,prelim,showlabels]{hmmdsbook}
@@ -54,7 +54,7 @@ Kevin Vixie organized at the 2001 SIAM Dynamical Systems meeting.  At
 the end of the first symposium someone asked for a simple reference
 that explains the basic ideas and algorithms for applying HMMs.  We
 were stumped\footnote{In subsequent years several good references that
-  explain the basic ideas of HMMs have appeared, \eg, FixMe.}.  A
+  explain the basic ideas of HMMs have appeared, \eg, \ToDo{Find some}}.  A
 group of the participants suggested writing this book to answer the
 question.  Two years later, I delivered a proposal for the book that
 included about two chapters to SIAM at the 2003 Dynamical Systems
@@ -101,17 +101,17 @@ that:
   variants.
 \item[I provide code implementing the algorithms and data for the
   examples] Although algorithms are given in pseudo code in the text,
-  at \url{http://www.fraserphysics.com/~andy/hmmdsbook} and % FixMe
-  \url{www.siam.org/~fraser/XXXX} I provide a working implementation
-  of each of the algorithms I describe.  I have chosen to write the
-  programs in the python language because it is easy to read and the
-  interpreter is free software.  I have written the programs to follow
-  the descriptions and notation in the text.  I provide data and
-  scripts (makefiles, shell scripts, etc.)  that make all of the
-  figures in the text.  On a gnu system, % FixMe What systems?
-  issuing ``make book.pdf''
-  from a command line compiles the software, runs the numerical
-  experiments, makes the figures, and formats the entire book.
+  \ToDo{at \url{http://www.fraserphysics.com/~andy/hmmdsbook} and
+    \url{www.siam.org/~fraser/XXXX}} I provide a working
+  implementation of each of the algorithms I describe.  I have chosen
+  to write the programs in the python language because it is easy to
+  read and the interpreter is free software.  I have written the
+  programs to follow the descriptions and notation in the text.  I
+  provide data and scripts (makefiles, shell scripts, etc.)  that make
+  all of the figures in the text.  On \ToDo{What systems?}  issuing
+  ``make book.pdf'' from a command line compiles the software, runs
+  the numerical experiments, makes the figures, and formats the entire
+  book.
 \item[It uses analogies to dynamical systems] For example, I
   demonstrate the HMM training algorithm by applying it to data
   derived from the Lorenz system.  The result, as

@@ -36,8 +36,8 @@ with a small number of free parameters.  For many such families of
 Chapter~\ref{chap:algorithms} with minor modifications\footnote{At the
   1988 ICASSP meeting, Poritz\cite{Poritz88} reviewed several HMM
   variants.}.  For a practitioner, the challenge is to find or develop
-both, a parametric family that closely matches the measured system,
-and algorithms for fitting and using the models.
+both a parametric family that closely matches the measured system and
+algorithms for fitting and using the models.
 
 \begin{figure}[htbp]
   \centering{\plotsize%
@@ -229,8 +229,8 @@ produced by the second state looks suspiciously small.  In fact with
 additional iterations of the Baum-Welch algorithm that variance
 continues to shrink, and the code soon stops with a floating point
 exception.  The algorithm is pursuing a singularity in the likelihood
-function in which the second state fits the $\MLEfailt^{\text{th}}$
-observation exactly and the first state fits all of the other
+function in which the second state fits observation
+$\ti{y}{\MLEfailt}$ exactly and the first state fits all of the other
 observations.  If $\mu_2 = \ti{y}{\MLEfailt}$ the likelihood
 $P_{\ti{Y}{t}|\ti{S}{t}} \left(\ti{y}{\MLEfailt}|2 \right)$ increases
 without limit as $\sigma^2_2 \rightarrow 0$, \ie,
@@ -342,8 +342,9 @@ and the probability of future observations $\y_f$ is
   \label{eq:futureBayes}
   P(\y_f|\y_e) = \int  P(\y_f|\parameters) P(\parameters|\y_e)\, d\parameters.
 \end{equation}
-The parameter vector that maximizes the \emph{a posteriori}
-\index{maximum a posteriori estimate} distribution,
+The parameter vector that \underline{m}aximizes the \emph{\underline{a}
+  posteriori} \underline{p}robability, \index{maximum a posteriori
+  estimate}
 \begin{subequations}
   \begin{align}
     \label{eq:MAPdefa}
@@ -365,9 +366,8 @@ Eqn.~\eqref{eq:futureBayes} with $P\left( \y_f|\parameters_{
     \text{MAP} } \right)$.
 
 A slight variation of the algebra in Section~\ref{sec:EM} produces an
-EM algorithm for maximum \emph{a posteriori} estimation.  Dropping
-the subscript on $\y_e$ if we replace the auxiliary function of
-Eqn.~\eqref{eq:Qdef}, \ie,
+EM algorithm for MAP estimation.  Dropping the subscript on $\y_e$ if
+we replace the auxiliary function of Eqn.~\eqref{eq:Qdef}, \ie,
 \begin{equation*}
   Q_{\text{MLE}}(\parameters',\parameters) \equiv \EV_{P
     \left(\bS|\y,\parameters \right)} \left( \log P(\bS,\y|\parameters') \right),

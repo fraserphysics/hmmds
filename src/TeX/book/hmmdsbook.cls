@@ -424,7 +424,7 @@
 %%% Note: When a new one of these is added, a pattern for it should
 %%% Note: also be added to the Makefile "ToDo:" target.
 %%%
-\newcommand{\ToDo}[1]{\@ColorComment{NavyBlue}{ToDo}{#1}}
+\newcommand{\ToDo}[1]{\@ColorComment{red}{ToDo}{#1}}
 
 \ifthenelse{\boolean{@commentsvisible}}{%
   \newcommand{\comment}[1]{{\color{Gray}#1}}

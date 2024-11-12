@@ -21,14 +21,14 @@ establishing our notation for the model parameters.
   time $t$ it was in state ${\tilde s}$.  Notice that the parameter is
   independent of time $t$.  Ferguson called these parameters \emph{the
     $A$ matrix} with
-  $a_{i,j} = P_{\ti{S}{t+1}|\ti{S}{t}}(s|{\tilde s})$.
+  $a_{i,j} = P_{\ti{S}{t+1}|\ti{S}{t}}(s_j|s_i)$.
 \item[$\bm{P_{\ti{S}{1}}(s)}$] The probability that the system will
   start in state $s$ at time 1.  Ferguson used $a$ to represent this
-  vector of probabilities with $a_i = P_{\ti{S}{1}} \left(s \right)$.
-\item[$\bm{P_{\ti{Y}{t}|\ti{S}{t}}(y_k|{\tilde s})}$] The probability
-  that the observation value is $y_k$ given that the system is in
-  state ${\tilde s}$.  Ferguson used $b$ to represent this with
-  $b_j(k) = P_{\ti{Y}{t}|\ti{S}{t}} \left(y_k|j \right)$.
+  vector of probabilities with $a_i = P_{\ti{S}{1}} \left(s_i \right)$.
+\item[$\bm{P_{\ti{Y}{t}|\ti{S}{t}}(y|s)}$] The probability
+  that the observation value is $y$ given that the system is in
+  state $s$.  Ferguson used $b$ to represent this with
+  $b_j(k) = P_{\ti{Y}{t}|\ti{S}{t}} \left(y_k|s_j \right)$.
 \item[$\bm{\parameters}$] The entire collection of parameters.  For
   example, iteration of the Baum-Welch algorithm produces a sequence
   of parameter vectors $\ts{\parameters}{1}{N}$ with
@@ -57,7 +57,7 @@ found that we could write the right hand terms of
 \end{equation*}
 easily from the model assumptions.  Unfortunately, the number of
 possible sequences $\ts{s}{1}{T}$ is exponential in $T$, and it is
-impossible to do the sum for even modest lengths $T$.
+not feasible to do the sum for even modest lengths $T$.
 
 \begin{sidewaysfigure}[htbp]
   %% The following definitions are invoked by the XFig forward.fig.
@@ -204,12 +204,15 @@ conditional probability of being in state $s$ at time $t$ given all
 of the observations up to time $t$ and $\ti{\gamma}{t}$ is the
 conditional probability of the observation at time $t$ given all of
 the previous observations.  To initialize the algorithm, one assigns
-\begin{equation*}
-\alpha(s,1) = P_{\ti{S}{1}|\ti{Y}{1}}(s|\ti{y}{1}) =
-\frac{P_{\ti{S}{1}}(s)P_{\ti{Y}{t}|\ti{S}{t}}(\ti{y}{1}|s)}
-{\sum_{{\tilde s}}P_{\ti{S}{1}}({\tilde s})P_{\ti{Y}{t}|\ti{S}{t}}(\ti{y}{1}|{\tilde s})}
+\begin{align*}
+  \gamma(1) &= P_{\ti{Y}{1}}(\ti{y}{1}) =
+              \sum_{s}P_{\ti{S}{1}}(s)P_{\ti{Y}{t}|\ti{S}{t}}(\ti{y}{1}|s)
+  \\
+  \alpha(s,1) &= P_{\ti{S}{1}|\ti{Y}{1}}(s|\ti{y}{1}) =
+  \frac{P_{\ti{S}{1}}(s)P_{\ti{Y}{t}|\ti{S}{t}}(\ti{y}{1}|s)}
+  {\gamma(1)}
 ~\forall s \in \states
-\end{equation*}
+\end{align*}
 where the distributions $P_{\ti{S}{1}}$ and $P_{\ti{Y}{t}|\ti{S}{t}}$
 are model parameters.  After initialization, the algorithm iterates in
 a loop doing the following four calculations: 
@@ -1072,6 +1075,80 @@ Optimization yields
 \section{Remarks}
 \label{sec:AlgApp}
 
+\subsection{MAP Sequence of States or Sequence of MAP States?}
+\label{sec:sequenceMAP}
+
+\index{sequence of maximum a posteriori state estimates}%
+
+Consider the difference between the sequence of maximum a posteriori states
+and the maximum a posteriori sequence of states.  The maximum a posteriori state
+at a particular time $t$ is the best guess for where the system was at
+that time given all of the observations, \ie
+%
+$\ti{\hat s}{t} = \argmax_{s'}P(\ti{s'}{t}|\ts{y}{1}{T}) =
+\argmax_{s'}\alpha(s',t) \beta(s',t)$
+%
+(see \eqref{eq:wit} --
+\eqref{eq:witalphabeta}).  While it seems reasonable that a sequence
+of such guesses would constitute a good guess for the entire
+trajectory, it is not an optimal trajectory estimate.  In fact, as the
+following example demonstrates, such a trajectory may even be
+impossible.
+
+Consider the HMM drawn in Fig.~\ref{fig:sequenceMAP} and the sequence
+of observations $\ts{y}{1}{6} = (a,b,b,b,b,c)$.  Any sequence of
+states that is consistent with $\ts{y}{1}{6}$ must begin in $e$, end
+in $g$, and pass through state $f$ exactly once.  The only unknown
+remaining is the time at which the system was in state $f$.  Here is a
+tabulation of the four possible state sequences:
+\begin{center}
+  \begin{tabular}{|cccccc|l|c|}
+    \hline
+    $\ti{s}{1}$ &  $\ti{s}{2}$ &  $\ti{s}{3}$ & 
+    $\ti{s}{4}$ &  $\ti{s}{5}$ &  $\ti{s}{6}$ &
+    $P(\ts{y}{1}{6},\ts{s}{1}{6})/z$ & 
+    $P(\ts{s}{1}{6}|\ts{y}{1}{6})$ \\
+    \hline
+    $e$ & $e$ & $e$ & $e$ & $f$ & $g$ & $0.9^3$           & 0.30 \\    $e$ & $e$ & $e$ & $f$ & $g$ & $g$ & $0.9^2\cdot 0.8$  & 0.26 \\
+    $e$ & $e$ & $f$ & $e$ & $g$ & $g$ & $0.9 \cdot 0.8^2$ & 0.23 \\
+    $e$ & $f$ & $g$ & $g$ & $g$ & $g$ & $0.8^3$           & 0.21 \\\hline
+  \end{tabular}
+\end{center}
+In the table, the term $z$ represents the factors that are common in
+$P(\ts{y}{1}{6},\ts{s}{1}{6})$ for all of the possible state
+sequences.  Only the factors that are different appear in the seventh
+column.  The largest entry in the last column is 0.30 which
+corresponds to the MAP estimate: $\ts{\hat s}{1}{6} = (e,e,e,e,f,g,)$.
+\begin{figure}[htbp]
+  \centering{\plotsize%
+    \input{sequenceMAP.pdf_t} 
+  }  
+  \caption{HMM used to illustrate that the maximum a posteriori sequence of states is
+    not the same as the sequence of maximum a posteriori states.}
+\label{fig:sequenceMAP}
+\end{figure}
+
+The next table displays the values of $P(\ti{s}{t}|\ts{y}{1}{6})$, the
+a posteriori probability for the three possible states:
+\begin{center}
+  \begin{tabular}{cc|cccccc}
+    &   & \multicolumn{6}{c}{$t$} \\
+    \multicolumn{2}{r|}{$P(\ti{s}{t}|\ts{y}{1}{6})$}
+        & 1 & 2 & 3 & 4 & 5 & 6 \\
+    \hline
+    & $e$ & \textbf{1.0} & \textbf{0.79} & \textbf{0.56} & 0.30 & 0    & 0  \\
+$s$ & $f$ & 0   & 0.21 & 0.23 & 0.26 & 0.30 & 0   \\
+    & $g$ & 0   & 0    & 0.21 & \textbf{0.44} & \textbf{0.70} & \textbf{1.0}
+  \end{tabular}
+\end{center}
+The table quantifies the intuition that the a posteriori probability starts
+in state $e$ at time $t=1$ and sort of diffuses completely over to
+state $g$ by time $t=6$.  Notice that although all of the probability
+passes through state $f$, at no time is it the most probable state.
+Thus the sequence of maximum a posteriori states is $e,e,e,g,g,g$ which is
+an \emph{impossible} sequence.  On the other hand, the maximum a posteriori
+sequence of states, $e,e,e,e,f,g$, is entirely plausible.
+
 \subsection{Training on Multiple Segments}
 \label{sec:MultiSegment}
 
@@ -1182,10 +1259,10 @@ than $1\times 10^{-20}$.  Such pruning:
 \item Simplifies the models
 \item Makes algorithms that process the models run faster
 \end{itemize}
-Bayesian methods can address situations in which one believes that
-some transitions should be allowed by a model even though maximizing
-the likelihood by the Baum-Welch algorithm drives their probability to
-zero.  We will not describe such methods in this book.
+Bayesian methods, which are beyond the scope of this book, can address
+situations in which one believes that some transitions should be
+allowed by a model even though maximizing the likelihood by the
+Baum-Welch algorithm drives their probability to zero.
 
 \subsection{Bayesian Estimates Instead of Point Estimates}
 \label{sec:EstWholeDist}
@@ -1396,7 +1473,7 @@ with equality \emph{iff}
 \begin{equation*}
   P(\s|\y,\parameters') =  P(\s|\y,\parameters) ~~ \forall \s
 \end{equation*}
-is called the \emph{\index*{Gibbs Inequality}}\footnote{While most
+is called the \emph{\index*{Gibbs Inequality}}\footnote{While many
   statisticians attribute this inequality to Kullback and
   Leibler\cite{Kullback51}, it appears earlier in chapter {\em XI}
   {\em Theorem II} of Gibbs\cite{Gibbs}.}.  It is a consequence of
@@ -1427,8 +1504,8 @@ monotonically increases the likelihood.
 
 \subsection{Convergence}
 
-FixMe: Do something different with this section.  Perhaps examples of
-degenerate models (flat directions in parameter space)
+\ToDo{Do something different with this section.  Perhaps examples of
+  degenerate models (flat directions in parameter space)}
 
 \newcommand{\EMmap}{{\cal T}} %
 The EM algorithm operates on $\Theta$, a set of allowed parameter
@@ -1700,8 +1777,8 @@ both $\parameters$ and $L$.
 \subsubsection{A contrived example}
 \label{sec:contrived}
 
-FixMe: Look at analysis of second derivatives in section 2.5 of
-https://arxiv.org/pdf/1105.1476.  Also, consider using his notation.
+\ToDo{Look at analysis of second derivatives in section 2.5 of
+https://arxiv.org/pdf/1105.1476.  Also, consider using his notation.}
 
 Figure~\ref{fig:EM} illustrates stable convergence for the case of a
 coin being tossed 4 times and observed twice.  By pretending that the
