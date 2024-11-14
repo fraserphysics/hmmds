@@ -116,14 +116,14 @@ the parameters, specified in the caption of Fig.~\ref{fig:ToyTS1}, so
 that dynamical noise and measurement quantization are negligible
 compared to the effects of measurement noise and dynamical stretching.
 In the middle plot of Fig.~\ref{fig:ToyTS1} notice that while for most
-times the forecast deviation of the prediction
-$\ti{\sigma_\gamma}{t}$ is very close to the size of the measurement
-noise $\sigma_\eta = \toyHviewObservationNoise$, occasionally the forecast deviations are
-many times larger.  The log likelihood per time step which appears in
-bottom plot of the figure is low when either the forecast deviations
-are large or when the difference between the mean of the forecast and
-the actual observation is much larger than the predicted deviation,
-\ie,
+times the forecast deviation of the prediction $\ti{\sigma_\gamma}{t}$
+is very close to the size of the state noise
+$\sigma_\eta = \toyHviewStateNoise$, occasionally the forecast
+deviations are many times larger.  The log likelihood per time step
+which appears in the bottom plot of the figure is low when either the
+forecast deviations are large or when the difference between the mean
+of the forecast and the actual observation is much larger than the
+predicted deviation, \ie,
 $\ti{\sigma^2_\gamma}{t} <<
 \left(\ti{y}{t}-\ti{\mu_\gamma}{t}\right)^2$.
 
@@ -177,9 +177,9 @@ map $[DF]$ that occurs then.
     \NormalE{\mu_\alpha}{\Sigma_\alpha}{\ti{x}{t}}$.  For each
     distribution, an ellipse depicts the level set
     $(x-\mu)\transpose \Sigma^{-1} (x-\mu) =1$ in the $x_1\times x_3$
-    plane.  To support visual comparisons, the $x_1$ range the $x_3$
-    range are the same in each of the plots.  In mapping the updated
-    distribution at $t=\toyHviewTMaxVar$ (on the left) to the
+    plane.  To support visual comparisons, the sizes of the ranges for
+    $x_1$ and $x_3$ are the same in each of the plots.  In mapping the
+    updated distribution at $t=\toyHviewTMaxVar$ (on the left) to the
     forecast distribution at time $t=\toyHviewTMaxVarPlusOne$ (on the
     right), the function $F$ that implements state dynamics stretches
     the ellipse by about a factor of 10 in both directions.}
@@ -223,27 +223,29 @@ We have chosen the parameters\footnote{ In making Fig.~\ref{fig:ToyH},
   we wanted simulations close to the bound of Eqn.~\eqref{eq:bound1}.
   We found that at larger values of $\tau_s$ and $\Delta$, extended
   Kalman filters performed better if given models with larger state
-  noise than the noise actually used to generate the data, \ie $\tilde
-  \sigma_\eta > \sigma_\eta$.  We believe that the effect is the
-  result of the larger errors that occur as the affine approximation
-  $F(x+\delta) \approx [DF(x)] \delta + F(x)$ fails to track the
-  nonlinearities of the Lorenz system over larger intervals in state
-  space.  By making $\tilde \sigma_\eta$ larger, the errors are
-  accommodated as state noise.  We chose the state noise of the
+  noise than the noise actually used to generate the data, \ie
+  $\tilde \sigma_\eta > \sigma_\eta$.  We believe that the effect is
+  the result of the larger errors that occur as the affine
+  approximation $F(x+\delta) \approx [DF(x)] \delta + F(x)$ fails to
+  track the nonlinearities of the Lorenz system over larger intervals
+  in state space.  By making $\tilde \sigma_\eta$ larger, the errors
+  are accommodated as state noise.  We chose the state noise of the
   generating process to be an order of magnitude larger than the
-  absolute integration tolerance of $\toyHviewatol$.  We then chose the
-  quantization level and sample times to be as large as possible, but
-  still small enough that we could have $\tilde \sigma_\eta =
-  \sigma_\eta$ without losing performance.  That led to the values
-  $\tilde \sigma_\eta = \sigma_\eta = \toyToyhdevstategenerate$, $\Delta = \toyToyhystep$,
-  and $0 < \tau_s \leq 0.5$.} specified in the caption of
-Fig.~\ref{fig:ToyH} with a large measurement quantization size so that
-the log likelihood is limited primarily by dynamical stretching and
-the Gaussian assumption for $ P \left(\ti{y}{t}|\ts{y}{1}{t-1}, \theta
-\right)$.  We are pleased to observe that the overall slope of the
-plot on the left in Fig.~\ref{fig:ToyH} is consistent with the
-estimate $\hat \lambda_1 = \toyBenettinLambdaOne$ (base $e$) that we obtain using the
-Benettin procedure described in Section~\ref{sec:Benettin}.
+  absolute integration tolerance of $\toyHviewatol$.  We then chose
+  the quantization level and sample times to be as large as possible,
+  but still small enough that we could have
+  $\tilde \sigma_\eta = \sigma_\eta$ without losing performance.  That
+  led to the values
+  $\tilde \sigma_\eta = \sigma_\eta = \toyToyhdevstategenerate$,
+  $\Delta = \toyToyhystep$, and $0 < \tau_s \leq 0.5$.} specified in
+the caption of Fig.~\ref{fig:ToyH} with a measurement quantization
+size large enough that the log likelihood is limited primarily by
+dynamical stretching and the Gaussian model for
+$ P \left(\ti{y}{t}|\ts{y}{1}{t-1}, \theta \right)$.  We are pleased
+to observe that the overall slope of the plot on the left in
+Fig.~\ref{fig:ToyH} is consistent with the estimate
+$\hat \lambda_1 = \toyBenettinLambdaOne$ (base $e$) that we obtain
+using the Benettin procedure described in Section~\ref{sec:Benettin}.
 %%% code/python/lorenzLyap.py
 
 \begin{figure}[htbp]
@@ -252,6 +254,7 @@ Benettin procedure described in Section~\ref{sec:Benettin}.
   \caption[\comment{fig:ToyH }Average log likelihood of one step forecasts.]%
   {Average log likelihood of one step forecasts as a function of time
     step $\tau_s$ and filter parameter $\tilde \sigma_\epsilon$.  To
+    \ToDo{Check code that produces these values}
     simulate measurements for this figure, we used the parameters:\\
     \begin{tabular}[c]{ll}
      $\sigma_\eta = \toyToyhdevstategenerate$ & Standard deviation of state noise \\
@@ -474,8 +477,9 @@ ergodic process, time averages converge to expected values with
 probability one.
 
 \subsubsection{Entropy rate}
-For a discrete stochastic process $X$, the \index*{entropy!rate} is
-\nomenclature[rhx]{$h(X)$}{The \emph{entropy rate} of a stochastic process $X$.}
+For a discrete stochastic process $X$, the entropy rate \index{entropy
+  rate} is \nomenclature[rhx]{$h(X)$}{The \emph{entropy rate} of a
+  stochastic process $X$.}
 \begin{equation}
   \label{eq:hrate1}
   h(X) \equiv \lim_{T \rightarrow \infty} \frac{1}{T} H(\ts{X}{1}{T}).
@@ -531,11 +535,11 @@ $h(\mathcal{B},F,\mu||\theta)$ as follows
   \label{eq:hrate6}
   h(\mathcal{B},F,\mu) &\equiv \lim_{T \rightarrow \infty} \frac{1}{T}
   H(\ts{B}{1}{T}) \\
-  &= \lim_{T \rightarrow \infty} \frac{1}{T} \EV_\mu \log\left(P
+  &= \lim_{T \rightarrow \infty} -\frac{1}{T} \EV_\mu \log\left(P
   \left(\ts{B}{1}{T}| \mu \right) \right) \nonumber\\
   \label{eq:hrate7}
   h(\mathcal{B},F,\mu||\theta) &\equiv \lim_{T \rightarrow \infty}
-  \frac{1}{T} \EV_\mu \log\left(P \left(\ts{B}{1}{T} | \theta \right)
+  -\frac{1}{T} \EV_\mu \log\left(P \left(\ts{B}{1}{T} | \theta \right)
   \right). \nonumber  
 \end{align}
 \subsubsection{Kolmogorov Sinai entropy $h_{KS}$}
@@ -587,7 +591,8 @@ base two power series that identifies the starting point, \ie
 \begin{equation*}
   \ti{x}{0} = \sum_{t=0}^\infty  \ti{b}{t} \left(\frac{1}{2}\right)^{t+1}.
 \end{equation*}
-Further, if we assign a uniform probability measure $\mu$ to the interval
+Further, if we assign a uniform probability measure $\mu$ to the
+interval, then
 \begin{equation*}
   h_{KS}(F_2,\mu) =h(\mathcal{B}_2,F,\mu) = \log(2).
 \end{equation*}
@@ -605,9 +610,9 @@ and using the partition
 \begin{equation}
   \label{eq:partition3}
   \mathcal{B}_3 = \left\{ \beta_0 = [0,\frac{1}{3}),\beta_1 =
-    [\frac{1}{3}, \frac{2}{3} ), \beta_2 = [\frac{2}{3}, 1 )\right\},
+    [\frac{1}{3}, \frac{2}{3} ), \beta_2 = [\frac{2}{3}, 1 )\right\}
 \end{equation}
-and uniform probability measure $\mu$, we find
+and a uniform probability measure $\mu$, we find
 \begin{equation*}
   h_{KS}(F_3,\mu) =h(\mathcal{B}_3,F_3,\mu) = \log(3).
 \end{equation*}
@@ -960,7 +965,7 @@ Eqn.~\eqref{eq:lambdaSVD} converge to the same values\footnote{In the
   Lyapunov exponent $\lambda_1$.  However, with probability one, a
   randomly chosen vector will have the same stretching rate.  The
   estimate $\ti{\hat \lambda_1}{\ct}$ of Eqn~\eqref{eq:lambdaQR} is
-  based on the stretching rate of the first standard basis vector, \eg,
+  based on the stretching rate of the first standard basis vector, \ie,
   $[1,0,0]$.
   Similar arguments using the growth rates of areas, volumes,
   hyper-volumes, etc. support using the estimates $\ti{\hat
@@ -1015,7 +1020,9 @@ factorization
   \label{eq:QR2}
   \ti{R}{N} &= \prod_{n=1}^N \ti{r}{n}.
 \end{align}
-And since $\ti{R_{i,i}}{N} = \prod_{n=1}^N \ti{r_{i,i}}{n}$,
+Because the diagonal elements are the products
+$\ti{R_{i,i}}{N} = \prod_{n=1}^N \ti{r_{i,i}}{n}$, their logs are the
+sums
 \begin{equation}
   \label{eq:rii}
   \log( \left| \ti{R_{i,i}}{n} \right| ) = \sum_{n=1}^N \log( \left|
@@ -1055,8 +1062,8 @@ system appear in Fig.~\ref{fig:benettin}.
   }
   \caption[\comment{fig:benettin }Lyapunov exponent calculation for
   the Lorenz system.]%
-  {The effect of noise on Lyapunov exponent calculation for the Lorenz
-    system.  In the upper plot, the colored lines trace
+  {The effect of noise on Lyapunov exponent calculations for the
+    Lorenz system.  In the upper plot, the colored lines trace
     $\frac{1}{T} \sum_{t=1}^T \log\left( \left| \ti{r_{1,1}}{t}
       \right| \right)$ (See Eqn.~\eqref{eq:rii}) for three different
     initial conditions and the black lines trace the 5\% and 95\%
@@ -1117,14 +1124,15 @@ building procedure:
 \item \label{PPB1} Use a numerical simulation of a chaotic dynamical
   system to generate training data and testing data.  For simplicity,
   consider a system with a single positive exponent $\lambda_1$
-\item \label{PPB2} Quantize the data to a few thousand levels
+\item \label{PPB2} Quantize the data with a partition $\mathcal{B}$
 \item \label{PPB3} Run the Benettin procedure on the system, to
   estimate Lyapunov exponents
 \item \label{PPB4} Substitute the estimated exponents into Ledrappier
   and Young's formula, Eqn.~\eqref{eq:Ledrappier} with $\gamma_1 = 1$
   to get $\hat h(F,\mu)) = \hat \lambda_1$, an estimated entropy rate.
-  If the partition $\mathcal{B}$ is fine enough, $\hat
-  h(\mathcal{B},F,\mu)) = \hat \lambda_1$ will be a good estimate.
+  If $\mathcal{B}$ is fine enough or a generating partition,
+  $\hat h(\mathcal{B},F,\mu)) = \hat \lambda_1$ will be a good
+  estimate.
 \item \label{PPB5} Produce $P_{*|\theta}$ by applying the new model building
   procedure to the training data
 \item \label{PPB6} Estimate the cross entropy by evaluating the
@@ -1269,25 +1277,38 @@ Notice that knowledge of $\hat \lambda_i$ and $\frac{\sigma_\eta}
   \ti{r_{i,i}}{n} \right| = e^{\lambda} ~\forall n$, the augmented
 result would be $\hat \lambda_{\text{aug},i} = \log\left( e^\lambda +
   \frac{\sigma_\eta} {\Delta} \right)$, but the result increases
-without bound\footnote{If for example,
+without bound\footnote{If,
   \begin{equation*}
      \left| \ti{r_{i,i}}{n} \right| = \begin{cases}
-       \delta^{N-1} e^\lambda & n=0\\
-       \frac{1}{\delta} e^\lambda & \text{otherwise} \end{cases}
-  \end{equation*}
-  then $\hat \lambda_i = \lambda$, but
-  $\lim_{\delta \rightarrow 0}\hat \lambda_{\text{aug},i} = \infty$. }
-as $ \left| \ti{r_{i,i}}{n} \right|$ varies more with $n$.  In
-Fig.~\ref{fig:benettin} we compare $\hat \lambda_{\text{aug},1}$ with
-$\hat \lambda_{1}$ for the Lorenz
-system.  For noise with an amplitude
-$\frac{\sigma_\eta}{\Delta} = \toyBenettinratio$, the figure indicates
-an augmentation of
-$\hat \lambda_{\text{aug},1} - \hat \lambda_{1} \approx
-\toyBenettinDeltaLambda$, which is roughly ten times the augmentation
-that uniform stretching would produce.  From the figure, we conclude
-that the Benettin procedure produces a robust practical upper bound on
-model performance.
+       \frac{1}{\delta^{N-1}} e^\lambda & n=1\\
+       \delta e^\lambda & \text{otherwise} \end{cases},
+   \end{equation*}
+   then $\prod_{n=1}^N \left| \ti{r_{i,i}}{n} \right| = e^{N\lambda}$
+   and $\hat \lambda_i = \lambda$, but
+   \begin{align*}
+   \hat \lambda_{\text{aug},i} &=
+   \frac{1}{N} \left(
+     \log\left(
+       \frac{e^\lambda}{\delta^{N-1}} + \frac{\sigma_\eta}{\Delta}
+     \right) +
+     (N-1) \log\left( \delta e^\lambda + \frac{\sigma_\eta}{\Delta}
+     \right) 
+                            \right) \\
+    \lim_{\delta \to 0} &= \frac{1}{N}
+   \left( \lambda + (N-1) \log
+     \left( \frac{\sigma_\eta}{\delta\Delta} \right)
+   \right) \rightarrow \infty.
+   \end{align*} } as $ \left| \ti{r_{i,i}}{n} \right|$ varies more with
+ $n$.  In Fig.~\ref{fig:benettin} we compare
+ $\hat \lambda_{\text{aug},1}$ with $\hat \lambda_{1}$ for the Lorenz
+ system.  For noise with an amplitude
+ $\frac{\sigma_\eta}{\Delta} = \toyBenettinratio$, the figure
+ indicates an augmentation of
+ $\hat \lambda_{\text{aug},1} - \hat \lambda_{1} \approx
+ \toyBenettinDeltaLambda$, which is roughly ten times the augmentation
+ that uniform stretching would produce.  From the figure, we conclude
+ that the Benettin procedure produces a robust practical upper bound
+ on model performance.
 
 
 \section{Approaching the Bound}
@@ -1314,12 +1335,12 @@ higher likelihoods.  In fact it is true, but we are surprised at how
 many states we need.  As for Fig.~\ref{fig:Statesintro}, we
 generated the observations by integrating the Lorenz system with a
 time step of $\tau_{\mathtt{sample}}=\toyLikeLortsample$ and quantized
-the first component into one of \toyLikeLornquantized levels.
+the first component into one of $\toyLikeLornquantized$ levels.
 
 Our first attempt was to train a sequence of models with ever more
 hidden states.  We initialized each model randomly and ran many
 iterations of the Baum-Welch algorithm on quantized observations.
-Even with with many iterations, we did not build any promising models.
+Even with many iterations, we did not build any promising models.
 
 In our second attempt, we exploited our knowledge of the Lorenz
 dynamics in $X=\REAL^3$ as follows:
@@ -1340,13 +1361,9 @@ dynamics in $X=\REAL^3$ as follows:
   Similarly, we set the observation model by counting the frequency
   with which each partition element was associated with each possible
   observation.
-\item \label{step:estimate1} Estimate the cross entropy ($ \hat
-  h(\mathcal{B},F,\mu||\theta)$ See Eqn.~\eqref{eq:ToyCE}) of the
-  initial model by calculating its log likelihood per time step on the
-  testing data.
-\item \label{step:estimate2} Estimate the cross entropy of the trained
-  model by calculating its log likelihood per time step on the testing
-  data.
+\item Estimate the cross entropy ($ \hat h(\mathcal{B},F,\mu||\theta)$
+  See Eqn.~\eqref{eq:ToyCE}) of the model by calculating its
+  log likelihood per time step on the testing data.
 \end{enumerate}
 
 As hoped, we found that as we reduced the resolution, the number of
@@ -1379,23 +1396,22 @@ sample that the Lyapunov exponent estimate suggests is possible.
   \centering{
     \includegraphics[width=1.0\textwidth]{LikeLor.pdf}}
   \caption[\comment{fig:LikeLor }Entropy gap,
-  $\hat \delta_{\mu||\theta}$ vs number of states in HMMs]%
+  $\hat \delta_{\mu||\theta}$, vs number of states in HMMs]%
   {Entropy gap, $\hat \delta_{\mu||\theta}$ vs number of states in
     HMMs.  The upper curve indicates estimates of cross entropy
     $\hat h(\mathcal{B},F,\mu||\theta)$ for a sequence of HMMs vs the
-    number of discrete state in the models.  We built the models using
-    actual Lorenz state space trajectories as describe in the text.
-    The lower line indicates an estimate of the entropy rate,
-    $\hat h(F,\mu)) = \hat \lambda_1$, of the true process based on
-    Lyapunov exponents estimated by the Benettin procedure.  The
+    number of discrete states in the models.  We built the models
+    using simulated Lorenz state space trajectories as described in
+    the text.  The lower line indicates an estimate of the entropy
+    rate, $\hat h(F,\mu)) = \hat \lambda_1$, of the true process based
+    on Lyapunov exponents estimated by the Benettin procedure.  The
     distance between the curves is the \emph{entropy gap}
     $\hat \delta_{\mu||\theta}$. The gap seems to be going to zero,
-    suggesting that an HMM with a few \emph{billion} states might
-    perform at least as well as any other model based any other
-    technology.  Each model was built using the same
-    \toyLikeLorntrain~sample trajectory in the original state space,
-    and the cross entropy estimates are based on a test sequence of
-    \toyLikeLorntest~observations.}
+    suggesting that an HMM with enough states would perform at least
+    as well as any other model based any other technology.  Each model
+    was built using the same \toyLikeLorntrain~sample trajectory in
+    the original state space, and the cross entropy estimates are
+    based on a test sequence of \toyLikeLorntest~observations.}
   \label{fig:LikeLor}
 \end{figure}
 % \ToDo{remember to cite Yariv Ephraim

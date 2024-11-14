@@ -558,10 +558,8 @@ $\Sigma_s^{-1}$, it is correct to do step \ref{step:A} before step
   \begin{equation}
     \label{eq:VARGnewSigma}
     \Sigma_s = \frac{\sum_{t=1}^T w(s,t) z_s(t)
-      z_s\transpose(t)}{\sum_{t=1}^T w(s,t)},
+      z_s\transpose(t)}{\sum_{t=1}^T w(s,t)}
   \end{equation}
-  using $Z_s Z_s\transpose = \sum_{t=1}^T w(s,t) z_s(t)
-  z_s\transpose(t)$.
 \end{enumerate}
 
 \subsubsection{Regularization}
@@ -576,9 +574,9 @@ are associated with singular covariance matrices $\Sigma_s$, the prior
 for the covariance matrices is most urgent.
 
 Following \cite{Gauvain94, Ormoneit95} we use inverse-\index*{Wishart
-distributions} as priors for the inverse covariance matrices.  See
-pages 150-155 of Schafer \cite{Schafer97} for a description of the
-these distributions.  The inverse-Wishart prior has the following
+  distributions} as priors for the inverse covariance matrices.  See
+pages 150-155 of Schafer \cite{Schafer97} for a description of these
+distributions.  The inverse-Wishart prior has the following
 probability density for an $n\times n$ inverse covariance matrix
 \begin{equation*}
   P_{\text{IW}}(\Sigma^{-1}) \equiv C \left| \Sigma^{-1}
@@ -631,8 +629,9 @@ weight of that default.
 \section{Related Models}
 \label{sec:related}
 
-Figure~\ref{fig:VARGstates} illustrates the strength of the HMMs with
-vector autoregressive observations described in
+Figure~\ref{fig:VARGstates} illustrates the strength \ToDo{Edit this
+  paragraph or the figure if the figure doesn't support it.} of the
+HMMs with vector autoregressive observations described in
 Section~\ref{sec:ARVGaussian}, namely that optimization finds regions
 over which dynamics are approximately linear and assigns those regions
 to single states.  The model class used to make the figure does not
@@ -665,12 +664,7 @@ basic ideas we've described:
   Many processes, for example weather, are not even approximately
   stationary.  By making HMMs with state transition probabilities that
   depend on time, many have created nonstationary HMMs for such
-  applications.  With Rechtsteiner\cite{Rechtsteiner2000} we have
-  implemented weather models with transition probabilities that depend
-  on the time of year.  In similar work, Hughes and
-  Guttorp\cite{Hughes99} described a local precipitation model with
-  state transition probabilities driven by large scale atmospheric
-  parameters.
+  applications.
 \item[Gaussian mixtures] In a Gaussian mixture, the probability
   density is weighted average of Gaussian densities.  We described a
   simple one dimensional two component example in
@@ -690,9 +684,9 @@ basic ideas we've described:
     weighted model}\cite{Gershenfeld99}; the observation at time $t+1$
   is a mixture whose component weights are determined by the
   observation at time $t$.
-\item[Kalman filter] The Kalman filter is essentially the forward
-  algorithm applied to a model with continuous states $\ti{x}{t}$ and
-  observations $\ti{y}{t}$ with the form
+\item[Kalman filter] The Kalman filter is a version of the forward
+  algorithm one obtains for a model with continuous states $\ti{x}{t}$
+  and observations $\ti{y}{t}$ with the form
   \begin{align*}
     \ti{x}{t+1} &= F(\ti{x}{t},t) + \ti{\eta}{t}\\
     \ti{y}{t} &= G(\ti{x}{t}) + \ti{\epsilon}{t}
@@ -703,9 +697,9 @@ basic ideas we've described:
   chapter.
 \item[Extended Kalman filter] Using linear approximations to nonlinear
   functions $F$ and $G$ in a Kalman filter is called an \emph{extended
-  Kalman filter}.  Linear approximations work well as long as the
-  covariance of the state distributions are small compared to the
-  second derivatives of $F$ and $G$.
+    Kalman filter}.  Linear approximations work well as long as the
+  spreads of the state distributions are small compared to the second
+  derivatives of $F$ and $G$.
 \item[Unscented Kalman filter] Rather than use linear approximations
   to $F$ and $G$, an unscented Kalman filter\cite{Julier97} uses exact
   functions and a collection of samples to estimate means and

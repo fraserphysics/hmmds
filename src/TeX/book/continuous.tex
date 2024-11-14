@@ -481,6 +481,9 @@ update parameters, \ie, $\alpha$ and $b$, for smoothing is an error.
 Here we connect the integrals that describe the forward and backward
 algorithms (Eqns.~\eqref{eq:ContInitial}-\eqref{eq:bdef}) to the
 Kalman formulas (Eqns.~\eqref{eq:KFore}-\eqref{eq:smoothing}).
+\ToDo{Simplify this section.  Try to make the forward and backward
+  derivations more similar.  Perhaps do more in the appendix and less
+  here.}
 
 \subsection{Forward Kalman Filter}
 \label{sec:DetailForward}
@@ -558,7 +561,7 @@ directly to step~\ref{PYforecast}.
       \left(\ti{x}{t},\ti{\epsilon}{t}|\ts{y}{1}{t-1} \right)}
     \left( \ti{G}{t}\ti{X}{t} + \ti{\epsilon}{t} -
       \ti{\mu_\gamma}{t} \right) \nonumber \\
-    &\quad\left( \ti{G}{t-1}\ti{X}{t} +
+    &\quad\left( \ti{G}{t}\ti{X}{t} +
       \ti{\epsilon}{t} - \ti{\mu_\gamma}{t}
     \right)\transpose \nonumber \\
                                 %

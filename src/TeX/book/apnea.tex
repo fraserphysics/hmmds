@@ -214,12 +214,12 @@ normal.
   \centering{\resizebox{\textwidth}{!}{\includegraphics{a03erA.pdf}}
   }
   \caption[A segment of record a03]%
-  {A segment of record a03.  Two cycles of a large apnea
-    induced oscillation in $SpO_2$ are drawn in the lower plot.  The
-    middle plot is the oronasal airflow signal, and the upper plot is
-    the ECG (units of both ONR and ECG are unknown).  The time
-    axis is marked in \emph{hours:minutes:seconds}.  Notice the increased
-    heart rate just after 0:58:00 and just before 0:59:00.}
+  {A segment of record a03.  Two cycles of a large apnea induced
+    oscillation in $SpO_2$ are drawn in the lower plot.  The middle
+    plot is the oronasal airflow signal, and the upper plot is the
+    ECG.  The time axis is marked in \emph{hours:minutes:seconds}.
+    Notice the increased heart rate just after 0:58:00 and just before
+    0:59:00.}
   \label{fig:a03erA}
 \end{figure}
 
@@ -256,12 +256,12 @@ apnea.
 
 We first considered the CINC2000 challenge when Andreas Rechtsteiner
 told us that he was going to use it as a final project for a class
-that James was teaching.  We suggested that Andreas try a two state
-HMM with autoregressive observation models, \ie, a model like those
-described in section~\ref{sec:ARVGaussian} but with scalar
-observations.
+that Professor McNames was teaching.  We suggested that Rechtsteiner
+try a two state HMM with autoregressive observation models, \ie, a
+model like those described in section~\ref{sec:ARVGaussian} but with
+scalar observations.
 
-To use the expert classification information in training, Andreas
+To use the expert classification information in training, Rechtsteiner
 found that one can just modify the observation model.  The technique
 is not limited to HMMs with only two states or two classes; it applies
 to an arbitrary number of classes and to arbitrary numbers of states
@@ -274,8 +274,8 @@ $P_{\ti{Y}{t},\ti{C}{t}|\ti{S}{t},\ts{Y}{1}{t-1}}$ wherever it occurs
 in the Baum-Welch algorithm.  The modification forces the system into
 states associated with the right class during training.
 
-While the performance of Andreas' two state model was not memorable,
-models with more states were promising.
+While the performance of Rechtsteiner's two state model was not
+memorable, models with more states were promising.
 
 \subsection{The Excellent Eye of Professor McNames}
 \label{sec:mcnames}
@@ -287,17 +287,16 @@ Then he derived spectrograms from the resulting QRS analyses.
 Although the spectrograms discarded phase information that we hoped
 was important, they clearly indicated the oscillations that we had
 tried to capture with complicated HMMs as intense bands of power at
-frequencies below 2 bpm (beats per minute).%
-\nomenclature[rbpm]{bpm}{Beats per minute.}%
-In addition to those low frequency oscillations, he noticed bands of
-power between 10 and 20 bpm in the spectrograms (See
-Fig.~\ref{fig:sgram}).  That higher frequency power was evidence of
-respiration.  Using both of those features, he classified the test
-data by hand.  First he classified each entire record for \emph{event
-  1}.  Since almost none of the minutes in the normal records are
-apnea, he classified each minute in those records as normal.  His
-third attempt at \emph{event 2} was the best entry at the close of the
-contest.
+frequencies below 2 bpm (beats per minute).
+\nomenclature[rbpm]{bpm}{Beats per minute.}  In addition to those low
+frequency oscillations, he noticed bands of power between 10 and 20
+bpm in the spectrograms (See Fig.~\ref{fig:sgram}).  That higher
+frequency power was evidence of respiration.  Using both of those
+features, he classified the test data by hand.  First he classified
+each entire record for \emph{event 1}.  Since almost none of the
+minutes in the normal records are apnea, he classified each minute in
+those records as normal.  His third attempt at \emph{event 2} was the
+best entry at the close of the contest.
 
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{\includegraphics{sgram.pdf}}
@@ -386,13 +385,14 @@ of using one of the detectors\footnote{Elgendi, Mohamed \& Jonkman,
   and Signal Processing (BIOSIGNALS2010). 428-431.} implemented by
 Porr et al.\footnote{https://github.com/berndporr/py-ecg-detectors},
 and Figure~\ref{fig:a03a10b03c02} illustrates the challenging
-diversity of waveforms in the PhysioNet data.  To address the
-diversity of waveforms, we developed an approach to estimating heart
-rates from ECGs based on HMMs that relies on the observation that for
-each record the shape and duration of the $PQRST$ pattern doesn't
-vary.  For different heart rates the time between the $T$ wave and the
-next $P$ wave does change, but the rest of the pattern varies very
-little.  Figure~\ref{fig:constant_a03} illustrates the invariance.
+diversity of waveforms in the PhysioNet data.  \ToDo{Move citations
+  from foonotes to bibliography.}  To address the diversity of
+waveforms, we developed an approach to estimating heart rates from
+ECGs based on HMMs that relies on the observation that for each record
+the shape and duration of the $PQRST$ pattern doesn't vary much.  For
+different heart rates the time between the $T$ wave and the next $P$
+wave does change, but the rest of the pattern varies very little.
+Figure~\ref{fig:constant_a03} illustrates the invariance.
 
 \subsubsection{State topology}
 \label{sec:state_topology}
@@ -416,14 +416,14 @@ special \emph{outlier} state accommodates ECG-lead noise.  Here are
 the essential characteristics of the topology:
 \begin{itemize}
 \item A loop of 52 discrete states.
-\item A sequence of 49 \emph{fast} states that don't branch, state $n$ must
+\item A sequence of 49 \emph{fast} states that don't branch.  State $n$ must
   transition to state $n+1$ at each time step.  These fast states
-  model the invariant PQRST shape.
+  model the unvarying PQRST shape.
 \item Three \emph{slow} states that model heart rate variations.
-  Each of the three branches to one of the following:
+  Each of these three states transitions to one of the following:
   \begin{itemize}
   \item Itself
-  \item Its successor
+  \item Its successor in the loop
   \item The first fast state
   \end{itemize}
 \end{itemize}
@@ -441,7 +441,7 @@ are one dimensional versions of those described in
 Section~\ref{sec:ARVGaussian}.
 
 We used scipy.signal.find\_peaks to supervise training of an initial
-model for one of the records from CINC 2000.  we derived models for
+model for one of the records from CINC 2000.  We derived models for
 the most\footnote{For a few of the records we used other techniques to
   obtain initial models.  However models for all records were trained
   similarly.} other records from that initial model via unsupervised
@@ -453,7 +453,7 @@ training.
 As intended, the trained HMMs track PQRST shapes in the ECG data well.
 Figure~\ref{fig:a01c02_states} illustrates the performance on two
 records, \emph{a01} and \emph{c02}, in which the ECG shapes are quite
-different.  To be clear, we repeat that a separate HMM gets trained on
+different.  To be clear, we repeat that we trained a separate HMM on
 each record.
 \begin{figure}
   \centering{\resizebox{0.8\textwidth}{!}{\includegraphics{a01c02_states.pdf}}
@@ -469,12 +469,12 @@ each record.
 In addition to analyzing measured ECGs, the models can generate
 simulated ECGs, eg, Figure~\ref{fig:simulated}.
 \begin{figure}
-  \centering{\resizebox{\textwidth}{!}{0.8\includegraphics{simulated.pdf}}
+  \centering{\resizebox{0.8\textwidth}{!}{\includegraphics{simulated.pdf}}
   }
   \caption[Simulated ECG]{A plausible ECG appears in the upper plot,
     and the corresponding state sequence appears in the lower plot.
-    Driving a model fit to data with a random number generator created
-  both plots.}
+    We created both plots by fitting a model to the \emph{a01} ECG
+    data and then driving that model with a random number generator.}
   \label{fig:simulated}
 \end{figure}
 
@@ -497,15 +497,15 @@ simulated ECGs, eg, Figure~\ref{fig:simulated}.
 \end{figure}
 
 We've built HMMs of ECG signals to estimate heart rate signals because
-We believe that it is the heart rate that is relevant for detecting
-apnea.  Decoded state sequences like those that appear in
-Figure~\ref{fig:a01c02_states} are sufficient for estimating heart
-rate.  Considering the circular character of the topology depicted in
-Figure~\ref{fig:ecg_hmm}, the estimated heart rate is simply the rate
-at which decoded sequences go around the circle, and the phase of
-state sequence is not important for the estimation.  It is nice
-however that one state in the chain of fast states corresponds closely
-to the peak of the R wave in the ECGs as appears in
+we believe that the timing of heart beats has the information that is
+relevant for detecting apnea.  Decoded state sequences like those that
+appear in Figure~\ref{fig:a01c02_states} are sufficient for estimating
+heart rate.  Considering the circular character of the topology
+depicted in Figure~\ref{fig:ecg_hmm}, the estimated heart rate is
+simply the rate at which decoded sequences go around the circle, and
+the phase of state sequence is not important for the estimation.  It
+is nice however that one state in the chain of fast states corresponds
+closely to the peak of the R wave in the ECGs as appears in
 Figure~\ref{fig:ecg2hr}.
 
 \afterpage{\clearpage}%% Print this right here please.
@@ -516,8 +516,8 @@ Figure~\ref{fig:ecg2hr}.
 While the previous section was about designing HMMs of ECG signals in
 order to estimate heart rate signals, here we will address designing
 HMMs of heart rate signals in order to detect apnea.  In
-Section~\ref{sec:mcnames} we described two characteristics of apnea
-that McNames used for classifying apnea, namely:
+Section~\ref{sec:mcnames} we described two characteristics that
+McNames used for classifying each minute, namely:
 \begin{itemize}
 \item Oscillations of the heart rate with periods of about 45 seconds.
   Such oscillations appear in Fig.~\ref{fig:a03erA}.
@@ -559,10 +559,10 @@ observations, with components called \textbf{low pass heart rate} and
 \begin{figure}
   \centering{\resizebox{1.0\textwidth}{!}{\includegraphics{errors_vs_fs.pdf}} }
   \caption[Error rate as a function of sample frequency.]{Performance
-    vs observations per minute on the training records (a b and c
-    records excluding defective records). The models have eleven states
-    and the observation models are vector autoregressive models for
-    heart rate and respiration.}
+    vs observations per minute on the training records (\emph{a b} and
+    \emph{c} records excluding defective records). The models have
+    eleven states and the observation models are vector autoregressive
+    models for heart rate and respiration.}
   \label{fig:errors_vs_fs}
 \end{figure}
 
@@ -572,11 +572,11 @@ Figure~\ref{fig:errors_vs_fs}:
 % \ArOrder et al come from apnea_values.tex
 \begin{description}
 \item[Autoregressive Order] \ArOrder
-\item[Model Sample Frequency] \ModelSampleFrequency samples per minute
-\item[Low Pass Period] \LowPassPeriod seconds
-\item[Respiration Center Frequency] \RespirationCenterFrequency bpm
-\item[Respiration Filter Width] \RespirationFilterWidth bpm
-\item[Respiration Smoothing] \RespirationSmoothing bpm
+\item[Model Sample Frequency] $\ModelSampleFrequency$ samples per minute
+\item[Low Pass Period] $\LowPassPeriod$ seconds
+\item[Respiration Center Frequency] $\RespirationCenterFrequency$ bpm
+\item[Respiration Filter Width] $\RespirationFilterWidth$ bpm
+\item[Respiration Smoothing] $\RespirationSmoothing$ bpm
 \end{description}
 Figure~\ref{fig:explore} illustrates the derivation of HMM observation
 data from the estimated raw heart rate signal using these parameters.
@@ -608,7 +608,7 @@ comparing to a threshold, $R$,
   \end{cases}.
 \end{equation}
 A search over parameter values like that illustrated in
-Figure~\ref{fig:errors_vs_fs} finds $R=0.7$ minimizes the number of
+Figure~\ref{fig:errors_vs_fs} finds $R=\Threshold$ minimizes the number of
 classification errors on the training data.
 
 \section{Results}

@@ -147,9 +147,9 @@ $(DERIVED_APNEA_DATA)/errors_vs_rs.pkl: $(ApneaCode)/compare_models.py $(addpref
 
 COMPARE = python $(ApneaCode)/compare_models.py --root $(ROOT) --records $(TRAIN_NAMES) --threshold $(THRESHOLD)
 
-$(BUILD)/TeX/book/apnea_values.tex: $(ApneaCode)/tex_values.py
+$(BUILD)/TeX/book/apnea_values.tex: $(ApneaCode)/tex_values.py $(ApneaCode)/Rules.mk
 	mkdir -p $(@D)
-	python $< --command_line ArOrder $(AR) ModelSampleFrequency $(FS) LowPassPeriod $(LPP) RespirationCenterFrequency $(RC) RespirationFilterWidth $(RW) RespirationSmoothing $(RS) -- $@
+	python $< --command_line ArOrder $(AR) ModelSampleFrequency $(FS) LowPassPeriod $(LPP) RespirationCenterFrequency $(RC) RespirationFilterWidth $(RW) RespirationSmoothing $(RS) Threshold $(THRESHOLD) -- $@
 # Local Variables:
 # mode: makefile
 # End:
