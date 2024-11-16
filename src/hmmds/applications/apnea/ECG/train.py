@@ -17,8 +17,8 @@ import numpy
 import hmm.base
 
 import hmmds.applications.apnea.ECG.utilities
-import develop
-import utilities
+# Next import enables pickle.load of model
+from hmmds.applications.apnea.ECG.model_init import HMM
 
 
 def parse_args(argv):

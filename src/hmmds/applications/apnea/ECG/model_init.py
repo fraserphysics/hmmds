@@ -9,6 +9,8 @@ The pattern % or $* selects one of the registered functions in this
 module.
 
 """
+from __future__ import annotations  # Enables, eg, (self: HMM,
+
 import sys
 import os.path
 import pickle
@@ -21,8 +23,6 @@ import hmm.simple
 
 import hmm.C
 import hmmds.applications.apnea.ECG.utilities
-import develop
-import utilities
 
 
 def parse_args(argv):
@@ -100,6 +100,62 @@ def random_conditional_prob(rng: numpy.random.Generator,
     return hmm.simple.Prob(rng.random(shape)).normalize()
 
 
+class HMM(hmm.C.HMM):
+    """Holds state transition probabilities constant
+
+    """
+
+    def __init__(self: HMM,
+                 *args,
+                 untrainable_indices=None,
+                 untrainable_values=None):
+        """Option of holding some elements of p_state2state constant
+        in reestimation.
+
+        """
+        hmm.C.HMM.__init__(self, *args)
+        self.untrainable_indices = untrainable_indices
+        self.untrainable_values = untrainable_values
+
+    def reestimate(self: HMM):
+        """Variant can hold some self.p_state2state values constant.
+
+        Reestimates observation model parameters.
+
+        """
+
+        hmm.C.HMM.reestimate(self)
+        if self.untrainable_indices is None:
+            return
+        self.p_state2state[self.untrainable_indices] = self.untrainable_values
+        return
+
+    def likelihood(self: HMM, y) -> numpy.ndarray:
+        """Calculate p(y[t]|y[:t]) for t < len(y)
+
+        Args:
+            y: A single segment appropriate for self.y_mod.observe([y])
+
+        """
+        self.y_mod.observe([y])
+        state_likelihood = self.y_mod.calculate()
+        length = len(state_likelihood)  # Less than len(y) if y_mod is
+        # autoregressive
+        result = numpy.empty(length)
+        last = numpy.copy(self.p_state_initial)
+        for t in range(length):
+            last *= state_likelihood[t]
+            last_sum = last.sum()  # Probability of y[t]|y[:t]
+            result[t] = last_sum
+            if last_sum > 0.0:
+                last /= last_sum
+            else:
+                print(f'Zero likelihood at {t=}.  Reset.')
+                last = numpy.copy(self.p_state_initial)
+            self.p_state2state.step_forward(last)
+        return result
+
+
 def _make_hmm(y_model,
               p_state_initial,
               p_state_time_average,
@@ -107,7 +163,7 @@ def _make_hmm(y_model,
               names,
               args,
               rng,
-              Class=develop.hmm):
+              Class=HMM):
     """Create a hmm using parameters defined in the caller
 
     Args:
@@ -213,14 +269,14 @@ def dict2hmm(state_dict, ecg_model, rng):
 
     # Create and return the hmm
     indices = tuple(numpy.array(untrainable_indices).T)
-    return develop.HMM(p_state_initial,
-                       p_state_time_average,
-                       p_state2state,
-                       y_model,
-                       rng,
-                       untrainable_indices=indices,
-                       untrainable_values=numpy.array(
-                           untrainable_values)), state_name2state_index
+    return HMM(p_state_initial,
+               p_state_time_average,
+               p_state2state,
+               y_model,
+               rng,
+               untrainable_indices=indices,
+               untrainable_values=numpy.array(
+                   untrainable_values)), state_name2state_index
 
 
 MODELS = {}  # Is populated by @register decorated functions.  The keys
@@ -312,7 +368,7 @@ def masked_dict(args, rng):
     ecg_model.beta[i_bad] = noise_beta
 
     # Initialize the y_model parameters based on the data
-    y_data = utilities.read_ecgs(args)
+    y_data = hmmds.applications.apnea.ECG.utilities.read_ecgs(args)
     result.y_mod.observe(y_data)
     weights = hmm.simple.Prob(result.y_mod.calculate()).normalize()
     result.y_mod.reestimate(weights)

@@ -12,7 +12,6 @@ import numpy
 import pint
 
 import plotscripts.utilities
-import hmmds.applications.apnea.ECG.develop
 
 PINT = pint.UnitRegistry()
 
@@ -39,9 +38,6 @@ def main(argv=None):
     """
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
-
-    # Ugly hack to let pickle.load work
-    sys.modules['develop'] = hmmds.applications.apnea.ECG.develop
 
     with open(args.hmm, 'rb') as _file:
         _, _hmm = pickle.load(_file)

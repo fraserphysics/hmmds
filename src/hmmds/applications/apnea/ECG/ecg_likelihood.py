@@ -12,7 +12,7 @@ import argparse
 import numpy
 
 import hmmds.applications.apnea.ECG.utilities
-import hmm.C, develop
+import hmm.C
 
 
 def parse_args(argv):
