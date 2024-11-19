@@ -16,7 +16,7 @@ ApneaTeX = $(ROOT)/src/TeX/apnea
 #EXPERT =  $(RAW_DATA)/apnea/summary_of_training
 #PHYSIONET_WFDB = $(ROOT)/raw_data/apnea/apnea-ecg-database
 
-#MODELS = ${ROOT}/build/derived_data/apnea/models
+#MODELS = $(BUILD)/derived_data/apnea/models
 #ECG = $(MODELS)/ECG
 
 ########################Build hand_opt.pdf####################################

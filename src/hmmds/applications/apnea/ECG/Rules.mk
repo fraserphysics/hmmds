@@ -9,8 +9,8 @@
 # for $(ECG)/%_self_AR3/heart_rate makes the best heart rate
 # estimates.
 
-PICKLED_ECG = $(ROOT)/build/derived_data/apnea/ecgs
-ECG_DERIVED = ${ROOT}/build/derived_data/ECG
+PICKLED_ECG = $(BUILD)/derived_data/apnea/ecgs
+ECG_DERIVED = $(BUILD)/derived_data/ECG
 ECGCode = $(HMMDS)/applications/apnea/ECG
 # This file is in the ECGCode directory
 
@@ -180,11 +180,6 @@ $(ECG_DERIVED)/self_table.tex: self_table.py $(ECG_DERIVED)/all_selves
 all_selves = $(foreach X, unmasked_trained states likelihood heart_rate , $(foreach Y, $(NAMES), $(addprefix $(ECG_DERIVED)/$Y_self_AR3/, $X)))
 $(ECG_DERIVED)/all_selves: $(all_selves)
 	touch $@
-
-# $ time make ../../../../../build/derived_data/ECG/all_selves
-# real	183m36.882s
-# user	1390m39.927s
-# sys	38m11.636s
 
 # explore.py indicates that the model for x04 inserts extra beats.
 

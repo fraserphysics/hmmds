@@ -1,19 +1,19 @@
 # Rules.mk: This file can be included by a makefile anywhere as long
-# as ROOT and ApneaPlotScripts are defined.  ROOT is the top directory
-# of the hmmds project and ApneaPlotScripts is the directory where
-# this file is located.
+# as ROOT and BUILD are defined.  ROOT is the top directory
+# of the hmmds project.
 
-ApneaFigDir = $(ROOT)/build/figs/apnea
-ApneaDerivedData = $(ROOT)/build/derived_data/apnea
+ApneaFigDir = $(BUILD)/figs/apnea
+ApneaDerivedData = $(BUILD)/derived_data/apnea
 EXPERT =  $(ROOT)/raw_data/apnea/summary_of_training
+# This Rules.mk file is in the directory APNEA_PLOTSCRIPTS
 APNEA_PLOTSCRIPTS = $(ROOT)/src/plotscripts/apnea
 
-ALL_SELVES = ${ROOT}/build/derived_data/ECG/all_selves
+ALL_SELVES = $(BUILD)/derived_data/ECG/all_selves
 
 APNEA_FIGS = $(addprefix $(ApneaFigDir)/, $(addsuffix .pdf, a03erA a03erN a03HR ApneaNLD sgram ))
 
 APNEA_TS_PLOTS = $(APNEA_PLOTSCRIPTS)/apnea_ts_plots.py
-PLOT_COMMAND = 	mkdir -p $(@D); python $(APNEA_TS_PLOTS) --root $(ROOT) --heart_rate_path_format $(ROOT)/build/derived_data/ECG/{0}_self_AR3/heart_rate
+PLOT_COMMAND = 	mkdir -p $(@D); python $(APNEA_TS_PLOTS) --root $(ROOT) --heart_rate_path_format $(BUILD)/derived_data/ECG/{0}_self_AR3/heart_rate
 
 $(ApneaFigDir)/a03erA.pdf: $(APNEA_TS_PLOTS) $(ApneaDerivedData)/a03er.pkl
 	$(PLOT_COMMAND)   $@

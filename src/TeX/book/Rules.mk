@@ -36,7 +36,7 @@ ECG_FIGS =  $(addprefix $(BUILD)/figs/ecg/,  $(addsuffix .pdf, \
 elgendi a03a10b03c02 constant_a03 a01c02_states simulated ecg2hr))
 ECG_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/ecg/, ecg_hmm)
 
-TEX_INCLUDES = $(addsuffix .tex, $(addprefix $(ROOT)/build/derived_data/apnea/, score test_score))
+TEX_INCLUDES = $(addsuffix .tex, $(addprefix $(BUILD)/derived_data/apnea/, score test_score))
 TEX_BOOK = $(ROOT)/src/TeX/book
 
 BOOK_FIGS = $(INTRODUCTION_FIGS) \

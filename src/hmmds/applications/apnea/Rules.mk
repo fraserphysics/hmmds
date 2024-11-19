@@ -12,7 +12,7 @@ ApneaCode = $(HMMDS)/applications/apnea
 EXPERT =  $(ROOT)/raw_data/apnea/summary_of_training
 PHYSIONET_WFDB = $(ROOT)/raw_data/apnea/apnea-ecg-database
 
-MODELS = ${ROOT}/build/derived_data/apnea/models
+MODELS = $(BUILD)/derived_data/apnea/models
 ECG = $(MODELS)/ECG
 
 # See hmmds/applications/apnea/ECG/Makefile for making files like

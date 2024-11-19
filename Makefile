@@ -132,8 +132,8 @@ test :
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo FILTER_TEX_OUT: $(FILTER_TEX_OUT)
-	@echo DERIVED_APNEA_DATA: $(DERIVED_APNEA_DATA)
+	@echo APNEA_PLOTSCRIPTS: $(APNEA_PLOTSCRIPTS)
+	@echo APNEA_TS_PLOTS: $(APNEA_TS_PLOTS)
 	@echo In root Makefile, ROOT: $(ROOT)
 ## help                           : Print comments on targets from makefile
 .PHONY : help
