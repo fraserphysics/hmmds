@@ -59,7 +59,9 @@ algorithms apnea appendix continuous introduction main toys variants))
 VALUE_FILES = $(addprefix $(BOOK_OUT)/, $(addsuffix .tex, \
 apnea_values decoded_menken toy_values synthetic_values text_values))
 
-$(BOOK_OUT)/main.pdf: $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_INCLUDES) $(VALUE_FILES)
+BOOK_SENTINELS = $(SYNTHETIC_DATA)/SGO
+
+$(BOOK_OUT)/main.pdf: $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_INCLUDES) $(VALUE_FILES) $(BOOK_SENTINELS)
 	mkdir -p $(@D)
 	export TEXINPUTS=$(TEX_BOOK)//:$(abspath $(BUILD))//:; \
 export BIBINPUTS=$(TEX_BOOK)//:; export BSTINPUTS=$(TEX_BOOK)//:; \

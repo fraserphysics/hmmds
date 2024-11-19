@@ -80,10 +80,12 @@ $(DERIVED_APNEA_DATA)/test_pass2.out: $(ApneaCode)/pass2.py $(BEST)
 	python $^ $@  --root $(ROOT) --records $(XNAMES) --threshold $(THRESHOLD)
 
 $(DERIVED_APNEA_DATA)/score.tex: $(ApneaCode)/score.py $(DERIVED_APNEA_DATA)/pass2.out
-	python $^ $@  --tex  --root $(ROOT)
+	python $< --tex --root $(ROOT) --expert $(ROOT)/raw_data/apnea/summary_of_training \
+$(DERIVED_APNEA_DATA)/pass2.out $@ $(TRAIN_NAMES)
 
-$(DERIVED_APNEA_DATA)/test_score.tex: $(ApneaCode)/score.py $(DERIVED_APNEA_DATA)/test_pass2.out
-	python $^ $@ $(XNAMES)  --root $(ROOT) --expert raw_data/apnea/event-2-answers --tex
+$(DERIVED_APNEA_DATA)/test_score.tex: $(ApneaCode)/score.py $(DERIVED_APNEA_DATA)/test_pass2.out $(ROOT)/raw_data/apnea/event-2-answers
+	python $< --tex --root $(ROOT) --expert $(ROOT)/raw_data/apnea/event-2-answers \
+$(DERIVED_APNEA_DATA)/test_pass2.out $@ $(XNAMES)
 
 ########################Build data for hand_opt.pdf#############################
 

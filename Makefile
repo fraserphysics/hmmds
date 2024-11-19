@@ -38,16 +38,20 @@ hand_opt: $(BUILD)/TeX/apnea/hand_opt.pdf
 .PHONY : ds23
 ds23: $(BUILD)/TeX/ecg/ds23.pdf
 
-raw_data/menken.txt:
+$(ROOT)/raw_data/menken.txt:
 	mkdir -p $(@D)
 	cd $(@D); wget --no-check-certificate https://www.gutenberg.org/files/19355/19355.txt
 	mv raw_data/19355.txt $@
 
-raw_data/apnea/apnea-ecg-database:
+$(ROOT)/raw_data/apnea/apnea-ecg-database:
 	mkdir -p $(@D)
 	cd $(@D); wget --no-check-certificate -r -N -c -np https://physionet.org/files/apnea-ecg/1.0.0/
 	mv $(@D)/physionet.org/files/apnea-ecg/1.0.0 $@
 	rm -r $(@D)/physionet.org
+
+$(ROOT)/raw_data/apnea/event-2-answers:
+	wget --no-check-certificate https://www.physionet.org/files/challenge-2000/1.0.0/event-2-answers
+	mv event-2-answers $@
 
 # Rules for making data files
 include $(HMMDS)/synthetic/Rules.mk
