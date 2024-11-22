@@ -6,9 +6,8 @@ TSINTRO = $(SYNTHETIC_DATA)/TSintro
 IntroPlotScripts = $(PLOTSCRIPTS)/introduction
 FIGS_INTRO = $(BUILD)/figs/introduction
 
-# Note: The file lorenz.flag is touched after the files lorenz.4
-# lorenz.xyz TSintro/fine, TSintro/coarse, and TSintro/quantized are
-# written.
+# Note: The file lorenz.flag is touched after the files lorenz.4 xyz,
+# fine, coarse, and quantized are written in TSintro/.
 
 $(FIGS_INTRO)/TSintro.pdf: $(IntroPlotScripts)/ts_intro.py $(SYNTHETIC_DATA)/lorenz.flag
 	mkdir -p $(FIGS_INTRO)

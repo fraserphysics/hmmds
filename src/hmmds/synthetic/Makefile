@@ -1,7 +1,8 @@
 # Makefile: For testing scripts in this directory from this directory
 
-ROOT = ../..
+ROOT = ../../..
 BUILD = $(ROOT)/build
+HMMDS = $(ROOT)/src/hmmds
 N_TRAIN = 50
 
 # The default target is test
@@ -12,7 +13,7 @@ include Rules.mk
 
 # ALL is all the targets that Rules.mk is responsible for
 ALL = $(addprefix $(SYNTHETIC_DATA)/, \
-lorenz.flag states m12s.4y lorenz.xyz TrainChar em.pickle SGO vstates)
+lorenz.flag states m12s.4y lorenz.xyz TrainChar SGO vstates)
 
 ## test         : Build all targets
 .PHONY : test
@@ -31,8 +32,8 @@ clean:
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo BASIC_ALGORITHMS_FIGS: $(BASIC_ALGORITHMS_FIGS)
-	@echo SYNTHETIC_DATA: $(SYNTHETIC_CODE)
+	@echo SYNTHETIC_CODE: $(SYNTHETIC_CODE)
+	@echo SYNTHETIC_DATA: $(SYNTHETIC_DATA)
 
 ## help                           : Print comments on targets from makefile
 .PHONY : help

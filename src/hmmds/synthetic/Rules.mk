@@ -22,16 +22,16 @@ $(SYNTHETIC_DATA)/lorenz.xyz: $(SYNTHETIC_CODE)/lorenz.py
 
 $(SYNTHETIC_DATA)/lorenz.flag: $(SYNTHETIC_CODE)/lorenz.py
 	mkdir -p $(SYNTHETIC_DATA)/TSintro
-	python $< --TSintro $(SYNTHETIC_DATA)/TSintro $(DT) $(QUANTLEVELS) $(NLorenzTSIntro) $(SBR) $(SYNTHETIC_DATA)/lorenz.4 $(SYNTHETIC_DATA)/lorenz.xyz  
+	python $< --TSintro $(SYNTHETIC_DATA)/TSintro $(DT) $(QUANTLEVELS) $(NLorenzTSIntro) $(SBR) $(SYNTHETIC_DATA)/lorenz.4 $(SYNTHETIC_DATA)/TSintro/xyz  
 	touch $@
 
 $(SYNTHETIC_DATA)/states: $(SYNTHETIC_CODE)/state_pic.py $(SYNTHETIC_DATA)/m12s.4y
 	python $<  $(SYNTHETIC_DATA) lorenz.4 lorenz.xyz m12s.4y
 
 # vstates is a sentinel for varg_stateN (N in 0...11)  ToDo: implement this
-$(SYNTHETIC_DATA)/vstates: $(SYNTHETIC_CODE)/v_state_pic.py $(SYNTHETIC_DATA)/lorenz.flag
+$(SYNTHETIC_DATA)/vstates: $(SYNTHETIC_CODE)/v_state_pic.py $(SYNTHETIC_DATA)/lorenz.xyz
 	mkdir -p $(@D)
-	python $< --random_seed 7 $(SYNTHETIC_DATA) lorenz.xyz varg_state
+	python $< --random_seed 10 $(SYNTHETIC_DATA) lorenz.xyz varg_state
 	touch $@
 
 $(SYNTHETIC_DATA)/m12s.4y : $(SYNTHETIC_CODE)/make_model.py $(SYNTHETIC_DATA)/lorenz.xyz
