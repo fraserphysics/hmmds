@@ -62,18 +62,18 @@ def main(argv=None):
         axis.set_ylim(-45, 45)
 
     # Plot forward filter results
-    forward.plot(t_, forward_means, label='forwards')
+    forward.plot(t_, forward_means, label='$\hat x_0$ forward')
     forward.plot(t_, x_0, label='$x_0$')
     filter_fig.plot_error(forward_error, t_, data['forward_covariances'],
                           x_0 - forward_means, 'forward error')
 
     # Plot backward filter results
-    backward.plot(t_, backward_means, label='backwards')
+    backward.plot(t_, backward_means, label='$\hat x_0$ backward')
     filter_fig.plot_error(backward_error, t_[:-1], backward_covariances[:-1],
                           (backward_means - x_0)[:-1], 'backward error')
 
     # Plot results of smoothing
-    smooth.plot(t_, smooth_means, label='smooth')
+    smooth.plot(t_, smooth_means, label='$\hat x_0$ smooth')
     filter_fig.plot_error(smooth_error, t_, data['smooth_covariances'],
                           smooth_means - x_0, 'smooth error')
 

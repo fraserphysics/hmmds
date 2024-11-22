@@ -1,6 +1,6 @@
 % Examples of filtering and smoothing
 
-% Copyright 2022 Andrew M. Fraser.
+% Copyright 2022, 2024 Andrew M. Fraser.
 \documentclass[12pt]{article}
 \usepackage{graphicx,color}
 \usepackage{amsmath, amsfonts}
@@ -121,8 +121,12 @@ Figure~\ref{fig:linear_map_filter} has the following subplots:
 \end{description}
 %
 \filterplot{linear_map_filter}{Kalman filter applied to data from a
-  stationary linear map.  Note that the data for the right hand column
-  is drawn independently from the data in the left hand column.}
+  stationary linear map.  On the left, top to bottom: True phase
+  space; True time series (dots at sample rate); Noisy observation
+  time series.  On the right top to bottom: Observation time series;
+  True and estimated time series; Actual error and estimated
+  deviation.  Note that the data for the right hand column is drawn
+  independently from the data in the left hand column.}
 %
 \pagebreak %
 And Fig.~\ref{fig:linear_map_smooth} has the following subplots:
@@ -144,7 +148,7 @@ And Fig.~\ref{fig:linear_map_smooth} has the following subplots:
 \end{description}
 
 \filterplot{linear_map_smooth}{A smoothing filter applied to the data
-  illustrated in the right hand column of Fig.~\ref{fig:linear_map_filter} }%
+  illustrated in the upper right hand plot of Fig.~\ref{fig:linear_map_filter} }%
 \pagebreak
 
 The plots in Figs. \ref{fig:linear_sde_filter} and
@@ -164,25 +168,35 @@ The result is a linear discrete time system, but it exercises code for
 extended Kalman filtering (EKF) that integrates an SDE and the tangent
 to the underlying ODE.
 
-\filterplot{linear_sde_filter}{linear\_sde\_filter}
+\filterplot{linear_sde_filter}{Extended Kalman filter applied to
+  linear stochastic differential equation.  Like
+  Fig.~\ref{fig:linear_map_filter}, but state maps come from
+  integrating tangents.}
 
-\filterplot{linear_sde_smooth}{linear\_sde\_smooth}\pagebreak
+\filterplot{linear_sde_smooth}{Extended smoothing applied to
+  linear stochastic differential equation.  Like
+  Fig.~\ref{fig:linear_map_smooth}, but state maps come from
+  integrating tangents.}\pagebreak
 
 The plots in Fig. \ref{fig:linear_particle_filter} are like the plots
 in Figs.~\ref{fig:linear_map_filter} except that the estimates come
 from a particle filter.
-\filterplot{linear_particle_filter}{linear\_particle\_filter}\pagebreak
+\filterplot{linear_particle_filter}{Particle filter applied to data
+  from a linear map.  Like Fig.~\ref{fig:linear_map_filter}.}\pagebreak
 
 The plots in Figs. \ref{fig:lorenz_filter} and
 \ref{fig:lorenz_smooth} are like the plots in
 Figs.~\ref{fig:linear_sde_filter} \ref{fig:linear_sde_smooth} except
 that the underlying ODE is the Lorenz system.
 
-\filterplot{lorenz_filter}{lorenz\_filter}
+\filterplot{lorenz_filter}{Extended Kalman filter applied to Lorenz
+  system with two dimensional observations.}
 
-\filterplot{lorenz_smooth}{lorenz\_smooth} \pagebreak
+\filterplot{lorenz_smooth}{Extended smoothing filter applied to Lorenz
+  system with two dimensional observations.} \pagebreak
 
-\filterplot{lorenz_particle_filter}{Like Fig.~\ref{fig:lorenz_filter}
+\filterplot{lorenz_particle_filter}{Particle filter applied to Lorenz
+  system.  Like Fig.~\ref{fig:lorenz_filter}
   except that estimates are from a particle filter rather than an EKF.}
 
 \filterplot{log_likelihood}{An illustration of maximum likelihood
