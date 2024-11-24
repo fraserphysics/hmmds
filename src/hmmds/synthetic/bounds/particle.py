@@ -21,14 +21,22 @@ def parse_args(argv):
     """
     parser = argparse.ArgumentParser(
         description='Apply particle filter to Lorenz data')
-    parser.add_argument('--epsilon',
+    parser.add_argument('--epsilon_min',
                         type=float,
                         default=1e-4,
-                        help='Nominal length of box edges')
-    parser.add_argument('--n_divide',
+                        help='Minimumlength of box edges')
+    parser.add_argument('--epsilon_max',
+                        type=float,
+                        default=1e-3,
+                        help='Maximumlength of box edges')
+    parser.add_argument('--n_min',
                         type=int,
-                        default=10,
-                        help='Number of child particles after division')
+                        default=50,
+                        help='Minimum number of particles')
+    parser.add_argument('--n_nominal',
+                        type=int,
+                        default=500,
+                        help='Nominal number of particles')
     parser.add_argument('--n_y',
                         type=int,
                         default=30,
@@ -77,7 +85,7 @@ def main(argv=None):
     x_0 = x_all[-1]
 
     # Initialize filter
-    p_filter = benettin.Filter(args.epsilon, args.n_divide, bins,
+    p_filter = benettin.Filter(args.epsilon_min, args.epsilon_max, args.n_min, args.n_nominal, bins,
                                args.time_step, args.atol)
     p_filter.initialize(x_0, args.n_initialize, args.initial_dx)
     print(f'{len(p_filter.particles)=}')

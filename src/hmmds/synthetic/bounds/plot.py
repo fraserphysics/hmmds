@@ -46,7 +46,7 @@ def main(argv=None):
     gamma = dict_in['gamma']
     axeses[0, 0].plot(gamma)
     axeses[0, 1].plot(y_q)
-    for i in range(0, 5):
+    for i in range(20, 25):
         x = dict_in['clouds'][2 * i]
         if len(x.shape) != 2:
             continue

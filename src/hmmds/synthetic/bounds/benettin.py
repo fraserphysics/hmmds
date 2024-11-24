@@ -151,24 +151,23 @@ class Particle:
         self.R = numpy.matmul(R, self.R)
         assert self.R.shape == (3, 3)
 
-    def divide(self: Particle, axis, ratio, n):
+    def divide(self: Particle, axis, n_divide):
         """Divide self into n new particles along axis and shrink by ratio
 
         Args:
             axis: Divide along this edge
-            ratio: Shrink axis by this factor
-            n: number of new particles
+            n_divide: number of new particles
         """
         column_axis = self.R[:, axis]
-        step = column_axis / n
+        step = column_axis / n_divide
         base = self.x - column_axis / 2 + step / 2
 
         new_R = self.R.copy()
-        new_R[:, axis] = column_axis / ratio
-        new_weight = self.weight / n
+        new_R[:, axis] = column_axis / n_divide
+        new_weight = self.weight / n_divide
         return [
             Particle(base + i * step, self.Q, new_R, new_weight)
-            for i in range(n)
+            for i in range(n_divide)
         ]
 
 
@@ -178,16 +177,22 @@ class Filter:
 
     Args:
         initial_x: 3-vector
-        time_relax: Simulated time to relax
-        n_relax: Number of sub-intervals in time_relax
-        epsilon: Edge length of small box
-        n_divide: In initialize, divide edges bigger than n_divide * epsilon
+        epsilon_min: Edge length of small box
+        epsilon_max: Failure of linear approximation gives maximum length
+        n_min: Minimum number of particles
+        n_nominal: Desire this number of particles
+        bins: Quatization boundaries for observations
+        time_step: Integrate Lorenz this interval between samples
+        atol: Absolute error tolerance for integrator
+    
 
     """
 
-    def __init__(self: Filter, epsilon, n_divide, bins, time_step, atol):
-        self.epsilon = epsilon
-        self.n_divide = n_divide
+    def __init__(self: Filter, epsilon_min, epsilon_max, n_min, n_nominal, bins, time_step, atol):
+        self.epsilon_min = epsilon_min
+        self.epsilon_max = epsilon_max
+        self.n_min = n_min
+        self.n_nominal = n_nominal
         self.bins = bins
         self.time_step = time_step
         self.atol = atol
@@ -207,7 +212,7 @@ class Filter:
         
         """
         if delta is None:
-            delta = self.epsilon
+            delta = self.epsilon_max
         x_t = hmmds.synthetic.bounds.lorenz.n_steps(initial_x, n_times,
                                                     self.time_step, self.atol)
         keys, counts = numpy.unique((x_t / delta).astype(int),
@@ -215,24 +220,27 @@ class Filter:
                                     axis=0)
         self.particles = [
             Particle(key * delta, numpy.eye(3),
-                     numpy.eye(3) * self.epsilon, count)
+                     numpy.eye(3) * self.epsilon_min, count)
             for key, count in zip(keys, counts)
         ]
         self.normalize()
 
     def forecast_x(self: Filter, time: float):
+        n_particles = len(self.particles)
+        amplifier = 1.0
+        if n_particles < self.n_min:
+            amplifier = self.n_nominal/n_particles
         new_particles = []
         for particle in self.particles:
             particle.step(time, self.atol)
             # Find longest box edge
             diagonal = numpy.abs(particle.R.diagonal())
             axis = numpy.argmax(diagonal)
-            ratio = diagonal[axis] / self.epsilon
-            if ratio > self.n_divide:
-                divided = particle.divide(axis, ratio, self.n_divide)
-                new_particles.extend(divided)
-            else:
+            if diagonal[axis] < self.epsilon_max and amplifier == 1.0:
                 new_particles.append(particle)
+                continue
+            n_divide = int(amplifier * diagonal[axis]/self.epsilon_min)
+            new_particles.extend(particle.divide(axis, n_divide))
         self.particles = new_particles
 
     def update(self: Filter, y: int):
@@ -261,6 +269,9 @@ class Filter:
         clouds = []
         gamma = numpy.empty(len(ys))
         for i, y in enumerate(ys):
+            print(f'{i=} {len(self.particles)=}')
+            assert len(self.particles) < 1e6
+                
             self.normalize()
             gamma[i] = self.p_y()[y]
             clouds.append(
