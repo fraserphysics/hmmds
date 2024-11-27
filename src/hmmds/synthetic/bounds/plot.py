@@ -75,8 +75,8 @@ def main(argv=None):
                            cloud[0].x,
                            color,
                            label=f'n={len(cloud)} y[{i}]={y_q[i]}')
-                axes.legend()
-            axes.set_xlim(-20, 20)
+                axes.legend(loc='upper right')
+            axes.set_xlim(-22, 22)
             axes.set_ylim(0, 50)
     pyplot.show()
     return 0

@@ -24,23 +24,16 @@ def parse_args(argv):
     parser.add_argument('--epsilon_min',
                         type=float,
                         default=2e-2,
-                        help='Minimumlength of box edges')
-    parser.add_argument('--epsilon_max',
-                        type=float,
-                        default=1e-1,
-                        help='Maximumlength of box edges')
+                        help='Minimum length of box edges')
     parser.add_argument('--initial_dx',
                         type=float,
-                        default=1.0,
+                        default=0.4,
                         help='Cell size for initialization')
-    parser.add_argument('--n_min',
-                        type=int,
-                        default=50,
-                        help='Minimum number of particles')
-    parser.add_argument('--n_nominal',
-                        type=int,
-                        default=500,
-                        help='Nominal number of particles')
+    parser.add_argument(
+        '--epsilon_ratio',
+        type=float,
+        default=5,
+        help='Maximum length of box edges = ratio * epsilon_min')
     parser.add_argument('--n_y',
                         type=int,
                         default=30,
@@ -66,6 +59,14 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
+def make_marks(n_y, cloud_intervals):
+    """"""
+    cloud_marks = numpy.zeros(n_y, dtype=bool)
+    for start, stop in cloud_intervals:
+        cloud_marks[start:stop] = True
+    return cloud_marks
+
+
 def main(argv=None):
     """Run particle filter on Lorenz data
 
@@ -74,8 +75,7 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
-    epsilon_ratio = args.epsilon_max / args.epsilon_min
-
+    assert args.n_y % 5 == 0
     # Relax to a point near the attractor
     relaxed_x = benettin.relax(args, numpy.ones(3))[0]
 
@@ -84,36 +84,36 @@ def main(argv=None):
     assert x_all.shape == (args.n_y, 3)
     bins = numpy.linspace(-20, 20, args.n_quantized + 1)[1:-1]
     y_q = numpy.digitize(x_all[:, 0], bins)
+    gamma = numpy.zeros(len(y_q))
     x_0 = x_all[-1]
+    clouds = {}
+    result = {
+        'gamma': gamma,
+        'x_all': x_all,
+        'y_q': y_q,
+        'clouds': clouds,
+    }
+    cloud_marks = make_marks(len(y_q), (
+        (0, 10),
+        (90, 110),
+    ))
 
     # Initialize filter
     epsilon_max = args.initial_dx
-    epsilon_min = epsilon_max / epsilon_ratio
-    p_filter = benettin.Filter(epsilon_min, epsilon_max, args.n_min,
-                               args.n_nominal, bins, args.time_step, args.atol)
+    epsilon_min = epsilon_max / args.epsilon_ratio
+    p_filter = benettin.Filter(epsilon_min, epsilon_max, args.n_min, bins,
+                               args.time_step, args.atol)
     p_filter.initialize(x_0, args.n_initialize)
-    print(f'{len(p_filter.particles)=}')
-
-    result = {
-        'x_all':
-            x_all,
-        'y_q':
-            y_q,
-        'initial_positions':
-            numpy.array([particle.x for particle in p_filter.particles])
-    }
 
     # Run filter on y_q
-    clouds = {}
-    gamma = numpy.zeros(len(y_q))
-    result['gamma'] = gamma
-    p_filter.forward(y_q, 0, 5, gamma)
-    p_filter.forward(y_q, 5, 10, gamma)
-    p_filter.change_epsilon(args.epsilon_min, args.epsilon_max)
-    p_filter.forward(y_q, 10, 45, gamma,clouds)
-    p_filter.forward(y_q, 45, len(y_q), gamma)
-
-    result['clouds'] = clouds
+    p_filter.forward(y_q, 0, 20, gamma, clouds)
+    epsilon_max = args.epsilon_min * args.epsilon_ratio
+    p_filter.change_epsilon(args.epsilon_min, epsilon_max)
+    for t_start in range(20, len(y_q), 5):
+        if cloud_marks[t_start]:
+            p_filter.forward(y_q, t_start, t_start + 5, gamma, clouds)
+        else:
+            p_filter.forward(y_q, t_start, t_start + 5, gamma)
 
     # Write results
 

@@ -181,13 +181,8 @@ class Particle:
         new_weight = self.weight / n_divide
         result = [
             Particle(base + i * step, self.Q, new_R, new_weight, self.parent)
-            for i in range(n_divide - 1)
+            for i in range(n_divide)
         ]
-        # Last new particle faces in -column_axis direction
-        new_R = self.R.copy()
-        new_R[:, axis] = -column_axis / n_divide
-        result.append(Particle(base + column_axis, self.Q, new_R, new_weight,
-                               0))
         return result
 
 
@@ -199,7 +194,6 @@ class Filter:
         epsilon_min: Edge length of small box
         epsilon_max: Failure of linear approximation gives maximum length
         n_min: Minimum number of particles
-        n_nominal: Desire this number of particles
         bins: Quatization boundaries for observations
         time_step: Integrate Lorenz this interval between samples
         atol: Absolute error tolerance for integrator
@@ -207,12 +201,11 @@ class Filter:
 
     """
 
-    def __init__(self: Filter, epsilon_min, epsilon_max, n_min, n_nominal, bins,
-                 time_step, atol):
+    def __init__(self: Filter, epsilon_min, epsilon_max, n_min, bins, time_step,
+                 atol):
         self.epsilon_min = epsilon_min
         self.epsilon_max = epsilon_max
         self.n_min = n_min
-        self.n_nominal = n_nominal
         self.bins = bins
         self.time_step = time_step
         self.atol = atol
@@ -291,6 +284,13 @@ class Filter:
         for particle in self.particles:
             if numpy.digitize(particle.x[0], self.bins) == y:
                 new_particles.append(particle)
+        if len(self.particles) > 0 and len(new_particles) == 0:
+            # Print error diagnostics
+            for parent, count in zip(*numpy.unique(numpy.array(
+                [particle.parent for particle in self.particles]),
+                                                   return_counts=True)):
+                print(f'{parent=} {count=}')
+            print(f'In update {len(self.particles)=} {len(new_particles)=}')
         self.particles = new_particles
 
     def normalize(self: Filter):
