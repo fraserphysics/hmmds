@@ -14,6 +14,7 @@ from __future__ import annotations  # Enables, eg, (self: Particle
 import sys
 import argparse
 import pickle
+import copy
 
 import numpy
 import numpy.linalg
@@ -127,48 +128,67 @@ def one_run(n_times, initial_distribution, state_noise,
 
 
 class Particle:
-    """A point in the Lorenz system with a box and a weight
+    """A point in the Lorenz system with a box (parallelogram) and a weight.
 
     Args:
         x: 3-vector position
         Q: 3x3 matrix of QR decomposition defining a box
         R: 3-vector of QR decomposition defining a box
         weight: Scalar
+        parent: For visualizing ancestry
+
+    One corner of the box is at x.  Three more corners given by x + QR
+    define the box.
 
     """
 
     # pylint: disable=invalid-name
-    def __init__(self: Particle, x, Q, R, weight):
+    def __init__(self: Particle, x, Q, R, weight, parent=0):
         self.x = x
         self.Q = Q
         self.R = R
         self.weight = weight
+        self.parent = parent
 
     def step(self: Particle, time, atol):
+        """Map the box forward by the interval "time"
+
+        Args:
+            time: The amount of time
+            atol: Integration absolute error tolerance
+        """
         self.x, derivative = hmmds.synthetic.bounds.lorenz.integrate_tangent(
             time, self.x, self.Q, atol=atol)
         self.Q, R = numpy.linalg.qr(derivative)  # pylint: disable=invalid-name
         self.R = numpy.matmul(R, self.R)
         assert self.R.shape == (3, 3)
 
-    def divide(self: Particle, axis, n_divide):
-        """Divide self into n new particles along axis and shrink by ratio
+    def divide(self: Particle, axis, n_divide, stretch=1.0):
+        """Divide self into n_divide new particles along axis
 
         Args:
             axis: Divide along this edge
             n_divide: number of new particles
+            stretch: Don't use this hack
         """
+        assert n_divide > 0
         column_axis = self.R[:, axis]
-        step = column_axis / n_divide
-        base = self.x - column_axis / 2 + step / 2
+        step = stretch * (column_axis / n_divide)
+        base = self.x
 
         new_R = self.R.copy()
         new_R[:, axis] = column_axis / n_divide
         new_weight = self.weight / n_divide
-        return [
-            Particle(base + i * step, self.Q, new_R, new_weight)
-            for i in range(n_divide)
+        result = [
+            Particle(base + i * step, self.Q, new_R, new_weight, self.parent)
+            for i in range(n_divide - 1)
         ]
+        # Last new particle faces in -column_axis direction
+        new_R = self.R.copy()
+        new_R[:, axis] = -column_axis / n_divide
+        result.append(Particle(base + column_axis, self.Q, new_R, new_weight,
+                               0))
+        return result
 
 
 class Filter:
@@ -176,7 +196,6 @@ class Filter:
     observations
 
     Args:
-        initial_x: 3-vector
         epsilon_min: Edge length of small box
         epsilon_max: Failure of linear approximation gives maximum length
         n_min: Minimum number of particles
@@ -188,7 +207,8 @@ class Filter:
 
     """
 
-    def __init__(self: Filter, epsilon_min, epsilon_max, n_min, n_nominal, bins, time_step, atol):
+    def __init__(self: Filter, epsilon_min, epsilon_max, n_min, n_nominal, bins,
+                 time_step, atol):
         self.epsilon_min = epsilon_min
         self.epsilon_max = epsilon_max
         self.n_min = n_min
@@ -198,6 +218,17 @@ class Filter:
         self.atol = atol
         self.particles = []
 
+    def change_epsilon(self: Filter, new_min: float, new_max: float):
+        """Change particle box sizes.
+        
+        Args:
+            new_min:
+            new_max
+
+        """
+        self.epsilon_min = new_min
+        self.epsilon_max = new_max
+
     def initialize(self: Filter,
                    initial_x: numpy.ndarray,
                    n_times: int,
@@ -205,45 +236,57 @@ class Filter:
         """Populate self.particles by integrating Lorenz
 
         Args:
-            initial_x: Initial 3-vector
-            times: Sequence of float times
+            initial_x: Integrate this 3-vector n_times for initial distribution
+            n_times: Number of time steps
+            delta: Length of edges of initial particles
 
-        Return n_particles
         
         """
         if delta is None:
             delta = self.epsilon_max
         x_t = hmmds.synthetic.bounds.lorenz.n_steps(initial_x, n_times,
                                                     self.time_step, self.atol)
-        keys, counts = numpy.unique((x_t / delta).astype(int),
+        keys, counts = numpy.unique(numpy.around(x_t / delta).astype(int),
                                     return_counts=True,
                                     axis=0)
         self.particles = [
-            Particle(key * delta, numpy.eye(3),
-                     numpy.eye(3) * self.epsilon_min, count)
-            for key, count in zip(keys, counts)
+            Particle(
+                key * delta,  # Position
+                numpy.eye(3),  # Q
+                numpy.eye(3) * delta,  # R = Initial box
+                count,  # Number of times occured
+                parent  # ID for color plot
+            ) for parent, (key, count) in enumerate(zip(keys, counts))
         ]
         self.normalize()
 
     def forecast_x(self: Filter, time: float):
-        n_particles = len(self.particles)
-        amplifier = 1.0
-        if n_particles < self.n_min:
-            amplifier = self.n_nominal/n_particles
+        """Map each particle forward by time.  If the longest edge is
+        longer than epsilon_max, subdivide the particle.
+
+        Args:
+            time: Map via integrating Lorenz for this time step.
+
+        """
         new_particles = []
         for particle in self.particles:
             particle.step(time, self.atol)
             # Find longest box edge
             diagonal = numpy.abs(particle.R.diagonal())
             axis = numpy.argmax(diagonal)
-            if diagonal[axis] < self.epsilon_max and amplifier == 1.0:
+            if diagonal[axis] < self.epsilon_max:
                 new_particles.append(particle)
-                continue
-            n_divide = int(amplifier * diagonal[axis]/self.epsilon_min)
-            new_particles.extend(particle.divide(axis, n_divide))
+            else:
+                n_divide = int(diagonal[axis] / self.epsilon_min)
+                new_particles.extend(particle.divide(axis, n_divide))
         self.particles = new_particles
 
     def update(self: Filter, y: int):
+        """Delete particles that don't match y.
+
+        Args:
+            y: A scalar integer observation
+        """
         new_particles = []
         for particle in self.particles:
             if numpy.digitize(particle.x[0], self.bins) == y:
@@ -251,6 +294,8 @@ class Filter:
         self.particles = new_particles
 
     def normalize(self: Filter):
+        """Scale weights so that total is 1
+        """
         total_weight = 0.0
         for particle in self.particles:
             total_weight += particle.weight
@@ -258,29 +303,44 @@ class Filter:
             particle.weight /= total_weight
 
     def p_y(self: Filter):
+        """Calculate probability mass function for possible y values.
+
+        """
         result = numpy.zeros(len(self.bins) + 1)
         for particle in self.particles:
             y = numpy.digitize(particle.x, self.bins)
             result[y] += particle.weight
         return result
 
-    def forward(self: Filter, ys: numpy.ndarray, time_step: float):
-        """"""
-        clouds = []
-        gamma = numpy.empty(len(ys))
-        for i, y in enumerate(ys):
-            print(f'{i=} {len(self.particles)=}')
-            assert len(self.particles) < 1e6
-                
+    def forward(self: Filter,
+                y_ts: numpy.ndarray,
+                t_start,
+                t_stop,
+                gamma,
+                clouds=None):
+        """Estimate and return gamma[t] = p(y[t] | y[0:t]) for t from t_start to t_stop.
+
+        Args:
+            y_ts: A time series of observations
+            t_start:
+            t_stop:
+            gamma:
+            clouds: Optional dict for saving particles
+
+        """
+        for t in range(t_start, t_stop):
+            y = y_ts[t]
+            print(f'{t=} {len(self.particles)=}')
+            assert len(self.particles) < 1e7
+
             self.normalize()
-            gamma[i] = self.p_y()[y]
-            clouds.append(
-                numpy.array([particle.x for particle in self.particles]))
+            gamma[t] = self.p_y()[y]
+            if clouds is not None:
+                clouds[(t, 'forecast')] = copy.deepcopy(self.particles)
             self.update(y)
-            clouds.append(
-                numpy.array([particle.x for particle in self.particles]))
-            self.forecast_x(time_step)
-        return gamma, clouds
+            if clouds is not None:
+                clouds[(t, 'update')] = copy.deepcopy(self.particles)
+            self.forecast_x(self.time_step)
 
 
 def noiseless_lyapunov_spectrum(initial_state, args: argparse.Namespace):

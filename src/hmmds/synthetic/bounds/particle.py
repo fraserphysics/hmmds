@@ -23,12 +23,16 @@ def parse_args(argv):
         description='Apply particle filter to Lorenz data')
     parser.add_argument('--epsilon_min',
                         type=float,
-                        default=1e-4,
+                        default=2e-2,
                         help='Minimumlength of box edges')
     parser.add_argument('--epsilon_max',
                         type=float,
-                        default=1e-3,
+                        default=1e-1,
                         help='Maximumlength of box edges')
+    parser.add_argument('--initial_dx',
+                        type=float,
+                        default=1.0,
+                        help='Cell size for initialization')
     parser.add_argument('--n_min',
                         type=int,
                         default=50,
@@ -54,10 +58,6 @@ def parse_args(argv):
                         type=int,
                         default=100000,
                         help='Number of time steps for initial particles')
-    parser.add_argument('--initial_dx',
-                        type=float,
-                        default=0.2,
-                        help='Cell size for initialization')
     parser.add_argument('--atol',
                         type=float,
                         default=1e-7,
@@ -74,6 +74,8 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
+    epsilon_ratio = args.epsilon_max / args.epsilon_min
+
     # Relax to a point near the attractor
     relaxed_x = benettin.relax(args, numpy.ones(3))[0]
 
@@ -85,9 +87,11 @@ def main(argv=None):
     x_0 = x_all[-1]
 
     # Initialize filter
-    p_filter = benettin.Filter(args.epsilon_min, args.epsilon_max, args.n_min, args.n_nominal, bins,
-                               args.time_step, args.atol)
-    p_filter.initialize(x_0, args.n_initialize, args.initial_dx)
+    epsilon_max = args.initial_dx
+    epsilon_min = epsilon_max / epsilon_ratio
+    p_filter = benettin.Filter(epsilon_min, epsilon_max, args.n_min,
+                               args.n_nominal, bins, args.time_step, args.atol)
+    p_filter.initialize(x_0, args.n_initialize)
     print(f'{len(p_filter.particles)=}')
 
     result = {
@@ -100,7 +104,16 @@ def main(argv=None):
     }
 
     # Run filter on y_q
-    result['gamma'], result['clouds'] = p_filter.forward(y_q, args.time_step)
+    clouds = {}
+    gamma = numpy.zeros(len(y_q))
+    result['gamma'] = gamma
+    p_filter.forward(y_q, 0, 5, gamma)
+    p_filter.forward(y_q, 5, 10, gamma)
+    p_filter.change_epsilon(args.epsilon_min, args.epsilon_max)
+    p_filter.forward(y_q, 10, 45, gamma,clouds)
+    p_filter.forward(y_q, 45, len(y_q), gamma)
+
+    result['clouds'] = clouds
 
     # Write results
 

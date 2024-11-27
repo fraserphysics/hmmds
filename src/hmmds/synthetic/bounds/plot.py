@@ -10,6 +10,7 @@ import pickle
 
 import numpy
 import matplotlib
+from matplotlib.colors import TABLEAU_COLORS as color_dict
 
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as pyplot
@@ -20,9 +21,24 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser(description='Debuggin plot')
+    parser.add_argument('--start',
+                        type=int,
+                        default=0,
+                        help='Plot particles at 5 times starting here')
     parser.add_argument('input', type=str, help='Path to data')
     args = parser.parse_args(argv)
     return args
+
+
+def plot_point(axes, x, color, label=None):
+    axes.plot(x[0],
+              x[2],
+              markeredgecolor='none',
+              marker='.',
+              markersize=5,
+              linestyle='None',
+              color=color,
+              label=label)
 
 
 def main(argv=None):
@@ -34,46 +50,34 @@ def main(argv=None):
 
     with open(args.input, 'rb') as file_:
         dict_in = pickle.load(file_)
-    for key, value in dict_in.items():
-        if isinstance(value, numpy.ndarray):
-            print(f'{key} {value.shape}')
-        else:
-            print(f'{key} {type(value)} {len(value)=}')
-    figure, axeses = pyplot.subplots(nrows=6, ncols=2)
-    x = dict_in['initial_positions']
-    x_all = dict_in['x_all']
-    y_q = dict_in['y_q']
-    gamma = dict_in['gamma']
-    axeses[0, 0].plot(gamma)
-    axeses[0, 1].plot(y_q)
-    for i in range(20, 25):
-        x = dict_in['clouds'][2 * i]
-        if len(x.shape) != 2:
-            continue
-        axes = axeses[i % 5 + 1, 0]
-        axes.plot(x[:, 0],
-                  x[:, 2],
-                  markeredgecolor='none',
-                  marker='.',
-                  markersize=5,
-                  linestyle='None')
-        axes.set_xlim(-20, 20)
-        axes.set_ylim(0, 50)
 
-        x = dict_in['clouds'][2 * i + 1]
-        if len(x.shape) != 2:
+    figure, axeses = pyplot.subplots(nrows=5,
+                                     ncols=2,
+                                     sharex=True,
+                                     sharey=True,
+                                     figsize=(5, 9))
+    y_q = dict_in['y_q']
+    colors = list(color_dict.values())
+    for i in range(args.start, args.start + 5):
+        if (i, 'forecast') not in dict_in['clouds']:
             continue
-        axes = axeses[i % 5 + 1, 1]
-        axes.plot(x[:, 0],
-                  x[:, 2],
-                  markeredgecolor='none',
-                  marker='.',
-                  markersize=5,
-                  linestyle='None',
-                  label=f'y[{i}]={y_q[i]}')
-        axes.set_xlim(-20, 20)
-        axes.set_ylim(0, 50)
-        axes.legend()
+        forecast = dict_in['clouds'][(i, 'forecast')]
+        update = dict_in['clouds'][(i, 'update')]
+        for j, cloud in enumerate((forecast, update)):
+            if len(cloud) == 0:
+                continue
+            axes = axeses[i % 5, j]
+            for particle in cloud:
+                color = colors[particle.parent % len(colors)]
+                plot_point(axes, particle.x, color)
+            if j == 0:
+                plot_point(axes,
+                           cloud[0].x,
+                           color,
+                           label=f'n={len(cloud)} y[{i}]={y_q[i]}')
+                axes.legend()
+            axes.set_xlim(-20, 20)
+            axes.set_ylim(0, 50)
     pyplot.show()
     return 0
 
