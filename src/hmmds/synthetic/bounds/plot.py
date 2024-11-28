@@ -21,10 +21,17 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser(description='Debugging plot')
+    parser.add_argument('--printR',
+                        action='store_true',
+                        help="Print R matrices")
     parser.add_argument('--start',
                         type=int,
                         default=0,
                         help='Plot particles at 5 times starting here')
+    parser.add_argument('--parent',
+                        type=int,
+                        default=-1,
+                        help='Track descendants of parent')
     parser.add_argument('input', type=str, help='Path to data')
     args = parser.parse_args(argv)
     return args
@@ -34,15 +41,15 @@ def plot_box(axes, particle):
     colors = 'red green blue'.split()
     x = particle.x
     neighbor = x + particle.neighbor
-    axes.plot((x[0], neighbor[0]), (x[2], neighbor[2]), color='black')
 
     def plot_line(i):
-        end = x + numpy.dot(particle.Q, particle.R[i, :])
+        end = x + numpy.dot(particle.Q, particle.R[:, i])
         axes.plot((x[0], end[0]), (x[2], end[2]), color=colors[i])
 
     for i in range(3):
         plot_line(i)
 
+    axes.plot((x[0], neighbor[0]), (x[2], neighbor[2]), color='black', linestyle='dotted')
     axes.plot(x[0],
               x[2],
               markeredgecolor='none',
@@ -82,7 +89,8 @@ def main(argv=None):
         update = dict_in['clouds'][(i, 'update')]
         axes = axeses[i % 5, 2]
         for particle in update:
-            plot_box(axes, particle)
+            if particle.parent == args.parent or particle.parent == -1:
+                plot_box(axes, particle)
         axes.set_xticks([])
         axes.set_yticks([])
         for j, cloud in enumerate((forecast, update)):
@@ -100,6 +108,12 @@ def main(argv=None):
                 axes.legend(loc='upper right')
             axes.set_xlim(-22, 22)
             axes.set_ylim(0, 50)
+    # Print QRs for updates in last cloud
+    for particle in update:
+        if args.printR:
+            qr = numpy.matmul(particle.Q, particle.R)
+            print(f'QR=\n{qr}')
+            print(f'neighbor={particle.neighbor.T}')
     pyplot.show()
     return 0
 
