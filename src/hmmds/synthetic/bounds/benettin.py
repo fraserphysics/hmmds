@@ -136,6 +136,7 @@ class Particle:
         R: 3-vector of QR decomposition defining a box
         weight: Scalar
         parent: For visualizing ancestry
+        neighbor: Vector to neighbor
 
     One corner of the box is at x.  Three more corners given by x + QR
     define the box.
@@ -143,12 +144,13 @@ class Particle:
     """
 
     # pylint: disable=invalid-name
-    def __init__(self: Particle, x, Q, R, weight, parent=0):
+    def __init__(self: Particle, x, Q, R, weight, parent, neighbor):
         self.x = x
         self.Q = Q
         self.R = R
         self.weight = weight
         self.parent = parent
+        self.neighbor = neighbor
 
     def step(self: Particle, time, atol):
         """Map the box forward by the interval "time"
@@ -157,13 +159,15 @@ class Particle:
             time: The amount of time
             atol: Integration absolute error tolerance
         """
-        self.x, derivative = hmmds.synthetic.bounds.lorenz.integrate_tangent(
+        self.x, step_derivative = hmmds.synthetic.bounds.lorenz.integrate_tangent(
             time, self.x, self.Q, atol=atol)
-        self.Q, R = numpy.linalg.qr(derivative)  # pylint: disable=invalid-name
+        self.neighbor = numpy.dot(step_derivative,
+                                  numpy.dot(self.Q.T, self.neighbor))
+        self.Q, R = numpy.linalg.qr(step_derivative)  # pylint: disable=invalid-name
         self.R = numpy.matmul(R, self.R)
         assert self.R.shape == (3, 3)
 
-    def divide(self: Particle, axis, n_divide, stretch=1.0):
+    def divide(self: Particle, axis, n_divide):
         """Divide self into n_divide new particles along axis
 
         Args:
@@ -172,16 +176,16 @@ class Particle:
             stretch: Don't use this hack
         """
         assert n_divide > 0
-        column_axis = self.R[:, axis]
-        step = stretch * (column_axis / n_divide)
+        column_axis = self.R[axis, :]
+        step = numpy.dot(self.Q, column_axis / n_divide)
         base = self.x
 
         new_R = self.R.copy()
-        new_R[:, axis] = column_axis / n_divide
+        new_R[axis, :] = column_axis / n_divide
         new_weight = self.weight / n_divide
         result = [
-            Particle(base + i * step, self.Q, new_R, new_weight, self.parent)
-            for i in range(n_divide)
+            Particle(base + i * step, self.Q, new_R, new_weight, self.parent,
+                     step) for i in range(n_divide)
         ]
         return result
 
@@ -201,11 +205,9 @@ class Filter:
 
     """
 
-    def __init__(self: Filter, epsilon_min, epsilon_max, n_min, bins, time_step,
-                 atol):
+    def __init__(self: Filter, epsilon_min, epsilon_max, bins, time_step, atol):
         self.epsilon_min = epsilon_min
         self.epsilon_max = epsilon_max
-        self.n_min = n_min
         self.bins = bins
         self.time_step = time_step
         self.atol = atol
@@ -242,13 +244,15 @@ class Filter:
         keys, counts = numpy.unique(numpy.around(x_t / delta).astype(int),
                                     return_counts=True,
                                     axis=0)
+        neighbor = numpy.array([delta, 0, 0])
         self.particles = [
             Particle(
                 key * delta,  # Position
                 numpy.eye(3),  # Q
                 numpy.eye(3) * delta,  # R = Initial box
                 count,  # Number of times occured
-                parent  # ID for color plot
+                parent,  # ID for color plot
+                neighbor  # vector to adjacent particle
             ) for parent, (key, count) in enumerate(zip(keys, counts))
         ]
         self.normalize()

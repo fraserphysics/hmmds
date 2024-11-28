@@ -93,16 +93,13 @@ def main(argv=None):
         'y_q': y_q,
         'clouds': clouds,
     }
-    cloud_marks = make_marks(len(y_q), (
-        (0, 10),
-        (90, 110),
-    ))
+    cloud_marks = make_marks(len(y_q), ((40, 70),))
 
     # Initialize filter
     epsilon_max = args.initial_dx
     epsilon_min = epsilon_max / args.epsilon_ratio
-    p_filter = benettin.Filter(epsilon_min, epsilon_max, args.n_min, bins,
-                               args.time_step, args.atol)
+    p_filter = benettin.Filter(epsilon_min, epsilon_max, bins, args.time_step,
+                               args.atol)
     p_filter.initialize(x_0, args.n_initialize)
 
     # Run filter on y_q

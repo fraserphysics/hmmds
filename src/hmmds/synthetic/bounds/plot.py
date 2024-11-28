@@ -1,6 +1,6 @@
 """plot.py: Plots for debugging.
 
-python plot.py input_path
+python plot.py --start 50 input_path
 
 """
 
@@ -20,7 +20,7 @@ def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
 
-    parser = argparse.ArgumentParser(description='Debuggin plot')
+    parser = argparse.ArgumentParser(description='Debugging plot')
     parser.add_argument('--start',
                         type=int,
                         default=0,
@@ -28,6 +28,27 @@ def parse_args(argv):
     parser.add_argument('input', type=str, help='Path to data')
     args = parser.parse_args(argv)
     return args
+
+
+def plot_box(axes, particle):
+    colors = 'red green blue'.split()
+    x = particle.x
+    neighbor = x + particle.neighbor
+    axes.plot((x[0], neighbor[0]), (x[2], neighbor[2]), color='black')
+
+    def plot_line(i):
+        end = x + numpy.dot(particle.Q, particle.R[i, :])
+        axes.plot((x[0], end[0]), (x[2], end[2]), color=colors[i])
+
+    for i in range(3):
+        plot_line(i)
+
+    axes.plot(x[0],
+              x[2],
+              markeredgecolor='none',
+              marker='.',
+              markersize=8,
+              linestyle='None')
 
 
 def plot_point(axes, x, color, label=None):
@@ -51,11 +72,7 @@ def main(argv=None):
     with open(args.input, 'rb') as file_:
         dict_in = pickle.load(file_)
 
-    figure, axeses = pyplot.subplots(nrows=5,
-                                     ncols=2,
-                                     sharex=True,
-                                     sharey=True,
-                                     figsize=(5, 9))
+    figure, axeses = pyplot.subplots(nrows=5, ncols=3, figsize=(7, 9))
     y_q = dict_in['y_q']
     colors = list(color_dict.values())
     for i in range(args.start, args.start + 5):
@@ -63,6 +80,11 @@ def main(argv=None):
             continue
         forecast = dict_in['clouds'][(i, 'forecast')]
         update = dict_in['clouds'][(i, 'update')]
+        axes = axeses[i % 5, 2]
+        for particle in update:
+            plot_box(axes, particle)
+        axes.set_xticks([])
+        axes.set_yticks([])
         for j, cloud in enumerate((forecast, update)):
             if len(cloud) == 0:
                 continue
