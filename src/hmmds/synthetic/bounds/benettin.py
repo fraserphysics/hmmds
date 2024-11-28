@@ -176,12 +176,12 @@ class Particle:
             stretch: Don't use this hack
         """
         assert n_divide > 0
-        column_axis = self.R[axis, :]
-        step = numpy.dot(self.Q, column_axis / n_divide)
+        r_step = self.R[:, axis]/n_divide
+        step = numpy.dot(self.Q, r_step)
         base = self.x
 
         new_R = self.R.copy()
-        new_R[axis, :] = column_axis / n_divide
+        new_R[:, axis] = r_step
         new_weight = self.weight / n_divide
         result = [
             Particle(base + i * step, self.Q, new_R, new_weight, self.parent,
