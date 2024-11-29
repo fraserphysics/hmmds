@@ -132,22 +132,20 @@ class Particle:
 
     Args:
         x: 3-vector position
-        Q: 3x3 matrix of QR decomposition defining a box
-        R: 3-vector of QR decomposition defining a box
+        box: 3x3 derivative matrix
         weight: Scalar
         parent: For visualizing ancestry
         neighbor: Vector to neighbor
 
-    One corner of the box is at x.  Three more corners given by x + QR
-    define the box.
+    One corner of the box is at x.  Other corners are given by x +
+    box.
 
     """
 
     # pylint: disable=invalid-name
-    def __init__(self: Particle, x, Q, R, weight, parent, neighbor):
+    def __init__(self: Particle, x, box, weight, parent, neighbor):
         self.x = x
-        self.Q = Q
-        self.R = R
+        self.box = box
         self.weight = weight
         self.parent = parent
         self.neighbor = neighbor
@@ -159,33 +157,30 @@ class Particle:
             time: The amount of time
             atol: Integration absolute error tolerance
         """
-        self.x, step_derivative = hmmds.synthetic.bounds.lorenz.integrate_tangent(
-            time, self.x, self.Q, atol=atol)
-        self.neighbor = numpy.dot(step_derivative,
-                                  numpy.dot(self.Q.T, self.neighbor))
-        self.Q, R = numpy.linalg.qr(step_derivative)  # pylint: disable=invalid-name
-        self.R = numpy.matmul(R, self.R)
-        assert self.R.shape == (3, 3)
+        pre_neighbor = numpy.linalg.lstsq(self.box, self.neighbor,
+                                          rcond=1e-6)[0]
+        self.x, self.box = hmmds.synthetic.bounds.lorenz.integrate_tangent(
+            time, self.x, self.box, atol=atol)
+        self.neighbor = numpy.dot(self.box, pre_neighbor)
+        assert self.box.shape == (3, 3)
+        assert self.neighbor.shape == (3,)
 
-    def divide(self: Particle, axis, n_divide):
-        """Divide self into n_divide new particles along axis
+    def divide(self: Particle, n_divide, U, S, VT):
+        """Divide self into n_divide new particles along S_0 direction
 
         Args:
-            axis: Divide along this edge
             n_divide: number of new particles
-            stretch: Don't use this hack
+            U, S, VT: Singular value decomposition of self.box
         """
         assert n_divide > 0
-        r_step = self.R[:, axis]/n_divide
-        step = numpy.dot(self.Q, r_step)
-        base = self.x
-
-        new_R = self.R.copy()
-        new_R[:, axis] = r_step
+        S[0] /= n_divide
+        new_box = U * S
+        x_step = U[:, 0] * S[0] * VT[0, :]
         new_weight = self.weight / n_divide
+
         result = [
-            Particle(base + i * step, self.Q, new_R, new_weight, self.parent,
-                     step) for i in range(n_divide)
+            Particle(self.x + i * x_step, new_box, new_weight, self.parent,
+                     x_step) for i in range(n_divide)
         ]
         return result
 
@@ -248,8 +243,7 @@ class Filter:
         self.particles = [
             Particle(
                 key * delta,  # Position
-                numpy.eye(3),  # Q
-                numpy.eye(3) * delta,  # R = Initial box
+                numpy.eye(3) * delta,  # Initial box
                 count,  # Number of times occured
                 parent,  # ID for color plot
                 neighbor  # vector to adjacent particle
@@ -258,8 +252,8 @@ class Filter:
         self.normalize()
 
     def forecast_x(self: Filter, time: float):
-        """Map each particle forward by time.  If the longest edge is
-        longer than epsilon_max, subdivide the particle.
+        """Map each particle forward by time.  If the largest singular
+        value S[0] > epsilon_max, subdivide the particle.
 
         Args:
             time: Map via integrating Lorenz for this time step.
@@ -268,14 +262,12 @@ class Filter:
         new_particles = []
         for particle in self.particles:
             particle.step(time, self.atol)
-            # Find longest box edge
-            diagonal = numpy.abs(particle.R.diagonal())
-            axis = numpy.argmax(diagonal)
-            if diagonal[axis] < self.epsilon_max:
+            U, S, VT = numpy.linalg.svd(particle.box)
+            if S[0] < self.epsilon_max:
                 new_particles.append(particle)
             else:
-                n_divide = int(diagonal[axis] / self.epsilon_min)
-                new_particles.extend(particle.divide(axis, n_divide))
+                new_particles.extend(
+                    particle.divide(int(S[0] / self.epsilon_min), U, S, VT))
         self.particles = new_particles
 
     def update(self: Filter, y: int):

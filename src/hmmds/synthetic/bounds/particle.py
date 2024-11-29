@@ -23,11 +23,11 @@ def parse_args(argv):
         description='Apply particle filter to Lorenz data')
     parser.add_argument('--epsilon_min',
                         type=float,
-                        default=2e-2,
+                        default=0.1,
                         help='Minimum length of box edges')
     parser.add_argument('--initial_dx',
                         type=float,
-                        default=0.4,
+                        default=0.5,
                         help='Cell size for initialization')
     parser.add_argument(
         '--epsilon_ratio',
@@ -36,13 +36,13 @@ def parse_args(argv):
         help='Maximum length of box edges = ratio * epsilon_min')
     parser.add_argument('--n_y',
                         type=int,
-                        default=30,
+                        default=1000,
                         help='Number of test observations')
     parser.add_argument('--n_quantized',
                         type=int,
                         default=4,
                         help='Cardinality of test observations')
-    parser.add_argument('--time_step', type=float, default=0.15)
+    parser.add_argument('--time_step', type=float, default=0.05)
     parser.add_argument('--t_relax',
                         type=float,
                         default=10.0,
@@ -53,7 +53,7 @@ def parse_args(argv):
                         help='Number of time steps for initial particles')
     parser.add_argument('--atol',
                         type=float,
-                        default=1e-7,
+                        default=1e-6,
                         help='Absolute error tolerance for integrator')
     parser.add_argument('result', type=str, help='write result to this path')
     return parser.parse_args(argv)
@@ -93,7 +93,7 @@ def main(argv=None):
         'y_q': y_q,
         'clouds': clouds,
     }
-    cloud_marks = make_marks(len(y_q), ((40, 70),))
+    cloud_marks = make_marks(len(y_q), ((0, len(y_q)),))
 
     # Initialize filter
     epsilon_max = args.initial_dx

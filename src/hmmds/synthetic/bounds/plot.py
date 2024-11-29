@@ -21,9 +21,7 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser(description='Debugging plot')
-    parser.add_argument('--printR',
-                        action='store_true',
-                        help="Print R matrices")
+    parser.add_argument('--print_box', action='store_true', help="Print boxes")
     parser.add_argument('--start',
                         type=int,
                         default=0,
@@ -43,13 +41,15 @@ def plot_box(axes, particle):
     neighbor = x + particle.neighbor
 
     def plot_line(i):
-        end = x + numpy.dot(particle.Q, particle.R[:, i])
+        end = x + particle.box[:, i]
         axes.plot((x[0], end[0]), (x[2], end[2]), color=colors[i])
 
     for i in range(3):
         plot_line(i)
 
-    axes.plot((x[0], neighbor[0]), (x[2], neighbor[2]), color='black', linestyle='dotted')
+    axes.plot((x[0], neighbor[0]), (x[2], neighbor[2]),
+              color='black',
+              linestyle='dotted')
     axes.plot(x[0],
               x[2],
               markeredgecolor='none',
@@ -89,7 +89,7 @@ def main(argv=None):
         update = dict_in['clouds'][(i, 'update')]
         axes = axeses[i % 5, 2]
         for particle in update:
-            if particle.parent == args.parent or particle.parent == -1:
+            if particle.parent == args.parent:
                 plot_box(axes, particle)
         axes.set_xticks([])
         axes.set_yticks([])
@@ -108,11 +108,10 @@ def main(argv=None):
                 axes.legend(loc='upper right')
             axes.set_xlim(-22, 22)
             axes.set_ylim(0, 50)
-    # Print QRs for updates in last cloud
-    for particle in update:
-        if args.printR:
-            qr = numpy.matmul(particle.Q, particle.R)
-            print(f'QR=\n{qr}')
+    # Print box for forecast in last cloud
+    for particle in forecast:
+        if args.print_box:
+            print(f'box=\n{particle.box}')
             print(f'neighbor={particle.neighbor.T}')
     pyplot.show()
     return 0
