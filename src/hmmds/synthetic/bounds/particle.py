@@ -23,7 +23,7 @@ def parse_args(argv):
         description='Apply particle filter to Lorenz data')
     parser.add_argument('--epsilon_min',
                         type=float,
-                        default=0.1,
+                        default=0.05,
                         help='Minimum length of box edges')
     parser.add_argument('--initial_dx',
                         type=float,
@@ -101,6 +101,7 @@ def main(argv=None):
     p_filter = benettin.Filter(epsilon_min, epsilon_max, bins, args.time_step,
                                args.atol)
     p_filter.initialize(x_0, args.n_initialize)
+    p_filter.prune_hack(relaxed_x, 1.5 * args.initial_dx)
 
     # Run filter on y_q
     p_filter.forward(y_q, 0, 20, gamma, clouds)

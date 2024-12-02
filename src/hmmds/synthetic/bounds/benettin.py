@@ -173,9 +173,9 @@ class Particle:
             U, S, VT: Singular value decomposition of self.box
         """
         assert n_divide > 0
-        S[0] /= n_divide
+        S[0] /= (n_divide / 1.2)
         new_box = U * S
-        x_step = U[:, 0] * S[0] * VT[0, :]
+        x_step = U[:, 0] * S[0] * VT[0, 0]
         new_weight = self.weight / n_divide
 
         result = [
@@ -271,14 +271,27 @@ class Filter:
         self.particles = new_particles
 
     def update(self: Filter, y: int):
-        """Delete particles that don't match y.
+        """Delete particles that don't match y within some margin.
 
         Args:
             y: A scalar integer observation
         """
+        # FixMe: I hope changes here will fix particle exhaustion
+        delta = self.bins[1] - self.bins[0]
+        if y == 0:
+            lower = self.bins[0] - delta
+            upper = self.bins[0]
+        elif y == len(self.bins):
+            lower = self.bins[-1]
+            upper = self.bins[-1] + delta
+        else:
+            lower = self.bins[y - 1]
+            upper = self.bins[y]
+        lower -= self.epsilon_max
+        upper += self.epsilon_max
         new_particles = []
         for particle in self.particles:
-            if numpy.digitize(particle.x[0], self.bins) == y:
+            if lower < particle.x[0] < upper:
                 new_particles.append(particle)
         if len(self.particles) > 0 and len(new_particles) == 0:
             # Print error diagnostics
@@ -337,6 +350,18 @@ class Filter:
             if clouds is not None:
                 clouds[(t, 'update')] = copy.deepcopy(self.particles)
             self.forecast_x(self.time_step)
+
+    def prune_hack(self: Filter, x_initial: numpy.ndarray, radius: float):
+        """Retain only particles within distance "radius" of "x_initial
+        
+        Use for debugging
+
+        """
+        new_particles = []
+        for particle in self.particles:
+            if numpy.linalg.norm(particle.x - x_initial) < radius:
+                new_particles.append(particle)
+        self.particles = new_particles
 
 
 def noiseless_lyapunov_spectrum(initial_state, args: argparse.Namespace):
