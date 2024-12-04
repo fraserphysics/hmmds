@@ -165,7 +165,7 @@ class Particle:
         assert self.box.shape == (3, 3)
         assert self.neighbor.shape == (3,)
 
-    def divide(self: Particle, n_divide, U, S, VT):
+    def divide(self: Particle, n_divide, U, S, VT, stretch=1.0):
         """Divide self into n_divide new particles along S_0 direction
 
         Args:
@@ -173,14 +173,15 @@ class Particle:
             U, S, VT: Singular value decomposition of self.box
         """
         assert n_divide > 0
-        S[0] /= (n_divide / 1.2)
+        S[0] /= (n_divide / stretch)
         new_box = U * S
         x_step = U[:, 0] * S[0] * VT[0, 0]
         new_weight = self.weight / n_divide
 
+        back_up = int(n_divide/2)
         result = [
             Particle(self.x + i * x_step, new_box, new_weight, self.parent,
-                     x_step) for i in range(n_divide)
+                     x_step) for i in range(-back_up, n_divide-back_up)
         ]
         return result
 
@@ -200,24 +201,27 @@ class Filter:
 
     """
 
-    def __init__(self: Filter, epsilon_min, epsilon_max, bins, time_step, atol):
+    def __init__(self: Filter, epsilon_min, epsilon_max, bins, time_step, atol, stretch):
         self.epsilon_min = epsilon_min
         self.epsilon_max = epsilon_max
         self.bins = bins
         self.time_step = time_step
         self.atol = atol
         self.particles = []
+        self.stretch = stretch
 
-    def change_epsilon(self: Filter, new_min: float, new_max: float):
+    def change_epsilon_stretch(self: Filter, new_min: float, new_max: float, new_stretch):
         """Change particle box sizes.
         
         Args:
             new_min:
             new_max
+            new_stretch
 
         """
         self.epsilon_min = new_min
         self.epsilon_max = new_max
+        self.stretch = new_stretch
 
     def initialize(self: Filter,
                    initial_x: numpy.ndarray,
@@ -267,7 +271,7 @@ class Filter:
                 new_particles.append(particle)
             else:
                 new_particles.extend(
-                    particle.divide(int(S[0] / self.epsilon_min), U, S, VT))
+                    particle.divide(int(S[0] / self.epsilon_min), U, S, VT, self.stretch))
         self.particles = new_particles
 
     def update(self: Filter, y: int):
@@ -287,8 +291,9 @@ class Filter:
         else:
             lower = self.bins[y - 1]
             upper = self.bins[y]
-        lower -= self.epsilon_max
-        upper += self.epsilon_max
+        margin = self.epsilon_min
+        lower -= margin
+        upper += margin
         new_particles = []
         for particle in self.particles:
             if lower < particle.x[0] < upper:
@@ -327,7 +332,7 @@ class Filter:
                 t_stop,
                 gamma,
                 clouds=None):
-        """Estimate and return gamma[t] = p(y[t] | y[0:t]) for t from t_start to t_stop.
+        """Estimate and assign gamma[t] = p(y[t] | y[0:t]) for t from t_start to t_stop.
 
         Args:
             y_ts: A time series of observations

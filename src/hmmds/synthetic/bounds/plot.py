@@ -79,7 +79,7 @@ def main(argv=None):
     with open(args.input, 'rb') as file_:
         dict_in = pickle.load(file_)
 
-    figure, axeses = pyplot.subplots(nrows=5, ncols=3, figsize=(7, 9))
+    figure, axeses = pyplot.subplots(nrows=5, ncols=3, figsize=(5, 9))
     y_q = dict_in['y_q']
     colors = list(color_dict.values())
     for i in range(args.start, args.start + 5):
@@ -109,10 +109,11 @@ def main(argv=None):
             axes.set_xlim(-22, 22)
             axes.set_ylim(0, 50)
     # Print box for forecast in last cloud
-    for particle in forecast:
-        if args.print_box:
-            print(f'box=\n{particle.box}')
-            print(f'neighbor={particle.neighbor.T}')
+    if args.print_box:
+        particle = forecast[0]
+        print(f'box=\n{particle.box}')
+        print(f'neighbor={particle.neighbor.T}')
+        print(f'{particle.parent=}')
     pyplot.show()
     return 0
 

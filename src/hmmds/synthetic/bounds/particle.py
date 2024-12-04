@@ -23,11 +23,11 @@ def parse_args(argv):
         description='Apply particle filter to Lorenz data')
     parser.add_argument('--epsilon_min',
                         type=float,
-                        default=0.05,
+                        default=0.25,
                         help='Minimum length of box edges')
     parser.add_argument('--initial_dx',
                         type=float,
-                        default=0.5,
+                        default=0.25,
                         help='Cell size for initialization')
     parser.add_argument(
         '--epsilon_ratio',
@@ -53,7 +53,7 @@ def parse_args(argv):
                         help='Number of time steps for initial particles')
     parser.add_argument('--atol',
                         type=float,
-                        default=1e-6,
+                        default=1e-7,
                         help='Absolute error tolerance for integrator')
     parser.add_argument('result', type=str, help='write result to this path')
     return parser.parse_args(argv)
@@ -93,21 +93,29 @@ def main(argv=None):
         'y_q': y_q,
         'clouds': clouds,
     }
-    cloud_marks = make_marks(len(y_q), ((0, len(y_q)),))
+    cloud_marks = make_marks( #
+        len(y_q), #
+        ( #
+            (0,100), #
+            ((int(len(y_q)*.99)), len(y_q)),
+        )
+    )
 
     # Initialize filter
     epsilon_max = args.initial_dx
     epsilon_min = epsilon_max / args.epsilon_ratio
+    stretch = 1.25
     p_filter = benettin.Filter(epsilon_min, epsilon_max, bins, args.time_step,
-                               args.atol)
+                               args.atol, stretch)
     p_filter.initialize(x_0, args.n_initialize)
     p_filter.prune_hack(relaxed_x, 1.5 * args.initial_dx)
 
     # Run filter on y_q
-    p_filter.forward(y_q, 0, 20, gamma, clouds)
+    transition = 60
+    p_filter.forward(y_q, 0, transition, gamma, clouds)
     epsilon_max = args.epsilon_min * args.epsilon_ratio
-    p_filter.change_epsilon(args.epsilon_min, epsilon_max)
-    for t_start in range(20, len(y_q), 5):
+    p_filter.change_epsilon_stretch(args.epsilon_min, epsilon_max, stretch)
+    for t_start in range(transition, len(y_q), 5):
         if cloud_marks[t_start]:
             p_filter.forward(y_q, t_start, t_start + 5, gamma, clouds)
         else:
