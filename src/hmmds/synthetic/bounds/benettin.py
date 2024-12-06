@@ -281,23 +281,28 @@ class Filter:
             y: A scalar integer observation
         """
         # FixMe: I hope changes here will fix particle exhaustion
-        delta = self.bins[1] - self.bins[0]
-        if y == 0:
-            lower = self.bins[0] - delta
-            upper = self.bins[0]
-        elif y == len(self.bins):
-            lower = self.bins[-1]
-            upper = self.bins[-1] + delta
-        else:
-            lower = self.bins[y - 1]
-            upper = self.bins[y]
-        margin = self.epsilon_min
-        lower -= margin
-        upper += margin
         new_particles = []
-        for particle in self.particles:
-            if lower < particle.x[0] < upper:
-                new_particles.append(particle)
+        margin = self.epsilon_min
+        def zero():
+            upper = self.bins[0] + margin
+            for particle in self.particles:
+                if particle.x[0] < upper:
+                    new_particles.append(particle)
+        def top():
+            lower = self.bins[-1] - margin
+            for particle in self.particles:
+                if particle.x[0] > lower:
+                    new_particles.append(particle)
+        if y == 0:
+            zero()
+        elif y == len(self.bins):
+            top()
+        else:
+            lower = self.bins[y - 1] - margin
+            upper = self.bins[y] + margin
+            for particle in self.particles:
+                if lower < particle.x[0] < upper:
+                    new_particles.append(particle)
         if len(self.particles) > 0 and len(new_particles) == 0:
             # Print error diagnostics
             for parent, count in zip(*numpy.unique(numpy.array(
@@ -352,6 +357,8 @@ class Filter:
             if clouds is not None:
                 clouds[(t, 'forecast')] = copy.deepcopy(self.particles)
             self.update(y)
+            if len(self.particles) == 0:
+                return
             if clouds is not None:
                 clouds[(t, 'update')] = copy.deepcopy(self.particles)
             self.forecast_x(self.time_step)
