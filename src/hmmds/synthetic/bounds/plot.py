@@ -81,12 +81,16 @@ def main(argv=None):
 
     figure, axeses = pyplot.subplots(nrows=5, ncols=3, figsize=(5, 9))
     y_q = dict_in['y_q']
+    x_all = dict_in['x_all']
     colors = list(color_dict.values())
     for i in range(args.start, args.start + 5):
         if (i, 'forecast') not in dict_in['clouds']:
             continue
         forecast = dict_in['clouds'][(i, 'forecast')]
-        update = dict_in['clouds'][(i, 'update')]
+        if (i, 'update') in dict_in['clouds']:
+            update = dict_in['clouds'][(i, 'update')]
+        else:
+            update = []
         axes = axeses[i % 5, 2]
         for particle in update:
             if particle.parent == args.parent:
@@ -105,6 +109,7 @@ def main(argv=None):
                            cloud[0].x,
                            color,
                            label=f'n={len(cloud)} y[{i}]={y_q[i]}')
+                axes.plot(x_all[i, 0], x_all[i, 2], marker='x')
                 axes.legend(loc='upper right')
             axes.set_xlim(-22, 22)
             axes.set_ylim(0, 50)

@@ -108,18 +108,22 @@ def main(argv=None):
     p_filter = benettin.Filter(epsilon_min, epsilon_max, bins, args.time_step,
                                args.atol, stretch)
     p_filter.initialize(x_0, args.n_initialize)
-    p_filter.prune_hack(relaxed_x, 1.5 * args.initial_dx)
+    p_filter.prune_hack(relaxed_x, 1.25 * args.initial_dx)
 
     # Run filter on y_q
     transition = 60
-    p_filter.forward(y_q, 0, transition, gamma, clouds)
+    scale = 1.0
+    scale = p_filter.forward(y_q, 0, transition, gamma, scale, clouds)
     epsilon_max = args.epsilon_min * args.epsilon_ratio
     p_filter.change_epsilon_stretch(args.epsilon_min, epsilon_max, stretch)
     for t_start in range(transition, len(y_q), 5):
         if cloud_marks[t_start]:
-            p_filter.forward(y_q, t_start, t_start + 5, gamma, clouds)
+            scale = p_filter.forward(y_q, t_start, t_start + 5, gamma, scale,
+                                     clouds)
         else:
-            p_filter.forward(y_q, t_start, t_start + 5, gamma)
+            scale = p_filter.forward(y_q, t_start, t_start + 5, gamma, scale)
+        if len(p_filter.particles) == 0:
+            break
 
     # Write results
 

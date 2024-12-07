@@ -171,6 +171,7 @@ class Particle:
         Args:
             n_divide: number of new particles
             U, S, VT: Singular value decomposition of self.box
+            stretch: Stretch daughter boxes this much to avoid gaps
         """
         assert n_divide > 0
         S[0] /= (n_divide / stretch)
@@ -178,10 +179,10 @@ class Particle:
         x_step = U[:, 0] * S[0] * VT[0, 0]
         new_weight = self.weight / n_divide
 
-        back_up = int(n_divide/2)
+        back_up = int(n_divide / 2)
         result = [
             Particle(self.x + i * x_step, new_box, new_weight, self.parent,
-                     x_step) for i in range(-back_up, n_divide-back_up)
+                     x_step) for i in range(-back_up, n_divide - back_up)
         ]
         return result
 
@@ -201,7 +202,8 @@ class Filter:
 
     """
 
-    def __init__(self: Filter, epsilon_min, epsilon_max, bins, time_step, atol, stretch):
+    def __init__(self: Filter, epsilon_min, epsilon_max, bins, time_step, atol,
+                 stretch):
         self.epsilon_min = epsilon_min
         self.epsilon_max = epsilon_max
         self.bins = bins
@@ -210,7 +212,8 @@ class Filter:
         self.particles = []
         self.stretch = stretch
 
-    def change_epsilon_stretch(self: Filter, new_min: float, new_max: float, new_stretch):
+    def change_epsilon_stretch(self: Filter, new_min: float, new_max: float,
+                               new_stretch):
         """Change particle box sizes.
         
         Args:
@@ -255,23 +258,25 @@ class Filter:
         ]
         self.normalize()
 
-    def forecast_x(self: Filter, time: float):
+    def forecast_x(self: Filter, time: float, scale):
         """Map each particle forward by time.  If the largest singular
         value S[0] > epsilon_max, subdivide the particle.
 
         Args:
             time: Map via integrating Lorenz for this time step.
+            scale: 
 
         """
         new_particles = []
         for particle in self.particles:
             particle.step(time, self.atol)
             U, S, VT = numpy.linalg.svd(particle.box)
-            if S[0] < self.epsilon_max:
+            if S[0] < self.epsilon_max * scale:
                 new_particles.append(particle)
             else:
                 new_particles.extend(
-                    particle.divide(int(S[0] / self.epsilon_min), U, S, VT, self.stretch))
+                    particle.divide(int(S[0] / (self.epsilon_min * scale)), U,
+                                    S, VT, self.stretch))
         self.particles = new_particles
 
     def update(self: Filter, y: int):
@@ -282,17 +287,20 @@ class Filter:
         """
         # FixMe: I hope changes here will fix particle exhaustion
         new_particles = []
-        margin = self.epsilon_min
+        margin = 0  # self.epsilon_min
+
         def zero():
             upper = self.bins[0] + margin
             for particle in self.particles:
                 if particle.x[0] < upper:
                     new_particles.append(particle)
+
         def top():
             lower = self.bins[-1] - margin
             for particle in self.particles:
                 if particle.x[0] > lower:
                     new_particles.append(particle)
+
         if y == 0:
             zero()
         elif y == len(self.bins):
@@ -336,6 +344,7 @@ class Filter:
                 t_start,
                 t_stop,
                 gamma,
+                scale,
                 clouds=None):
         """Estimate and assign gamma[t] = p(y[t] | y[0:t]) for t from t_start to t_stop.
 
@@ -349,8 +358,8 @@ class Filter:
         """
         for t in range(t_start, t_stop):
             y = y_ts[t]
-            print(f'{t=} {len(self.particles)=}')
-            assert len(self.particles) < 1e7
+            print(f'y[{t}]={y} {len(self.particles)=} {scale=}')
+            assert len(self.particles) < 1e6
 
             self.normalize()
             gamma[t] = self.p_y()[y]
@@ -361,7 +370,12 @@ class Filter:
                 return
             if clouds is not None:
                 clouds[(t, 'update')] = copy.deepcopy(self.particles)
-            self.forecast_x(self.time_step)
+            #if len(self.particles) > 10000 and scale * self.epsilon_max < 2.0:
+            # scale *= 5
+            #if len(self.particles) < 1000:
+            # scale /= 5
+            self.forecast_x(self.time_step, scale)  # Calls divide
+        return scale
 
     def prune_hack(self: Filter, x_initial: numpy.ndarray, radius: float):
         """Retain only particles within distance "radius" of "x_initial
