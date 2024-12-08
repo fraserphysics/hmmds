@@ -10,7 +10,7 @@ import pickle
 
 import numpy
 import matplotlib
-from matplotlib.colors import TABLEAU_COLORS as color_dict
+import matplotlib.colors
 
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as pyplot
@@ -78,25 +78,33 @@ def main(argv=None):
 
     with open(args.input, 'rb') as file_:
         dict_in = pickle.load(file_)
-
-    figure, axeses = pyplot.subplots(nrows=5, ncols=3, figsize=(5, 9))
     y_q = dict_in['y_q']
     x_all = dict_in['x_all']
-    colors = list(color_dict.values())
+    clouds = dict_in['clouds']
+
+    colors = list(matplotlib.colors.TABLEAU_COLORS.values())
+    figure, axeses = pyplot.subplots(nrows=5,
+                                     ncols=3,
+                                     figsize=(5, 9),
+                                     sharex='row',
+                                     sharey='row')
+
     for i in range(args.start, args.start + 5):
-        if (i, 'forecast') not in dict_in['clouds']:
+        if (i, 'forecast') not in clouds:
             continue
-        forecast = dict_in['clouds'][(i, 'forecast')]
+        forecast = clouds[(i, 'forecast')]
         if (i, 'update') in dict_in['clouds']:
             update = dict_in['clouds'][(i, 'update')]
         else:
             update = []
+
+        # Plot boxes in leftmost column
         axes = axeses[i % 5, 2]
         for particle in update:
             if particle.parent == args.parent:
                 plot_box(axes, particle)
-        axes.set_xticks([])
-        axes.set_yticks([])
+
+        # Plot forecast and update
         for j, cloud in enumerate((forecast, update)):
             if len(cloud) == 0:
                 continue
@@ -104,15 +112,23 @@ def main(argv=None):
             for particle in cloud:
                 color = colors[particle.parent % len(colors)]
                 plot_point(axes, particle.x, color)
-            if j == 0:
+
+            if j == 0:  # Display information about forecast in legend
                 plot_point(axes,
                            cloud[0].x,
                            color,
                            label=f'n={len(cloud)} y[{i}]={y_q[i]}')
-                axes.plot(x_all[i, 0], x_all[i, 2], marker='x')
                 axes.legend(loc='upper right')
+
+            # Mark the "true" state with an x
+            axes.plot(x_all[i, 0], x_all[i, 2], marker='x')
+
             axes.set_xlim(-22, 22)
             axes.set_ylim(0, 50)
+
+        U, S, VT = numpy.linalg.svd(forecast[0].box)
+        print(f'{i} {S=}')
+
     # Print box for forecast in last cloud
     if args.print_box:
         particle = forecast[0]
