@@ -175,8 +175,8 @@ class Particle:
         """
         assert n_divide > 0
         S[0] /= (n_divide / stretch)
-        new_box = U * S
-        x_step = U[:, 0] * S[0] * VT[0, 0]
+        new_box = numpy.dot(U * S, VT)
+        x_step = U[:, 0] * S[0]
         new_weight = self.weight / n_divide
 
         back_up = int(n_divide / 2)
@@ -226,10 +226,7 @@ class Filter:
         self.epsilon_max = new_max
         self.stretch = new_stretch
 
-    def initialize(self: Filter,
-                   initial_x: numpy.ndarray,
-                   n_times: int,
-                   delta=None):
+    def initialize(self: Filter, initial_x: numpy.ndarray, n_times: int, delta: float):
         """Populate self.particles by integrating Lorenz
 
         Args:
@@ -239,6 +236,14 @@ class Filter:
 
         
         """
+        neighbor = numpy.array([delta, 0, 0])
+        self.particles = [
+            Particle(initial_x,
+                     numpy.eye(3) * delta, 1, 0, neighbor)
+        ]
+        self.normalize()
+        assert len(self.particles) > 0
+        return
         if delta is None:
             delta = self.epsilon_max
         x_t = hmmds.synthetic.bounds.lorenz.n_steps(initial_x, n_times,
@@ -246,7 +251,6 @@ class Filter:
         keys, counts = numpy.unique(numpy.around(x_t / delta).astype(int),
                                     return_counts=True,
                                     axis=0)
-        neighbor = numpy.array([delta, 0, 0])
         self.particles = [
             Particle(
                 key * delta,  # Position
@@ -271,7 +275,9 @@ class Filter:
         for particle in self.particles:
             particle.step(time, self.atol)
             U, S, VT = numpy.linalg.svd(particle.box)
+            S += self.atol * 8.0e2
             if S[0] < self.epsilon_max * scale:
+                particle.box = numpy.dot(U * S, VT)
                 new_particles.append(particle)
             else:
                 new_particles.extend(
@@ -387,6 +393,7 @@ class Filter:
         for particle in self.particles:
             if numpy.linalg.norm(particle.x - x_initial) < radius:
                 new_particles.append(particle)
+        assert len(new_particles) > 0
         self.particles = new_particles
 
 

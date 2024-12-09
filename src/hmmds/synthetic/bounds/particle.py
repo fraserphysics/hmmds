@@ -45,7 +45,7 @@ def parse_args(argv):
     parser.add_argument('--time_step', type=float, default=0.05)
     parser.add_argument('--t_relax',
                         type=float,
-                        default=10.0,
+                        default=100.0,
                         help='Time to move to attractor')
     parser.add_argument('--n_initialize',
                         type=int,
@@ -97,7 +97,7 @@ def main(argv=None):
         len(y_q), #
         ( #
             (0,100), #
-            ((int(len(y_q)*.99)), len(y_q)),
+            ((int(len(y_q)*.95)), len(y_q)),
         )
     )
 
@@ -107,11 +107,13 @@ def main(argv=None):
     stretch = 1.25
     p_filter = benettin.Filter(epsilon_min, epsilon_max, bins, args.time_step,
                                args.atol, stretch)
-    p_filter.initialize(x_0, args.n_initialize)
-    p_filter.prune_hack(relaxed_x, 1.25 * args.initial_dx)
+    p_filter.initialize(x_all[0], args.n_initialize, args.initial_dx)
+    assert len(p_filter.particles) > 0
+    p_filter.prune_hack(x_all[0], 1.25 * args.initial_dx)
+    assert len(p_filter.particles) > 0
 
     # Run filter on y_q
-    transition = 60
+    transition = min(60, len(y_q))
     scale = 1.0
     scale = p_filter.forward(y_q, 0, transition, gamma, scale, clouds)
     epsilon_max = args.epsilon_min * args.epsilon_ratio
