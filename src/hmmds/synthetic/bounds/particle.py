@@ -25,10 +25,6 @@ def parse_args(argv):
                         type=float,
                         default=0.25,
                         help='Minimum length of box edges')
-    parser.add_argument('--initial_dx',
-                        type=float,
-                        default=0.25,
-                        help='Cell size for initialization')
     parser.add_argument(
         '--epsilon_ratio',
         type=float,
@@ -47,10 +43,6 @@ def parse_args(argv):
                         type=float,
                         default=100.0,
                         help='Time to move to attractor')
-    parser.add_argument('--n_initialize',
-                        type=int,
-                        default=100000,
-                        help='Number of time steps for initial particles')
     parser.add_argument('--atol',
                         type=float,
                         default=1e-7,
@@ -77,10 +69,22 @@ def main(argv=None):
 
     assert args.n_y % 5 == 0
     # Relax to a point near the attractor
-    relaxed_x = benettin.relax(args, numpy.ones(3))[0]
+    x_0 = benettin.relax(args, numpy.ones(3))[0]
 
-    # Generate quantized data y_q and x_0 for filter
-    x_all = lorenz.n_steps(relaxed_x, args.n_y, args.time_step, atol=args.atol)
+    # Generate quantized data y_q and x_0 for filter.  Use
+    # lorenz.integrate_tangent instead of lorenz.n_steps because
+    # results from n_steps and integrate_tangent diverge from each
+    # other too fast for filtering with integrate_tangent on data from
+    # n_steps to work.
+    x_list = [x_0]
+    tangent = numpy.eye(3) * args.epsilon_min
+    for n in range(args.n_y - 1):
+        x_0, _ = lorenz.integrate_tangent(args.time_step,
+                                          x_0,
+                                          tangent,
+                                          atol=args.atol)
+        x_list.append(x_0)
+    x_all = numpy.asarray(x_list)
     assert x_all.shape == (args.n_y, 3)
     bins = numpy.linspace(-20, 20, args.n_quantized + 1)[1:-1]
     y_q = numpy.digitize(x_all[:, 0], bins)
@@ -93,32 +97,23 @@ def main(argv=None):
         'y_q': y_q,
         'clouds': clouds,
     }
-    cloud_marks = make_marks( #
-        len(y_q), #
-        ( #
-            (0,100), #
-            ((int(len(y_q)*.95)), len(y_q)),
-        )
-    )
+    cloud_marks = make_marks(  #
+        len(y_q),  #
+        (  #
+            (0, len(y_q)),  #
+            # ((int(len(y_q) * .95)), len(y_q)),
+        ))
 
     # Initialize filter
-    epsilon_max = args.initial_dx
-    epsilon_min = epsilon_max / args.epsilon_ratio
     stretch = 1.25
-    p_filter = benettin.Filter(epsilon_min, epsilon_max, bins, args.time_step,
-                               args.atol, stretch)
-    p_filter.initialize(x_all[0], args.n_initialize, args.initial_dx)
-    assert len(p_filter.particles) > 0
-    p_filter.prune_hack(x_all[0], 1.25 * args.initial_dx)
-    assert len(p_filter.particles) > 0
+    epsilon_max = args.epsilon_min * args.epsilon_ratio
+    p_filter = benettin.Filter(args.epsilon_min, epsilon_max, bins,
+                               args.time_step, args.atol, stretch)
+    p_filter.initialize(x_all[0], epsilon_max)
+    scale = 1.0
 
     # Run filter on y_q
-    transition = min(60, len(y_q))
-    scale = 1.0
-    scale = p_filter.forward(y_q, 0, transition, gamma, scale, clouds)
-    epsilon_max = args.epsilon_min * args.epsilon_ratio
-    p_filter.change_epsilon_stretch(args.epsilon_min, epsilon_max, stretch)
-    for t_start in range(transition, len(y_q), 5):
+    for t_start in range(0, len(y_q), 5):
         if cloud_marks[t_start]:
             scale = p_filter.forward(y_q, t_start, t_start + 5, gamma, scale,
                                      clouds)

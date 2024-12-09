@@ -226,7 +226,7 @@ class Filter:
         self.epsilon_max = new_max
         self.stretch = new_stretch
 
-    def initialize(self: Filter, initial_x: numpy.ndarray, n_times: int, delta: float):
+    def initialize(self: Filter, initial_x: numpy.ndarray, delta: float):
         """Populate self.particles by integrating Lorenz
 
         Args:
@@ -244,23 +244,6 @@ class Filter:
         self.normalize()
         assert len(self.particles) > 0
         return
-        if delta is None:
-            delta = self.epsilon_max
-        x_t = hmmds.synthetic.bounds.lorenz.n_steps(initial_x, n_times,
-                                                    self.time_step, self.atol)
-        keys, counts = numpy.unique(numpy.around(x_t / delta).astype(int),
-                                    return_counts=True,
-                                    axis=0)
-        self.particles = [
-            Particle(
-                key * delta,  # Position
-                numpy.eye(3) * delta,  # Initial box
-                count,  # Number of times occured
-                parent,  # ID for color plot
-                neighbor  # vector to adjacent particle
-            ) for parent, (key, count) in enumerate(zip(keys, counts))
-        ]
-        self.normalize()
 
     def forecast_x(self: Filter, time: float, scale):
         """Map each particle forward by time.  If the largest singular
@@ -275,7 +258,7 @@ class Filter:
         for particle in self.particles:
             particle.step(time, self.atol)
             U, S, VT = numpy.linalg.svd(particle.box)
-            S += self.atol * 8.0e2
+            S += self.epsilon_min * 1.0e-4
             if S[0] < self.epsilon_max * scale:
                 particle.box = numpy.dot(U * S, VT)
                 new_particles.append(particle)
@@ -364,7 +347,7 @@ class Filter:
         """
         for t in range(t_start, t_stop):
             y = y_ts[t]
-            print(f'y[{t}]={y} {len(self.particles)=} {scale=}')
+            print(f'y[{t}]={y} {len(self.particles)=} {scale=:.4f}')
             assert len(self.particles) < 1e6
 
             self.normalize()
@@ -376,25 +359,12 @@ class Filter:
                 return
             if clouds is not None:
                 clouds[(t, 'update')] = copy.deepcopy(self.particles)
-            #if len(self.particles) > 10000 and scale * self.epsilon_max < 2.0:
-            # scale *= 5
-            #if len(self.particles) < 1000:
-            # scale /= 5
+            if len(self.particles) > 2000 and scale * self.epsilon_max < 2.0:
+                scale *= 2
+            if len(self.particles) < 1000:
+                scale /= 5
             self.forecast_x(self.time_step, scale)  # Calls divide
         return scale
-
-    def prune_hack(self: Filter, x_initial: numpy.ndarray, radius: float):
-        """Retain only particles within distance "radius" of "x_initial
-        
-        Use for debugging
-
-        """
-        new_particles = []
-        for particle in self.particles:
-            if numpy.linalg.norm(particle.x - x_initial) < radius:
-                new_particles.append(particle)
-        assert len(new_particles) > 0
-        self.particles = new_particles
 
 
 def noiseless_lyapunov_spectrum(initial_state, args: argparse.Namespace):
