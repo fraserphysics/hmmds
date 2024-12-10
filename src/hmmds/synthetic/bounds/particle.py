@@ -38,6 +38,10 @@ def parse_args(argv):
                         type=int,
                         default=4,
                         help='Cardinality of test observations')
+    parser.add_argument('--sub_steps',
+                        type=int,
+                        default=3,
+                        help='Time steps between observations')
     parser.add_argument('--time_step', type=float, default=0.05)
     parser.add_argument('--t_relax',
                         type=float,
@@ -79,10 +83,11 @@ def main(argv=None):
     x_list = [x_0]
     tangent = numpy.eye(3) * args.epsilon_min
     for n in range(args.n_y - 1):
-        x_0, _ = lorenz.integrate_tangent(args.time_step,
-                                          x_0,
-                                          tangent,
-                                          atol=args.atol)
+        for _ in range(args.sub_steps):
+            x_0, _ = lorenz.integrate_tangent(args.time_step,
+                                              x_0,
+                                              tangent,
+                                              atol=args.atol)
         x_list.append(x_0)
     x_all = numpy.asarray(x_list)
     assert x_all.shape == (args.n_y, 3)
@@ -108,7 +113,8 @@ def main(argv=None):
     stretch = 1.25
     epsilon_max = args.epsilon_min * args.epsilon_ratio
     p_filter = benettin.Filter(args.epsilon_min, epsilon_max, bins,
-                               args.time_step, args.atol, stretch)
+                               args.time_step, args.sub_steps, args.atol,
+                               stretch)
     p_filter.initialize(x_all[0], epsilon_max)
     scale = 1.0
 

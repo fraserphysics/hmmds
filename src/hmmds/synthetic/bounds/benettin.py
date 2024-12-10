@@ -135,7 +135,6 @@ class Particle:
         box: 3x3 derivative matrix
         weight: Scalar
         parent: For visualizing ancestry
-        neighbor: Vector to neighbor
 
     One corner of the box is at x.  Other corners are given by x +
     box.
@@ -143,12 +142,11 @@ class Particle:
     """
 
     # pylint: disable=invalid-name
-    def __init__(self: Particle, x, box, weight, parent, neighbor):
+    def __init__(self: Particle, x, box, weight, parent):
         self.x = x
         self.box = box
         self.weight = weight
         self.parent = parent
-        self.neighbor = neighbor
 
     def step(self: Particle, time, atol):
         """Map the box forward by the interval "time"
@@ -157,13 +155,9 @@ class Particle:
             time: The amount of time
             atol: Integration absolute error tolerance
         """
-        pre_neighbor = numpy.linalg.lstsq(self.box, self.neighbor,
-                                          rcond=1e-6)[0]
         self.x, self.box = hmmds.synthetic.bounds.lorenz.integrate_tangent(
             time, self.x, self.box, atol=atol)
-        self.neighbor = numpy.dot(self.box, pre_neighbor)
         assert self.box.shape == (3, 3)
-        assert self.neighbor.shape == (3,)
 
     def divide(self: Particle, n_divide, U, S, VT, stretch=1.0):
         """Divide self into n_divide new particles along S_0 direction
@@ -181,8 +175,12 @@ class Particle:
 
         back_up = int(n_divide / 2)
         result = [
-            Particle(self.x + i * x_step, new_box, new_weight, self.parent,
-                     x_step) for i in range(-back_up, n_divide - back_up)
+            Particle(
+                self.x + i * x_step,  #
+                new_box,  #
+                new_weight,  #
+                self.parent,  #
+            ) for i in range(-back_up, n_divide - back_up)
         ]
         return result
 
@@ -197,53 +195,57 @@ class Filter:
         n_min: Minimum number of particles
         bins: Quatization boundaries for observations
         time_step: Integrate Lorenz this interval between samples
+        sub_steps: Number of time steps between observations
         atol: Absolute error tolerance for integrator
     
 
+    The three values: stretch, s_augment, and scale militate against
+    particle exhaustion.
+
+    stretch: Multiply the largest singular value of box by this value
+        before division in Particle.divide.  Stretching militates
+        against gaps between descendants of adjacent particles.
+
+    s_augment: Add this value to each singular value in
+        Filter.forecast_x.  Augmentation prevents collapse of smallest
+        edge of boxes and spreads particles in the contracting
+        direction.
+
+    scale: Multiply epsilon_min and epsilon_max by this value in
+        Filter.forecast_x.  Smaller scale -> more numerous, smaller
+        boxes.
+
     """
 
-    def __init__(self: Filter, epsilon_min, epsilon_max, bins, time_step, atol,
-                 stretch):
+    def __init__(self: Filter, epsilon_min, epsilon_max, bins, time_step,
+                 sub_steps, atol, stretch):
         self.epsilon_min = epsilon_min
         self.epsilon_max = epsilon_max
         self.bins = bins
         self.time_step = time_step
+        self.sub_steps = sub_steps
         self.atol = atol
         self.particles = []
         self.stretch = stretch
-
-    def change_epsilon_stretch(self: Filter, new_min: float, new_max: float,
-                               new_stretch):
-        """Change particle box sizes.
-        
-        Args:
-            new_min:
-            new_max
-            new_stretch
-
-        """
-        self.epsilon_min = new_min
-        self.epsilon_max = new_max
-        self.stretch = new_stretch
+        self.s_augment = epsilon_min * 2.0e-3
 
     def initialize(self: Filter, initial_x: numpy.ndarray, delta: float):
-        """Populate self.particles by integrating Lorenz
+        """Populate self.particles
 
         Args:
             initial_x: Integrate this 3-vector n_times for initial distribution
-            n_times: Number of time steps
             delta: Length of edges of initial particles
 
         
         """
-        neighbor = numpy.array([delta, 0, 0])
+        parent = 0
+        weight = 1.0
         self.particles = [
             Particle(initial_x,
-                     numpy.eye(3) * delta, 1, 0, neighbor)
+                     numpy.eye(3) * delta, weight, parent)
         ]
         self.normalize()
         assert len(self.particles) > 0
-        return
 
     def forecast_x(self: Filter, time: float, scale):
         """Map each particle forward by time.  If the largest singular
@@ -251,14 +253,16 @@ class Filter:
 
         Args:
             time: Map via integrating Lorenz for this time step.
-            scale: 
+            scale: Multiplier of epsilon_min and epsilon_max
 
         """
         new_particles = []
         for particle in self.particles:
             particle.step(time, self.atol)
             U, S, VT = numpy.linalg.svd(particle.box)
-            S += self.epsilon_min * 1.0e-4
+            # Augment S to spread cloud and prevent particle
+            # exhaustion.
+            S += self.s_augment
             if S[0] < self.epsilon_max * scale:
                 particle.box = numpy.dot(U * S, VT)
                 new_particles.append(particle)
@@ -276,7 +280,7 @@ class Filter:
         """
         # FixMe: I hope changes here will fix particle exhaustion
         new_particles = []
-        margin = 0  # self.epsilon_min
+        margin = 0
 
         def zero():
             upper = self.bins[0] + margin
@@ -356,14 +360,15 @@ class Filter:
                 clouds[(t, 'forecast')] = copy.deepcopy(self.particles)
             self.update(y)
             if len(self.particles) == 0:
-                return
+                return scale
             if clouds is not None:
                 clouds[(t, 'update')] = copy.deepcopy(self.particles)
             if len(self.particles) > 2000 and scale * self.epsilon_max < 2.0:
                 scale *= 2
             if len(self.particles) < 1000:
                 scale /= 5
-            self.forecast_x(self.time_step, scale)  # Calls divide
+            for _ in range(self.sub_steps):
+                self.forecast_x(self.time_step, scale)  # Calls divide
         return scale
 
 

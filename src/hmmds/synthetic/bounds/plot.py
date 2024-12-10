@@ -39,7 +39,6 @@ def parse_args(argv):
 def plot_box(axes, particle):
     colors = 'red green blue'.split()
     x = particle.x
-    neighbor = x + particle.neighbor
 
     def plot_line(i):
         end = x + particle.box[:, i]
@@ -48,9 +47,6 @@ def plot_box(axes, particle):
     for i in range(3):
         plot_line(i)
 
-    axes.plot((x[0], neighbor[0]), (x[2], neighbor[2]),
-              color='black',
-              linestyle='dotted')
     axes.plot(x[0],
               x[2],
               markeredgecolor='none',
@@ -167,7 +163,6 @@ def main(argv=None):
     # Print box for closest
     if args.print_box:
         print(f'box=\n{closest.box}')
-        print(f'neighbor={closest.neighbor.T}')
         print(f'{closest.parent=}')
     pyplot.show()
     return 0
