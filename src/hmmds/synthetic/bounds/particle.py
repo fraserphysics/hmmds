@@ -21,19 +21,22 @@ def parse_args(argv):
     """
     parser = argparse.ArgumentParser(
         description='Apply particle filter to Lorenz data')
-    parser.add_argument('--epsilon_min',
+    parser.add_argument('--epsilon_max',
                         type=float,
-                        default=0.25,
-                        help='Minimum length of box edges')
-    parser.add_argument(
-        '--epsilon_ratio',
-        type=float,
-        default=5,
-        help='Maximum length of box edges = ratio * epsilon_min')
+                        default=1.0,
+                        help='Maximum length of box edges')
+    parser.add_argument('--epsilon_ratio',
+                        type=float,
+                        default=3,
+                        help='Minimum length of box edges = epsilon_max/ratio')
     parser.add_argument('--n_y',
                         type=int,
                         default=1000,
                         help='Number of test observations')
+    parser.add_argument('--n_initialize',
+                        type=int,
+                        default=100000,
+                        help='Number simulated points to cover attractor')
     parser.add_argument('--n_quantized',
                         type=int,
                         default=4,
@@ -55,12 +58,97 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def make_marks(n_y, cloud_intervals):
-    """"""
+def make_marks(n_y: int, cloud_intervals: list) -> numpy.ndarray:
+    """Create an array to determine which time steps are stored as clouds
+
+    Args:
+        n_y: Length of observation sequence
+        cloud_intervals: List of (start,stop) pairs
+
+    """
     cloud_marks = numpy.zeros(n_y, dtype=bool)
     for start, stop in cloud_intervals:
         cloud_marks[start:stop] = True
     return cloud_marks
+
+
+def make_data(args):
+    """Generate quantized data y_q and bins for filter.  Also return
+    vector data x_all for debugging.  Use lorenz.integrate_tangent
+    instead of lorenz.n_steps because results from n_steps and
+    integrate_tangent diverge from each other too fast for filtering
+    with integrate_tangent on data from n_steps to work.
+
+    """
+
+    # Relax to a point near the attractor
+    x_0 = benettin.relax(args, numpy.ones(3))[0]
+    x_list = []
+    tangent = numpy.eye(3)
+    for _ in range(args.n_y + args.n_initialize):
+        for __ in range(args.sub_steps):
+            x_0, ___ = lorenz.integrate_tangent(args.time_step,
+                                                x_0,
+                                                tangent,
+                                                atol=args.atol)
+        x_list.append(x_0)
+    x_all = numpy.asarray(x_list)
+    assert x_all.shape == (args.n_y + args.n_initialize, 3)
+    bins = numpy.linspace(-20, 20, args.n_quantized + 1)[1:-1]
+    y_q = numpy.digitize(x_all[:, 0], bins)
+    return y_q, x_all, bins
+
+
+def initialize(args, y_data, y_reference, x_reference, bins, x_0=None):
+    """Create a particle filter (Filter instance)
+
+    Args:
+        args:
+        y_data: Simulated observations
+        y_reference: Other simulated observations for matching
+        x_reference: Simulated state sequence
+        bins: For mapping x -> y
+        x_0: Initial true state that generated y_data
+
+    If an x_0 vector is not passed, one is estimated by searching
+    y_reference for a match to the first part of y_data.
+
+    """
+
+    def find_best(y_data: numpy.ndarray, y_reference: numpy.ndarray):
+        """Find start and length of longest sequence in y_reference
+        that matches the beginning of y_data.
+
+        Args:
+            y_data: Sequence of simulated integer observations
+            y_reference: Different sequence of simulated integer observations
+        """
+        best = (0, 0)  # (start, length)
+        counters = {}
+        for n, y in enumerate(y_reference):
+            for start, count in list(counters.items()):
+                if y_data[count] == y:
+                    counters[start] += 1
+                    if counters[start] > best[1]:
+                        best = (start, counters[start])
+                    if counters[start] == len(y_data):  # Match of all y_data
+                        return best
+                else:
+                    del counters[start]
+            if y == y_data[0]:
+                counters[n] = 1
+        return best
+
+    epsilon_max = args.epsilon_max
+    epsilon_min = epsilon_max / args.epsilon_ratio
+    stretch = 1.0
+    p_filter = benettin.Filter(epsilon_min, epsilon_max, bins, args.time_step,
+                               args.sub_steps, args.atol, stretch)
+    if x_0 is None:
+        x_0 = x_reference[find_best(y_data, y_reference)[0]]
+
+    p_filter.initialize(x_0, epsilon_max)
+    return p_filter
 
 
 def main(argv=None):
@@ -72,29 +160,13 @@ def main(argv=None):
     args = parse_args(argv)
 
     assert args.n_y % 5 == 0
-    # Relax to a point near the attractor
-    x_0 = benettin.relax(args, numpy.ones(3))[0]
 
-    # Generate quantized data y_q and x_0 for filter.  Use
-    # lorenz.integrate_tangent instead of lorenz.n_steps because
-    # results from n_steps and integrate_tangent diverge from each
-    # other too fast for filtering with integrate_tangent on data from
-    # n_steps to work.
-    x_list = [x_0]
-    tangent = numpy.eye(3) * args.epsilon_min
-    for n in range(args.n_y - 1):
-        for _ in range(args.sub_steps):
-            x_0, _ = lorenz.integrate_tangent(args.time_step,
-                                              x_0,
-                                              tangent,
-                                              atol=args.atol)
-        x_list.append(x_0)
-    x_all = numpy.asarray(x_list)
-    assert x_all.shape == (args.n_y, 3)
-    bins = numpy.linspace(-20, 20, args.n_quantized + 1)[1:-1]
-    y_q = numpy.digitize(x_all[:, 0], bins)
+    y_all, x_all, bins = make_data(args)
+    y_q = y_all[:args.n_y]
+    y_reference = y_all[args.n_y:]
+    p_filter = initialize(args, y_q, y_reference, x_all[args.n_y:], bins,
+                          x_all[0])
     gamma = numpy.zeros(len(y_q))
-    x_0 = x_all[-1]
     clouds = {}
     result = {
         'gamma': gamma,
@@ -105,17 +177,11 @@ def main(argv=None):
     cloud_marks = make_marks(  #
         len(y_q),  #
         (  #
-            (0, len(y_q)),  #
-            # ((int(len(y_q) * .95)), len(y_q)),
+            # (0, len(y_q)),  #
+            (0, 100),  #
+            ((int(len(y_q) * .95)), len(y_q)),
         ))
 
-    # Initialize filter
-    stretch = 1.25
-    epsilon_max = args.epsilon_min * args.epsilon_ratio
-    p_filter = benettin.Filter(args.epsilon_min, epsilon_max, bins,
-                               args.time_step, args.sub_steps, args.atol,
-                               stretch)
-    p_filter.initialize(x_all[0], epsilon_max)
     scale = 1.0
 
     # Run filter on y_q

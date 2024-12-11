@@ -199,17 +199,19 @@ class Filter:
         atol: Absolute error tolerance for integrator
     
 
-    The three values: stretch, s_augment, and scale militate against
-    particle exhaustion.
+    The four values: stretch, s_augment, margin, and scale militate
+    against particle exhaustion.
 
     stretch: Multiply the largest singular value of box by this value
-        before division in Particle.divide.  Stretching militates
-        against gaps between descendants of adjacent particles.
+        before division in Particle.divide.
 
     s_augment: Add this value to each singular value in
         Filter.forecast_x.  Augmentation prevents collapse of smallest
         edge of boxes and spreads particles in the contracting
         direction.
+
+    margin: In update, don't drop particles that are within a fraction
+        of the box size producing the actual observed y value.
 
     scale: Multiply epsilon_min and epsilon_max by this value in
         Filter.forecast_x.  Smaller scale -> more numerous, smaller
@@ -280,18 +282,21 @@ class Filter:
         """
         # FixMe: I hope changes here will fix particle exhaustion
         new_particles = []
-        margin = 0
+        margin = 0.5
 
         def zero():
-            upper = self.bins[0] + margin
+            upper = self.bins[0]
             for particle in self.particles:
-                if particle.x[0] < upper:
+                # box_0 is the total length in the 0 direction
+                box_0 = numpy.abs(particle.box[0, :]).sum()
+                if particle.x[0] < upper + margin * box_0:
                     new_particles.append(particle)
 
         def top():
-            lower = self.bins[-1] - margin
+            lower = self.bins[-1]
             for particle in self.particles:
-                if particle.x[0] > lower:
+                box_0 = numpy.abs(particle.box[0, :]).sum()
+                if particle.x[0] > lower - margin * box_0:
                     new_particles.append(particle)
 
         if y == 0:
@@ -299,10 +304,12 @@ class Filter:
         elif y == len(self.bins):
             top()
         else:
-            lower = self.bins[y - 1] - margin
-            upper = self.bins[y] + margin
+            lower = self.bins[y - 1]
+            upper = self.bins[y]
             for particle in self.particles:
-                if lower < particle.x[0] < upper:
+                box_0 = numpy.abs(particle.box[0, :]).sum()
+                if lower - margin * box_0 < particle.x[
+                        0] < upper + margin * box_0:
                     new_particles.append(particle)
         if len(self.particles) > 0 and len(new_particles) == 0:
             # Print error diagnostics
@@ -363,10 +370,10 @@ class Filter:
                 return scale
             if clouds is not None:
                 clouds[(t, 'update')] = copy.deepcopy(self.particles)
-            if len(self.particles) > 2000 and scale * self.epsilon_max < 2.0:
-                scale *= 2
+            if len(self.particles) > 1000 and scale * self.epsilon_max < 2.0:
+                scale *= 1.5
             if len(self.particles) < 1000:
-                scale /= 5
+                scale /= 2.25
             for _ in range(self.sub_steps):
                 self.forecast_x(self.time_step, scale)  # Calls divide
         return scale
