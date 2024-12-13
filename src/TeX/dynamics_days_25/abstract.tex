@@ -1,0 +1,69 @@
+% Abstract for Dynamics Days US.  January 2025 in Denver
+
+% Copyright 2021, 2024 Andrew M. Fraser.
+\documentclass{article}
+\usepackage{amsmath, amsfonts}
+\newcommand{\parameters}{\theta}
+\newcommand{\parametersPrime}{\theta'}
+\newcommand{\Normal}{{\mathcal{N}}}
+\newcommand{\qmle}{Q_{\mathtt{MLE}}(\parametersPrime, \parameters)}
+\newcommand{\qmap}{Q_{\mathtt{MAP}}(\parametersPrime, \parameters)}
+
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\INTEGER}{\field{Z}}
+\newcommand{\REAL}{\field{R}}
+\newcommand{\COMPLEX}{\field{C}}
+\newcommand{\EV}{\field{E}}
+
+\begin{document}
+\subsection*{Thoughts}
+\label{thoughts}
+
+The submission site, https://www.ddays.org/2025/pages/abstract.html,
+has a limit of 2,000 characters and suggests LaTeX.  I will cut and
+past the next subsection.
+
+\subsection*{Entropy, Cross Entropy, and Data Assimilation}
+\label{sec:entropy}
+
+I use estimates of cross entropy, $h_{\phi,\theta}$, to compare the
+fidelity of a few data assimilation techniques, eg, hidden Markov
+models, extended Kalman filters, and particle filters, for modeling
+time series from simulations of the Lorenz system.
+
+If the set of probability functions
+$\left\{P_{Y[0:t]|\phi} \forall t \in Z+ \right\}$ characterizes a
+\emph{true} stochastic process, then for sequences $y[0:t]$ drawn from
+the process the estimates,
+\begin{equation*}
+  \hat h(\phi, y[0:t]) \equiv -\frac{1}{t} \log \left( P(y[0:t]|\phi ) \right),
+\end{equation*}
+almost surely converge to the entropy rate $h_\phi$.
+
+Similarly, for a different set of probability functions
+$\left\{P_{Y[0:t]|\theta} \forall t \in Z+ \right\}$ and sequences
+$y[0:t]$ drawn from the true process characterized by $\phi$, the
+estimates,
+\begin{equation}
+  \label{eq:cross_hat}
+  \hat h(\theta, y[0:t]) \equiv -\frac{1}{t} \log \left( P(y[0:t]|\theta ) \right),
+\end{equation}
+almost surely converge to the cross entropy rate,
+\begin{equation*}
+  h_{\phi,\theta} \equiv \lim_{t \rightarrow \infty} -\frac{1}{t}
+  \mathbb{E}_{\phi} \log\left( P(Y[0:t]) \right).
+\end{equation*}
+I use various data simulation techniques to obtain probability
+functions $P_\theta$, and use \eqref{eq:cross_hat} to estimate their
+cross entropies $h_{\phi,\theta}$.
+
+The true entropy is a lower bound on the cross entropy,
+$h_\phi \leq h_{\phi,\theta}$, and I use Benettin's procedure for
+calculating Lyapunov exponents numerically to estimate $h_\phi$.  Then
+I use the difference, $h_{\phi,\theta} - h_\phi$ to quantify fidelity.
+
+While these are old ideas, years of improving hardware and software
+tools have made desktop implementations feasible.  I talk about those
+improvements and quantitative characterizations of that progress.
+
+\end{document}
