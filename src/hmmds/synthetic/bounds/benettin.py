@@ -134,19 +134,16 @@ class Particle:
         x: 3-vector position
         box: 3x3 derivative matrix
         weight: Scalar
-        parent: For visualizing ancestry
 
-    One corner of the box is at x.  Other corners are given by x +
-    box.
+    The corners are given by x +/- box/2.
 
     """
 
     # pylint: disable=invalid-name
-    def __init__(self: Particle, x, box, weight, parent):
+    def __init__(self: Particle, x, box, weight):
         self.x = x
         self.box = box
         self.weight = weight
-        self.parent = parent
 
     def step(self: Particle, time, atol):
         """Map the box forward by the interval "time"
@@ -179,10 +176,22 @@ class Particle:
                 self.x + i * x_step,  #
                 new_box,  #
                 new_weight,  #
-                self.parent,  #
             ) for i in range(-back_up, n_divide - back_up)
         ]
         return result
+
+    def resample(self: Particle, rescale: float, weight=1.0, rng=None):
+        """Return a new box sampled from self
+
+        Args:
+            rescale: New box = old box * rescale
+            weight: Weight of new box
+            rng: numpy.random.Generator
+        """
+        # For now simply return copy of self with rescaled box.  In
+        # the future I may want to draw new x from a uniform
+        # distribution in self.box
+        return Particle(self.x, self.box * rescale, weight)
 
 
 class Filter:
@@ -199,7 +208,7 @@ class Filter:
         atol: Absolute error tolerance for integrator
     
 
-    The four values: stretch, s_augment, margin, and scale militate
+    The four values: stretch, s_augment, and margin militate
     against particle exhaustion.
 
     stretch: Multiply the largest singular value of box by this value
@@ -213,14 +222,10 @@ class Filter:
     margin: In update, don't drop particles that are within a fraction
         of the box size producing the actual observed y value.
 
-    scale: Multiply epsilon_min and epsilon_max by this value in
-        Filter.forecast_x.  Smaller scale -> more numerous, smaller
-        boxes.
-
     """
 
     def __init__(self: Filter, epsilon_min, epsilon_max, bins, time_step,
-                 sub_steps, atol, stretch):
+                 sub_steps, atol, stretch, rng):
         self.epsilon_min = epsilon_min
         self.epsilon_max = epsilon_max
         self.bins = bins
@@ -229,7 +234,8 @@ class Filter:
         self.atol = atol
         self.particles = []
         self.stretch = stretch
-        self.s_augment = epsilon_min * 2.0e-3
+        self.s_augment = epsilon_min * 1.0e-2
+        self.rng = rng
 
     def initialize(self: Filter, initial_x: numpy.ndarray, delta: float):
         """Populate self.particles
@@ -240,22 +246,17 @@ class Filter:
 
         
         """
-        parent = 0
         weight = 1.0
-        self.particles = [
-            Particle(initial_x,
-                     numpy.eye(3) * delta, weight, parent)
-        ]
+        self.particles = [Particle(initial_x, numpy.eye(3) * delta, weight)]
         self.normalize()
         assert len(self.particles) > 0
 
-    def forecast_x(self: Filter, time: float, scale):
+    def forecast_x(self: Filter, time: float):
         """Map each particle forward by time.  If the largest singular
         value S[0] > epsilon_max, subdivide the particle.
 
         Args:
             time: Map via integrating Lorenz for this time step.
-            scale: Multiplier of epsilon_min and epsilon_max
 
         """
         new_particles = []
@@ -265,13 +266,29 @@ class Filter:
             # Augment S to spread cloud and prevent particle
             # exhaustion.
             S += self.s_augment
-            if S[0] < self.epsilon_max * scale:
+            if S[0] < self.epsilon_max:
                 particle.box = numpy.dot(U * S, VT)
                 new_particles.append(particle)
             else:
                 new_particles.extend(
-                    particle.divide(int(S[0] / (self.epsilon_min * scale)), U,
-                                    S, VT, self.stretch))
+                    particle.divide(int(S[0] / (self.epsilon_min)), U, S, VT,
+                                    self.stretch))
+        self.particles = new_particles
+
+    def resample(self: Filter, n: int, rescale=1.0):
+        """Draw n new particles from distribution implied by self.particles
+
+        Args:
+            n: Number of new particles
+            rescale: New boxes = old boxes * rescale
+
+        """
+        cdf = numpy.cumsum(
+            numpy.asarray([particle.weight for particle in self.particles]))
+        cdf /= cdf[-1]
+        new_particles = []
+        for index in numpy.searchsorted(cdf, self.rng.uniform(size=n)):
+            new_particles.append(self.particles[index].resample(rescale))
         self.particles = new_particles
 
     def update(self: Filter, y: int):
@@ -282,7 +299,7 @@ class Filter:
         """
         # FixMe: I hope changes here will fix particle exhaustion
         new_particles = []
-        margin = 0.5
+        margin = 0.0
 
         def zero():
             upper = self.bins[0]
@@ -312,11 +329,6 @@ class Filter:
                         0] < upper + margin * box_0:
                     new_particles.append(particle)
         if len(self.particles) > 0 and len(new_particles) == 0:
-            # Print error diagnostics
-            for parent, count in zip(*numpy.unique(numpy.array(
-                [particle.parent for particle in self.particles]),
-                                                   return_counts=True)):
-                print(f'{parent=} {count=}')
             print(f'In update {len(self.particles)=} {len(new_particles)=}')
         self.particles = new_particles
 
@@ -344,7 +356,6 @@ class Filter:
                 t_start,
                 t_stop,
                 gamma,
-                scale,
                 clouds=None):
         """Estimate and assign gamma[t] = p(y[t] | y[0:t]) for t from t_start to t_stop.
 
@@ -358,7 +369,7 @@ class Filter:
         """
         for t in range(t_start, t_stop):
             y = y_ts[t]
-            print(f'y[{t}]={y} {len(self.particles)=} {scale=:.4f}')
+            print(f'y[{t}]={y} {len(self.particles)=}')
             assert len(self.particles) < 1e6
 
             self.normalize()
@@ -367,16 +378,18 @@ class Filter:
                 clouds[(t, 'forecast')] = copy.deepcopy(self.particles)
             self.update(y)
             if len(self.particles) == 0:
-                return scale
+                return
             if clouds is not None:
                 clouds[(t, 'update')] = copy.deepcopy(self.particles)
-            if len(self.particles) > 1000 and scale * self.epsilon_max < 2.0:
-                scale *= 1.5
-            if len(self.particles) < 1000:
-                scale /= 2.25
             for _ in range(self.sub_steps):
-                self.forecast_x(self.time_step, scale)  # Calls divide
-        return scale
+                self.forecast_x(self.time_step)  # Calls divide
+                length = len(self.particles)
+                if length > 50000:
+                    self.resample(5000)
+                    print(
+                        f'resampled from {length} particles to {len(self.particles)=}'
+                    )
+        return
 
 
 def noiseless_lyapunov_spectrum(initial_state, args: argparse.Namespace):

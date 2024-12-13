@@ -23,7 +23,7 @@ def parse_args(argv):
         description='Apply particle filter to Lorenz data')
     parser.add_argument('--epsilon_max',
                         type=float,
-                        default=1.0,
+                        default=5.0,
                         help='Maximum length of box edges')
     parser.add_argument('--epsilon_ratio',
                         type=float,
@@ -54,6 +54,10 @@ def parse_args(argv):
                         type=float,
                         default=1e-7,
                         help='Absolute error tolerance for integrator')
+    parser.add_argument('--random_seed',
+                        type=int,
+                        default=7,
+                        help='For random number generator')
     parser.add_argument('result', type=str, help='write result to this path')
     return parser.parse_args(argv)
 
@@ -74,23 +78,33 @@ def make_marks(n_y: int, cloud_intervals: list) -> numpy.ndarray:
 
 def make_data(args):
     """Generate quantized data y_q and bins for filter.  Also return
-    vector data x_all for debugging.  Use lorenz.integrate_tangent
-    instead of lorenz.n_steps because results from n_steps and
-    integrate_tangent diverge from each other too fast for filtering
-    with integrate_tangent on data from n_steps to work.
+    vector data x_all for debugging.  Don't use lorenz.n_steps because
+    results from n_steps and integrate_tangent diverge from each other
+    too fast for filtering with integrate_tangent on data from n_steps
+    to work.  Instead, generate data by imitating the integration in
+    call stack Filter.forward -> Filter.forecast_x -> Particle.step.
 
     """
 
     # Relax to a point near the attractor
     x_0 = benettin.relax(args, numpy.ones(3))[0]
+
+    epsilon_max = args.epsilon_max
+    epsilon_min = epsilon_max / args.epsilon_ratio
+    tangent = numpy.eye(3) * epsilon_max
+    s_augment = epsilon_min * 1.0e-2
     x_list = []
-    tangent = numpy.eye(3)
     for _ in range(args.n_y + args.n_initialize):
         for __ in range(args.sub_steps):
-            x_0, ___ = lorenz.integrate_tangent(args.time_step,
-                                                x_0,
-                                                tangent,
-                                                atol=args.atol)
+            x_0, tangent = lorenz.integrate_tangent(args.time_step,
+                                                    x_0,
+                                                    tangent,
+                                                    atol=args.atol)
+            U, S, VT = numpy.linalg.svd(tangent)
+            S += s_augment
+            if S[0] > epsilon_max:
+                S[0] /= int(S[0] / epsilon_min)
+            tangent = numpy.dot(U * S, VT)
         x_list.append(x_0)
     x_all = numpy.asarray(x_list)
     assert x_all.shape == (args.n_y + args.n_initialize, 3)
@@ -142,8 +156,9 @@ def initialize(args, y_data, y_reference, x_reference, bins, x_0=None):
     epsilon_max = args.epsilon_max
     epsilon_min = epsilon_max / args.epsilon_ratio
     stretch = 1.0
+    rng = numpy.random.default_rng(args.random_seed)
     p_filter = benettin.Filter(epsilon_min, epsilon_max, bins, args.time_step,
-                               args.sub_steps, args.atol, stretch)
+                               args.sub_steps, args.atol, stretch, rng)
     if x_0 is None:
         x_0 = x_reference[find_best(y_data, y_reference)[0]]
 
@@ -166,7 +181,7 @@ def main(argv=None):
     y_reference = y_all[args.n_y:]
     p_filter = initialize(args, y_q, y_reference, x_all[args.n_y:], bins,
                           x_all[0])
-    gamma = numpy.zeros(len(y_q))
+    gamma = numpy.ones(len(y_q))
     clouds = {}
     result = {
         'gamma': gamma,
@@ -178,19 +193,16 @@ def main(argv=None):
         len(y_q),  #
         (  #
             # (0, len(y_q)),  #
-            (0, 100),  #
-            ((int(len(y_q) * .95)), len(y_q)),
-        ))
-
-    scale = 1.0
+            # (0, 30),  #
+            # (200,400)
+            ((int(len(y_q) * .999)), len(y_q)),))
 
     # Run filter on y_q
     for t_start in range(0, len(y_q), 5):
         if cloud_marks[t_start]:
-            scale = p_filter.forward(y_q, t_start, t_start + 5, gamma, scale,
-                                     clouds)
+            p_filter.forward(y_q, t_start, t_start + 5, gamma, clouds)
         else:
-            scale = p_filter.forward(y_q, t_start, t_start + 5, gamma, scale)
+            p_filter.forward(y_q, t_start, t_start + 5, gamma)
         if len(p_filter.particles) == 0:
             break
 

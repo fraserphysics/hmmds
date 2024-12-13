@@ -11,7 +11,6 @@ import pickle
 import numpy
 import numpy.linalg
 import matplotlib
-import matplotlib.colors
 
 matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as pyplot
@@ -27,10 +26,6 @@ def parse_args(argv):
                         type=int,
                         default=0,
                         help='Plot particles at 5 times starting here')
-    parser.add_argument('--parent',
-                        type=int,
-                        default=-1,
-                        help='Track descendants of parent')
     parser.add_argument('input', type=str, help='Path to data')
     args = parser.parse_args(argv)
     return args
@@ -110,7 +105,6 @@ def main(argv=None):
     x_all = dict_in['x_all']
     clouds = dict_in['clouds']
 
-    colors = list(matplotlib.colors.TABLEAU_COLORS.values())
     figure, axeses = pyplot.subplots(nrows=5, ncols=3, figsize=(5, 9))
 
     for i in range(args.start, args.start + 5):
@@ -135,8 +129,7 @@ def main(argv=None):
             # Mark the "true" state with an x
             axes.plot(x_all[i, 0], x_all[i, 2], marker='x')
             for particle in cloud:
-                color = colors[particle.parent % len(colors)]
-                plot_point(axes, particle.x, color)
+                plot_point(axes, particle.x, 'blue')
 
                 # Plot boxes
                 if len(cloud) > 1:
@@ -163,7 +156,6 @@ def main(argv=None):
     # Print box for closest
     if args.print_box:
         print(f'box=\n{closest.box}')
-        print(f'{closest.parent=}')
     pyplot.show()
     return 0
 
