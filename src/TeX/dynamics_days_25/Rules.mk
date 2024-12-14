@@ -9,13 +9,14 @@
 # This directory
 DD25SRC = $(ROOT)/src/TeX/dynamics_days_25
 
+# Used groups of figures defined for book in TeX/book/Rules.mk
 DD25_FIGS = $(INTRODUCTION_FIGS) \
 $(LASER_FIGS) \
 $(INTRODUCTION_XFIGS) \
-$(BOUNDS_FIGS) \
-$(BOUNDS_XFIGS)
+$(addprefix $(BUILD)/figs/bounds/,  $(addsuffix .pdf, \
+ToyStretch LikeLor particles_a particles_b entropy_particle))
 
-$(BUILD)/TeX/dynamics_days_25/poster.pdf: $(DD25SRC)/poster.tex $(DD25PosterFigs)
+$(BUILD)/TeX/dynamics_days_25/poster.pdf: $(DD25SRC)/poster.tex $(DD25_FIGS)
 	mkdir -p $(@D)
 	export TEXINPUTS=$(DD25SRC)//:$(abspath $(BUILD))//:; \
 latexmk --outdir=$(@D) -pdflatex poster.tex;
