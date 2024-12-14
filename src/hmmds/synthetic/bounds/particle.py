@@ -2,6 +2,14 @@
 
 Call with: python particle.py result_file
 
+Writes a dict to a pickle file with the following keys:
+
+bins
+x_all
+gamma
+y_q
+clouds
+
 """
 
 from __future__ import annotations
@@ -54,6 +62,11 @@ def parse_args(argv):
                         type=float,
                         default=1e-7,
                         help='Absolute error tolerance for integrator')
+    parser.add_argument(
+        '--clouds',
+        type=int,
+        nargs='*',
+        help='each pair defines an interval in which to record the particles')
     parser.add_argument('--random_seed',
                         type=int,
                         default=7,
@@ -62,16 +75,20 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def make_marks(n_y: int, cloud_intervals: list) -> numpy.ndarray:
+def make_marks(intervals: list, n_y: int) -> numpy.ndarray:
     """Create an array to determine which time steps are stored as clouds
 
     Args:
+        intervals: From args.clouds
         n_y: Length of observation sequence
-        cloud_intervals: List of (start,stop) pairs
 
     """
+
     cloud_marks = numpy.zeros(n_y, dtype=bool)
-    for start, stop in cloud_intervals:
+    assert len(intervals) % 2 == 0
+    if len(intervals) == 0:
+        return cloud_marks
+    for start, stop in zip(intervals, intervals[1:]):
         cloud_marks[start:stop] = True
     return cloud_marks
 
@@ -175,6 +192,7 @@ def main(argv=None):
     args = parse_args(argv)
 
     assert args.n_y % 5 == 0
+    cloud_marks = make_marks(args.clouds, args.n_y)
 
     y_all, x_all, bins = make_data(args)
     y_q = y_all[:args.n_y]
@@ -188,14 +206,8 @@ def main(argv=None):
         'x_all': x_all,
         'y_q': y_q,
         'clouds': clouds,
+        'bins': bins
     }
-    cloud_marks = make_marks(  #
-        len(y_q),  #
-        (  #
-            # (0, len(y_q)),  #
-            # (0, 30),  #
-            # (200,400)
-            ((int(len(y_q) * .999)), len(y_q)),))
 
     # Run filter on y_q
     for t_start in range(0, len(y_q), 5):
