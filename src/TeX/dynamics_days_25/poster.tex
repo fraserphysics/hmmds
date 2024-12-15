@@ -2,6 +2,11 @@
 % Documetnation for poster mode at
 % http://www.tex.ac.uk/ctan/macros/latex/contrib/textpos/textpos.pdf
 
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand\REAL{\field{R}}
+\newcommand\INTEGER{\field{Z}}
+\newcommand{\EV}[2]{\field{E}_{#1}\left[#2\right]}
+\newcommand{\argmax}{\operatorname*{argmax}}
 \newcommand{\plotsize}{\tiny} % Size of font in labels
 \documentclass[a0,showboxes]{a0poster}
 %\documentclass[a0]{a0poster}
@@ -52,7 +57,7 @@
 % cells specified above in \TPGrid; the second gives the (x,y)
 % position on the grid, with the y axis pointing down.
 
-\begin{textblock}{12}(0,0) \Title{Entropy, Cross Entropy and Data Assimilation}
+\begin{textblock}{13}(0,0) \Title{Entropy, Cross Entropy and Data Assimilation}
 \end{textblock}
 
 \begin{textblock}{4}(14,0.05)
@@ -61,53 +66,127 @@
 
 \begin{textblock}{5}(0,1.3)
   \LHead{ODE $\rightarrow$ Observations}
-\end{textblock}
-
-\begin{textblock}{5}(0,2.0)
+  \begin{align*}
+    \dot x &= F(x) \\
+    x[0: 10000] &= \text{integrate}(F, 10000) \\
+    \text{bins} &= [-10,0,10] \\
+    y &= G(x) \\
+    y[0:10000] &= \text{digitize}(x[0:10000,0], \text{bins}])
+  \end{align*}
   \resizebox{0.9\textwidth}{!}{\includegraphics{particles_a.pdf}}\\
   \resizebox{0.9\textwidth}{!}{\includegraphics{TSintro.pdf}}
 \end{textblock}
 
-\begin{textblock}{5}(0,8)
-  \LHead{Observations $\rightarrow$ States}
+\begin{textblock}{5}(0,9.5)
+  \LHead{Data Assimilation:\\Observations $\rightarrow$ States $\in \REAL^3$}\\
+  Laser data from Tang and Weiss\\
+  Extended Kalman smoothing for state space trajectory estimate
+  \begin{align*}
+    \hat x &= \argmax_x P(x|y) \\
+  \end{align*}
+  \resizebox{0.8\textwidth}{!}{\includegraphics[width=3cm]{LaserLP5.pdf}}\\
+  \resizebox{0.8\textwidth}{!}{\includegraphics{LaserStates.pdf}}
 \end{textblock}
 
-\begin{textblock}{3}(0,10.0)
-  \resizebox{0.99\textwidth}{!}{\includegraphics[width=3cm]{LaserLP5.pdf}}\\
-  \resizebox{0.7\textwidth}{!}{\includegraphics{LaserStates.pdf}}
-\end{textblock}
-
-\begin{textblock}{5}(6,1.3)
-  \LHead{Data Assimilation}
-\end{textblock}
-
-\begin{textblock}{5}(6,2)
-  \resizebox{0.8\columnwidth}{!}  {\input{Markov_dhmm.pdf_t}}\bigskip
-  
-  \resizebox{0.7\textwidth}{!}{\includegraphics{Statesintro.pdf}}
-\end{textblock}
-
-\begin{textblock}{5}(6,8)
-  \LHead{Variations on a Theme}
-  Put integrals here
+\begin{textblock}{5.5}(6,1.3) %
+  \LHead{Data Assimilation:\\ Observations
+    $\rightarrow$ States $\in
+    \INTEGER$}\\
+  Parameters, $\theta$, of Hidden Markov Model (HMM) with states
+  $s\in\INTEGER$ and observations $y\in\INTEGER$:
   \begin{description}
-  \item[Kalman Filter] 
-  \item[Extended Kalman Filter] 
-  \item[Hidden Markov Model] 
-  \item[Particle Filter] 
+  \item[$P_{S \leftarrow S}$:] State to state transition probabilities
+  \item[$P_{Y \leftarrow S}$:]  Conditional observation probabilities
+  \end{description}
+  Estimation algorithms:
+  \begin{description}
+  \item[Forward Filter:] Conditional probability of states
+    $P(x[t]|y[0:t+1], \theta]$
+  \item[MLE Parameters:] (Forward-Backward, or Baum Welch)
+    \begin{equation*}
+      \hat \theta = \argmax_\theta P(y[0:1000]|\theta)
+    \end{equation*}
+  \item[MAP States:] (Viterbi)
+    \begin{equation*}
+      \hat s[0:1000] = \argmax_{s[0:1000]}P(s[0:1000]|y[1000], \theta)
+    \end{equation*}
+  \end{description}
+  \begin{center}
+    \resizebox{0.6\columnwidth}{!}
+  {\input{Markov_dhmm.pdf_t}}
+  \resizebox{0.7\textwidth}{!}{\includegraphics{Statesintro.pdf}}
+  \end{center}
+\end{textblock}
+
+\begin{textblock}{5.5}(6,12)
+  \LHead{Variations on a Theme}\\
+  \textbf{Forward data assimilation} alternates between \textbf{update} $\&$
+  \textbf{forecast}.\vspace{-1cm}
+  \begin{description}
+  \item[Update:] \parbox{.8\textwidth}{
+    \begin{align*}
+      \alpha(x,t) &\equiv P(X[t]=x|y[0:t+1] \\
+      \alpha(x,t) &\propto a(x,t) P_{Y \leftarrow X}(y[t]|x)
+    \end{align*}
+    One must evaluate $\int \alpha(x,t) dx$ to normalize the update.}
+  \item[Forecast:] \parbox{.8\textwidth}{
+    \begin{align*}
+      a(x,t) &\equiv P(X[t]=x|y[0:t]) \\
+      (x,t) &= \int \alpha(\chi,t-1) P_{X \leftarrow X}(x|\chi) d \chi
+    \end{align*}} \vspace{-1cm}
+  \end{description}
+  \begin{description}
+  \item[Kalman Filter] $P_{X \leftarrow X}$ and $P_{Y \leftarrow X}$
+    are linear with Gaussian residuals.
+  \item[Extended Kalman Filter] Kalman filter for nonlinear functions
+    with local linear approximations.
+  \item[Hidden Markov Model] States and observations are finite sets.
+  \item[Particle Filter] Monte-Carlo for integrals.  Probabilities
+    represented by clouds of points.
   \end{description}
 \end{textblock}
 
 \begin{textblock}{5}(12.0,1.3)
-  \LHead{Entropy}
+  \LHead{Entropy and Lyapunov Exponents}\\
+  \textbf{Entropy} for true model $P_\mu$
+  \begin{equation*}
+    h(\mu) \equiv \lim_{n \rightarrow \infty} -\frac{1}{n}
+      \EV{\mu}{\log(P_\mu (y[0:n]))}
+    \end{equation*}
+    For $\forall y[0:n] \in A_\epsilon^{(n)}$, the typical or plausible set
+    \begin{align*}
+      \frac{-\log(P_\mu (y[0:n]))}{n} &= h \pm \epsilon & 
+      \text{definition} h \text{ is the rate that prob} \rightarrow 0. \\
+      \text{Pr} \left\{  A_\epsilon^{(n)} \right\} &> 1-\epsilon \\
+      \left|  A_\epsilon^{(n)} \right| & \leq e^{n(h+\epsilon)} & 
+          h \text{is the rate that } A_\epsilon^{(n)} \text{grows}.
+    \end{align*}
+    \textbf{Cross Entropy} of other model $\theta$ wrt true $\mu$ 
+    \begin{align*}
+    h(\mu||\theta) & \equiv \lim_{n \rightarrow \infty} -\frac{1}{n}
+      \EV{\mu}{\log(P_\theta (y[0:n]))} \\
+      h(\mu||\theta) - h(\mu) & \geq 0 \quad \text{equality } \rightarrow
+                                         \mu = \theta \text{ almost everywhere}
+    \end{align*}
+    \textbf{Lyapunov exponents}, $\lambda_i$ characterize the
+    exponential rates that trajectories converge or diverge.
+    Estimate them numerically with Benettin's procedure that requires
+    integrating tangent equation.   Work of Ruelle, Pesin,
+    Ledrappier, Young says that for the Lorenz system the largest
+    exponent is equal to the entropy, ie,
+    \begin{equation*}
+      h = \lambda_0 \approx 0.906.
+    \end{equation*}
+    So \textbf{0.906} is a lower \textbf{bound} for the cross entropy
+    of an model of time series from the Lorenz system.
+    \begin{center}
+      \resizebox{1.0\textwidth}{!}{\includegraphics{LikeLor.pdf}}
+      Use HMMs with many states to approach the bound.
+    \end{center}
 \end{textblock}
 
-\begin{textblock}{5}(12.0,9)
+\begin{textblock}{5}(12.0,13)
     \resizebox{1.0\textwidth}{!}{\includegraphics[]{ToyStretch.pdf}}
-\end{textblock}
-
-\begin{textblock}{5}(12,12)
-  \resizebox{1.0\textwidth}{!}{\includegraphics{LikeLor.pdf}}
 \end{textblock}
 
 
