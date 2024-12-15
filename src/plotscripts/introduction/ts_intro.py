@@ -49,36 +49,22 @@ def main(argv=None):
     coarse = read_data(args.coarse_path)
     quantized = read_data(args.quantized_path)
 
-    fig = pyplot.figure(figsize=(6, 4))
+    fig, (upper, lower) = pyplot.subplots(nrows=2, figsize=(6, 4))
 
-    x_fine = plotscripts.utilities.Axis(data=fine[0],
-                                        magnitude=False,
-                                        label=r'$\tau$')
-    y_fine = plotscripts.utilities.Axis(data=fine[1],
-                                        magnitude=False,
-                                        ticks=numpy.arange(-10, 10.1, 10),
-                                        label=r'$x_1(\tau)$')
-
-    # Initialize the subplots.
-    upper = plotscripts.utilities.sub_plot(fig, (2, 1, 1),
-                                           x_fine,
-                                           y_fine,
-                                           color='b')
-    lower = fig.add_subplot(2, 1, 2)
-
+    upper.plot(fine[0], fine[1], color='b')
     upper.plot(coarse[0], coarse[1], 'ro')
+    upper.set_xlabel(r'$\tau$')
+    upper.set_ylabel(r'$x_0(\tau)$')
     upper.set_ylim(-17, 17)
-    upper.set_xlim(0, 6)
+    upper.set_xlim(-.15, 6.15)
 
     lower.plot(quantized[0], quantized[1], 'kd')
     lower.set_xlabel(r'$t$')
     lower.set_ylabel(r'$y(t)$')
-    lower.set_ylim(0.5, 4.5)
-    lower.set_yticks(numpy.arange(1, 4.1, 1))
-    lower.set_xticks(numpy.arange(0, 40.1, 10))
+    lower.set_ylim(-0.5, 3.5)
+    lower.set_xlim(-1, 41)
 
-    fig.subplots_adjust(hspace=0.3)
-
+    fig.tight_layout()
     if args.show:
         pyplot.show()
     fig.savefig(args.fig_path)

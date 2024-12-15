@@ -47,8 +47,8 @@ def main(argv=None):
     x_max = len(entropy[50:])
     y_level = 2 * 0.906 / 3
     axes.plot([0, x_max], [y_level, y_level], label=r'$\frac{2}{3}\lambda$')
-    axes.set_ylabel('nats')
-    axes.set_xlabel('n_samples')
+    axes.set_ylabel(r'$\hat h/\rm{nats}$')
+    axes.set_xlabel(r'$n_{\rm{samples}}$')
     axes.legend()
     #print(f'{entropy[-1]/0.1=}')
     #pyplot.show()

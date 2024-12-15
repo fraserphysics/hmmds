@@ -64,13 +64,13 @@ def main(argv=None):
     n_test, n_states, log_likelihood = unpack_data(data)
 
     cross_entropy = -log_likelihood / n_test
-    axes.semilogx(n_states, cross_entropy)
+    axes.semilogx(n_states, cross_entropy, label='$\hat h$')
     axes.set_xlabel(r'$n_{\rm{states}}$')
     axes.set_ylabel(r'$\hat h/\rm{nats}$')
 
     limit = numpy.ones(
         len(n_states)) * lyapunov_exponent * data['args'].t_sample
-    axes.semilogx(n_states, limit)
+    axes.semilogx(n_states, limit, label=r'$\lambda$')
     min_y = 0
     max_y = 0.9
     axes.set_ylim(min_y, max_y)
@@ -91,6 +91,7 @@ def main(argv=None):
         numpy.arange(step2 * round(min_y2 / step2),
                      step2 * round(max_y2 / step2), step2))
     ax2.set_ylabel(r'$\hat h/\rm{bits}$')
+    axes.legend()
 
     figure.subplots_adjust(bottom=0.15)  # Make more space for label
 

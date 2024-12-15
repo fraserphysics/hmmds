@@ -68,7 +68,7 @@ def main(argv=None):
 
         # Plot points of forecast and update
         for j, cloud in enumerate((forecast, update)):
-            axes = axeses[i % 2, j]
+            axes = axeses[j, i % 2]
             for particle in cloud:
                 plot_point(axes, particle.x, '#1f77b4')
             for boundary in bins:
