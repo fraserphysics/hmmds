@@ -58,7 +58,7 @@ def main(argv=None):
     n_times = 2
     figure, axeses = pyplot.subplots(nrows=2,
                                      ncols=n_times,
-                                     figsize=(4, 4),
+                                     figsize=(6, 6),
                                      sharex=True,
                                      sharey=True)
 

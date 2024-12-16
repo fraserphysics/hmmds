@@ -81,7 +81,7 @@ def main(argv=None):
     n_times = 4
     figure, axeses = pyplot.subplots(nrows=2,
                                      ncols=n_times,
-                                     figsize=(8, 4),
+                                     figsize=(6, 3),
                                      sharex=True,
                                      sharey=True)
     indices = set(numpy.arange(len(x_all) - n_times))
