@@ -20,6 +20,9 @@ HMMDS = $(ROOT)/src/hmmds
 BUILD = $(ROOT)/build
 XFIGS = $(PLOTSCRIPTS)/xfigs
 
+# Default target.  Rule in src/TeX/dynamics_days_25/Rules.mk
+$(BUILD)/TeX/dynamics_days_25/poster.pdf:
+
 # Default target.  Rule in src/TeX/book/Rules.mk
 $(BUILD)/TeX/book/main.pdf:
 
@@ -76,6 +79,7 @@ include $(XFIGS)/Rules.mk
 
 # Rules for making documents
 include $(TEX)/book/Rules.mk
+include $(TEX)/dynamics_days_25/Rules.mk
 include $(TEX)/skeleton/Rules.mk
 include $(TEX)/filter/Rules.mk
 include $(TEX)/laser/Rules.mk
@@ -132,8 +136,7 @@ test :
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo APNEA_PLOTSCRIPTS: $(APNEA_PLOTSCRIPTS)
-	@echo APNEA_TS_PLOTS: $(APNEA_TS_PLOTS)
+	@echo DD25_FIGS: $(DD25_FIGS)
 	@echo In root Makefile, ROOT: $(ROOT)
 ## help                           : Print comments on targets from makefile
 .PHONY : help

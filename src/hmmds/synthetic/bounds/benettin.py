@@ -234,7 +234,7 @@ class Filter:
         self.atol = atol
         self.particles = []
         self.stretch = stretch
-        self.s_augment = epsilon_min * 1.0e-2
+        self.s_augment = (epsilon_min * 1.0e-1) / sub_steps
         self.rng = rng
 
     def initialize(self: Filter, initial_x: numpy.ndarray, delta: float):
@@ -384,8 +384,8 @@ class Filter:
             for _ in range(self.sub_steps):
                 self.forecast_x(self.time_step)  # Calls divide
                 length = len(self.particles)
-                if length > 50000:
-                    self.resample(5000)
+                if length > 4000:
+                    self.resample(1000)
                     print(
                         f'resampled from {length} particles to {len(self.particles)=}'
                     )

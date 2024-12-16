@@ -85,9 +85,9 @@ def make_marks(intervals: list, n_y: int) -> numpy.ndarray:
     """
 
     cloud_marks = numpy.zeros(n_y, dtype=bool)
-    assert len(intervals) % 2 == 0
-    if len(intervals) == 0:
+    if intervals is None:
         return cloud_marks
+    assert len(intervals) % 2 == 0
     for start, stop in zip(intervals, intervals[1:]):
         cloud_marks[start:stop] = True
     return cloud_marks
