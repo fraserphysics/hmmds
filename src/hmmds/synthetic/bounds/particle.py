@@ -22,6 +22,7 @@ import numpy.linalg
 
 import hmmds.synthetic.bounds.lorenz as lorenz
 import hmmds.synthetic.bounds.benettin as benettin
+import hmmds.synthetic.bounds.filter as filter
 
 
 def parse_args(argv):
@@ -174,8 +175,8 @@ def initialize(args, y_data, y_reference, x_reference, bins, x_0=None):
     epsilon_min = epsilon_max / args.epsilon_ratio
     stretch = 1.0
     rng = numpy.random.default_rng(args.random_seed)
-    p_filter = benettin.Filter(epsilon_min, epsilon_max, bins, args.time_step,
-                               args.sub_steps, args.atol, stretch, rng)
+    p_filter = filter.Filter(epsilon_min, epsilon_max, bins, args.time_step,
+                             args.sub_steps, args.atol, stretch, rng)
     if x_0 is None:
         x_0 = x_reference[find_best(y_data, y_reference)[0]]
 

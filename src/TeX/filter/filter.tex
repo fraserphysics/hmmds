@@ -12,6 +12,7 @@
 \newcommand{\REAL}{\field{R}}
 \newcommand{\COMPLEX}{\field{C}}
 \newcommand{\EV}{\field{E}}
+\newcommand{\argmax}{\operatorname*{argmax}}
 \newcommand{\id}{\mathbb{I}}
 \newcommand{\variance}[1]{\field{V}\left[ #1 \right]}
 \newcommand{\normal}[2]{{\cal N}\left(#1,#2 \right)}
@@ -240,7 +241,7 @@ questions:
 \begin{enumerate}
 \item \label{q:subdivide_criterion} What is an appropriate criterion
   for subdividing boxes?
-\item How should I subdivide boxes?
+\item \label{q:subdivide_new_boxes} How should I subdivide boxes?
 \item What is an appropriate criterion for resampling?
 \item By what fraction should resampling reduce the number of
   particles?
@@ -255,6 +256,9 @@ questions:
 
 \subsection{Subdivision}
 \label{sec:subdivision}
+
+\subsubsection{Criterion and Number}
+\label{sec:criterion}
 
 Here I will develop an answer to question \ref{q:subdivide_criterion}
 in terms of first and second derivatives.  The criterion is that the
@@ -286,11 +290,12 @@ columns of
 \end{equation*}
 %
 Here is a two term Taylor series for mapping a box edge (an edge is a
-column, ie $b_{*,1}$ is column number 1) forward one time step
+column, ie $b_1 \equiv b_{*,1}$ is column number 1) forward one time
+step
 \begin{equation}
   \label{eq:quadratic_phi}
-  b_{*,j}[n+1] = \frac{\partial}{\partial x} \Phi(x[n], \tau) b_{*,j}[n] + \frac{1}{2} b_{*,j}^T[n]
-  \frac{\partial^2}{\partial x^2} \Phi(x[n], \tau) b_{*,j}[n] + R
+  b_j[n+1] = \frac{\partial}{\partial x} \Phi(x[n], \tau) b_j[n] + \frac{1}{2} b_j^T[n]
+  \frac{\partial^2}{\partial x^2} \Phi(x[n], \tau) b_j[n] + \text{Remainder}
 \end{equation}
 I calculate the linear term by numerically integrating the space
 derivative of the Lorenz system
@@ -306,24 +311,26 @@ derivative of the Lorenz system
       x_1 & x_0 & -\beta
     \end{bmatrix} b  \\
   \label{eq:F}
-  & \equiv F b,
+           & \equiv F b \\
+  \nonumber
+  \dot b_{L;j} &= F b_{L;j}
 \end{align}
 where $F$ in \eqref{eq:F} denotes the space derivative of $f$.
 
-For simplicity, I want to keep the edges of the boxes straight by
-subdividing them when the quadratic term in \eqref{eq:quadratic_phi}
-gets too big.  To avoid numerically integrating to get the quadratic
-term in \eqref{eq:quadratic_phi}, I will compare the time derivatives
-of the linear and quadratic terms, namely: $\dot b_L$ and $\dot b_Q$.
+I subdivide boxes to keep the quadratic term in
+\eqref{eq:quadratic_phi} small so that I can use only the linear term
+to propagate the boxes.  I avoid numerically integrating to get the
+quadratic term in \eqref{eq:quadratic_phi} and simply compare the time
+derivatives of the linear and quadratic terms, namely: $\dot b_L$ and
+$\dot b_Q$.
 
-Now I consider the quadratic term for the $j^{\text{th}}$ edge of a
-box
+The quadratic term for the $j^{\text{th}}$ edge of a box is
 \begin{subequations}
   \begin{align}
-    \dot b_{Q;*,j} &= \frac{1}{2} b_{*,j}^T \frac{\partial^2}{\partial x^2}
-               \frac{d}{dt} \Phi(x, t) b_{*,j} \\
-             &= \frac{1}{2} b_{*,j}^T \frac{\partial^2}{\partial x^2}
-               f(x,t) b_{*,j}.
+    \dot b_{Q;j} &= \frac{1}{2} b_j^T \frac{\partial^2}{\partial x^2}
+               \frac{d}{dt} \Phi(x, t) b_j \\
+             &= \frac{1}{2} b_j^T \frac{\partial^2}{\partial x^2}
+               f(x,t) b_j.
   \end{align}
 \end{subequations}
 The second derivative $\frac{\partial^2}{\partial x^2} f(x,t)$ is
@@ -354,7 +361,7 @@ independent of time and position with components
   \end{align}
 \end{subequations}
 \begin{itemize}
-\item Note that $\dot b_{q;i,j}$ is the $i^{\rm{th}}$ component of the
+\item Note that $\dot b_{Q;i,j}$ is the $i^{\rm{th}}$ component of the
   quadratic contribution to the velocity of the $j^{\rm{th}}$ column
   of $b$, with
   \begin{equation}
@@ -362,34 +369,44 @@ independent of time and position with components
     \dot b_{Q;i,j} = \frac{1}{2} \sum_{g,h} \frac{\partial^2 f_i}{\partial x_g
       \partial x_h} b_{g,j} b_{h,j}.
   \end{equation}
-\item Once I have two $3\times 3$ matrices for $\dot b_L$ and
-  $\dot b_Q$, I will calculate the decomposition $\dot b_Q = USV^T$ to
-  find both the direction ($V_{*,0}$) in which quadratic term's
-  velocity is largest and the velocity ($S[0]$) in that direction.
-  Then if the ratio, $R$, of that velocity to the velocity of the
-  linear term in the same direction, $\dot b_L V_{*,0}$ , is larger
-  than some threshold, say 0.2, I will subdivide the box.  Here is the
-  test:
-  \begin{align}
-    \nonumber
-    \text{with } && \dot b_{L;*,j} &= \sum_i F_{i,k} b_{k,j} \\
-    \nonumber
-    \text{and } && \dot b_Q &= USV^T \\
+\item Once I have two $3\times 3$ arrays for $\dot b_L$ and
+  $\dot b_Q$, I will find the box edge for which the quadratic term is
+  largest, ie,
+  \begin{equation}
+    \label{eq:J}
+    J = \argmax_j \dot b_{Q;j}\cdot \dot b_{Q;j}
+  \end{equation}
+  and then decide whether or not to subdivide the box based on the following
+  ratio test
+  \begin{equation}
     \label{eq:LQ_ratio}
-    \text{test } && R &\equiv \frac{S_0}{\left| \dot b_L V_{*,0}\right|}
-                     ~\overset{\geq}{?}~ 0.2
-  \end{align}
-\item Since $S_0$ is quadratic in $b$ while $b_L$ is linear, I expect
-  that subdividing a box into $N$ children would reduce $R$ by a
-  factor of about $N$ and choosing $N = \frac{R}{.2}$ would leave the
-  children at the test threshold. To start, I will subdivide boxes
-  into
+    R \equiv \frac{\left| \dot b_{Q;J} \right|}{\left| \dot b_{L;J}\right|}
+                     ~\overset{\geq}{?}~ R_{\text{threshold}}
+  \end{equation}
+\item Since $\dot b_Q$ is quadratic in $b$ while $\dot b_L$ is linear,
+  subdividing an edge into $N$ children would reduce $R$ by a factor
+  of about $N$ and choosing $N(R) = \frac{R}{R_{\text{threshold}}}$
+  would leave the children at the test threshold.  I will use a term
+  $r$ to reduce the size of the children beyond the threshold with
   \begin{equation*}
-    N = \frac{5R}{.2}
+    N(R) = \frac{rR}{R_{\text{threshold}}}.
   \end{equation*}
-  children, and I will subdivide in the $V_{*,0}$ direction.
 \end{itemize}
 
+\subsubsection{New Boxes}
+\label{sec:new_boxes}
+
+Here I answer question number \ref{q:subdivide_new_boxes} is ``How
+should I subdivide boxes?''  Centered at each of $N(R)$ uniformly
+spaced points along the edge $b_J$ create a new box $n$ with edges
+\begin{align*}
+  n_J &= \frac{1}{N(R)} b_J \\
+  n_i &= b_i - \left( \frac{b_i \cdot b_J}{b_J \cdot b_J} \right) b_J
+        \quad \forall i \neq J
+\end{align*}
+which preserves the volume of the original box, and has the new
+undivided edges, $n_i$ perpendicular to the divided edges, $n_J$, ie,
+$n_J \cdot n_i = 0$.
 \end{document}
 
 %%% Local Variables:

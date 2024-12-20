@@ -11,9 +11,8 @@ linear_particle_filter lorenz_filter ))
 
 $(FILTER_TEX_OUT)/filter.pdf: $(FILTER_TEX_IN)/filter.tex $(FIGS)
 	mkdir -p $(FILTER_TEX_OUT)
-	export TEXINPUTS=$(abspath $(BUILD))//:; \
-pdflatex --output-directory $(FILTER_TEX_OUT) $(FILTER_TEX_IN)/filter.tex; \
-pdflatex --output-directory $(FILTER_TEX_OUT) $(FILTER_TEX_IN)/filter.tex;
+	export TEXINPUTS=$(FILTER_TEX_IN)//:$(abspath $(BUILD))//:; \
+latexmk --outdir=$(@D) -pdflatex filter.tex
 
 # Local Variables:
 # mode: makefile
