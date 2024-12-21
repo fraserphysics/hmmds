@@ -71,10 +71,10 @@ class Close:
         self.indices = numpy.argsort(self.distances)
 
     def distance(self, particle):
-        """Max norm in coordinates self.box from true_x to particle
+        """Max norm
         """
         delta = particle.x - self.true_x
-        return numpy.abs(numpy.linalg.solve(particle.box, delta)).max()
+        return numpy.abs(delta).max()
 
     def nth(self, n):
         """Return the distance and particle that are nth closest
@@ -117,9 +117,9 @@ def main(argv=None):
             update = []
 
         close = Close(x_all[i], forecast)
-        delta_svd = close.delta_svd(0)
+        distance, closest = close.nth(0)
         axes = axeses[i % 5, 2]
-        axes.plot(delta_svd)
+        plot_box(axes, closest)
 
         # Plot points of forecast and update
         for j, cloud in enumerate((forecast, update)):

@@ -166,8 +166,11 @@ class LocalNonStationary(hmm.state_space.NonStationary):
 def dx_dt(_, x, s, r, b):
     """Calculate the Lorenz vector field at x
     """
-    return numpy.array(
-        [s * (x[1] - x[0]), x[0] * (r - x[2]) - x[1], x[0] * x[1] - b * x[2]])
+    return numpy.array([
+        s * (x[1] - x[0]),  #
+        x[0] * (r - x[2]) - x[1],  #
+        x[0] * x[1] - b * x[2]
+    ])
 
 
 def tangent(t, x_dx, s, r, b):
@@ -183,7 +186,9 @@ def tangent(t, x_dx, s, r, b):
     result[:3] = dx_dt(t, x, s, r, b)
 
     dF = numpy.array([  # The derivative of F wrt x
-        [-s, s, 0], [r - x[2], -1, -x[0]], [x[1], x[0], -b]
+        [-s, s, 0],  #
+        [r - x[2], -1, -x[0]],  #
+        [x[1], x[0], -b]
     ])
 
     # Assign the tangent part of the return value.

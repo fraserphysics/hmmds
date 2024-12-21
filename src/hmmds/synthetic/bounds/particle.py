@@ -30,35 +30,38 @@ def parse_args(argv):
     """
     parser = argparse.ArgumentParser(
         description='Apply particle filter to Lorenz data')
-    parser.add_argument('--epsilon_max',
+    parser.add_argument(
+        '--r_threshold',
+        type=float,
+        default=0.01,
+        help='Maximum ratio of quadratic to linear edge velocity')
+    parser.add_argument('--r_extra',
                         type=float,
-                        default=5.0,
-                        help='Maximum length of box edges')
-    parser.add_argument('--epsilon_ratio',
-                        type=float,
-                        default=3,
-                        help='Minimum length of box edges = epsilon_max/ratio')
+                        default=2.0,
+                        help='Extra factor for dividing boxes')
     parser.add_argument('--n_y',
                         type=int,
                         default=1000,
                         help='Number of test observations')
     parser.add_argument('--n_initialize',
                         type=int,
-                        default=100000,
+                        default=15000,
                         help='Number simulated points to cover attractor')
+    # 1 second for 10000 and 79 seconds for 20000
     parser.add_argument('--n_quantized',
                         type=int,
                         default=4,
                         help='Cardinality of test observations')
     parser.add_argument('--sub_steps',
                         type=int,
-                        default=3,
+                        default=1,
                         help='Time steps between observations')
     parser.add_argument('--time_step', type=float, default=0.05)
-    parser.add_argument('--t_relax',
-                        type=float,
-                        default=100.0,
-                        help='Time to move to attractor')
+    parser.add_argument(
+        '--t_relax',
+        type=float,
+        default=250.0,  # One second of computer time for 250
+        help='Time to move to attractor')
     parser.add_argument('--atol',
                         type=float,
                         default=1e-7,
@@ -107,24 +110,17 @@ def make_data(args):
     # Relax to a point near the attractor
     x_0 = benettin.relax(args, numpy.ones(3))[0]
 
-    epsilon_max = args.epsilon_max
-    epsilon_min = epsilon_max / args.epsilon_ratio
-    tangent = numpy.eye(3) * epsilon_max
-    s_augment = epsilon_min * 1.0e-2
-    x_list = []
-    for _ in range(args.n_y + args.n_initialize):
+    tangent = numpy.eye(3) * 0.1
+    x_all = numpy.empty((args.n_y + args.n_initialize, 3))
+    # 15,000 in 2 seconds.  17,000 in 28 seconds.  Slowdown between
+    # 15500 and 15600.  Perhaps the CPU gets hot?
+    for i in range(args.n_y + args.n_initialize):
         for __ in range(args.sub_steps):
             x_0, tangent = lorenz.integrate_tangent(args.time_step,
                                                     x_0,
                                                     tangent,
                                                     atol=args.atol)
-            U, S, VT = numpy.linalg.svd(tangent)
-            S += s_augment
-            if S[0] > epsilon_max:
-                S[0] /= int(S[0] / epsilon_min)
-            tangent = numpy.dot(U * S, VT)
-        x_list.append(x_0)
-    x_all = numpy.asarray(x_list)
+        x_all[i, :] = x_0
     assert x_all.shape == (args.n_y + args.n_initialize, 3)
     bins = numpy.linspace(-20, 20, args.n_quantized + 1)[1:-1]
     y_q = numpy.digitize(x_all[:, 0], bins)
@@ -171,16 +167,16 @@ def initialize(args, y_data, y_reference, x_reference, bins, x_0=None):
                 counters[n] = 1
         return best
 
-    epsilon_max = args.epsilon_max
-    epsilon_min = epsilon_max / args.epsilon_ratio
     stretch = 1.0
     rng = numpy.random.default_rng(args.random_seed)
-    p_filter = filter.Filter(epsilon_min, epsilon_max, bins, args.time_step,
-                             args.sub_steps, args.atol, stretch, rng)
+    p_filter = filter.Filter(args.r_threshold, args.r_extra, bins,
+                             args.time_step, args.sub_steps, args.atol, stretch,
+                             rng)
     if x_0 is None:
         x_0 = x_reference[find_best(y_data, y_reference)[0]]
 
-    p_filter.initialize(x_0, epsilon_max)
+    delta = 0.2  # Size of initial boxes
+    p_filter.initialize(x_0, delta)
     return p_filter
 
 
@@ -195,11 +191,14 @@ def main(argv=None):
     assert args.n_y % 5 == 0
     cloud_marks = make_marks(args.clouds, args.n_y)
 
+    print('calling make_data')
     y_all, x_all, bins = make_data(args)
+    print('returned from make_data.  call initialize')
     y_q = y_all[:args.n_y]
     y_reference = y_all[args.n_y:]
     p_filter = initialize(args, y_q, y_reference, x_all[args.n_y:], bins,
                           x_all[0])
+    print('returned from initialize')
     gamma = numpy.ones(len(y_q))
     clouds = {}
     result = {
