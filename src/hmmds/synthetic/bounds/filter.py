@@ -132,15 +132,12 @@ class Filter:
         n_min: Minimum number of particles
         bins: Quatization boundaries for observations
         time_step: Integrate Lorenz this interval between samples
-        sub_steps: Number of time steps between observations
         atol: Absolute error tolerance for integrator
+        s_augment: Small growth of box in all directions at each step
     
 
-    The four values: stretch, s_augment, and margin militate
-    against particle exhaustion.
-
-    stretch: Multiply the largest singular value of box by this value
-        before division in Particle.divide.
+    The values: s_augment, and margin militate against particle
+    exhaustion.
 
     s_augment: Add this value to each singular value in
         Filter.forecast_x.  Augmentation prevents collapse of smallest
@@ -152,16 +149,24 @@ class Filter:
 
     """
 
-    def __init__(self: Filter, r_threshold, r_extra, bins, time_step, sub_steps,
-                 atol, stretch, rng):
+    def __init__(
+            self: Filter,  #
+            r_threshold,  #
+            r_extra,  #
+            edge_max,  #
+            bins,  #
+            time_step,  #
+                 atol,  #
+            s_augment,  #
+            rng):
         self.r_threshold = r_threshold
         self.r_extra = r_extra
+        self.edge_max = edge_max
         self.bins = bins
         self.time_step = time_step
-        self.sub_steps = sub_steps
         self.atol = atol
         self.particles = []
-        self.stretch = stretch
+        self.s_augment = s_augment
         self.rng = rng
 
     def initialize(self: Filter, initial_x: numpy.ndarray, delta: float):
@@ -189,9 +194,20 @@ class Filter:
         new_particles = []
         for particle in self.particles:
             particle.step(time, self.atol)
+            U, S, VT = numpy.linalg.svd(particle.box)
+            # Augment S to spread cloud and prevent particle
+            # exhaustion.
+            S += self.s_augment
+            particle.box = numpy.dot(U * S, VT)
             argmax, ratio = particle.ratio()
+            edge_lengths = numpy.linalg.norm(particle.box, axis=1)
+            max_edge = edge_lengths.max()
             if ratio > self.r_threshold:
                 n_new = int(ratio * self.r_extra / self.r_threshold)
+                new_particles.extend(particle.divide(n_new, argmax))
+            elif max_edge > self.edge_max:
+                argmax = numpy.argmax(edge_lengths)
+                n_new = int(max_edge * self.r_extra / self.edge_max)
                 new_particles.extend(particle.divide(n_new, argmax))
             else:
                 new_particles.append(particle)
@@ -303,14 +319,13 @@ class Filter:
                 return
             if clouds is not None:
                 clouds[(t, 'update')] = copy.deepcopy(self.particles)
-            for _ in range(self.sub_steps):
-                self.forecast_x(self.time_step)  # Calls divide
-                length = len(self.particles)
-                if length > 10000:
-                    self.resample(1000)
-                    print(
-                        f'resampled from {length} particles to {len(self.particles)=}'
-                    )
+            self.forecast_x(self.time_step)  # Calls divide
+            length = len(self.particles)
+            if length > 5000:
+                self.resample(1000)
+                print(
+                    f'resampled from {length} particles to {len(self.particles)=}'
+                )
         return
 
 

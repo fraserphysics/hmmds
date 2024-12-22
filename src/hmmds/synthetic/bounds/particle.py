@@ -33,34 +33,37 @@ def parse_args(argv):
     parser.add_argument(
         '--r_threshold',
         type=float,
-        default=0.01,
+        default=0.05,
         help='Maximum ratio of quadratic to linear edge velocity')
     parser.add_argument('--r_extra',
                         type=float,
                         default=2.0,
                         help='Extra factor for dividing boxes')
+    parser.add_argument('--edge_max',
+                        type=float,
+                        default=1.0,
+                        help='Extra factor for dividing boxes')
+    parser.add_argument('--s_augment',
+                        type=float,
+                        default=.05,
+                        help='Grow boxes at each step')
     parser.add_argument('--n_y',
                         type=int,
-                        default=1000,
+                        default=10000,
                         help='Number of test observations')
     parser.add_argument('--n_initialize',
                         type=int,
                         default=15000,
                         help='Number simulated points to cover attractor')
-    # 1 second for 10000 and 79 seconds for 20000
     parser.add_argument('--n_quantized',
                         type=int,
                         default=4,
                         help='Cardinality of test observations')
-    parser.add_argument('--sub_steps',
-                        type=int,
-                        default=1,
-                        help='Time steps between observations')
-    parser.add_argument('--time_step', type=float, default=0.05)
+    parser.add_argument('--time_step', type=float, default=0.15)
     parser.add_argument(
         '--t_relax',
         type=float,
-        default=250.0,  # One second of computer time for 250
+        default=50.0,
         help='Time to move to attractor')
     parser.add_argument('--atol',
                         type=float,
@@ -112,15 +115,12 @@ def make_data(args):
 
     tangent = numpy.eye(3) * 0.1
     x_all = numpy.empty((args.n_y + args.n_initialize, 3))
-    # 15,000 in 2 seconds.  17,000 in 28 seconds.  Slowdown between
-    # 15500 and 15600.  Perhaps the CPU gets hot?
-    for i in range(args.n_y + args.n_initialize):
-        for __ in range(args.sub_steps):
-            x_0, tangent = lorenz.integrate_tangent(args.time_step,
-                                                    x_0,
-                                                    tangent,
-                                                    atol=args.atol)
-        x_all[i, :] = x_0
+    x_all[0,:] = x_0
+    for i in range(1,args.n_y + args.n_initialize):
+        x_all[i,:], _ = lorenz.integrate_tangent(args.time_step,
+                                                x_all[i-1,:],
+                                                tangent,
+                                                atol=args.atol)
     assert x_all.shape == (args.n_y + args.n_initialize, 3)
     bins = numpy.linspace(-20, 20, args.n_quantized + 1)[1:-1]
     y_q = numpy.digitize(x_all[:, 0], bins)
@@ -167,10 +167,14 @@ def initialize(args, y_data, y_reference, x_reference, bins, x_0=None):
                 counters[n] = 1
         return best
 
-    stretch = 1.0
     rng = numpy.random.default_rng(args.random_seed)
-    p_filter = filter.Filter(args.r_threshold, args.r_extra, bins,
-                             args.time_step, args.sub_steps, args.atol, stretch,
+    p_filter = filter.Filter(args.r_threshold,  #
+                             args.r_extra,  #
+                             args.edge_max,  #
+                             bins,
+                             args.time_step,  #
+                             args.atol,  #
+                             args.s_augment,
                              rng)
     if x_0 is None:
         x_0 = x_reference[find_best(y_data, y_reference)[0]]
@@ -191,16 +195,13 @@ def main(argv=None):
     assert args.n_y % 5 == 0
     cloud_marks = make_marks(args.clouds, args.n_y)
 
-    print('calling make_data')
     y_all, x_all, bins = make_data(args)
-    print('returned from make_data.  call initialize')
     y_q = y_all[:args.n_y]
     y_reference = y_all[args.n_y:]
     p_filter = initialize(args, y_q, y_reference, x_all[args.n_y:], bins,
                           x_all[0])
-    print('returned from initialize')
     gamma = numpy.ones(len(y_q))
-    clouds = {}
+    clouds = {}  # keys are pairs (t,'forecast') or (t,'update')
     result = {
         'gamma': gamma,
         'x_all': x_all,
@@ -209,12 +210,17 @@ def main(argv=None):
         'bins': bins
     }
 
+    debug_times = set()
     # Run filter on y_q
     for t_start in range(0, len(y_q), 5):
-        if cloud_marks[t_start]:
-            p_filter.forward(y_q, t_start, t_start + 5, gamma, clouds)
-        else:
-            p_filter.forward(y_q, t_start, t_start + 5, gamma)
+        p_filter.forward(y_q, t_start, t_start + 5, gamma, clouds)
+        if not cloud_marks[t_start]:
+            debug_times.add(t_start)
+        if t_start - 25 in debug_times:
+            debug_times.discard(t_start-25)
+            for t in range(t_start-25, t_start-20):
+                del clouds[(t, 'forecast')]
+                del clouds[(t, 'update')]
         if len(p_filter.particles) == 0:
             break
 

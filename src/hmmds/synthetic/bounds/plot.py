@@ -36,7 +36,7 @@ def plot_box(axes, particle):
     x = particle.x
 
     def plot_line(i):
-        end = x + particle.box[:, i]
+        end = x + particle.box[i]
         axes.plot((x[0], end[0]), (x[2], end[2]), color=colors[i])
 
     for i in range(3):
@@ -105,7 +105,7 @@ def main(argv=None):
     x_all = dict_in['x_all']
     clouds = dict_in['clouds']
 
-    figure, axeses = pyplot.subplots(nrows=5, ncols=3, figsize=(5, 9))
+    figure, axeses = pyplot.subplots(nrows=5, ncols=3, figsize=(8, 9))
 
     for i in range(args.start, args.start + 5):
         if (i, 'forecast') not in clouds:
@@ -148,9 +148,8 @@ def main(argv=None):
                    label=f'y[{i}]={y_q[i]} {distance=:.3f} n={len(forecast)} ')
         axes.legend(loc='upper right')
 
-        U, S, VT = numpy.linalg.svd(closest.box)
         numpy.set_printoptions(precision=2)
-        print(f'{i} {distance=:.2f} {S=}')
+        print(f'n[{i}]={len(forecast)} {distance=:.2f} true x = {x_all[i]}')
         numpy.set_printoptions(precision=8)
 
     # Print box for closest
