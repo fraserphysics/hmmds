@@ -23,13 +23,13 @@ $(BOUNDS_DATA)/like_lor: $(BOUNDS_CODE)/like_lor.py
 	python $< --log_resolution 3 -5.6 -0.5 --n_train 10000000 --n_test 10000 $@
 #	python $< --log_resolution 3 -1.6 -0.5 --n_train 100000 --n_test 10000 $@
 
-$(BOUNDS_DATA)/particle_10k: $(BOUNDS_CODE)/particle.py
+$(BOUNDS_DATA)/particle_1k: $(BOUNDS_CODE)/particle.py
 	mkdir -p $(@D)
-	python $< --n_y 10000 --atol 1e-6 $@
+	python $< --n_y 1000 --atol 1e-8 $@
 
 $(BOUNDS_DATA)/ddays: $(BOUNDS_CODE)/particle.py
 	mkdir -p $(@D)
-	python $< --clouds 75 80 --n_y 160 --atol 1e-6 --t_relax 10 --n_initialize 10000 $@
+	python $< --clouds 205 210 --n_y 300 $@
 
 $(BUILD)/TeX/book/toy_values.tex: $(BOUNDS_CODE)/toy_values.py $(addprefix $(BOUNDS_DATA)/, data_h_view toy_h benettin like_lor)
 	mkdir -p $(@D)

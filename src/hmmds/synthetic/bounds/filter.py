@@ -57,7 +57,8 @@ class Particle:
 
     def ratio(self: Particle):
         """Calculate a ratio of quadratic to linear velocity
-        approximations
+        approximations.  Return the index of the edge with the largest
+        ratio and the value of the ratio for that edge.
 
         """
         s = 10.0
@@ -67,13 +68,16 @@ class Particle:
         max_q_squared = -1.0
         argmax = -1
         for i, edge in enumerate(self.box):
-            # q_squared is the square of the second derivative of Lorenz f
+            # q_squared is the square of the quadratic term in the
+            # Taylor series for the velocity of edge[i].  q[i,j] =
+            # (1/2) * edge[i].transpose \frac{\partial^2 f[j]}{\partial x^2} edge[i]
             q_squared = (edge[0] * edge[2])**2 + (edge[0] * edge[1])**2
             if q_squared > max_q_squared:
                 max_q_squared = q_squared
                 argmax = i
         dF = numpy.array([  # The derivative of Lorenz f wrt x
-            [-s, s, 0], [r - self.x[2], -1, -self.x[0]],
+            [-s, s, 0],  #
+            [r - self.x[2], -1, -self.x[0]],  #
             [self.x[1], self.x[0], -b]
         ])
         l = dF @ self.box[argmax]
@@ -156,7 +160,7 @@ class Filter:
             edge_max,  #
             bins,  #
             time_step,  #
-                 atol,  #
+            atol,  #
             s_augment,  #
             rng):
         self.r_threshold = r_threshold
@@ -237,7 +241,7 @@ class Filter:
         """
         # FixMe: I hope changes here will fix particle exhaustion
         new_particles = []
-        margin = 1.0
+        margin = 0.5
 
         def zero():
             upper = self.bins[0]
@@ -285,8 +289,9 @@ class Filter:
         """
         result = numpy.zeros(len(self.bins) + 1)
         for particle in self.particles:
-            y = numpy.digitize(particle.x, self.bins)
+            y = numpy.digitize(particle.x[0], self.bins)
             result[y] += particle.weight
+        assert 0.9999 < result.sum() < 1.00001
         return result
 
     def forward(self: Filter,

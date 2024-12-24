@@ -148,8 +148,11 @@ def main(argv=None):
                    label=f'y[{i}]={y_q[i]} {distance=:.3f} n={len(forecast)} ')
         axes.legend(loc='upper right')
 
+        _, ratio = closest.ratio()
         numpy.set_printoptions(precision=2)
-        print(f'n[{i}]={len(forecast)} {distance=:.2f} true x = {x_all[i]}')
+        print(
+            f'n[{i}]={len(forecast)} {distance=:.2f} true x = {x_all[i]} {ratio=:.2g}'
+        )
         numpy.set_printoptions(precision=8)
 
     # Print box for closest

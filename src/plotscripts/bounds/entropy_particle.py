@@ -10,10 +10,8 @@ import pickle
 
 import numpy
 import numpy.linalg
-import matplotlib
 
-matplotlib.use("Qt5Agg")
-import matplotlib.pyplot as pyplot
+import plotscripts.utilities
 
 
 def parse_args(argv):
@@ -21,6 +19,9 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser(description='Estimate entropy')
+    parser.add_argument('--show',
+                        action='store_true',
+                        help="display figure using Qt5")
     parser.add_argument('input', type=str, help='Path to data')
     parser.add_argument('fig_path', type=str, help='Path to figure')
     args = parser.parse_args(argv)
@@ -37,21 +38,25 @@ def main(argv=None):
     with open(args.input, 'rb') as file_:
         dict_in = pickle.load(file_)
     gamma = dict_in['gamma']
-    log_gamma = numpy.log(gamma)
+    log_gamma = numpy.log(gamma)[14:]
     cum_sum = numpy.cumsum(log_gamma)
     entropy = -cum_sum / numpy.arange(1, len(cum_sum) + 1)
 
-    figure, axes = pyplot.subplots(nrows=1, ncols=1)
+    args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
+    figure, axes = pyplot.subplots(figsize=(6, 4))
 
-    axes.plot(entropy[50:] / .15, label='$\hat h$')
-    x_max = len(entropy[50:])
+    y_values = entropy / 0.15
+    axes.plot(y_values, label=r'$\hat h$')
+    x_max = len(y_values)
     y_level = 0.906
     axes.plot([0, x_max], [y_level, y_level], label=r'$\lambda$')
     axes.set_ylabel(r'$\hat h/\rm{nats}$')
     axes.set_xlabel(r'$n_{\rm{samples}}$')
+    axes.set_ylim(0, 5.99)
     axes.legend()
-    #print(f'{entropy[-1]/0.1=}')
-    #pyplot.show()
+    if args.show:
+        print(f'{y_values[-1]=}')
+        pyplot.show()
     figure.savefig(args.fig_path)
     return 0
 

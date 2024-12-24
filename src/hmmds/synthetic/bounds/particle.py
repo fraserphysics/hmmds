@@ -33,7 +33,7 @@ def parse_args(argv):
     parser.add_argument(
         '--r_threshold',
         type=float,
-        default=0.05,
+        default=0.005,
         help='Maximum ratio of quadratic to linear edge velocity')
     parser.add_argument('--r_extra',
                         type=float,
@@ -41,15 +41,15 @@ def parse_args(argv):
                         help='Extra factor for dividing boxes')
     parser.add_argument('--edge_max',
                         type=float,
-                        default=1.0,
-                        help='Extra factor for dividing boxes')
+                        default=0.2,
+                        help='Divide edges bigger than this')
     parser.add_argument('--s_augment',
                         type=float,
-                        default=.05,
+                        default=.001,
                         help='Grow boxes at each step')
     parser.add_argument('--n_y',
                         type=int,
-                        default=10000,
+                        default=1000,
                         help='Number of test observations')
     parser.add_argument('--n_initialize',
                         type=int,
@@ -60,11 +60,10 @@ def parse_args(argv):
                         default=4,
                         help='Cardinality of test observations')
     parser.add_argument('--time_step', type=float, default=0.15)
-    parser.add_argument(
-        '--t_relax',
-        type=float,
-        default=50.0,
-        help='Time to move to attractor')
+    parser.add_argument('--t_relax',
+                        type=float,
+                        default=50.0,
+                        help='Time to move to attractor')
     parser.add_argument('--atol',
                         type=float,
                         default=1e-7,
@@ -115,12 +114,12 @@ def make_data(args):
 
     tangent = numpy.eye(3) * 0.1
     x_all = numpy.empty((args.n_y + args.n_initialize, 3))
-    x_all[0,:] = x_0
-    for i in range(1,args.n_y + args.n_initialize):
-        x_all[i,:], _ = lorenz.integrate_tangent(args.time_step,
-                                                x_all[i-1,:],
-                                                tangent,
-                                                atol=args.atol)
+    x_all[0, :] = x_0
+    for i in range(1, args.n_y + args.n_initialize):
+        x_all[i, :], _ = lorenz.integrate_tangent(args.time_step,
+                                                  x_all[i - 1, :],
+                                                  tangent,
+                                                  atol=args.atol)
     assert x_all.shape == (args.n_y + args.n_initialize, 3)
     bins = numpy.linspace(-20, 20, args.n_quantized + 1)[1:-1]
     y_q = numpy.digitize(x_all[:, 0], bins)
@@ -168,14 +167,15 @@ def initialize(args, y_data, y_reference, x_reference, bins, x_0=None):
         return best
 
     rng = numpy.random.default_rng(args.random_seed)
-    p_filter = filter.Filter(args.r_threshold,  #
-                             args.r_extra,  #
-                             args.edge_max,  #
-                             bins,
-                             args.time_step,  #
-                             args.atol,  #
-                             args.s_augment,
-                             rng)
+    p_filter = filter.Filter(
+        args.r_threshold,  #
+        args.r_extra,  #
+        args.edge_max,  #
+        bins,
+        args.time_step,  #
+        args.atol,  #
+        args.s_augment,
+        rng)
     if x_0 is None:
         x_0 = x_reference[find_best(y_data, y_reference)[0]]
 
@@ -217,8 +217,8 @@ def main(argv=None):
         if not cloud_marks[t_start]:
             debug_times.add(t_start)
         if t_start - 25 in debug_times:
-            debug_times.discard(t_start-25)
-            for t in range(t_start-25, t_start-20):
+            debug_times.discard(t_start - 25)
+            for t in range(t_start - 25, t_start - 20):
                 del clouds[(t, 'forecast')]
                 del clouds[(t, 'update')]
         if len(p_filter.particles) == 0:
