@@ -33,7 +33,7 @@ def parse_args(argv):
     parser.add_argument(
         '--r_threshold',
         type=float,
-        default=0.005,
+        default=0.001,
         help='Maximum ratio of quadratic to linear edge velocity')
     parser.add_argument('--r_extra',
                         type=float,
@@ -45,7 +45,7 @@ def parse_args(argv):
                         help='Divide edges bigger than this')
     parser.add_argument('--s_augment',
                         type=float,
-                        default=.001,
+                        default=.0005,
                         help='Grow boxes at each step')
     parser.add_argument('--n_y',
                         type=int,
@@ -66,7 +66,7 @@ def parse_args(argv):
                         help='Time to move to attractor')
     parser.add_argument('--atol',
                         type=float,
-                        default=1e-7,
+                        default=1e-8,
                         help='Absolute error tolerance for integrator')
     parser.add_argument(
         '--clouds',

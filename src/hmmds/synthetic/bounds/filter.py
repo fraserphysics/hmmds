@@ -241,7 +241,7 @@ class Filter:
         """
         # FixMe: I hope changes here will fix particle exhaustion
         new_particles = []
-        margin = 0.5
+        margin = 0.0
 
         def zero():
             upper = self.bins[0]
@@ -326,8 +326,8 @@ class Filter:
                 clouds[(t, 'update')] = copy.deepcopy(self.particles)
             self.forecast_x(self.time_step)  # Calls divide
             length = len(self.particles)
-            if length > 5000:
-                self.resample(1000)
+            if length > 10000:
+                self.resample(4000)
                 print(
                     f'resampled from {length} particles to {len(self.particles)=}'
                 )

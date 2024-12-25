@@ -23,7 +23,7 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(description='Debugging plot')
     parser.add_argument('--start',
                         type=int,
-                        default=76,
+                        default=72,
                         help='Plot particles at 2 times starting here')
     parser.add_argument('input', type=str, help='Path to data')
     parser.add_argument('fig_path', type=str, help='Path to figure file')
@@ -68,13 +68,16 @@ def main(argv=None):
 
         # Plot points of forecast and update
         for j, cloud in enumerate((forecast, update)):
-            axes = axeses[j, i % 2]
+            axes = axeses[j, (i - args.start) % 2]
             for particle in cloud:
                 plot_point(axes, particle.x, '#1f77b4')
             for boundary in bins:
                 axes.plot((boundary,) * 2, (0, 50), color='black', linewidth=.5)
             axes.set_xlim(-22, 22)
             axes.set_ylim(0, 50)
+        axes = axeses[0, (i - args.start) % 2]
+        plot_point(axes, forecast[0].x, '#1f77b4', f'{i=}')
+        axes.legend()
     axeses[0, 0].set_ylabel('Forecast')
     axeses[1, 0].set_ylabel('Update')
     axeses[1, 0].set_yticks([])

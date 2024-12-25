@@ -31,7 +31,7 @@ $(FIGS_BOUNDS)/particles_a.pdf: $(BoundsPlotscripts)/ddays_plot_a.py $(BOUNDS_DA
 
 $(FIGS_BOUNDS)/particles_b.pdf: $(BoundsPlotscripts)/ddays_plot_b.py $(BOUNDS_DATA)/ddays
 	mkdir -p $(@D)
-	python $^ --start 206 $@
+	python $^ --start 72 $@
 
 $(FIGS_BOUNDS)/entropy_particle.pdf: $(BoundsPlotscripts)/entropy_particle.py $(BOUNDS_DATA)/particle_1k
 	mkdir -p $(@D)
