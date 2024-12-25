@@ -10,10 +10,8 @@ import pickle
 
 import numpy
 import numpy.linalg
-import matplotlib
 
-matplotlib.use("Qt5Agg")
-import matplotlib.pyplot as pyplot
+import plotscripts.utilities
 
 
 def parse_args(argv):
@@ -21,6 +19,9 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser(description='Debugging plot')
+    parser.add_argument('--show',
+                        action='store_true',
+                        help="display figure using Qt5")
     parser.add_argument('--start',
                         type=int,
                         default=10133,
@@ -79,6 +80,7 @@ def main(argv=None):
     n_all = len(y_q)
 
     n_times = 4
+    args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     figure, axeses = pyplot.subplots(nrows=2,
                                      ncols=n_times,
                                      figsize=(6, 3),
@@ -93,8 +95,8 @@ def main(argv=None):
         indices = indices & set(
             numpy.nonzero(y_q[shift:] == y_q[t_x + shift])[0])
         plot_selected(axeses[1, shift], x_all, bins, indices, shift, t_x)
-    axeses[0, 0].set_ylabel('Forecast')
-    axeses[1, 0].set_ylabel('Update')
+    axeses[0, 0].set_ylabel(r'$\rm{Forecast}$')
+    axeses[1, 0].set_ylabel(r'$\rm{Update}$')
     axeses[1, 0].set_yticks([])
 
     #pyplot.show()

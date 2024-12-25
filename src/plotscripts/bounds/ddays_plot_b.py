@@ -10,10 +10,8 @@ import pickle
 
 import numpy
 import numpy.linalg
-import matplotlib
 
-matplotlib.use("Qt5Agg")
-import matplotlib.pyplot as pyplot
+import plotscripts.utilities
 
 
 def parse_args(argv):
@@ -21,6 +19,9 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser(description='Debugging plot')
+    parser.add_argument('--show',
+                        action='store_true',
+                        help="display figure using Qt5")
     parser.add_argument('--start',
                         type=int,
                         default=72,
@@ -56,6 +57,7 @@ def main(argv=None):
     clouds = dict_in['clouds']
 
     n_times = 2
+    args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     figure, axeses = pyplot.subplots(nrows=2,
                                      ncols=n_times,
                                      figsize=(6, 6),
@@ -78,8 +80,8 @@ def main(argv=None):
         axes = axeses[0, (i - args.start) % 2]
         plot_point(axes, forecast[0].x, '#1f77b4', f'{i=}')
         axes.legend()
-    axeses[0, 0].set_ylabel('Forecast')
-    axeses[1, 0].set_ylabel('Update')
+    axeses[0, 0].set_ylabel(r'$\rm{Forecast}$')
+    axeses[1, 0].set_ylabel(r'$\rm{Update}$')
     axeses[1, 0].set_yticks([])
 
     #pyplot.show()
