@@ -25,7 +25,7 @@ $(BOUNDS_DATA)/like_lor: $(BOUNDS_CODE)/like_lor.py
 
 $(BOUNDS_DATA)/particle_1k: $(BOUNDS_CODE)/particle.py
 	mkdir -p $(@D)
-	python $< --n_y 1000 --atol 1e-8 $@
+	python $< $@
 
 $(BOUNDS_DATA)/ddays: $(BOUNDS_CODE)/particle.py
 	mkdir -p $(@D)

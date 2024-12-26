@@ -160,6 +160,7 @@ class Filter:
             edge_max,  #
             bins,  #
             time_step,  #
+            resample,  #
             atol,  #
             s_augment,  #
             rng):
@@ -168,6 +169,7 @@ class Filter:
         self.edge_max = edge_max
         self.bins = bins
         self.time_step = time_step
+        self.resample_pair = resample
         self.atol = atol
         self.particles = []
         self.s_augment = s_augment
@@ -326,8 +328,8 @@ class Filter:
                 clouds[(t, 'update')] = copy.deepcopy(self.particles)
             self.forecast_x(self.time_step)  # Calls divide
             length = len(self.particles)
-            if length > 10000:
-                self.resample(4000)
+            if length > self.resample_pair[0]:
+                self.resample(self.resample_pair[1])
                 print(
                     f'resampled from {length} particles to {len(self.particles)=}'
                 )

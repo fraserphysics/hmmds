@@ -73,6 +73,12 @@ def parse_args(argv):
         type=int,
         nargs='*',
         help='each pair defines an interval in which to record the particles')
+    parser.add_argument(
+        '--resample',
+        type=int,
+        nargs=2,
+        default=(10000, 4000),
+        help='If more than resample[0] particles, resample to resample[1]')
     parser.add_argument('--random_seed',
                         type=int,
                         default=7,
@@ -173,6 +179,7 @@ def initialize(args, y_data, y_reference, x_reference, bins, x_0=None):
         args.edge_max,  #
         bins,
         args.time_step,  #
+        args.resample,  #
         args.atol,  #
         args.s_augment,
         rng)
