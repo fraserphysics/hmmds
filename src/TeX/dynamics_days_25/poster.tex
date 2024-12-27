@@ -115,7 +115,7 @@
   Estimation algorithms:
   \begin{description}
   \item[Forward Filter:] Conditional probability of states
-    $P(x[t]\given y[0:t+1], \theta]$
+    $P(x[t]\given y[0:t+1], \theta)$
   \item[MLE Parameters:] (Forward-Backward, or Baum Welch)
     \begin{equation*}
       \hat \theta = \argmax_\theta P(y[0:1000]\given \theta)
@@ -146,7 +146,7 @@
   \item[Forecast:] \parbox{.8\textwidth}{
     \begin{align*}
       a(x,t) &\equiv P(X[t]=x\given y[0:t]) \\
-      (x,t) &= \int \alpha(\chi,t-1) P_{X \leftarrow X}(x\given \chi) d \chi
+      a(x,t) &= \int \alpha(\chi,t-1) P_{X \leftarrow X}(x\given \chi) d \chi
     \end{align*}} \vspace{-1cm}
   \end{description}
   \begin{description}

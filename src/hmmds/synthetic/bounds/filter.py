@@ -112,18 +112,16 @@ class Particle:
         ]
         return result
 
-    def resample(self: Particle, rescale: float, weight=1.0, rng=None):
+    def resample(self: Particle, weight=1.0, rng=None):
         """Return a new box sampled from self
 
         Args:
-            rescale: New box = old box * rescale
             weight: Weight of new box
             rng: numpy.random.Generator
         """
-        # For now simply return copy of self with rescaled box.  In
-        # the future I may want to draw new x from a uniform
-        # distribution in self.box
-        return Particle(self.x, self.box * rescale, weight)
+        # For now simply return copy of self.  In the future I may
+        # want to draw new x from a uniform distribution in self.box
+        return Particle(self.x, self.box, weight)
 
 
 class Filter:
@@ -179,7 +177,7 @@ class Filter:
         """Populate self.particles
 
         Args:
-            initial_x: Integrate this 3-vector n_times for initial distribution
+            initial_x: Cheat by simply using single box for now
             delta: Length of edges of initial particles
 
         
@@ -219,12 +217,11 @@ class Filter:
                 new_particles.append(particle)
         self.particles = new_particles
 
-    def resample(self: Filter, n: int, rescale=1.0):
+    def resample(self: Filter, n: int):
         """Draw n new particles from distribution implied by self.particles
 
         Args:
             n: Number of new particles
-            rescale: New boxes = old boxes * rescale
 
         """
         cdf = numpy.cumsum(
@@ -232,7 +229,7 @@ class Filter:
         cdf /= cdf[-1]
         new_particles = []
         for index in numpy.searchsorted(cdf, self.rng.uniform(size=n)):
-            new_particles.append(self.particles[index].resample(rescale))
+            new_particles.append(self.particles[index].resample())
         self.particles = new_particles
 
     def update(self: Filter, y: int):
@@ -241,7 +238,6 @@ class Filter:
         Args:
             y: A scalar integer observation
         """
-        # FixMe: I hope changes here will fix particle exhaustion
         new_particles = []
         margin = 0.0
 
