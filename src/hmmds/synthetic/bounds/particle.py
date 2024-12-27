@@ -4,11 +4,11 @@ Call with: python particle.py result_file
 
 Writes a dict to a pickle file with the following keys:
 
-bins
-x_all
 gamma
+x_all
 y_q
 clouds
+bins
 
 """
 
@@ -20,9 +20,9 @@ import pickle
 import numpy
 import numpy.linalg
 
-import hmmds.synthetic.bounds.lorenz as lorenz
-import hmmds.synthetic.bounds.benettin as benettin
-import hmmds.synthetic.bounds.filter as filter
+from hmmds.synthetic.bounds import lorenz
+from hmmds.synthetic.bounds import benettin
+from hmmds.synthetic.bounds.filter import Filter
 
 
 def parse_args(argv):
@@ -132,15 +132,18 @@ def make_data(args):
     return y_q, x_all, bins
 
 
-def initialize(args, y_data, y_reference, x_reference, bins, x_0=None):
+def initialize(p_filter: Filter,
+               y_data: numpy.ndarray,
+               y_reference: numpy.ndarray,
+               x_reference: numpy.ndarray,
+               x_0=None):
     """Create a particle filter (Filter instance)
 
     Args:
-        args:
+        p_filter:
         y_data: Simulated observations
         y_reference: Other simulated observations for matching
         x_reference: Simulated state sequence
-        bins: For mapping x -> y
         x_0: Initial true state that generated y_data
 
     If an x_0 vector is not passed, one is estimated by searching
@@ -157,7 +160,7 @@ def initialize(args, y_data, y_reference, x_reference, bins, x_0=None):
             y_reference: Different sequence of simulated integer observations
         """
         best = (0, 0)  # (start, length)
-        counters = {}
+        counters: dict[int, int] = {}
         for n, y in enumerate(y_reference):
             for start, count in list(counters.items()):
                 if y_data[count] == y:
@@ -172,23 +175,11 @@ def initialize(args, y_data, y_reference, x_reference, bins, x_0=None):
                 counters[n] = 1
         return best
 
-    rng = numpy.random.default_rng(args.random_seed)
-    p_filter = filter.Filter(
-        args.r_threshold,  #
-        args.r_extra,  #
-        args.edge_max,  #
-        bins,
-        args.time_step,  #
-        args.resample,  #
-        args.atol,  #
-        args.s_augment,
-        rng)
     if x_0 is None:
         x_0 = x_reference[find_best(y_data, y_reference)[0]]
 
     delta = 0.2  # Size of initial boxes
     p_filter.initialize(x_0, delta)
-    return p_filter
 
 
 def main(argv=None):
@@ -205,8 +196,9 @@ def main(argv=None):
     y_all, x_all, bins = make_data(args)
     y_q = y_all[:args.n_y]
     y_reference = y_all[args.n_y:]
-    p_filter = initialize(args, y_q, y_reference, x_all[args.n_y:], bins,
-                          x_all[0])
+    rng = numpy.random.default_rng(args.random_seed)
+    p_filter = Filter(args, bins, rng)
+    initialize(p_filter, y_q, y_reference, x_all[args.n_y:], x_all[0])
     gamma = numpy.ones(len(y_q))
     clouds = {}  # keys are pairs (t,'forecast') or (t,'update')
     result = {
@@ -220,7 +212,7 @@ def main(argv=None):
     debug_times = set()
     # Run filter on y_q
     for t_start in range(0, len(y_q), 5):
-        p_filter.forward(y_q, t_start, t_start + 5, gamma, clouds)
+        p_filter.forward(y_q, (t_start, t_start + 5), gamma, clouds)
         if not cloud_marks[t_start]:
             debug_times.add(t_start)
         if t_start - 25 in debug_times:

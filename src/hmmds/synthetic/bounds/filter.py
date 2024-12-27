@@ -3,9 +3,7 @@
 """
 
 from __future__ import annotations  # Enables, eg, (self: Particle
-import sys
-import argparse
-import pickle
+
 import copy
 
 import numpy
@@ -98,8 +96,7 @@ class Particle:
             if i == edge_index:
                 new_box[i] = x_step
             else:
-                parallel, perpendicular, sine, cosine = angles(x_step, edge)
-                new_box[i] = perpendicular
+                new_box[i] = angles(x_step, edge)[1]
 
         back_up = int(n_divide / 2)
         new_weight = self.weight / n_divide
@@ -151,27 +148,17 @@ class Filter:
 
     """
 
-    def __init__(
-            self: Filter,  #
-            r_threshold,  #
-            r_extra,  #
-            edge_max,  #
-            bins,  #
-            time_step,  #
-            resample,  #
-            atol,  #
-            s_augment,  #
-            rng):
-        self.r_threshold = r_threshold
-        self.r_extra = r_extra
-        self.edge_max = edge_max
+    def __init__(self: Filter, args, bins, rng):
+        self.r_threshold = args.r_threshold
+        self.r_extra = args.r_extra
+        self.edge_max = args.edge_max
+        self.time_step = args.time_step
+        self.resample_pair = args.resample
+        self.atol = args.atol
+        self.s_augment = args.s_augment
         self.bins = bins
-        self.time_step = time_step
-        self.resample_pair = resample
-        self.atol = atol
-        self.particles = []
-        self.s_augment = s_augment
         self.rng = rng
+        self.particles: list[Particle] = []
 
     def initialize(self: Filter, initial_x: numpy.ndarray, delta: float):
         """Populate self.particles
@@ -292,12 +279,7 @@ class Filter:
         assert 0.9999 < result.sum() < 1.00001
         return result
 
-    def forward(self: Filter,
-                y_ts: numpy.ndarray,
-                t_start,
-                t_stop,
-                gamma,
-                clouds=None):
+    def forward(self: Filter, y_ts: numpy.ndarray, t_range, gamma, clouds=None):
         """Estimate and assign gamma[t] = p(y[t] | y[0:t]) for t from t_start to t_stop.
 
         Args:
@@ -308,7 +290,7 @@ class Filter:
             clouds: Optional dict for saving particles
 
         """
-        for t in range(t_start, t_stop):
+        for t in range(*t_range):
             y = y_ts[t]
             print(f'y[{t}]={y} {len(self.particles)=}')
             assert len(self.particles) < 1e6
