@@ -78,7 +78,7 @@
   \LHead{ODE $\rightarrow$ Observations}
   \begin{align*}
     \dot x &= F(x) \\
-    x[0: 10000] &= \text{integrate}(F, 10000) \\
+    x[0: 10000] &= \text{integrate}(F, n_t=10000, \Delta_\tau=0.15) \\
     \text{bins} &= [-10,0,10] \\
     y &= G(x) \\
     y[0:10000] &= \text{digitize}(x[0:10000,0], \text{bins}])
@@ -116,7 +116,7 @@
   \begin{description}
   \item[Forward Filter:] Conditional probability of states
     $P(x[t]\given y[0:t+1], \theta)$
-  \item[MLE Parameters:] (Forward-Backward, or Baum Welch)
+  \item[MLE Parameters:] (Forward-Backward, also known as Baum-Welch)
     \begin{equation*}
       \hat \theta = \argmax_\theta P(y[0:1000]\given \theta)
     \end{equation*}
@@ -205,13 +205,13 @@
     Given a model for states $x$ and observations $y$ in which
     \begin{align*}
       x[t+1] &= f(x[t]) + \eta[t]\\
-      y[t] &= h(x[t]) + \epsilon[t]
+      y[t] &= g(x[t]) + \epsilon[t]
     \end{align*}
-    where $f$ and $h$ are differentiable but perhaps nonlinear and
+    where $f$ and $g$ are differentiable but perhaps nonlinear and
     $\eta$ and $\epsilon$ are iid Gaussian noise, \emph{extended
       Kalman filtering} (EKF) is the practice of using Gaussians to
     model conditional distributions of states and observations.  One
-    propagates the means with the functions $f$ and $h$ and uses the
+    propagates the means with the functions $f$ and $g$ and uses the
     derivatives of those functions to calculate covariances.
 
     For Figures~\ref{fig:ToyStretch}--\ref{fig:ToyH} I added draws
@@ -270,5 +270,5 @@
 
 %%%---------------
 %%% Local Variables:
-%%% eval: (TeX-PDF-mode)
+%%% eval: (LaTeX-mode)
 %%% End:
