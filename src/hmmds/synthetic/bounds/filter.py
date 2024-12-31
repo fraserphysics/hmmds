@@ -83,7 +83,7 @@ class Particle:
         return argmax, ratio
 
     def divide(self: Particle, n_divide: int, edge_index):
-        """Divide self into n_divide new particles along S_0 direction
+        """Divide self into n_divide new particles along edge_index direction
 
         Args:
             n_divide: number of new particles
@@ -118,6 +118,7 @@ class Particle:
         """
         # For now simply return copy of self.  In the future I may
         # want to draw new x from a uniform distribution in self.box
+        # FixMe: This yields duplicate particles
         return Particle(self.x, self.box, weight)
 
 
@@ -126,25 +127,16 @@ class Filter:
     observations
 
     Args:
+        args: Command line arguments
+        bins: Boundaries for observation
+        rng: Random number generator for resampling
+
+    Use the following attributes of args:
         r_threshold: Subdivide a box if the ratio quadratic/linear > r_threshold
         r_extra: Subdivide more finely than required by r_threshold
-        n_min: Minimum number of particles
-        bins: Quatization boundaries for observations
         time_step: Integrate Lorenz this interval between samples
         atol: Absolute error tolerance for integrator
         s_augment: Small growth of box in all directions at each step
-    
-
-    The values: s_augment, and margin militate against particle
-    exhaustion.
-
-    s_augment: Add this value to each singular value in
-        Filter.forecast_x.  Augmentation prevents collapse of smallest
-        edge of boxes and spreads particles in the contracting
-        direction.
-
-    margin: In update, don't drop particles that are within a fraction
-        of the box size producing the actual observed y value.
 
     """
 
