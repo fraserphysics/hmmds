@@ -38,6 +38,8 @@ class Particle:
 
     # pylint: disable=invalid-name
     def __init__(self: Particle, x, box, weight):
+        assert x.shape == (3,)
+        assert box.shape == (3, 3)
         self.x = x
         self.box = box
         self.weight = weight
@@ -109,17 +111,17 @@ class Particle:
         ]
         return result
 
-    def resample(self: Particle, weight=1.0, rng=None):
+    def resample(self: Particle, rng, weight=1.0):
         """Return a new box sampled from self
 
         Args:
-            weight: Weight of new box
             rng: numpy.random.Generator
+            weight: Weight of new box
         """
-        # For now simply return copy of self.  In the future I may
-        # want to draw new x from a uniform distribution in self.box
-        # FixMe: This yields duplicate particles
-        return Particle(self.x, self.box, weight)
+        new_x = self.x.copy()
+        for edge in self.box:
+            new_x += rng.uniform(-.5, .5) * edge
+        return Particle(new_x, self.box, weight)
 
 
 class Filter:
@@ -208,31 +210,40 @@ class Filter:
         cdf /= cdf[-1]
         new_particles = []
         for index in numpy.searchsorted(cdf, self.rng.uniform(size=n)):
-            new_particles.append(self.particles[index].resample())
+            new_particles.append(self.particles[index].resample(self.rng))
         self.particles = new_particles
 
     def update(self: Filter, y: int):
-        """Delete particles that don't match y within some margin.
+        """Delete particles that don't match y.
 
         Args:
             y: A scalar integer observation
         """
         new_particles = []
-        margin = 0.0
+        margin = 0.5
 
         def zero():
+            """Use if y==0.  Keep a particle if any part of the box is
+            below the bottom bin boundary.
+
+            """
             upper = self.bins[0]
             for particle in self.particles:
-                # box_0 is the total length in the 0 direction
+                # box_0 is the total length of the box in the 0
+                # direction
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
-                if particle.x[0] < upper + margin * box_0:
+                if particle.x[0] - margin * box_0 < upper:
                     new_particles.append(particle)
 
         def top():
+            """Use if y==top bin.  Keep a particle if any part of the
+            box is above the top bin boundary.
+
+            """
             lower = self.bins[-1]
             for particle in self.particles:
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
-                if particle.x[0] > lower - margin * box_0:
+                if particle.x[0] + margin * box_0 > lower:
                     new_particles.append(particle)
 
         if y == 0:

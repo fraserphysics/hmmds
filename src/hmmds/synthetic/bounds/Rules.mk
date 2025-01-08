@@ -23,11 +23,11 @@ $(BOUNDS_DATA)/like_lor: $(BOUNDS_CODE)/like_lor.py
 	python $< --log_resolution 3 -5.6 -0.5 --n_train 10000000 --n_test 10000 $@
 #	python $< --log_resolution 3 -1.6 -0.5 --n_train 100000 --n_test 10000 $@
 
-$(BOUNDS_DATA)/particle_1k: $(BOUNDS_CODE)/particle.py
+$(BOUNDS_DATA)/particle_1k: $(BOUNDS_CODE)/particle.py $(BOUNDS_CODE)/filter.py
 	mkdir -p $(@D)
 	python $< $@
 
-$(BOUNDS_DATA)/ddays: $(BOUNDS_CODE)/particle.py
+$(BOUNDS_DATA)/ddays: $(BOUNDS_CODE)/particle.py $(BOUNDS_CODE)/filter.py
 	mkdir -p $(@D)
 	python $< --clouds 70 75 --n_y 100 $@
 
