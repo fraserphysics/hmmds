@@ -23,12 +23,6 @@ XFIGS = $(PLOTSCRIPTS)/xfigs
 # Default target.  Rule in src/TeX/dynamics_days_25/Rules.mk
 $(BUILD)/TeX/dynamics_days_25/poster.pdf:
 
-# Default target.  Rule in src/TeX/book/Rules.mk
-$(BUILD)/TeX/book/main.pdf:
-
-# Default target.  Rule in src/TeX/apnea/Rules.mk
-$(BUILD)/TeX/apnea/hand_opt.pdf:
-
 ## skeleton                       : Explanation of how I make each figure for the book
 .PHONY : skeleton
 skeleton: $(BUILD)/TeX/skeleton/figures.pdf

@@ -10,11 +10,9 @@ estimate the effect of noise on the estimates to make the lower plots.
 
 """
 
-from __future__ import annotations  # Enables, eg, (self: Particle
 import sys
 import argparse
 import pickle
-import copy
 
 import numpy
 import numpy.linalg
