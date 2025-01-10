@@ -4,6 +4,7 @@
 # BUILD is where results are written.
 
 SKELETON_OUT = $(BUILD)/TeX/skeleton
+TEX_SKELETON = $(ROOT)/src/TeX/skeleton
 
 SKELETON_FIGS = $(INTRODUCTION_FIGS) \
 $(LASER_FIGS) \

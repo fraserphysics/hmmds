@@ -2,6 +2,8 @@
 
 """
 
+from __future__ import annotations  # Enables, eg, (self: Model
+
 import sys
 import argparse
 import pickle
@@ -105,7 +107,7 @@ class Model:
     """
 
     # pylint: disable = too-few-public-methods
-    def __init__(self, quantized, true_states, resolution, n_quantized):
+    def __init__(self: Model, quantized, true_states, resolution, n_quantized):
 
         n_t = len(quantized)
         assert len(true_states) == n_t
@@ -150,7 +152,7 @@ class Model:
             1 / total).tocsr()
         assert self.p_measurement_state.shape == (n_quantized, n_states)
 
-    def log_likelihood(self, quantized):
+    def log_likelihood(self: Model, quantized):
         """Calculate the log likelihood of the model self
 
         Args:

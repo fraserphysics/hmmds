@@ -163,11 +163,14 @@ class LocalNonStationary(hmm.state_space.NonStationary):
 # pylint: disable = invalid-name
 
 
-def dx_dt(_, x, s, r, b):
+def dx_dt(_, x, s=10.0, r=28.0, b=8.0 / 3):
     """Calculate the Lorenz vector field at x
     """
-    return numpy.array(
-        [s * (x[1] - x[0]), x[0] * (r - x[2]) - x[1], x[0] * x[1] - b * x[2]])
+    return numpy.array([
+        s * (x[1] - x[0]),  #
+        x[0] * (r - x[2]) - x[1],  #
+        x[0] * x[1] - b * x[2]
+    ])
 
 
 def tangent(t, x_dx, s, r, b):
@@ -183,7 +186,9 @@ def tangent(t, x_dx, s, r, b):
     result[:3] = dx_dt(t, x, s, r, b)
 
     dF = numpy.array([  # The derivative of F wrt x
-        [-s, s, 0], [r - x[2], -1, -x[0]], [x[1], x[0], -b]
+        [-s, s, 0],  #
+        [r - x[2], -1, -x[0]],  #
+        [x[1], x[0], -b]
     ])
 
     # Assign the tangent part of the return value.
@@ -224,7 +229,7 @@ def n_steps(ic: numpy.ndarray, n: int, d_t: float, atol=1e-7) -> numpy.ndarray:
                                       args=(s, r, b),
                                       atol=atol,
                                       method=method)
-    assert bunch.success
+    assert bunch.success, f'{bunch}'
     assert bunch.y.shape == (3, n), f'shape={bunch.y.shape}'
     return bunch.y.T
 
@@ -246,6 +251,7 @@ def integrate_tangent(t, x, jacobian, atol=1e-7):
                                       args=(s, r, b),
                                       atol=atol,
                                       method=method)
+    assert bunch.success, f'{bunch}'
     new_x = bunch.y[:3, -1]
     new_tangent = bunch.y[3:, -1]
     return new_x, new_tangent.reshape((3, 3))

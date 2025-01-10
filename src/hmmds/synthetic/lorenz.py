@@ -138,11 +138,9 @@ def main(argv=None):
                                  t_array(args.n_samples, args.dt),
                                  tuple(args.sbr))
 
-    #The quantization results will range from 1 to args.levels
-    # including the end points.  I use 1 for the minimum so that plots
-    # look nice.
-    for vector, quant in zip(xyz,
-                             numpy.digitize(xyz[:, 0], get_bins(args)) + 1):
+    #The quantization results will range from 0 to args.levels-1
+    # including the end points.
+    for vector, quant in zip(xyz, numpy.digitize(xyz[:, 0], get_bins(args))):
         # pylint: disable = consider-using-f-string
         print('{0:6.3f} {1:6.3f} {2:6.3f}'.format(*vector), file=args.xyzfile)
         print(f'{quant}', file=args.quantfile)
@@ -165,7 +163,7 @@ def main(argv=None):
                 coarse.write(f'{i*args.dt/50:6.3f} {xyz[i,0]:6.3f}\n')
 
         # Write quantized x[0] to TSintro_qtx with time step .15
-        quantized_data = numpy.digitize(xyz[:, 0], get_bins(args)) + 1
+        quantized_data = numpy.digitize(xyz[:, 0], get_bins(args))
         with open(os.path.join(args.TSintro, 'quantized'),
                   encoding='utf',
                   mode='w') as quantized:

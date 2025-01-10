@@ -53,8 +53,7 @@ def main(argv=None):
     with open(args.in_path, encoding='utf-8', mode='r') as file_:
         y = numpy.array([int(line) for line in file_], numpy.int32)
     # EG y.shape = (20000,) and values are from set {1,2,3,4}
-    n_y = y.max()
-    y -= 1
+    n_y = y.max() + 1
     log_likelihood = numpy.empty((args.n_iterations, args.n_seeds))
     for seed in range(args.n_seeds):
         model = random_hmm(n_y, args.n_states, seed)

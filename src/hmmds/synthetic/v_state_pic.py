@@ -67,10 +67,11 @@ def main(argv=None):
     # Train while loosening prior.  Recall update formula: Cov[s] =
     # (Psi + rrsum)/(wsum[s]+nu+dimension+1).  FixMe: Don't modify
     # from outside.  Call some kind of method of model.y_mod instead.
+    iterations = 10
     for scale in (1, 1e-5, .5, .5):
         model.y_mod.nu *= scale
         model.y_mod.Psi *= scale
-        model.train(y, 10)
+        model.train(y, iterations)
 
     # Do Viterbi decoding
     states = model.decode(y)

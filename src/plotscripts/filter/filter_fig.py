@@ -78,7 +78,9 @@ def main(argv=None):
         observations.plot(t_coarse, y_i, label=f'$y_{i}$')
     # First component of state and filtered estimate.
     filtered.plot(t_coarse, data['x_coarse'][:, 0], label='$x_0$')
-    filtered.plot(t_coarse, data['forward_means'][:, 0], label='filtered')
+    filtered.plot(t_coarse,
+                  data['forward_means'][:, 0],
+                  label='$\hat x_0$ forward')
     # Error of filter estimate and calculated variance of filter
     plot_error(errors, t_coarse, data['forward_covariances'],
                data['forward_means'][:, 0] - data['x_coarse'][:, 0],
