@@ -20,8 +20,13 @@ HMMDS = $(ROOT)/src/hmmds
 BUILD = $(ROOT)/build
 XFIGS = $(PLOTSCRIPTS)/xfigs
 
-# Default target.  Rule in src/TeX/dynamics_days_25/Rules.mk
-$(BUILD)/TeX/dynamics_days_25/poster.pdf:
+# Default target.  Rule in src/TeX/book/Rules.mk
+$(BUILD)/TeX/book/main.pdf:
+
+## ddays25                        : Poster for Dynamics Days 2025 in Denver
+.PHONY : ddays25
+# Rule in src/TeX/dynamics_days_25/Rules.mk
+ddays25: $(BUILD)/TeX/dynamics_days_25/poster.pdf
 
 ## skeleton                       : Explanation of how I make each figure for the book
 .PHONY : skeleton
@@ -81,9 +86,9 @@ include $(TEX)/apnea/Rules.mk
 include $(TEX)/ecg/Rules.mk
 
 ######################Target Documents##########################################
-## ds21.pdf                       : Slides for 2021 SIAM Dynamical Systems meeting
-.PHONY : ds21.pdf
-ds21.pdf : $(TEX)/ds21/slides.pdf
+## ds21                           : Slides for 2021 SIAM Dynamical Systems meeting
+.PHONY : ds21
+ds21 : $(TEX)/ds21/slides.pdf
 
 $(TEX)/ds21/slides.pdf:
 	cd $(TEX)/ds21 && $(MAKE) slides.pdf
@@ -130,7 +135,8 @@ test :
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo DD25_FIGS: $(DD25_FIGS)
+	@echo DS23FIGS: $(DS23FIGS)
+	@echo ECG_FIGS: $(ECG_FIGS)
 	@echo In root Makefile, ROOT: $(ROOT)
 ## help                           : Print comments on targets from makefile
 .PHONY : help
