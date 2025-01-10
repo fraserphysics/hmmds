@@ -21,10 +21,11 @@ BUILD = $(ROOT)/build
 XFIGS = $(PLOTSCRIPTS)/xfigs
 
 # Default target.  Rule in src/TeX/book/Rules.mk
-$(BUILD)/TeX/book/main.pdf:
+book:
 
-# Default target.  Rule in src/TeX/apnea/Rules.mk
-$(BUILD)/TeX/apnea/hand_opt.pdf:
+## book                           : Hidden Markov Models and Dynamical Systems
+.PHONY : book
+book: $(BUILD)/TeX/book/main.pdf
 
 ## skeleton                       : Explanation of how I make each figure for the book
 .PHONY : skeleton
