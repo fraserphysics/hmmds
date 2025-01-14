@@ -57,18 +57,18 @@ that explains the basic ideas and algorithms for applying HMMs.  We
 were stumped\footnote{In subsequent years several good references that
   explain the basic ideas of HMMs have appeared, \eg, \ToDo{Find some}}.  A
 group of the participants suggested writing this book to answer the
-question.  Two years later, I delivered a proposal for the book that
+question.  Two years later, we delivered a proposal for the book that
 included about two chapters to SIAM at the 2003 Dynamical Systems
 meeting.  Sometime after SIAM published the first edition in 2008, I
-began working on updating the software I used to generate the book.
-In an effort to use better software practices, I wrote tests, and one
+began working on updating the software we used to generate the book.
+In an effort to use better software practices, we wrote tests, and one
 of those tests revealed a conceptual error in the last chapter of the
 book.  In the current edition Chapter~\ref{chap:apnea} is a thorough
 revision that addresses the same tasks with a simpler approach.
 
 The book is intended for readers who have backgrounds and interests
 typical of those who attend the SIAM Dynamical Systems meetings.  In
-particular, my view is that HMMs are discrete state discrete time
+particular, our view is that HMMs are discrete state discrete time
 stochastic dynamical systems, and that they are often used to
 approximate dynamical systems with continuous state spaces operating
 in continuous time.  Thus, by using familiar analogies, it should be
@@ -80,48 +80,41 @@ the techniques at a symposium held at the Institute for Defense
 Analysis \index{Institute for Defense Analysis} in Princeton.  A small
 number of proceedings of that symposium \cite{ida80} were printed, and
 the volume was called \emph{the blue book} by workers in the field.  I
-was not part of that community, but I have a copy of the blue book.
+was not part of that community, but we have a copy of the blue book.
 It explains the basic algorithms and illustrates them with simple
-concrete examples.  I hope my book is as simple, useful, and clear.
+concrete examples.  We hope our book is as simple, useful, and clear.
 
 Although there are now other books and papers that are about HMMs
-exclusively or in part, I believe that the present volume is unique in
+exclusively or in part, we believe that the present volume is unique in
 that:
 \begin{description}
 \item[It is introductory] Sophomore or Junior study in engineering,
   mathematics, or science provides the prerequisites for most of the
   book.  The exceptions are ideas from dynamical systems and
-  information theory.  In particular, I use the Gibbs inequality
+  information theory.  In particular, we use the Gibbs inequality
   (Eqn.~\eqref{eq:GibbsIE}) in developing the EM algorithm in Chapter
   \ref{chap:algorithms}.  Although Chapter \ref{chap:toys} \emph{Toy
     Problems and Performance Bounds} deals with Lyapunov exponents and
   entropies, it is not a prerequisite for any other chapter.
-\item[Algorithms are explained and justified] I present enough of the
+\item[Algorithms are explained and justified] We present enough of the
   theory behind the basic algorithms in Chapter \ref{chap:algorithms}
   so that a reader can use it as a guide to developing his own
   variants.
-\item[I provide code implementing the algorithms and data for the
-  examples] Although algorithms are given in pseudo code in the text,
-  \ToDo{at \url{http://www.fraserphysics.com/~andy/hmmdsbook} and
-    \url{www.siam.org/~fraser/XXXX}} I provide a working
-  implementation of each of the algorithms I describe.  I have chosen
-  to write the programs in the python language because it is easy to
-  read and the interpreter is free software.  I have written the
-  programs to follow the descriptions and notation in the text.  I
-  provide data and scripts (makefiles, shell scripts, etc.)  that make
-  all of the figures in the text.  On \ToDo{What systems?}  issuing
-  ``make book.pdf'' from a command line compiles the software, runs
-  the numerical experiments, makes the figures, and formats the entire
-  book.
+\item[We provide code implementing the algorithms and data for the
+  examples] You can fetch the code and data and build the book
+  yourself.  You can examine the source code to resolve questions
+  about how figures were made, and you can build on the software to
+  try out your own ideas for variations.
 \item[It uses analogies to dynamical systems] For example, I
   demonstrate the HMM training algorithm by applying it to data
   derived from the Lorenz system.  The result, as
   Fig.~\ref{fig:Statesintro} illustrates, is that the algorithm
   estimates a discrete state generating mechanism that is an
   approximation to the state space of the original Lorenz system.
-\item[I illustrate with a practical example] In Chapter \ref{chap:apnea} I
+\item[We illustrate with a practical example] In Chapter \ref{chap:apnea} I
   present an application to experimental measurements of
-  electrocardiograms (ECGs).
+  electrocardiograms (ECGs).  \ToDo{I'd like a practical application
+    of particle filtering}
 \end{description}
 
 \ToDo{ Point to review papers and material (I've collected some of the
@@ -135,20 +128,54 @@ that:
   \item Bayes nets
   \end{itemize}
 }
+
+\subsection*{Source Software, Data and Text}
+\label{preface_software}
+
+The software, data and text files we used to build the book are freely
+available.  We've written a python package named \emph{hmm} that
+provides implementations of the general algorithms described in the
+book.  It is available from https://gitlab.com/fraserphysics1/hmm.  At
+https://gitlab.com/fraserphysics/hmmds we provide additional code,
+text and data for building the book.  After fetching and installing
+both packages one can issue ``make book'' from a command line to
+compile the software, run the numerical experiments, make the figures
+and format the entire book.  \ToDo{Once I get that fixed, give
+  detailed instructions for different environments.}
+
+Since our fortunate decision to use Python for the first edition of
+this book the continuing evolution of Python language and environment
+has made writing code easier and the resulting code is easier to
+read.  Although algorithms are given in pseudo code in the text, we
+provide a working implementation of each of the algorithms described
+in the text.
+
+\subsection*{Notation}
+\label{preface_notation}
+
+In general we introduce notation as it gets used in the text and
+collect it in a section at the end of the book.  However to avoid
+confusion, we now note our use of Python notation for sequences,
+namely
+\begin{equation*}
+  \ts{x}{0}{T} \equiv \left[ x[0], x[1], \ldots, x[T-1] \right].
+\end{equation*}
+\ToDo{What about random variables and probability functions?}
+
 \section*{Acknowledgments}
 \addcontentsline{toc}{section}{Acknowledgments}%
 \label{sec:ack}
 \longpage%%% Maybe not required for MathTime... look for partial
          %%% paragraph on page by itself before TOC begins.
 
-In writing this book, I have used much that I learned from colleagues
-in Portland.  In particular, Todd Leen kept me informed about
-developments in the machine learning community.  I've relied on the
+In writing this book, we have used much that we learned from colleagues
+in Portland.  In particular, Todd Leen kept us informed about
+developments in the machine learning community.  We've relied on the
 review of the ergodic theory of dynamical systems in Kevin Vixie's
 dissertation\cite{vixie02} for Chapter~\ref{chap:toys} of this book.
-Shari Matzner and Gerardo Lafferriere helped me understand the
+Shari Matzner and Gerardo Lafferriere helped us understand the
 convergence properties of the EM algorithm.  Also the following
-colleagues have given me constructive comments on drafts of the book:
+colleagues have given us constructive comments on drafts of the book:
 % 
 Patrick Campbell, %
 Ralf Juengling, %
@@ -157,10 +184,10 @@ Cosma Shalizi, %
 and %
 Rudolph Van der Merwe. %
 
-I thank the following people and organizations for providing the data
-that I used for examples:
+We thank the following people and organizations for providing the data
+that we used for examples:
 \begin{description}
-\item[Carl Otto Weiss], for providing Tang's\cite{Tang92} laser data
+\item[Carl Otto Weiss] for providing Tang's\cite{Tang92} laser data
 \item[PhysioNet\cite{PhysioNet}] For providing Penzel's\cite{Penzel02}
   ECG data and the WFDB python package\cite{WFDB-python} for accessing
   that data from python.
@@ -170,14 +197,14 @@ that I used for examples:
 %%% out into the margin without it. -- karlheg
 \end{description}
 
-I was fortunate to meet the late Karl Hegbloom in Portland.  Karl
-contributed to several free software projects and he helped me with
+We were fortunate to meet the late Karl Hegbloom in Portland.  Karl
+contributed to several free software projects and he helped us with
 the figures and software for the fist edition.  In addition to
-personal help with software, I relied on free software written by too
-many contributers to list.  I used the NixOS distribution of Linux to
+personal help with software, we relied on free software written by too
+many contributors to list.  We used the NixOS distribution of Linux to
 organize the software.
 
-For writing the first edition, I acknowledge Portland State University
+For writing the first edition, we acknowledge Portland State University
 for support of a sabbatical leave
 %
 
@@ -303,4 +330,5 @@ https://web.stanford.edu/class/ee364b/latex_templates/template_notes.pdf
 %%%---------------
 %%% Local Variables:
 %%% eval: (load-file "hmmkeys.el")
+%%% mode: LaTeX
 %%% End:
