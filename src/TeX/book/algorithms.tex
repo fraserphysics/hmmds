@@ -31,9 +31,9 @@ establishing our notation for the model parameters.
   $b_j(k) = P_{\ti{Y}{t}|\ti{S}{t}} \left(y_k|s_j \right)$.
 \item[$\bm{\parameters}$] The entire collection of parameters.  For
   example, iteration of the Baum-Welch algorithm produces a sequence
-  of parameter vectors $\ts{\parameters}{1}{N}$ with
-  $P\left(\ts{y}{1}{T}|\ti{\parameters}{n+1}\right) \geq
-  P\left(\ts{y}{1}{T}|\ti{\parameters}{n}\right)\, : 1 < n < N$.
+  of parameter vectors $\ts{\parameters}{0}{N}$ with
+  $P\left(\ts{y}{0}{T}|\ti{\parameters}{n+1}\right) \geq
+  P\left(\ts{y}{0}{T}|\ti{\parameters}{n}\right)\, : 1 < n < N$.
   Instead of $\parameters$, Ferguson used $\lambda$ to denote the
   entire collection of parameters.
   \nomenclature[gh]{$\bm{\theta}$}{The entire collection of
@@ -45,18 +45,18 @@ establishing our notation for the model parameters.
 \index{forward algorithm|textbf}
 
 Given $\parameters$, the forward algorithm calculates
-$P(\ts{y}{1}{T}|\parameters)$, and several useful intermediate terms.
+$P(\ts{y}{0}{T}|\parameters)$, and several useful intermediate terms.
 Figure~\ref{fig:forward} sketches the basic recursion's structure.
 Since we are considering only one set of parameters, we will drop the
 dependence of probabilities on $\parameters$ from the notation for the
 remainder of this section.  In the example of Eqn.~\eqref{eq:pcalc} we
 found that we could write the right hand terms of
 \begin{equation*}
-   P\left( \ts{y}{1}{T} \right) = \sum_{\ts{s}{1}{T}}
-   P\left( \ts{y}{1}{T},\ts{s}{1}{T} \right)
+   P\left( \ts{y}{0}{T} \right) = \sum_{\ts{s}{0}{T}}
+   P\left( \ts{y}{0}{T},\ts{s}{0}{T} \right)
 \end{equation*}
 easily from the model assumptions.  Unfortunately, the number of
-possible sequences $\ts{s}{1}{T}$ is exponential in $T$, and it is
+possible sequences $\ts{s}{0}{T}$ is exponential in $T$, and it is
 not feasible to do the sum for even modest lengths $T$.
 
 \begin{sidewaysfigure}[htbp]
@@ -67,9 +67,9 @@ not feasible to do the sum for even modest lengths $T$.
     \def\colab{$\alpha(s_2,t-1)$}%
     \def\colac{$\alpha(s_3,t-1)$}%
     %% Column b
-    \def\colba{$P \left(s_1|\ts{y}{1}{t-1} \right)$}%
-    \def\colbb{$P \left(s_2|\ts{y}{1}{t-1} \right)$}%
-    \def\colbc{$P \left(s_3|\ts{y}{1}{t-1} \right)$}%
+    \def\colba{$P \left(s_1|\ts{y}{0}{t} \right)$}%
+    \def\colbb{$P \left(s_2|\ts{y}{0}{t} \right)$}%
+    \def\colbc{$P \left(s_3|\ts{y}{0}{t} \right)$}%
     \def\sumeqforwardAthree{%
       \begin{minipage}[t]{1.8in}
         \raggedright%
@@ -79,9 +79,9 @@ not feasible to do the sum for even modest lengths $T$.
         Eqn.~\eqref{eq:forwardA3}
       \end{minipage}}%
     %% Column c
-    \def\colca{$P \left(s_1,\ti{y}{t}|\ts{y}{1}{t-1} \right)$}%
-    \def\colcb{$P \left(s_2,\ti{y}{t}|\ts{y}{1}{t-1} \right)$}%
-    \def\colcc{$P \left(s_3,\ti{y}{t}|\ts{y}{1}{t-1} \right)$}%
+    \def\colca{$P \left(s_1,\ti{y}{t}|\ts{y}{0}{t} \right)$}%
+    \def\colcb{$P \left(s_2,\ti{y}{t}|\ts{y}{0}{t} \right)$}%
+    \def\colcc{$P \left(s_3,\ti{y}{t}|\ts{y}{0}{t} \right)$}%
     \def\prdeqforwardBtwo{%
       \begin{minipage}[t]{2.3in}
         \raggedright%
@@ -91,12 +91,12 @@ not feasible to do the sum for even modest lengths $T$.
         Eqn.~\eqref{eq:forwardB2}
       \end{minipage}}%
     %% Column d
-    \def\coldb{$P(\ti{y}{t}|\ts{y}{1}{t-1})$}%
+    \def\coldb{$P(\ti{y}{t}|\ts{y}{0}{t})$}%
     \def\prdeqforwardC{%
       \begin{minipage}[t]{1.8in}
         \raggedright%
         Add, to get\\%
-        $\gamma(t)$, $P \left(\ti{y}{t}|\ts{y}{1}{t-1} \right)$\\%
+        $\gamma(t)$, $P \left(\ti{y}{t}|\ts{y}{0}{t} \right)$\\%
         Eqn.~\eqref{eq:forwardC}
       \end{minipage}}%
     %% Column e
@@ -121,20 +121,20 @@ not feasible to do the sum for even modest lengths $T$.
 
 The forward algorithm regroups the terms and produces the desired
 result using order $T$ calculations.  For each time $t:\, 1 < t \leq
-T$ we calculate $P(\ti{y}{t}|\ts{y}{1}{t-1})$, and in principle we can
+T$ we calculate $P(\ti{y}{t}|\ts{y}{0}{t})$, and in principle we can
 write
 \begin{equation*}
-  P(\ts{y}{1}{T}) = P(\ti{y}{1}) \prod_{t=2}^T P(\ti{y}{t}|\ts{y}{1}{t-1}).
+  P(\ts{y}{0}{T}) = P(\ti{y}{1}) \prod_{t=2}^T P(\ti{y}{t}|\ts{y}{0}{t}).
 \end{equation*}
-However the values of $P(\ti{y}{t}|\ts{y}{1}{t-1})$ are typically
+However the values of $P(\ti{y}{t}|\ts{y}{0}{t})$ are typically
 small compared to 1, and the product of many such terms is too small
 to be represented even in double precision.  Working with logarithms
 avoids underflow:
 
 \begin{equation}
   \mlabel{eq:logP}
-  \log\left( P(\ts{y}{1}{T}) \right) = \log\left( P(\ti{y}{1})
- \right) + \sum_{t=2}^T \log\left( P(\ti{y}{t}|\ts{y}{1}{t-1})\right).
+  \log\left( P(\ts{y}{0}{T}) \right) = \log\left( P(\ti{y}{1})
+ \right) + \sum_{t=2}^T \log\left( P(\ti{y}{t}|\ts{y}{0}{t})\right).
 \end{equation}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -142,27 +142,27 @@ avoids underflow:
 %%% #1 = time #2 = state
 \newcommand{\alphax}[2]{%
   \colorbox{yellow}{%
-    $P_{S(#1)|\ts{Y}{1}{#1}}\left(#2 |\ts{y}{1}{#1} \right)$%
+    $P_{S(#1)|\ts{Y}{0}{#1}}\left(#2 |\ts{y}{0}{#1} \right)$%
   }%
 }%
 %%%
 %%%
 \newcommand{\prealpha}{%
   \colorbox{green}{%
-    $P_{\ti{S}{t}|\ts{Y}{1}{t-1}} \left(s | \ts{y}{1}{t-1} \right)$%
+    $P_{\ti{S}{t}|\ts{Y}{0}{t}} \left(s | \ts{y}{0}{t} \right)$%
   }%
 }%
 %%%
 \newcommand{\gammax}{%
   \colorbox{cyan}{%
-    $P(\ti{y}{t}|\ts{y}{1}{t-1})$%
+    $P(\ti{y}{t}|\ts{y}{0}{t})$%
   }%
 }%
 %%%
 %%%
 \newcommand{\pregamma}{%
   \colorbox{pink}{%
-    $P_{\ti{S}{t},\ti{Y}{t}|\ts{Y}{1}{t-1}} \left(s,\ti{y}{t}|\ts{y}{1}{t-1}\right)$%
+    $P_{\ti{S}{t},\ti{Y}{t}|\ts{Y}{0}{t}} \left(s,\ti{y}{t}|\ts{y}{0}{t}\right)$%
   }%
 }%
 %%%
@@ -179,7 +179,7 @@ intermediate results
   $t$ the system is in state $s$ given the observations up to the
   present,
   \begin{equation*}
-    \alpha(s,t) \equiv  P_{S(t)"|\ts{Y}{1}{t}}\left(s "|\ts{y}{1}{t}
+    \alpha(s,t) \equiv  P_{S(t)"|\ts{Y}{0}{t}}\left(s "|\ts{y}{0}{t}
     \right).
   \end{equation*}
   Also called the forward updated distribution in the Kalman filter
@@ -194,10 +194,10 @@ intermediate results
   \ti{\gamma}{t} &\equiv \gammax .
 \end{align}
 In words\footnote{In Ferguson's notation $\alpha(s,t) \equiv
-  P_{\ti{S}{t},\ts{Y}{1}{t}} \left(s,\ts{y}{1}{t} \right)$.  Our
-  notation differs from that by a factor of $P(\ts{y}{1}{t})$.
+  P_{\ti{S}{t},\ts{Y}{0}{t}} \left(s,\ts{y}{0}{t} \right)$.  Our
+  notation differs from that by a factor of $P(\ts{y}{0}{t})$.
   Ferguson did not have notation for the term
-  $P(\ti{y}{t}|\ts{y}{1}{t-1})$ which we call $\gamma$, but he did use
+  $P(\ti{y}{t}|\ts{y}{0}{t})$ which we call $\gamma$, but he did use
   $\gamma$ for quantities that we will denote by $w$ in
   Eqns.~\eqref{eq:wit} and \eqref{eq:wijt}.}, $\alpha(s,t)$ is the
 conditional probability of being in state $s$ at time $t$ given all
@@ -225,12 +225,12 @@ a loop doing the following four calculations:
     \begin{align}
       \mlabel{eq:forwardA1}
       \prealpha & = \sum_{{\tilde s}\in\states}
-      P_{\ti{S}{t},\ti{S}{t-1}|\ts{Y}{1}{t-1}} \left( s, {\tilde s}
-      |\ts{y}{1}{t-1} \right)\\
+      P_{\ti{S}{t},\ti{S}{t-1}|\ts{Y}{0}{t}} \left( s, {\tilde s}
+      |\ts{y}{0}{t} \right)\\
       \mlabel{eq:forwardA2}
       & = \sum_{{\tilde s}\in\states} \left(
-        P_{\ti{S}{t}|\ti{S}{t-1},\ts{Y}{1}{t-1}}
-        \left( s|{\tilde s},\ts{y}{1}{t-1} \right) \right. \nonumber \\ &
+        P_{\ti{S}{t}|\ti{S}{t-1},\ts{Y}{0}{t}}
+        \left( s|{\tilde s},\ts{y}{0}{t} \right) \right. \nonumber \\ &
       \left. \times \alphax{t-1}{{\tilde s}} \right) \\
       \mlabel{eq:forwardA3}
       & = \sum_{{\tilde s}\in\states} P_{\ti{S}{t}|\ti{S}{t-1}} \left( s|{\tilde s} \right)
@@ -254,7 +254,7 @@ a loop doing the following four calculations:
     \begin{align}
       \mlabel{eq:forwardB1}
       \pregamma &= P_{\ti{Y}{t} |
-        \ti{S}{t},\ts{Y}{1}{t-1}}\left(\ti{y}{t} |s, \ts{y}{1}{t-1}
+        \ti{S}{t},\ts{Y}{0}{t}}\left(\ti{y}{t} |s, \ts{y}{0}{t}
       \right) \nonumber \\& \times \prealpha\\
       \mlabel{eq:forwardB2}
       &= P_{\ti{Y}{t} | \ti{S}{t}}\left(\ti{y}{t} |s \right) \cdot
@@ -303,24 +303,24 @@ For some applications, one must estimate the sequence of states based
 on a sequence of observations.  The Viterbi algorithm %
 \index{Viterbi algorithm|textbf}%
 finds the \emph{best} sequence $\ts{\hat s}{1}{T}$ in the sense of
-maximizing the probability $P\left( \ts{s}{1}{T}|\ts{y}{1}{T}
+maximizing the probability $P\left( \ts{s}{0}{T}|\ts{y}{0}{T}
 \right)$.  That is equivalent to maximizing $\log \left( P\left(
-    \ts{y}{1}{T},\ts{s}{1}{T} \right) \right)$ because $P \left(
-  \ts{y}{1}{T} \right)$ is simply a constant, and the $\log$ is
+    \ts{y}{0}{T},\ts{s}{0}{T} \right) \right)$ because $P \left(
+  \ts{y}{0}{T} \right)$ is simply a constant, and the $\log$ is
 monotonic, ie,
 \begin{align*}
-  \ts{\hat s}{1}{T} &\equiv \argmax_{\ts{s}{1}{T}}
-  P(\ts{s}{1}{T}|\ts{y}{1}{T})\\
-  &= \argmax_{\ts{s}{1}{T}} \left( P(\ts{s}{1}{T}|\ts{y}{1}{T}) \cdot
-    P(\ts{y}{1}{T}) \right)\\
-  &= \argmax_{\ts{s}{1}{T}} \log \left( P(\ts{y}{1}{T},\ts{s}{1}{T})
+  \ts{\hat s}{1}{T} &\equiv \argmax_{\ts{s}{0}{T}}
+  P(\ts{s}{0}{T}|\ts{y}{0}{T})\\
+  &= \argmax_{\ts{s}{0}{T}} \left( P(\ts{s}{0}{T}|\ts{y}{0}{T}) \cdot
+    P(\ts{y}{0}{T}) \right)\\
+  &= \argmax_{\ts{s}{0}{T}} \log \left( P(\ts{y}{0}{T},\ts{s}{0}{T})
   \right).
 \end{align*}
 As in the implementation of the forward algorithm, we use logs to
 avoid numerical underflow.  If we define $\log \left( P\left(
-    \ts{y}{1}{t}, \ts{s}{1}{t} \right) \right)$ as the
-\emph{utility} (negative cost) of the state sequence $\ts{s}{1}{t}$
-given the observation sequence $\ts{y}{1}{t}$, then the Viterbi
+    \ts{y}{0}{t}, \ts{s}{0}{t} \right) \right)$ as the
+\emph{utility} (negative cost) of the state sequence $\ts{s}{0}{t}$
+given the observation sequence $\ts{y}{0}{t}$, then the Viterbi
 algorithm finds the maximum utility state sequence.
 
 Initially one calculates
@@ -342,8 +342,8 @@ to describe and justify the algorithm.
   $\ts{\hat s}{1}{t}(s)$ to be the sequence with the highest joint
   probability with the data, \ie,
   \begin{equation*}
-    \ts{\hat s}{1}{t}(s) \equiv \argmax_{ \ts{s}{1}{t}:\ti{s}{t}=s}
-    P\left(\ts{y}{1}{t}, \ts{s}{1}{t} \right).
+    \ts{\hat s}{1}{t}(s) \equiv \argmax_{ \ts{s}{0}{t}:\ti{s}{t}=s}
+    P\left(\ts{y}{0}{t}, \ts{s}{0}{t} \right).
   \end{equation*}
 \item[$\bm{\nu(t,s)}$ The \emph{utility} of the best sequence ending
   in $\bm{s}$] %
@@ -351,14 +351,14 @@ to describe and justify the algorithm.
     algorithm to denote the \emph{utility} of the best sequence ending
     in state $s$.
     \begin{equation*}
-      \nu(t,s) \equiv \log\left( P\left(\ts{y}{1}{t}, \ts{\hat s}{1}{t}(s)
+      \nu(t,s) \equiv \log\left( P\left(\ts{y}{0}{t}, \ts{\hat s}{1}{t}(s)
         \right) \right)
     \end{equation*}} % end nomenclature
   This is simply the log of the joint
   probability of the data with the best state sequence defined above,
   \ie
   \begin{equation*}
-    \nu(t,s) = \log\left( P\left(\ts{y}{1}{t}, \ts{\hat s}{1}{t}(s)
+    \nu(t,s) = \log\left( P\left(\ts{y}{0}{t}, \ts{\hat s}{1}{t}(s)
       \right) \right)
   \end{equation*}
 \item[$\bm{s'(s,t+1)}$ The immediate predecessor of state $s$ in
@@ -385,9 +385,9 @@ the predecessor to $s$ and one that accounts for the probability of
 state $s$ producing the observation $\ti{y}{t+1}$.  The equation
 follows from taking logs of
 \begin{multline*}
-  P_{\ti{Y}{t+1},\ts{Y}{1}{t},\ti{S}{t+1},\ts{S}{1}{t}}
-  \left(\ti{y}{t+1},\ts{y}{1}{t},s,\ts{s}{1}{t} \right) =\\
-  P\left(\ts{y}{1}{t}, \ts{s}{1}{t} \right) \cdot
+  P_{\ti{Y}{t+1},\ts{Y}{0}{t},\ti{S}{t+1},\ts{S}{0}{t}}
+  \left(\ti{y}{t+1},\ts{y}{0}{t},s,\ts{s}{0}{t} \right) =\\
+  P\left(\ts{y}{0}{t}, \ts{s}{0}{t} \right) \cdot
   P_{\ti{S}{t+1}|\ti{S}{t}} \left(s|\ti{s}{t} \right) \cdot
   P_{\ti{Y}{t+1}|\ti{S}{t+1}} \left(\ti{y}{t+1}|s \right)
 \end{multline*}
@@ -524,11 +524,11 @@ the entire highest utility path.
 \label{sec:baum_welch}
 
 Given an initial vector of model parameters $\parameters$ for an HMM
-and a sequence of observations $\ts{y}{1}{T}$, iteration of the
+and a sequence of observations $\ts{y}{0}{T}$, iteration of the
 Baum-Welch algorithm \index{Baum-Welch algorithm|textbf} produces a
 sequence of parameter vectors $\ts{\parameters}{1}{N}$ that almost
 always converges to a local maximum of the likelihood function
-$P_{\parameters} \left( \ts{y}{1}{T} \right)$.  The algorithm was
+$P_{\parameters} \left( \ts{y}{0}{T} \right)$.  The algorithm was
 developed by \index*{Baum} and collaborators \cite{Baum70,Baum67} in
 the 1960's at the Institute for Defense Analysis in Princeton.  In
 each iteration, it estimates the distribution of the unobserved states
@@ -543,8 +543,8 @@ the general procedure the \emph{EM algorithm}.  \index{EM
 The EM algorithm operates on models $P_{\Y,\bS,\parameters} $ with
 parameters $\parameters$ for a mix of data that is observed $(\Y)$ and
 data that is unobserved $(\bS)$.  (For our application, $\Y$ is a
-sequence of observations $\ts{Y}{1}{T}$ and $\bS$ is a sequence of
-discrete hidden states $\ts{S}{1}{T}$.)  The steps in the algorithm
+sequence of observations $\ts{Y}{0}{T}$ and $\bS$ is a sequence of
+discrete hidden states $\ts{S}{0}{T}$.)  The steps in the algorithm
 are:
 \begin{enumerate}
 \item Guess\footnote{Although a symmetric model in which the
@@ -580,11 +580,11 @@ We defer further discussion of the general EM algorithm to Section
 \ref{sec:EM} and now proceed to the details of its application to
 HMMs, \ie, the Baum-Welch algorithm.  The work of an iteration of the
 EM algorithm is done in step~\ref{EM_loop}.  To apply it to an HMM, we
-first characterize $P \left(\ts{s}{1}{T}|\ts{y}{1}{T}, \parameters
+first characterize $P \left(\ts{s}{0}{T}|\ts{y}{0}{T}, \parameters
 \right)$ by a combination of the \emph{forward algorithm} that we
 already described in Section~\ref{sec:forward} and the \emph{backward
   algorithm} which we will describe in the next section.  Using the
-characterization of $P \left(\ts{s}{1}{T}|\ts{y}{1}{T}, \parameters
+characterization of $P \left(\ts{s}{0}{T}|\ts{y}{0}{T}, \parameters
 \right)$, we describe the optimization specified by
 Eqn.~\eqref{eq:EMmax} in Section~\ref{sec:reestimation}.
 
@@ -595,19 +595,19 @@ The \index{backward algorithm} backward algorithm is similar to the
 forward algorithm in structure and complexity, but the terms are
 neither as easy to interpret nor as clearly useful.  After running
 both the forward algorithm and the backward algorithm, one can
-calculate $P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s|\ts{y}{1}{T} \right)$,
+calculate $P_{\ti{S}{t}|\ts{Y}{0}{T}} \left(s|\ts{y}{0}{T} \right)$,
 the conditional probability of being in any state $s \in \states$ at
 any time $t: 1\leq t \leq T$ given the entire sequence of
 observations.  The forward algorithm provides the terms $\alpha(s,t)
-\equiv P_{\ti{S}{t}|\ts{Y}{1}{t}} \left(s|\ts{y}{1}{t} \right)\,
+\equiv P_{\ti{S}{t}|\ts{Y}{0}{t}} \left(s|\ts{y}{0}{t} \right)\,
 \forall (s,t)$.  Thus the backward algorithm must provide terms, call
 them $\beta(s,t)$, with the values
 \begin{equation}
   \label{eq:bw1} \beta(s,t) =
-  \frac{P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s|\ts{y}{1}{T} \right)}
-  {\alpha(s,t)} = \frac{P_{\ti{S}{t}|\ts{Y}{1}{T}}
-    \left(s|\ts{y}{1}{T} \right)}
-  {P_{\ti{S}{t}|\ts{Y}{1}{t}} \left(s|\ts{y}{1}{t} \right)}.
+  \frac{P_{\ti{S}{t}|\ts{Y}{0}{T}} \left(s|\ts{y}{0}{T} \right)}
+  {\alpha(s,t)} = \frac{P_{\ti{S}{t}|\ts{Y}{0}{T}}
+    \left(s|\ts{y}{0}{T} \right)}
+  {P_{\ti{S}{t}|\ts{Y}{0}{t}} \left(s|\ts{y}{0}{t} \right)}.
 \end{equation}
 \nomenclature[gb]{$\beta(s,t)$}{An intermediate quantity calculated in the
   backwards algorithm which is used somewhat like $\alpha$ in the
@@ -616,35 +616,35 @@ them $\beta(s,t)$, with the values
   \begin{align*}
     \beta(s,t) &= \frac{P_{\ts{Y}{t+1}{T}"|\ti{S}{t}}
       \left(\ts{y}{t+1}{T}"|s
-      \right)} {P \left(\ts{y}{t+1}{T}"|\ts{y}{1}{t} \right)}\\
-    &= \frac{P_{\ti{S}{t}"|\ts{Y}{1}{T}} \left(s"|\ts{y}{1}{T} \right)}
-    {\alpha(s,t)} = \frac{P_{\ti{S}{t}"|\ts{Y}{1}{T}}
-      \left(s"|\ts{y}{1}{T} \right)} {P_{\ti{S}{t}"|\ts{Y}{1}{t}}
-      \left(s"|\ts{y}{1}{t} \right)}.
+      \right)} {P \left(\ts{y}{t+1}{T}"|\ts{y}{0}{t} \right)}\\
+    &= \frac{P_{\ti{S}{t}"|\ts{Y}{0}{T}} \left(s"|\ts{y}{0}{T} \right)}
+    {\alpha(s,t)} = \frac{P_{\ti{S}{t}"|\ts{Y}{0}{T}}
+      \left(s"|\ts{y}{0}{T} \right)} {P_{\ti{S}{t}"|\ts{Y}{0}{t}}
+      \left(s"|\ts{y}{0}{t} \right)}.
   \end{align*}
   The interpretation of $\beta$ is less intuitive than the
   interpretation of $\alpha$.  It is also called the backward forecast
   distribution in the Kalman filter literature.}% end nomenclature
 Invoking Bayes rule and the model assumptions we find
 \begin{align}
-  \mlabel{eq:bw2} \beta(s,t) &= \frac{P_{\ts{Y}{1}{T},\ti{S}{t}}
-    \left(\ts{y}{1}{T},s \right)\cdot P \left(\ts{y}{1}{t} \right)}
-  {P_{\ts{Y}{1}{t},\ti{S}{t}}
-    \left(\ts{y}{1}{t},s \right)\cdot P \left(\ts{y}{1}{T} \right)}\\
-  \mlabel{eq:bw3} &= \frac{P_{\ts{Y}{t+1}{T}|\ts{Y}{1}{t},\ti{S}{t}}
-    \left(\ts{y}{t+1}{T}|\ts{y}{1}{t},s \right)} {P
-    \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right)}\\
+  \mlabel{eq:bw2} \beta(s,t) &= \frac{P_{\ts{Y}{0}{T},\ti{S}{t}}
+    \left(\ts{y}{0}{T},s \right)\cdot P \left(\ts{y}{0}{t} \right)}
+  {P_{\ts{Y}{0}{t},\ti{S}{t}}
+    \left(\ts{y}{0}{t},s \right)\cdot P \left(\ts{y}{0}{T} \right)}\\
+  \mlabel{eq:bw3} &= \frac{P_{\ts{Y}{t+1}{T}|\ts{Y}{0}{t},\ti{S}{t}}
+    \left(\ts{y}{t+1}{T}|\ts{y}{0}{t},s \right)} {P
+    \left(\ts{y}{t+1}{T}|\ts{y}{0}{t} \right)}\\
   \label{eq:bw4}
   & = \frac{P_{\ts{Y}{t+1}{T}|\ti{S}{t}} \left(\ts{y}{t+1}{T}|s
-    \right)} {P \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right)}.
+    \right)} {P \left(\ts{y}{t+1}{T}|\ts{y}{0}{t} \right)}.
 \end{align}
 (Note that if $\alpha(s,t)=0$, Eqn.~\eqref{eq:bw1} is undefined, but
 we can nonetheless implement Eqn.~\eqref{eq:bw4}.)
 
 The algorithm starts at the final time $T$ with $\beta$ set to
 one\footnote{From the premises that $\alpha(s,t) \beta(s,t) =
-  P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s|\ts{y}{1}{T} \right)$ and
-  $\alpha(s,T) \equiv P_{S(T)|\ts{Y}{1}{T}}\left(s |\ts{y}{1}{T}
+  P_{\ti{S}{t}|\ts{Y}{0}{T}} \left(s|\ts{y}{0}{T} \right)$ and
+  $\alpha(s,T) \equiv P_{S(T)|\ts{Y}{0}{T}}\left(s |\ts{y}{0}{T}
   \right)$, we conclude that $\beta(s,T) = 1 ~\forall s$.} %
 for each state, $\beta(s,T) = 1,~\forall s \in \states$, and solves
 for $\beta$ at earlier times with the following recursion that goes
@@ -657,17 +657,17 @@ for $\beta$ at earlier times with the following recursion that goes
     \left(s|{\tilde s} \right)} {\ti{\gamma}{t}}
 \end{equation}
 Note that ${\ti{\gamma}{t} \equiv P \left( \ti{y}{t} |
-    \ts{y}{1}{t-1}\right)}$ is calculated by the forward algorithm and
+    \ts{y}{0}{t}\right)}$ is calculated by the forward algorithm and
 that the terms in the numerator are model parameters.  We justify
 Eqn.~\eqref{eq:backformula} by using Eqn.~\eqref{eq:bw4}
 \begin{align}
   \beta({\tilde s},t-1) & \equiv \frac{P_{\ts{Y}{t}{T}|\ti{S}{t-1}}
     \left(\ts{y}{t}{T}|{\tilde s} \right)}
-  {P \left(\ts{y}{t}{T}|\ts{y}{1}{t-1} \right)} \\
+  {P \left(\ts{y}{t}{T}|\ts{y}{0}{t} \right)} \\
   \mlabel{eq:back2}
   &= \frac{\sum_{s\in\states} P_{\ts{Y}{t}{T},\ti{S}{t}|\ti{S}{t-1}}
     \left(\ts{y}{t}{T},s|{\tilde s} \right)} {P
-    \left(\ts{y}{t}{T}|\ts{y}{1}{t-1} \right)}.
+    \left(\ts{y}{t}{T}|\ts{y}{0}{t} \right)}.
 \end{align}
 Next, factor each term in the numerator of Eqn.~\eqref{eq:back2} using
 Bayes rule twice then apply the model assumptions and the expression
@@ -683,26 +683,26 @@ for $\beta(s,t)$ from Eqn.~\eqref{eq:bw4}:
   &\quad= P_{\ts{Y}{t+1}{T}|\ti{S}{t}} \left(\ts{y}{t+1}{T}|s\right)
            \cdot P_{\ti{Y}{t}|\ti{S}{t}} \left(\ti{y}{t}|s \right) \cdot
             P_{\ti{S}{t}|\ti{S}{t-1}} \left(s|{\tilde s} \right) \\
-  &\quad= \beta(s,t) \cdot P \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right)
+  &\quad= \beta(s,t) \cdot P \left(\ts{y}{t+1}{T}|\ts{y}{0}{t} \right)
            \cdot P_{\ti{Y}{t}|\ti{S}{t}} \left(\ti{y}{t}|s \right) \cdot
             P_{\ti{S}{t}|\ti{S}{t-1}} \left(s|{\tilde s} \right)
 \end{align*}
 Similarly, simplify the denominator of Eqn.~\eqref{eq:back2} using
 Bayes rule:
 \begin{equation*}
-  P \left(\ts{y}{t}{T}|\ts{y}{1}{t-1} \right) = P
-  \left(\ts{y}{t+1}{T}|\ts{y}{1}{t}  \right) \cdot {P \left(
-  \ti{y}{t}|\ts{y}{1}{t-1}\right)}
+  P \left(\ts{y}{t}{T}|\ts{y}{0}{t} \right) = P
+  \left(\ts{y}{t+1}{T}|\ts{y}{0}{t}  \right) \cdot {P \left(
+  \ti{y}{t}|\ts{y}{0}{t}\right)}
 \end{equation*}
 Finally by substituting these values into the fraction of
 \eqref{eq:back2}, we verify the recursion \eqref{eq:backformula}
 \begin{align}
   \mlabel{eq:back3} \beta({\tilde s},t-1) &= \frac{\sum_{s\in\states}
-    \beta(s,t) \cdot P \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right)
+    \beta(s,t) \cdot P \left(\ts{y}{t+1}{T}|\ts{y}{0}{t} \right)
     \cdot P_{\ti{Y}{t}|\ti{S}{t}} \left(\ti{y}{t}|s \right) \cdot
     P_{\ti{S}{t}|\ti{S}{t-1}} \left(s|{\tilde s} \right)} {P
-    \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right) \cdot {P \left(
-        \ti{y}{t}|\ts{y}{1}{t-1}\right)}} \\
+    \left(\ts{y}{t+1}{T}|\ts{y}{0}{t} \right) \cdot {P \left(
+        \ti{y}{t}|\ts{y}{0}{t}\right)}} \\
   \mlabel{eq:back4} &= \sum_{s\in\states} \beta(s,t) \frac{
     P_{\ti{Y}{t}|\ti{S}{t}} \left(\ti{y}{t}|s \right) \cdot
     P_{\ti{S}{t}|\ti{S}{t-1}} \left(s|{\tilde s} \right)} {\ti{\gamma}{t}}.
@@ -721,18 +721,18 @@ formulas in Table~\ref{tab:reestimation}.
 
 We write the reestimation formulas in terms of \emph{weights} which
 express the conditional probability of being in specific states at
-specific times given the observed data $\ts{y}{1}{T}$.  We denote the
+specific times given the observed data $\ts{y}{0}{T}$.  We denote the
 conditional probability of being in state $s$ at time $t$ given all of
 the data by
 \begin{equation}
   \label{eq:wit}
-  w(s,t) \equiv P_{\ti{S}{t}|\ts{Y}{1}{T}} \left(s|\ts{y}{1}{T}
+  w(s,t) \equiv P_{\ti{S}{t}|\ts{Y}{0}{T}} \left(s|\ts{y}{0}{T}
   \right),
 \end{equation}
 \nomenclature[rwst]{$w(s,t)$}{In the reestimation phase of the Baum-Welch
   algorithm, the \emph{weight} assigned to state $s$ at time $t$,
   \begin{equation*}
-    w(s,t) \equiv P_{\ti{S}{t}"|\ts{Y}{1}{T}} \left(s"|\ts{y}{1}{T}
+    w(s,t) \equiv P_{\ti{S}{t}"|\ts{Y}{0}{T}} \left(s"|\ts{y}{0}{T}
     \right).
   \end{equation*}}% end nomenclature
 and we denote the conditional probability, given all of the data, of
@@ -740,15 +740,15 @@ being in state $s$ at time $t$ and being in state ${\tilde s}$ at time
 $t+1$ by
 \begin{equation}
   \label{eq:wijt}
-  {\tilde w}({\tilde s},s,t) \equiv P_{\ti{S}{t+1},\ti{S}{t}|\ts{Y}{1}{T}}
-  \left({\tilde s},s|\ts{y}{1}{T} \right).
+  {\tilde w}({\tilde s},s,t) \equiv P_{\ti{S}{t+1},\ti{S}{t}|\ts{Y}{0}{T}}
+  \left({\tilde s},s|\ts{y}{0}{T} \right).
 \end{equation}
 \nomenclature[rwsst]{$ {\tilde w}({\tilde s},s,t)$}{In the reestimation phase
   of the Baum-Welch algorithm, the \emph{weight} assigned to the
   transition from state $s$ at time $t$ to state $\tilde s$ at time $t+1$,
   \begin{equation*}
-     {\tilde w}({\tilde s},s,t) \equiv P_{\ti{S}{t+1},\ti{S}{t}"|\ts{Y}{1}{T}}
-  \left({\tilde s},s"|\ts{y}{1}{T} \right).
+     {\tilde w}({\tilde s},s,t) \equiv P_{\ti{S}{t+1},\ti{S}{t}"|\ts{Y}{0}{T}}
+  \left({\tilde s},s"|\ts{y}{0}{T} \right).
   \end{equation*}}
 Table~\ref{tab:reestimation} (page \pageref{tab:reestimation})
 summarizes the formulas for the updated model parameters after one
@@ -756,11 +756,11 @@ pass of the Baum-Welch algorithm.
 
 To derive reestimation formulas for $P_{S(1)}$ and
 $P_{\ti{Y}{t}|\ti{S}{t}}$ we will consider a sum over all possible
-state sequences $\ts{s}{1}{T}$, \ie,
+state sequences $\ts{s}{0}{T}$, \ie,
 \begin{equation}
   \label{eq:witFFE}
-  w(s,t) = \sum_{\ts{s}{1}{T}:\ti{s}{t}=s}
-  P \left(\ts{s}{1}{T}|\ts{y}{1}{T}
+  w(s,t) = \sum_{\ts{s}{0}{T}:\ti{s}{t}=s}
+  P \left(\ts{s}{0}{T}|\ts{y}{0}{T}
   \right).
 \end{equation}
 Since this is virtually unimplementable, the actual algorithm uses
@@ -775,8 +775,8 @@ Similarly, we will derive the reestimation formula for
 $P_{\ti{S}{t+1}|\ti{S}{t}}$ using
 \begin{equation}
   \label{eq:wijtFFE}
-  {\tilde w}({\tilde s},s,t) = \sum_{\substack{\ts{s}{1}{T}:\ti{s}{t+1}={\tilde s},\\\ti{s}{t}=s}}
-  P \left(\ts{s}{1}{T}|\ts{y}{1}{T} \right),
+  {\tilde w}({\tilde s},s,t) = \sum_{\substack{\ts{s}{0}{T}:\ti{s}{t+1}={\tilde s},\\\ti{s}{t}=s}}
+  P \left(\ts{s}{0}{T}|\ts{y}{0}{T} \right),
 \end{equation}
 but in the algorithm we use
 \begin{equation}
@@ -794,7 +794,7 @@ Bayes rule.
 
 With Eqns.~\eqref{eq:witalphabeta} and \eqref{eq:wijtalphabeta} for
 $w(i,t)$ and ${\tilde w}({\tilde s},s,t)$ in terms of known quantities
-($\alpha$, $\beta$, $\gamma$, $\ts{y}{1}{T}$, and the old model
+($\alpha$, $\beta$, $\gamma$, $\ts{y}{0}{T}$, and the old model
 parameters $\ti{\parameters}{n}$), we are prepared to use the formulas
 in Table \ref{tab:reestimation} to calculate new estimates of the
 model parameters, $\ti{\parameters}{n+1}$ with higher likelihood.
@@ -838,12 +838,12 @@ maximize the auxiliary function
   \left( \log P(\y,\bS|\parameters') \right)
 \end{equation*}
 with respect to $\parameters'$.  For an HMM, substitute the sequence of
-\emph{hidden} states $\ts{s}{1}{T}$ for $\bS$ and the sequence of
-observations $\ts{y}{1}{T}$ for $\y$.  Note that the joint probability
-of a state sequence $\ts{s}{1}{T}$ and the observation sequence
-$\ts{y}{1}{T}$ is
+\emph{hidden} states $\ts{s}{0}{T}$ for $\bS$ and the sequence of
+observations $\ts{y}{0}{T}$ for $\y$.  Note that the joint probability
+of a state sequence $\ts{s}{0}{T}$ and the observation sequence
+$\ts{y}{0}{T}$ is
 \begin{equation*}
-  P\left( \ts{s}{1}{T},\ts{y}{1}{T} \right) = P_{\ti{S}{1}}
+  P\left( \ts{s}{0}{T},\ts{y}{0}{T} \right) = P_{\ti{S}{1}}
   \left(\ti{s}{1} \right) \cdot \prod_{t=2}^T P_{\ti{S}{2}|\ti{S}{1}}
   \left(\ti{s}{t}|\ti{s}{t-1} \right)
   \cdot \prod_{t=1}^T  P_{\ti{Y}{1}|\ti{S}{1}}
@@ -851,7 +851,7 @@ $\ts{y}{1}{T}$ is
 \end{equation*}
 or equivalently,
 \begin{align*}
-  \log P\left(\ts{y}{1}{T}, \ts{s}{1}{T} \right) &= \log P_{\ti{S}{1}}
+  \log P\left(\ts{y}{0}{T}, \ts{s}{0}{T} \right) &= \log P_{\ti{S}{1}}
   \left(\ti{s}{1} \right) + \sum_{t=2}^T \log P_{\ti{S}{2}|\ti{S}{1}}
   \left(\ti{s}{t}|\ti{s}{t-1} \right)\\
   &\quad + \sum_{t=1}^T \log  P_{\ti{Y}{1}|\ti{S}{1}}
@@ -862,10 +862,10 @@ model parameters only appears in one of the terms and then optimizing
 each of the terms independently:
 \begin{align}
   \label{eq:QHMM}
-  Q(\parameters',\parameters) &= \sum_{\ts{s}{1}{T}\in\states^T}
+  Q(\parameters',\parameters) &= \sum_{\ts{s}{0}{T}\in\states^T}
   \left( P
-  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \log P
-  \left(\ts{s}{1}{T},\ts{y}{1}{T},\parameters' \right) \right) \\
+  \left(\ts{s}{0}{T}|\ts{y}{0}{T},\parameters \right) \log P
+  \left(\ts{s}{0}{T},\ts{y}{0}{T},\parameters' \right) \right) \\
   \label{eq:QHMMseparate}
   & \equiv Q_{\text{initial}} (\parameters',\parameters) +
   Q_{\text{transition}} (\parameters',\parameters) + Q_{\text{observation}}
@@ -876,23 +876,23 @@ where
   \label{eq:Qinitial}
   Q_{\text{initial}} (\parameters',\parameters) &\equiv
 %
-  \sum_{\ts{s}{1}{T}\in\states^T} \left( P
-  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \log P_{\ti{S}{1}|\parameters'}
+  \sum_{\ts{s}{0}{T}\in\states^T} \left( P
+  \left(\ts{s}{0}{T}|\ts{y}{0}{T},\parameters \right) \log P_{\ti{S}{1}|\parameters'}
   \left(\ti{s}{1}|\parameters' \right) \right)\\
 %
   \label{eq:Qtransition}
   Q_{\text{transition}} (\parameters',\parameters) &\equiv
 %
-  \sum_{\ts{s}{1}{T}\in\states^T} \left( P
-  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \sum_{t=2}^T \log
+  \sum_{\ts{s}{0}{T}\in\states^T} \left( P
+  \left(\ts{s}{0}{T}|\ts{y}{0}{T},\parameters \right) \sum_{t=2}^T \log
   P_{\ti{S}{2}|\ti{S}{1},\parameters'}
   \left(\ti{s}{t}|\ti{s}{t-1},\parameters' \right) \right) \\
 %
   \label{eq:Qoutput}
   Q_{\text{observation}} (\parameters',\parameters) &\equiv
 %
-  \sum_{\ts{s}{1}{T}\in\states^T} \left( P
-  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \sum_{t=1}^T \log
+  \sum_{\ts{s}{0}{T}\in\states^T} \left( P
+  \left(\ts{s}{0}{T}|\ts{y}{0}{T},\parameters \right) \sum_{t=1}^T \log
   P_{\ti{Y}{1}|\ti{S}{1},\parameters'}
   \left(\ti{y}{t}|\ti{s}{t},\parameters' \right) \right)
 %
@@ -912,14 +912,14 @@ introduce notation for logs of parameters
 Now to optimize $Q_{\text{initial}}$ write Eqn.~\eqref{eq:Qinitial} as
 \begin{align}
   Q_{\text{initial}} (\parameters',\parameters) &=
-  \sum_{\ts{s}{1}{T}\in\states^T} P
-  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right)
+  \sum_{\ts{s}{0}{T}\in\states^T} P
+  \left(\ts{s}{0}{T}|\ts{y}{0}{T},\parameters \right)
   L_{\text{initial}}(\ti{s}{1})\\
   &= \sum_{s \in \states} L_{\text{initial}}(s)
-  \sum_{\ts{s}{1}{T}:\ti{s}{1}=s} P
-  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right)\\
-  &= \sum_s L_{\text{initial}}(s) P_{\ti{S}{1}|\ts{Y}{1}{T},\parameters}
-  \left(s|\ts{y}{1}{T},\parameters \right) \text{ see Eqn.~\eqref{eq:witFFE}}\\
+  \sum_{\ts{s}{0}{T}:\ti{s}{1}=s} P
+  \left(\ts{s}{0}{T}|\ts{y}{0}{T},\parameters \right)\\
+  &= \sum_s L_{\text{initial}}(s) P_{\ti{S}{1}|\ts{Y}{0}{T},\parameters}
+  \left(s|\ts{y}{0}{T},\parameters \right) \text{ see Eqn.~\eqref{eq:witFFE}}\\
   &= \sum_s L_{\text{initial}}(s) w(s,1)
 \end{align}
 We wish to find the set $\left\{ L_{\text{initial}}(s) \right\}$ that
@@ -943,13 +943,13 @@ ie, the new estimates of the initial probabilities are
 To derive new estimates of the state transition probabilities, write
 \begin{align}
   Q_{\text{transition}} (\parameters',\parameters) &=
-  \sum_{\ts{s}{1}{T}\in\states^T} P
-  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \sum_{t=2}^T
+  \sum_{\ts{s}{0}{T}\in\states^T} P
+  \left(\ts{s}{0}{T}|\ts{y}{0}{T},\parameters \right) \sum_{t=2}^T
   L_{\text{transition}}(\ti{s}{t-1},\ti{s}{t})\\
   &= \sum_{s,{\tilde s}} L_{\text{transition}}(s,{\tilde s})
-  \sum_{t=2}^T \sum_{\substack{\ts{s}{1}{T}:\ti{s}{t}={\tilde
+  \sum_{t=2}^T \sum_{\substack{\ts{s}{0}{T}:\ti{s}{t}={\tilde
         s},\\\ti{s}{t-1}=s}}
-  P\left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right)\\
+  P\left(\ts{s}{0}{T}|\ts{y}{0}{T},\parameters \right)\\
   &= \sum_{s,{\tilde s}} L_{\text{transition}}(s,{\tilde s})
   \sum_{t=1}^{T-1} {\tilde w}({\tilde s},s,t).
 \end{align}
@@ -967,13 +967,13 @@ probabilities from
 \begin{align}
   \label{eq:Qout1}
   Q_{\text{observation}} (\parameters',\parameters) &=
-  \sum_{\ts{s}{1}{T}\in\states^T} P
-  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \sum_{t=1}^T
+  \sum_{\ts{s}{0}{T}\in\states^T} P
+  \left(\ts{s}{0}{T}|\ts{y}{0}{T},\parameters \right) \sum_{t=1}^T
   L_{\text{observation}}(\ti{y}{t},\ti{s}{t})\\
   &= \sum_{y\in\outputs,s\in\states} L_{\text{observation}}(y,s)
   \sum_{t:\ti{y}{t}=y}
-  \sum_{\ts{s}{1}{T}:\ti{s}{t}=s }P
-  \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters \right) \\
+  \sum_{\ts{s}{0}{T}:\ti{s}{t}=s }P
+  \left(\ts{s}{0}{T}|\ts{y}{0}{T},\parameters \right) \\
   &= \sum_{y,s} L_{\text{observation}}(y,s) \sum_{t:\ti{y}{t}=y} w(s,t).
 \end{align}
 Optimization yields
@@ -1014,23 +1014,23 @@ Optimization yields
       \begin{minipage}[b]{1.0\textwidth}
         $\bm{\alpha}_n$ is the set of conditional state probabilities
         calculated on the basis of the $n^{\text{th}}$ model and the
-        data $\ts{y}{1}{T}$.  See Eqns.~\eqref{eq:alpha} and
+        data $\ts{y}{0}{T}$.  See Eqns.~\eqref{eq:alpha} and
         \eqref{eq:forwardD}.
         \begin{equation*}
-          \bm{\alpha}_n \equiv \left\{ P_{ S(t)| \ts{Y}{1}{t},\oldmodel} \left( s |
-             \ts{y}{1}{t},\oldmodel\right) : \forall s \in \states\, \& \, 1
+          \bm{\alpha}_n \equiv \left\{ P_{ S(t)| \ts{Y}{0}{t},\oldmodel} \left( s |
+             \ts{y}{0}{t},\oldmodel\right) : \forall s \in \states\, \& \, 1
            \leq t \leq T \right\}
         \end{equation*}
       \end{minipage}\\ \\%
       %%
       \begin{minipage}[b]{1.0\textwidth}
          $\bm{\beta}_n$ is a set of values calculated on the basis of the
-         $n^{\text{th}}$ model $\oldmodel$ and the data $\ts{y}{1}{T}$.  See
+         $n^{\text{th}}$ model $\oldmodel$ and the data $\ts{y}{0}{T}$.  See
          Eqns.~\eqref{eq:bw4} and \eqref{eq:backformula}.
          \begin{equation*}
          \bm{\beta}_n \equiv \left\{ \frac{P_{\ts{Y}{t+1}{T}|\ti{S}{t}}
          \left(\ts{y}{t+1}{T} | s \right)} {P
-         \left(\ts{y}{t+1}{T}|\ts{y}{1}{t} \right)} : \forall s \in
+         \left(\ts{y}{t+1}{T}|\ts{y}{0}{t} \right)} : \forall s \in
          \states\, \& \, 1 \leq t < T \right\}
          \end{equation*}
       \end{minipage}\\ \\%
@@ -1038,10 +1038,10 @@ Optimization yields
       \begin{minipage}[b]{1.0\textwidth}
          $\bm{\gamma}_n$ is the set of conditional observation probabilities
          calculated on the basis of the $n^{\text{th}}$ model $\oldmodel$ and
-         the data $\ts{y}{1}{T}$.  See Eqns.~\eqref{eq:gamma} and
+         the data $\ts{y}{0}{T}$.  See Eqns.~\eqref{eq:gamma} and
          \eqref{eq:forwardC}.
          \begin{equation*}
-         \bm{\gamma}_n \equiv \left\{P \left(\ti{y}{t} | \ts{y}{1}{t-1},
+         \bm{\gamma}_n \equiv \left\{P \left(\ti{y}{t} | \ts{y}{0}{t},
          \oldmodel\right) : \, 2 \leq t \leq T \right\}
          \end{equation*}
       \end{minipage}\\ \\%
@@ -1050,14 +1050,14 @@ Optimization yields
       Initialize: \> \+ \\
       Set $n=1$ and choose $\ti{\parameters}{1}$\\ \\ \< \-
       Iterate: \> \+ \\
-      $\newmodel \assign \text{reestimate} \left( \ts{y}{1}{T},
+      $\newmodel \assign \text{reestimate} \left( \ts{y}{0}{T},
       \bm{\alpha}_n, \bm{\beta}_n, \bm{\gamma}_n, \oldmodel\right)$ XX\= \kill
       $\left(\bm{\alpha}_n,\bm{\gamma}_n\right) \assign
-      \text{forward}(\ts{y}{1}{T},\oldmodel)$ \> See Section
+      \text{forward}(\ts{y}{0}{T},\oldmodel)$ \> See Section
       \ref{sec:forward} page \pageref{sec:forward}\\
-      $\bm{\beta}_n \assign \text{backward}(\bm{\gamma}_n, \ts{y}{1}{T},
+      $\bm{\beta}_n \assign \text{backward}(\bm{\gamma}_n, \ts{y}{0}{T},
       \oldmodel)$ \> See Section \ref{sec:backward}  page \pageref{sec:backward}\\
-      $\newmodel \assign \text{reestimate} \left( \ts{y}{1}{T},
+      $\newmodel \assign \text{reestimate} \left( \ts{y}{0}{T},
       \bm{\alpha}_n, \bm{\beta}_n, \bm{\gamma}_n, \oldmodel\right)$ \> See Table
       \ref{tab:reestimation} page \pageref{tab:reestimation} \\
       $n \assign n+1$ \\
@@ -1085,7 +1085,7 @@ and the maximum a posteriori sequence of states.  The maximum a posteriori state
 at a particular time $t$ is the best guess for where the system was at
 that time given all of the observations, \ie
 %
-$\ti{\hat s}{t} = \argmax_{s'}P(\ti{s'}{t}|\ts{y}{1}{T}) =
+$\ti{\hat s}{t} = \argmax_{s'}P(\ti{s'}{t}|\ts{y}{0}{T}) =
 \argmax_{s'}\alpha(s',t) \beta(s',t)$
 %
 (see \eqref{eq:wit} --
@@ -1096,8 +1096,8 @@ following example demonstrates, such a trajectory may even be
 impossible.
 
 Consider the HMM drawn in Fig.~\ref{fig:sequenceMAP} and the sequence
-of observations $\ts{y}{1}{6} = (a,b,b,b,b,c)$.  Any sequence of
-states that is consistent with $\ts{y}{1}{6}$ must begin in $e$, end
+of observations $\ts{y}{0}{6} = (a,b,b,b,b,c)$.  Any sequence of
+states that is consistent with $\ts{y}{0}{6}$ must begin in $e$, end
 in $g$, and pass through state $f$ exactly once.  The only unknown
 remaining is the time at which the system was in state $f$.  Here is a
 tabulation of the four possible state sequences:
@@ -1106,8 +1106,8 @@ tabulation of the four possible state sequences:
     \hline
     $\ti{s}{1}$ &  $\ti{s}{2}$ &  $\ti{s}{3}$ & 
     $\ti{s}{4}$ &  $\ti{s}{5}$ &  $\ti{s}{6}$ &
-    $P(\ts{y}{1}{6},\ts{s}{1}{6})/z$ & 
-    $P(\ts{s}{1}{6}|\ts{y}{1}{6})$ \\
+    $P(\ts{y}{0}{6},\ts{s}{0}{6})/z$ & 
+    $P(\ts{s}{0}{6}|\ts{y}{0}{6})$ \\
     \hline
     $e$ & $e$ & $e$ & $e$ & $f$ & $g$ & $0.9^3$           & 0.30 \\    $e$ & $e$ & $e$ & $f$ & $g$ & $g$ & $0.9^2\cdot 0.8$  & 0.26 \\
     $e$ & $e$ & $f$ & $e$ & $g$ & $g$ & $0.9 \cdot 0.8^2$ & 0.23 \\
@@ -1115,7 +1115,7 @@ tabulation of the four possible state sequences:
   \end{tabular}
 \end{center}
 In the table, the term $z$ represents the factors that are common in
-$P(\ts{y}{1}{6},\ts{s}{1}{6})$ for all of the possible state
+$P(\ts{y}{0}{6},\ts{s}{0}{6})$ for all of the possible state
 sequences.  Only the factors that are different appear in the seventh
 column.  The largest entry in the last column is 0.30 which
 corresponds to the MAP estimate: $\ts{\hat s}{1}{6} = (e,e,e,e,f,g,)$.
@@ -1128,12 +1128,12 @@ corresponds to the MAP estimate: $\ts{\hat s}{1}{6} = (e,e,e,e,f,g,)$.
 \label{fig:sequenceMAP}
 \end{figure}
 
-The next table displays the values of $P(\ti{s}{t}|\ts{y}{1}{6})$, the
+The next table displays the values of $P(\ti{s}{t}|\ts{y}{0}{6})$, the
 a posteriori probability for the three possible states:
 \begin{center}
   \begin{tabular}{cc|cccccc}
     &   & \multicolumn{6}{c}{$t$} \\
-    \multicolumn{2}{r|}{$P(\ti{s}{t}|\ts{y}{1}{6})$}
+    \multicolumn{2}{r|}{$P(\ti{s}{t}|\ts{y}{0}{6})$}
         & 1 & 2 & 3 & 4 & 5 & 6 \\
     \hline
     & $e$ & \textbf{1.0} & \textbf{0.79} & \textbf{0.56} & 0.30 & 0    & 0  \\
@@ -1233,7 +1233,7 @@ in Fig.~\ref{fig:TrainChar}.
     plotted the log likelihood per step as a function of the number of
     iterations $n$ of the Baum-Welch algorithm for five different
     initial models $\ti{\parameters}{1}$.  We used the same sequence
-    of observations $\ts{y}{1}{T}$ that we used for
+    of observations $\ts{y}{0}{T}$ that we used for
     Fig.~\ref{fig:Statesintro}, and we used different seeds for a
     random number generator to make the five initial models.  Note the
     following characteristics: The five different initial models all
@@ -1248,7 +1248,7 @@ in Fig.~\ref{fig:TrainChar}.
 \subsection{Disappearing Transitions}
 \label{sec:disappear}
 
-For some observation sequences $\ts{y}{1}{T}$ and initial models,
+For some observation sequences $\ts{y}{0}{T}$ and initial models,
 multiple iterations of the Baum-Welch algorithm leads to state
 transition probabilities that are too small to be represented in
 double precision.  As part of our implementation of the Baum-Welch
@@ -1353,7 +1353,7 @@ To illustrate the EM algorithm, we generated ten observations from an
 \iid Gaussian mixture model \index{Gaussian mixture model}
 \begin{equation}
   \label{eq:GaussMix}
-  P\left(\ts{y}{1}{T}|\parameters \right) = \prod_{t=1}^T
+  P\left(\ts{y}{0}{T}|\parameters \right) = \prod_{t=1}^T
   \frac{1}{\sqrt{2\pi}} \left( \lambda e^{-\frac{1}{2}
   (\ti{y}{t}-\mu_1)^2} +
   (1-\lambda) e^{-\frac{1}{2} (\ti{y}{t}-\mu_2)^2 } \right)

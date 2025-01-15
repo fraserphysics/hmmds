@@ -44,7 +44,7 @@ algorithms for fitting and using the models.
     \includegraphics[width=1.0\textwidth]{LaserHist.pdf}}
   \caption[\comment{fig:LaserHist }Histogram of Tang's laser measurements.]%
   {Histogram of Tang's laser measurements.  Even though neither $y=5$
-    nor $y=93$ occurs in $\ts{y}{1}{600}$, it is more plausible that
+    nor $y=93$ occurs in $\ts{y}{0}{600}$, it is more plausible that
     $y=93$ would occur in future measurements because of what happens
     in the neighborhood.  Discarding the numerical significance of the
     bin labels would preclude such an observation. }
@@ -192,13 +192,13 @@ following modifications:
 \begin{align}
   \label{eq:QoutG1}
   Q_{\text{observation}} (\parameters',\parameters) &=
-  \sum_{\ts{q}{1}{T}\in\states^T} P_{\parameters}
-  \left(\ts{q}{1}{T}|\ts{y}{1}{T} \right) \sum_{t=1}^T
+  \sum_{\ts{q}{0}{T}\in\states^T} P_{\parameters}
+  \left(\ts{q}{0}{T}|\ts{y}{0}{T} \right) \sum_{t=1}^T
   L_{\text{observation}}(\ti{y}{t},\ti{q}{t})\\
   \label{eq:QoutG2}
   &= \sum_{s\in\states} \sum_{t=1}^T L_{\text{observation}}(\ti{y}{t},s)
-  \sum_{\ts{q}{1}{T}:\ti{q}{t}=s }P_{\parameters}
-  \left(\ts{q}{1}{T}|\ts{y}{1}{T} \right) \\
+  \sum_{\ts{q}{0}{T}:\ti{q}{t}=s }P_{\parameters}
+  \left(\ts{q}{0}{T}|\ts{y}{0}{T} \right) \\
   \label{eq:QoutG3}
   &= - \sum_{s\in\states} \sum_{t=1}^T w(s,t) \left( \frac{1}{2}
     \log(2\pi) + \log(\sigma_s) + \frac{\left( \ti{y}{t}-\mu_s
@@ -437,7 +437,7 @@ work on more general models with vector autoregressive Gaussian
 observations associated with each hidden state.  If at time $t$ such a
 system is in state $s$, then the mean of the conditional distribution
 for $\ti{y}{t}$ is a linear function of the $d$ previous observations
-$\ts{y}{t-d}{t-1}$ added to a fixed offset.  Specifically, the
+$\ts{y}{t-d}{t}$ added to a fixed offset.  Specifically, the
 conditional distributions for observations are $n$ dimensional vector
 Gaussians as follows:
 \begin{description}
@@ -450,7 +450,7 @@ Gaussians as follows:
   and a fixed offset, with components
   \begin{equation}
     \label{eq:ARVGout1}
-    \mu_i\left(s,\ts{y}{t-d}{t-1}\right) = \bar y_{s,i} + \sum_{\tau =
+    \mu_i\left(s,\ts{y}{t-d}{t}\right) = \bar y_{s,i} + \sum_{\tau =
     1}^d \sum_{j=1}^n c_{s,i,\tau,j} \ti{y_j}{t-\tau}.
   \end{equation}
   We implement this as a \emph{linear} function of a \emph{context
@@ -474,7 +474,7 @@ Gaussians as follows:
   where $k=n\cdot(\tau-1) + i$, and
   \begin{equation}
     \label{eq:ARVGout2}
-    \mu_s\left(s,\ts{y}{t-d}{t-1}\right) = A_s \ti{x}{t}
+    \mu_s\left(s,\ts{y}{t-d}{t}\right) = A_s \ti{x}{t}
   \end{equation}
   where $A_s$ is an $n\times(nd+1)$ matrix consisting of $\left\{
     c_{s,i,\tau,j} \right\}$ and $\left\{ \bar y_{s,i} \right\}$.
@@ -487,10 +487,10 @@ distribution of an observation given the state $s$ is Gaussian with
 mean $A_s \ti{x}{t}$ and covariance $\Sigma_s$, \ie,
 \begin{align}
   \label{eq:assume_markovVARG}
-  P(\ti{s}{t+1}|\ts{s}{-\infty}{t},\ts{y}{-\infty}{t}) &= 
-  P\left(\ti{s}{t+1}|\ti{s}{t}\right)\\
+  P(\ti{s}{t}|\ts{s}{-\infty}{t},\ts{y}{-\infty}{t}) &= 
+  P\left(\ti{s}{t}|\ti{s}{t-1}\right)\\
   \label{eq:assume_outputVARG}
-  P(\ti{y}{t}|\ts{s}{-\infty}{t},\ts{y}{-\infty}{t-1}) &=
+  P(\ti{y}{t}|\ts{s}{-\infty}{t+1},\ts{y}{-\infty}{t}) &=
     \frac{1}{\sqrt{ (2 \pi)^n \left|\Sigma_{s(t)}\right|}}
     \exp\left({-\frac{1}{2} z_{s(t)}\transpose(t) \Sigma_{s(t)}^{-1}
     z_{s(t)}(t)} \right)
@@ -524,7 +524,7 @@ follows:
 \begin{enumerate}
 \item Create a weighted \emph{context} matrix $X_s$ with columns
   $\ti{x}{t}\sqrt{w(s,t)}$, where $w(s,t) =
-  P_{\ti{S}{t}|\ts{y}{1}{T}} \left(s|\ts{y}{1}{T} \right)$ and
+  P_{\ti{S}{t}|\ts{y}{0}{T}} \left(s|\ts{y}{0}{T} \right)$ and
   Eqn.~\eqref{eq:context} defines $\ti{x}{t}$.
 \item Create a weighted \emph{observation} matrix $Y_s$ with columns
   $\ti{y}{t}\sqrt{w(s,t)}$.
@@ -614,7 +614,7 @@ we find
       \Sigma_s^{-1} \right| - z_s\transpose(t) \Sigma_s^{-1} z_s(t)\right],
 \end{multline*}
 where $z_s(t) \equiv y(t) - A_s x(t)$ and $w(s,t)$ is the probability
-of being in state $s$ at time $t$ given the data $\ts{y}{1}{T}$.
+of being in state $s$ at time $t$ given the data $\ts{y}{0}{T}$.
 Reestimation of the regularized model is the same as reestimation for
 the unregularized model except that Eqn.~\ref{eq:VARGnewSigma} is
 replaced with
@@ -660,7 +660,7 @@ basic ideas we've described:
 \begin{description}
 \item[Nonstationary HMMs] The definition of a \emph{stationary} model
   is that all probabilities are independent of shifts in time, \ie, $
-  P_{\ts{Y}{1}{t}} = P_{\ts{Y}{1+\tau}{t+\tau}} \forall (t,\tau).$
+  P_{\ts{Y}{0}{t}} = P_{\ts{Y}{0+\tau}{t+\tau}} \forall (t,\tau).$
   Many processes, for example weather, are not even approximately
   stationary.  By making HMMs with state transition probabilities that
   depend on time, many have created nonstationary HMMs for such
@@ -706,7 +706,7 @@ basic ideas we've described:
   variances.
 \item[Particle filter] The idea of using the empirical distribution of
   many simulated trajectories (particles) to approximate the
-  conditional distribution $P_{\ti{X}{t}|\ts{Y}{1}{t}}$ is called
+  conditional distribution $P_{\ti{X}{t}|\ts{Y}{0}{t+1}}$ is called
   particle filtering\cite{Gordon93,Kitagawa96}.  In the procedure,
   particles that seem inconsistent with measurements are eliminated
   and new particles are created. 

@@ -146,9 +146,9 @@ routine and Tang's data to the scipy optimization package, we found a
 parameter vector that satisfies
 \begin{equation}
   \label{eq:theta-hat-laser}
-  \hat \theta = \argmax_{\theta} ~ P(\ts{y}{1}{250}|\theta),
+  \hat \theta = \argmax_{\theta} ~ P(\ts{y}{0}{250}|\theta),
 \end{equation}
-where $P(\ts{y}{1}{250}|\theta)$ is the conditional probability that a
+where $P(\ts{y}{0}{250}|\theta)$ is the conditional probability that a
 sequence of 250 observations will have the values
 $\ti{y}{1},\ti{y}{2}, \ldots,\ti{y}{250}$ given the parameters
 $\theta$.  The parameter vector $\hat \theta$ is called the
@@ -164,7 +164,7 @@ piece of the log-likelihood function.
   \caption[\comment{fig:LaserLogLike }Log likelihood as function of $s$ and $b$.]%
   {Log likelihood as function of $s$ and $b$.  Other parameters were
     taken from the vector $\hat \theta$ that maximizes the likelihood
-    $P(\ts{y}{1}{250}|\theta)$ (see Eqn.~\eqref{eq:theta-hat-laser}).}
+    $P(\ts{y}{0}{250}|\theta)$ (see Eqn.~\eqref{eq:theta-hat-laser}).}
   \label{fig:LaserLogLike}
 \end{figure}
 
@@ -174,23 +174,23 @@ example, in Fig.~\ref{fig:LaserStates} we have plotted the sequence of
 states that has the highest probability, \ie,
 \begin{equation}
   \label{eq:xhatSeq}
-  \ts{\hat x}{1}{250} = \argmax_{\ts{x}{1}{250}}
-  P(\ts{x}{1}{250}|\ts{y}{1}{250},\hat \theta),
+  \ts{\hat x}{0}{250} = \argmax_{\ts{x}{0}{250}}
+  P(\ts{x}{0}{250}|\ts{y}{0}{250},\hat \theta),
 \end{equation}
 and in Fig.~\ref{fig:LaserForecast} we have plotted a forecast that we
 made by iterating the function $F$ on the state $\hat x$ that has
 highest probability given the first 250 observations, \ie,
 \begin{equation}
   \label{eq:xhat250}
-  \hat x = \argmax_{\ti{x}{250}} P(\ti{x}{250}|\ts{y}{1}{250},\hat \theta).
+  \hat x = \argmax_{\ti{x}{250}} P(\ti{x}{250}|\ts{y}{0}{250},\hat \theta).
 \end{equation}
 
 \begin{figure}[htbp]
   \centering{\plotsize%
     \includegraphics[width=1.0\textwidth]{LaserStates.pdf}}
-  \caption[\comment{fig:LaserStates }State trajectory $\ts{\hat x}{1}{250}$.]%
-  {State trajectory $\ts{\hat x}{1}{250}$ estimated from
-    observation sequence $\ts{y}{1}{250}$. (see
+  \caption[\comment{fig:LaserStates }State trajectory $\ts{\hat x}{0}{250}$.]%
+  {State trajectory $\ts{\hat x}{0}{250}$ estimated from
+    observation sequence $\ts{y}{0}{250}$. (see
     Eqn.~\eqref{eq:xhatSeq}.)  Components $x_1$ and $x_3$ of the
     Lorenz system (see Eqn.~\eqref{eq:Lorenz}) are plotted.}
   \label{fig:LaserStates}
@@ -203,7 +203,7 @@ highest probability given the first 250 observations, \ie,
   sequence.]%
   {Forecast observation sequence.  We set the noise terms $\eta$ and
     $\epsilon$ to zero and iterated Eqn.~\eqref{eq:FandG} 250 times to
-    generate the forecast $\ts{\hat y}{251}{500}$.  We started with
+    generate the forecast $\ts{\hat y}{250}{500}$.  We started with
     the initial condition $\hat x$ defined by Eqn.~\eqref{eq:xhat250}.
     The forecast begins to fail noticeably around $t=450$.  The failure
     suggests that the period five cycle in the model is unstable.  The
@@ -244,21 +244,21 @@ One can use a parameterized class of state space models $\left\{
   P_{*|\theta} \right\}$ in many ways including the following:
 \begin{description}
 \item[Model Parameter Estimation] Given a model class $\left\{
-    P_{*|\theta} \right\}$ and a sequence of observations $\ts{y}{1}{T}$,
+    P_{*|\theta} \right\}$ and a sequence of observations $\ts{y}{0}{T}$,
   we often use the maximum likelihood estimate
   \begin{equation}
     \label{eq:IntroMLE}
-    \hat \theta_{MLE} \equiv \argmax_{\theta} P(\ts{y}{1}{T}|\theta)
+    \hat \theta_{MLE} \equiv \argmax_{\theta} P(\ts{y}{0}{T}|\theta)
   \end{equation}
   to characterize the source $Y$.
 \item[Trajectory Estimation] Given a particular model $P_{*|\theta}$ and
-  a sequence of observations $\ts{y}{1}{T}$, one can calculate the
+  a sequence of observations $\ts{y}{0}{T}$, one can calculate the
   conditional distribution of states
-  $P(\ts{x}{1}{T}|\ts{y}{1}{T},\theta)$.  For example,
+  $P(\ts{x}{0}{T}|\ts{y}{0}{T},\theta)$.  For example,
   Fig.~\ref{fig:LaserStates} plots the result of a calculation of
   \begin{equation*}
-    \ts{\hat x}{1}{250} = \argmax_{\ts{x}{1}{250} \in {\cal X}^{250}}
-    P(\ts{x}{1}{250}|\ts{y}{1}{250},\theta).    
+    \ts{\hat x}{0}{250} = \argmax_{\ts{x}{0}{250} \in {\cal X}^{250}}
+    P(\ts{x}{0}{250}|\ts{y}{0}{250},\theta).    
   \end{equation*}
 \item[Short Term Forecasting] Given a model $P_{*|\theta}$ and a
   distribution of states at time $t$, $P_{\ti{X}{t}}$, one can
@@ -266,8 +266,8 @@ One can use a parameterized class of state space models $\left\{
   observations.  For example, Fig.~\ref{fig:LaserForecast} plots the
   result of a calculation of
   \begin{equation*}
-    \ts{\hat y}{251}{500} = \argmax_{\ts{y}{251}{500}}
-    P(\ts{y}{251}{500}|\ts{y}{1}{250},\theta).
+    \ts{\hat y}{250}{500} = \argmax_{\ts{y}{250}{500}}
+    P(\ts{y}{250}{500}|\ts{y}{0}{250},\theta).
   \end{equation*}
 \item[Simulation] Given a model $P_{*|\theta}$, one can characterize its
   long term behavior, answering questions like ``What is a hundred
@@ -278,15 +278,15 @@ One can use a parameterized class of state space models $\left\{
   Fig.~\ref{fig:LaserStates} approximates is linearly unstable.  Thus
   the long term behavior of our estimated model is very different from
   the actual laser system.
-\item[Classification] Given sample signals like $\ts{y}{1}{T}$ and two
+\item[Classification] Given sample signals like $\ts{y}{0}{T}$ and two
   possible signal sources, $\alpha$ and $\beta$ where $P_{*|\alpha}$
   characterizes healthy units and $P_{*|\beta}$ characterizes defective
   units, one can can classify a unit on the basis of the
   \emph{likelihood ratio}
   \begin{equation*}
-    R(\ts{y}{1}{T}) = \frac{P(\ts{y}{1}{T}|\beta)}{P(\ts{y}{1}{T}|\alpha)}.
+    R(\ts{y}{0}{T}) = \frac{P(\ts{y}{0}{T}|\beta)}{P(\ts{y}{0}{T}|\alpha)}.
   \end{equation*}
-  If $R(\ts{y}{1}{T})$ is above some threshold, it is classified as defective.
+  If $R(\ts{y}{0}{T})$ is above some threshold, it is classified as defective.
 \end{description}
 
 
@@ -308,14 +308,15 @@ independent given $\ti{X}{2}$, \ie,
 \begin{equation*}
   P_{\ti{X}{3},\ti{X}{1}|\ti{X}{2}} = P_{\ti{X}{3}|\ti{X}{2}}   P_{\ti{X}{1}|\ti{X}{2}}.
 \end{equation*}
-An indexed sequence of random variables $\ts{X}{1}{T}$ is a
+An indexed sequence of random variables $\ts{X}{0}{T}$ is a
 \emph{Markov process} \index{Markov process} if
 for any $t: 1 < t < T$ the variables before and after $t$ are
 conditionally independent given $\ti{X}{t}$, \ie,
+\maginpar{Check sequence notation}
 \begin{equation}
   \label{eq:MarkovProcess}
-  P_{\ts{X}{1}{t-1},\ts{X}{t+1}{T}|\ti{X}{t}} =
-  P_{\ts{X}{1}{t-1}|\ti{X}{t}} P_{\ts{X}{t+1}{T}|\ti{X}{t}}.
+  P_{\ts{X}{0}{t},\ts{X}{t+1}{T}|\ti{X}{t}} =
+  P_{\ts{X}{0}{t}|\ti{X}{t}} P_{\ts{X}{t+1}{T}|\ti{X}{t}}.
 \end{equation}
 We will restrict our attention to time invariant models, \ie, those
 for which the transition probabilities are constant over time.
@@ -343,7 +344,7 @@ and the \index*{transition matrix} %
 \end{array}
 \end{equation}
 define the model, and the model determines the probability of any
-sequence of states $\ts{s}{1}{T}$, which we write\footnote{We use
+sequence of states $\ts{s}{0}{T}$, which we write\footnote{We use
   upper case letters to denote random variables and $P$ to denote
   probability distribution functions.  A random variable used as
   subscript on $P$ specifies that we mean the distribution of that
@@ -353,15 +354,15 @@ sequence of states $\ts{s}{1}{T}$, which we write\footnote{We use
   $P_X(x)$ is the probability that the random variable $X$ has the
   value $x$.  We usually drop subscripts on $P$ when the context or
   argument resolves ambiguity as to which probability function we
-  mean.} as $P_{\ts{S}{1}{T}}\left( \ts{s}{1}{T} \right)$.  For
+  mean.} as $P_{\ts{S}{0}{T}}\left( \ts{s}{0}{T} \right)$.  For
 example we calculate the probability that a sequence of 4 states has
-the values $\ts{s}{1}{4} = (u,v,w,v)$, (\ie, $\ti{s}{1} = u$,
+the values $\ts{s}{0}{4} = (u,v,w,v)$, (\ie, $\ti{s}{1} = u$,
 $\ti{s}{2} = v$, $\ti{s}{3} = w$, and $\ti{s}{4} = v$) as follows:
 
 \begin{align}
   \label{eq:intro_hmm1}
-  P(\ts{s}{1}{4}) &= P(\ti{s}{1}) \prod_{\tau=2}^4 %
-                     P(\ti{s}{\tau}|\ts{s}{1}{\tau-1})\\
+  P(\ts{s}{0}{4}) &= P(\ti{s}{1}) \prod_{\tau=2}^4 %
+                     P(\ti{s}{\tau}|\ts{s}{0}{\tau-1})\\
   \label{eq:intro_hmm2}
                   &= P(\ti{s}{1}) \prod_{\tau=2}^4 %
                      P(\ti{s}{\tau}|\ti{s}{\tau-1}) \\
@@ -400,7 +401,7 @@ If \eqref{eq:statCond} holds for $V = P_{\ti{S}{1}}$, then
 \end{equation*}
 and in fact all probabilities are independent of shifts in time, \ie,
 \begin{equation*}
-  P_{\ts{S}{1}{t}} = P_{\ts{S}{1+\tau}{t+\tau}} \forall (t,\tau),
+  P_{\ts{S}{0}{t}} = P_{\ts{S}{0+\tau}{t+\tau}} \forall (t,\tau),
 \end{equation*}
 which is the definition of a stationary process.  Quick calculations
 verify that the initial probability and transition matrix in
@@ -469,25 +470,25 @@ that depends only on the state $\ti{s}{t}$.
 \end{figure}
 
 Let us calculate the probability that a sequence of four observations
-from this process would have the values $\ts{y}{1}{4} = (d,e,f,e)$.
-As an intermediate step we calculate $P(\ts{y}{1}{4},\ts{s}{1}{4})$
+from this process would have the values $\ts{y}{0}{4} = (d,e,f,e)$.
+As an intermediate step we calculate $P(\ts{y}{0}{4},\ts{s}{0}{4})$
 for the given observation sequence and all possible state sequences.
 Then we add to obtain
 \begin{equation}
   \label{eq:dhmm_sum}
-  \sum_{\ts{s}{1}{4}} P(\ts{y}{1}{4},\ts{s}{1}{4}) = P(\ts{y}{1}{4}).
+  \sum_{\ts{s}{0}{4}} P(\ts{y}{0}{4},\ts{s}{0}{4}) = P(\ts{y}{0}{4}).
 \end{equation}
 It is convenient that the only state sequences that could have
 produced the observation sequence are $(u,v,v,v)$, $(u,v,v,w)$, and
 $(u,v,w,v)$.  For any other state sequence
-$P(\ts{y}{1}{4},\ts{s}{1}{4}) = 0$.
+$P(\ts{y}{0}{4},\ts{s}{0}{4}) = 0$.
 
 \begin{subequations}
 \label{eq:pcalc}
  \begin{align}
-  \ts{s}{1}{4} & & P(\ts{s}{1}{4}) %
-                & & P(\ts{y}{1}{4}|\ts{s}{1}{4}) %
-                 & & P(\ts{y}{1}{4},\ts{s}{1}{4})\nonumber\\[1ex]
+  \ts{s}{0}{4} & & P(\ts{s}{0}{4}) %
+                & & P(\ts{y}{0}{4}|\ts{s}{0}{4}) %
+                 & & P(\ts{y}{0}{4},\ts{s}{0}{4})\nonumber\\[1ex]
   \hline\nonumber\\[-2ex]
   uvvv         & & \frac{1}{3} \cdot 1 \cdot \frac{1}{2} \cdot \frac{1}{2} %
                 & & 1 \cdot \frac{1}{3} \cdot \frac{2}{3} \cdot \frac{1}{3} %
@@ -516,7 +517,7 @@ of the model assumptions.
   observations, \ie,
   \begin{equation}
     \label{eq:assume_markov}
-    P_{\ti{S}{t+1}|\ts{S}{1}{t},\ts{Y}{1}{t}} = %
+    P_{\ti{S}{t+1}|\ts{S}{0}{t+1},\ts{Y}{0}{t+1}} = %
         P_{\ti{S}{t+1}|\ti{S}{t}}.
   \end{equation}
 \item[The observations are conditionally independent given the states:]
@@ -524,7 +525,7 @@ of the model assumptions.
   independent of states and observations at all earlier times, \ie,
   \begin{equation}
     \label{eq:assume_output}
-    P_{\ti{Y}{t}|\ts{S}{1}{t},\ts{Y}{1}{t-1}} = %
+    P_{\ti{Y}{t}|\ts{S}{0}{t+1},\ts{Y}{0}{t}} = %
         P_{\ti{Y}{t}|\ti{S}{t}}.
   \end{equation}
 \end{description}
@@ -551,12 +552,12 @@ one can derive that
 \begin{description}
 \item[The joint process is Markov:] 
   \begin{equation*}
-    P_{\ts{Y}{t+1}{T},\ts{S}{t+1}{T}|\ts{Y}{1}{t},\ts{S}{1}{t}}
+    P_{\ts{Y}{t+1}{T},\ts{S}{t+1}{T}|\ts{Y}{0}{t+1},\ts{S}{0}{t+1}}
       = P_{\ts{Y}{t+1}{T},\ts{S}{t+1}{T}|\ti{Y}{t},\ti{S}{t}}
   \end{equation*}
 \item[Given $\bm{\ti{S}{t}}$, $\bm{\ti{Y}{t}}$ is conditionally independent of everything else:]
   \begin{equation*}
-    P_{\ti{Y}{t} |\ts{Y}{1}{t-1},\ts{Y}{t+1}{T}, \ts{S}{1}{T}} = P_{\ti{Y}{t} |\ti{S}{t}}
+    P_{\ti{Y}{t} |\ts{Y}{0}{t},\ts{Y}{t+1}{T}, \ts{S}{0}{T}} = P_{\ti{Y}{t} |\ti{S}{t}}
   \end{equation*}
 \end{description}
 Equations \eqref{eq:assume_markov} and \eqref{eq:assume_output} are
@@ -577,17 +578,17 @@ assumptions about \emph{conditional independence} relations.  Figure
   \label{fig:dhmm_net}
 \end{figure}
 
-Bayes rule and the assumptions justify
+Bayes rule and the assumptions justify\marginpar{Check sequence arguments}
 \begin{align}
-  P_{\ts{Y}{1}{T},\ts{S}{1}{T}} &= P_{\ts{S}{1}{T}} \, %
-                                   P_{\ts{Y}{1}{T}|\ts{S}{1}{T}},\notag\\
+  P_{\ts{Y}{0}{T},\ts{S}{0}{T}} &= P_{\ts{S}{0}{T}} \, %
+                                   P_{\ts{Y}{0}{T}|\ts{S}{0}{T}},\notag\\
   \label{eq:sseqprob}%
-  P_{\ts{S}{1}{T}}              &= P_{\ti{S}{1}} %
-                                   \prod_{t=2}^T P_{\ti{S}{t}|\ti{S}{t-1}}\\
+  P_{\ts{S}{0}{T}}              &= P_{\ti{S}{0}} %
+                                   \prod_{t=1}^T P_{\ti{S}{t}|\ti{S}{t-1}}\\
   \label{eq:condyseqprob}%
-  P_{\ts{Y}{1}{T}|\ts{S}{1}{T}} &= \prod_{t=1}^T P_{\ti{Y}{t}|\ti{S}{t}}\\
+  P_{\ts{Y}{0}{T}|\ts{S}{0}{T}} &= \prod_{t=1}^T P_{\ti{Y}{t}|\ti{S}{t}}\\
   \intertext{and we conclude}
-  P_{\ts{Y}{1}{T},\ts{S}{1}{T}} &= P_{\ti{S}{1}} %
+  P_{\ts{Y}{0}{T},\ts{S}{0}{T}} &= P_{\ti{S}{1}} %
                                    \prod_{t=2}^T P_{\ti{S}{t}|\ti{S}{t-1}}\, %
                                    \prod_{t=1}^T P_{\ti{Y}{t}|\ti{S}{t}}.\notag
 \end{align}
@@ -599,18 +600,18 @@ return to $u$.  That constraint reduces the number of possible state
 sequences to eight.  The impossibility of state $w$ following itself,
 further constrains the possible state sequences to the three listed in
 the calculations of Eqn.~\eqref{eq:pcalc}.  One can verify the values
-for $P(\ts{s}{1}{T})$ and $P(\ts{y}{1}{T}|\ts{s}{1}{T})$ in those
+for $P(\ts{s}{0}{T})$ and $P(\ts{y}{0}{T}|\ts{s}{0}{T})$ in those
 calculations by applying Eqns.~\eqref{eq:sseqprob} and
 \eqref{eq:condyseqprob}.
 
-The calculation of $P(\ts{y}{1}{4})$ in Eqn.~\eqref{eq:pcalc} is easy
+The calculation of $P(\ts{y}{0}{4})$ in Eqn.~\eqref{eq:pcalc} is easy
 because, of the $3^4 = 81$ conceivable state sequences, only three are
 consistent with the observations and model structure.  In general
 however, if there are $N_S$ states and an observation sequence with
 length $T$, then implementing
 \begin{equation*}
-  P(\ts{y}{1}{T}) = \sum_{\ts{s}{1}{T}} P\left(\ts{s}{1}{T}
-    ,\ts{y}{1}{T} \right)
+  P(\ts{y}{0}{T}) = \sum_{\ts{s}{0}{T}} P\left(\ts{s}{0}{T}
+    ,\ts{y}{0}{T} \right)
 \end{equation*}
 naively requires order $\left(N_S\right)^T$ calculations.  If $N_S$
 and $T$ are as large as one hundred, $\left(N_S\right)^T$ is too many
@@ -638,46 +639,46 @@ observation probabilities,
 \end{equation*}
 \begin{description}
 \item[The Viterbi Algorithm:] \index{Viterbi algorithm} Given a model
-  $\parameters$ and a sequence of observations $\ts{y}{1}{T}$, the
+  $\parameters$ and a sequence of observations $\ts{y}{0}{T}$, the
   Viterbi algorithm finds the most probable state sequence $\ts{\hat
-    s}{1}{T}$, \ie,
+    s}{0}{T}$, \ie,
   \begin{equation}
     \label{eq:intro-viterbi}
-    \ts{\hat s}{1}{T} = \argmax_{\ts{s}{1}{T}} P
-    \left(\ts{s}{1}{T}|\ts{y}{1}{T},\parameters\right).
+    \ts{\hat s}{0}{T} = \argmax_{\ts{s}{0}{T}} P
+    \left(\ts{s}{0}{T}|\ts{y}{0}{T},\parameters\right).
   \end{equation}
 \item[The Baum-Welch Algorithm:] \index{Baum-Welch algorithm}
   \index{forward backward algorithm|see{Baum-Welch algorithm}}(Often
   called the \emph{Forward Backward Algorithm}) Given a sequence of
-  observations $\ts{y}{1}{T}$ and an initial set of model parameters
+  observations $\ts{y}{0}{T}$ and an initial set of model parameters
   $\parameters_0$, a single pass of the Baum-Welch algorithm
   calculates a new set of parameters $\parameters_1$ that has higher
   likelihood
   \begin{equation}
     \label{eq:intro-fba}
-    P\left( \ts{y}{1}{T}|\parameters_1 \right) \geq
-    P\left( \ts{y}{1}{T}|\parameters_0 \right).
+    P\left( \ts{y}{0}{T}|\parameters_1 \right) \geq
+    P\left( \ts{y}{0}{T}|\parameters_0 \right).
   \end{equation}
   Equality can only occur at critical points of the likelihood
   function (where $\partial_\parameters P\left(
-    \ts{y}{1}{T}|\parameters \right) = 0$).  In generic cases,
+    \ts{y}{0}{T}|\parameters \right) = 0$).  In generic cases,
 running many iterations of the Baum-Welch algorithm yields a sequence
 $\ts{\parameters}{0}{n}$ that approaches a local maximum of the
 likelihood.
 \item[The Forward Algorithm:] For each time step $t$ and each state
   $s$, the \index*{forward algorithm} calculates the conditional
   probability of being in state $s$ at time $t$ given all of the
-  observations up to that time, \ie,
-  $P_{\ti{S}{t}|\ts{Y}{1}{t},\parameters} \left(s|\ts{y}{1}{t},
+  observations up to that time, \ie,\marginpar{Check sequence arguments}
+  $P_{\ti{S}{t}|\ts{Y}{0}{t},\parameters} \left(s|\ts{y}{0}{t},
     \parameters \right)$. It also calculates
-  $P\left(\ti{y}{t}|\ts{y}{1}{t-1}, \parameters \right)$, the
+  $P\left(\ti{y}{t}|\ts{y}{0}{t}, \parameters \right)$, the
   conditional probability of each observation given previous
   observations.  Using these terms it calculates the probability of
   the entire data sequence given the model,
   \begin{equation*}
-    P \left(\ts{y}{1}{T}|\parameters \right) =  P \left(\ti{y}{1}
+    P \left(\ts{y}{0}{T}|\parameters \right) =  P \left(\ti{y}{1}
       |\parameters \right) \cdot  \prod_{t=2}^T P
-    \left(\ti{y}{t}|\ts{y}{1}{t-1}, \parameters \right).
+    \left(\ti{y}{t}|\ts{y}{0}{t}, \parameters \right).
   \end{equation*}
   The forward algorithm is the first phase of the Baum-Welch algorithm.
 \end{description}
@@ -700,8 +701,8 @@ Figure~\ref{fig:TSintro} depicts the first few observations.
   \centering{\plotsize%
     \includegraphics[width=1.0\textwidth]{TSintro.pdf}}
   \caption[\comment{fig:TSintro }Generating the observations
-  $\ts{y}{1}{40}$.]%
-  {Generating the observations $\ts{y}{1}{40}$.  The curve in the
+  $\ts{y}{0}{40}$.]%
+  {Generating the observations $\ts{y}{0}{40}$.  The curve in the
     upper plot depicts the first component $\ti{x_1}{\tau}$ of an
     orbit of the Lorenz system (Eqn.~\ref{eq:Lorenz}), and the points
     marked with red dots indicate the values sampled with an interval
@@ -719,8 +720,8 @@ iterations of the Baum-Welch algorithm to select a set of parameters
 $\hat \parameters$ with high likelihood for the data.  Finally we used
 the Viterbi algorithm to find the most likely state sequence
  \begin{equation*}
-   {\ts{\hat s}{1}{T}} = \argmax_{\ts{s}{1}{T}}P
-   \left(\ts{s}{1}{T}|\ts{y}{1}{T}, \hat \parameters \right).
+   {\ts{\hat s}{0}{T}} = \argmax_{\ts{s}{0}{T}}P
+   \left(\ts{s}{0}{T}|\ts{y}{0}{T}, \hat \parameters \right).
  \end{equation*}
  
  Although the plot of \emph{decoded} \index{decoded state sequence}
@@ -798,7 +799,7 @@ The experiment consisted of the following steps:
   Each token is a word, a number, or a special character such as
   punctuation.  We retained distinctions between lower and upper case.
   The length of the resulting sequence was \textNTokens tokens, \ie,
-  $\ts{w}{1}{T}$ with $T=\textNTokens$.
+  $\ts{w}{0}{T}$ with $T=\textNTokens$.
 \item[Identify unique tokens:] There were \textNUniqueTokens unique tokens of which
   2,759 appear in the text more than twice.
 \item[Create a map from tokens to rank:] We sorted the tokens by the
@@ -806,7 +807,7 @@ The experiment consisted of the following steps:
   $w'$, $R(w')=1$ and for the most infrequent token, $\bar w$, $R(\bar
   w)=\textNUniqueTokens$.
 \item[Map tokens to integers:] We created a sequence of integers
-  $\ts{y}{1}{T}$ where $\ti{y}{t} \in \{0,\ldots,\textMoreThanTwicePlusOne\} \forall
+  $\ts{y}{0}{T}$ where $\ti{y}{t} \in \{0,\ldots,\textMoreThanTwicePlusOne\} \forall
   t$.  If the token $\ti{w}{t}$ appeared in the text less than three
   times, we set $\ti{y}{t}=\textMoreThanTwicePlusOne$.  Otherwise, we set  $\ti{y}{t}$ to
   $R(\ti{w}{t})$.
@@ -814,8 +815,8 @@ The experiment consisted of the following steps:
   parameters, we used \textTrainingIterations iterations of the
   Baum-Welch algorithm to obtain a trained model.
 \item[Decode a sequence of states:] By applying the Viterbi algorithm
-  to $\ts{y}{1}{T}$ we obtained $\ts{s}{1}{T}$ where $\ti{s}{t}\in
-  \{1,\ldots,12\}$.
+  to $\ts{y}{0}{T}$ we obtained $\ts{s}{0}{T}$ where $\ti{s}{t}\in
+  \{0,\ldots,11\}$. \marginpar{Check sequence arguments}
 \item[Print the most frequent words for each state:] For each state
   $s$, count the number of times each integer $y$ occurs, \ie, $c(y,s)
   = \sum_{t:\ti{s}{t}=s} \delta(y,\ti{y}{t})$.  Then print the words

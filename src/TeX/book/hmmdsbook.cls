@@ -378,7 +378,7 @@
 \newcommand{\ti}[2]{{#1}{(#2)}}                  % Time Index
 
 %%% \newcommand{\ts}[3]{{#1}{(t\=#2,\ldots,#3)}}         % Time Sequence
-\newcommand{\ts}[3]{#1_{#2}^{#3}}                    % Time Sequence
+\newcommand{\ts}[3]{#1[#2:#3]}                    % Time Sequence
 %%% \newcommand{\ts}[3]{\left\{ #1(l) \right\}_{l=#2}^{#3}}  % Time Sequence
 \newcommand{\id}{{\bf I}}
 

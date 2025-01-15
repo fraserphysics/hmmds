@@ -73,12 +73,12 @@ calculates two quantities.  First, it calculates the conditional
 probability of the of the observation at time $t$ given earlier
 observations
 \begin{equation*}
-  \gamma(t+1) \equiv P\left(\ti{y}{t+1}|\ts{y}{1}{t} \right).
+  \gamma(t+1) \equiv P\left(\ti{y}{t+1}|\ts{y}{0}{t} \right).
 \end{equation*}
 Then it calculates the conditional distribution of states given the
 observations up to the present time
 \begin{equation*}
-  \alpha(x,t) \equiv P_{\ti{X}{t}|\ts{Y}{1}{t}} \left(x|\ts{y}{1}{t}
+  \alpha(x,t) \equiv P_{\ti{X}{t}|\ts{Y}{0}{t}} \left(x|\ts{y}{0}{t}
   \right).
 \end{equation*}
 The equations
@@ -108,20 +108,20 @@ $\alpha(x,t)$ for each of the remaining observations $\ti{y}{t}$.
   observations up to the present time.
 \begin{align}
   \label{eq:t274}
-  P\left(\ti{x}{t+1},\ti{x}{t}|\ts{y}{1}{t} \right) &=
-  P\left(\ti{x}{t+1}|\ti{x}{t},\ts{y}{1}{t} \right)
-  P\left(\ti{x}{t}|\ts{y}{1}{t} \right) \\
+  P\left(\ti{x}{t+1},\ti{x}{t}|\ts{y}{0}{t} \right) &=
+  P\left(\ti{x}{t+1}|\ti{x}{t},\ts{y}{0}{t} \right)
+  P\left(\ti{x}{t}|\ts{y}{0}{t} \right) \\
   \label{eq:t275}
   &= P\left(\ti{x}{t+1}|\ti{x}{t} \right)
-  P\left(\ti{x}{t}|\ts{y}{1}{t} \right) \\
+  P\left(\ti{x}{t}|\ts{y}{0}{t} \right) \\
   &= P\left(\ti{x}{t+1}|\ti{x}{t} \right)
   \alpha(\ti{x}{t},t)\\
                                 %
   \label{eq:t277}
-  P\left(\ti{x}{t+1}|\ts{y}{1}{t} \right) &= \int
-  P\left(\ti{x}{t+1},\ti{x}{t}|\ts{y}{1}{t} \right) d\ti{x}{t}\\
+  P\left(\ti{x}{t+1}|\ts{y}{0}{t} \right) &= \int
+  P\left(\ti{x}{t+1},\ti{x}{t}|\ts{y}{0}{t} \right) d\ti{x}{t}\\
 %%   &= \int P \left(\ti{x}{t+1}|\ti{x}{t} \right)
-%%   P\left(\ti{x}{t}|\ts{y}{1}{t} \right) d\ti{x}{t} \\
+%%   P\left(\ti{x}{t}|\ts{y}{0}{t} \right) d\ti{x}{t} \\
   \label{eq:IFore}
   &= \int P \left(\ti{x}{t+1}|\ti{x}{t} \right)
   \alpha(\ti{x}{t},t) d\ti{x}{t}
@@ -135,12 +135,12 @@ marginal distribution.
   present time.
 \begin{align}
   \label{eq:t279}
-  P\left(\ti{x}{t+1},\ti{y}{t+1}|\ts{y}{1}{t} \right) &=
-  P\left(\ti{y}{t+1}|\ti{x}{t+1},\ts{y}{1}{t} \right)
-  P\left(\ti{x}{t+1}|\ts{y}{1}{t} \right) \\
+  P\left(\ti{x}{t+1},\ti{y}{t+1}|\ts{y}{0}{t} \right) &=
+  P\left(\ti{y}{t+1}|\ti{x}{t+1},\ts{y}{0}{t} \right)
+  P\left(\ti{x}{t+1}|\ts{y}{0}{t} \right) \\
   \label{eq:t280}
   &=P\left(\ti{y}{t+1}|\ti{x}{t+1} \right)
-  P\left(\ti{x}{t+1}|\ts{y}{1}{t} \right)
+  P\left(\ti{x}{t+1}|\ts{y}{0}{t} \right)
 \end{align}
 Here we justify \eqref{eq:t279} by Bayes rule and \eqref{eq:t280} by
 the model assumptions.
@@ -149,19 +149,19 @@ the model assumptions.
   the next observation given the observations up to the present time.
 \begin{equation}
   \label{eq:Igamma}
-  \ti{\gamma}{t+1} \equiv P\left(\ti{y}{t+1}|\ts{y}{1}{t} \right) = \int
-  P\left(\ti{x}{t+1},\ti{y}{t+1}|\ts{y}{1}{t} \right) d\ti{x}{t+1} \\
+  \ti{\gamma}{t+1} \equiv P\left(\ti{y}{t+1}|\ts{y}{0}{t+1} \right) = \int
+  P\left(\ti{x}{t+1},\ti{y}{t+1}|\ts{y}{0}{t+1} \right) d\ti{x}{t+1} \\
 \end{equation}
 \item[Update the conditional state distribution] \index{update} Use
   Bayes rule to combine \eqref{eq:t280} and \eqref{eq:Igamma} and get
   the conditional distribution of the state at time $t+1$ given all of
   the measurements up to time $t+1$.
 \begin{align}
-  \alpha(x(t+1),t+1) &= P\left(\ti{x}{t+1}|\ts{y}{1}{t+1} \right) \\
-  &=  \frac{ P\left(\ti{x}{t+1},\ti{y}{t+1}|\ts{y}{1}{t}
-    \right)}{P\left(\ti{y}{t+1}|\ts{y}{1}{t} \right)}\\
+  \alpha(x(t+1),t+1) &= P\left(\ti{x}{t+1}|\ts{y}{0}{t+2} \right) \\
+  &=  \frac{ P\left(\ti{x}{t+1},\ti{y}{t+1}|\ts{y}{0}{t+1}
+    \right)}{P\left(\ti{y}{t+1}|\ts{y}{0}{t} \right)}\\
   \label{eq:IUpdate}
-  &= \frac{ P\left(\ti{x}{t+1},\ti{y}{t+1}|\ts{y}{1}{t}
+  &= \frac{ P\left(\ti{x}{t+1},\ti{y}{t+1}|\ts{y}{0}{t}
     \right)}{\ti{\gamma}{t+1}}.
 \end{align}
 \end{description}
@@ -175,7 +175,7 @@ Similarly, the backward algorithm finds a function called the
 \begin{equation}
   \label{eq:contbeta}
   \beta(x,t) \equiv \frac{P_{\ts{Y}{t+1}{T}|\ti{X}{t}}
-  \left(\ts{y}{t+1}{T}|x \right)}{P\left(\ts{y}{t+1}{T}|\ts{y}{1}{t}
+  \left(\ts{y}{t+1}{T}|x \right)}{P\left(\ts{y}{t+1}{T}|\ts{y}{0}{t}
                \right)},
 \end{equation}
 for each time $t$ by starting with $\beta(x,T) = 1$ and following with
@@ -185,7 +185,7 @@ the recursion
   \beta(x,t-1) = \int 
   \frac{\beta(x',t) P_{\ti{Y}{t}|\ti{X}{t}}\left(\ti{y}{t}|x' \right)
   P_{\ti{X}{t}|\ti{X}{t-1}}\left(x'|x \right)}
-  {P\left(\ti{y}{t}|\ts{y}{1}{t-1} \right)} dx'.
+  {P\left(\ti{y}{t}|\ts{y}{0}{t} \right)} dx'.
 \end{equation}
 Note that by replacing the sum over discrete states $s$ in
 \eqref{eq:back4} with an integral over continuous states $x'$ one
@@ -194,15 +194,15 @@ have chosen to define $\beta(x,t)$ so that the conditional
 distribution of the state at time $t$ given all of the observations is
 \begin{equation}
   \label{eq:contalphabeta}
-  \alpha(x,t) \beta(x,t) = P_{\ti{X}{t}|\ts{Y}{1}{T}}
-  \left(x|\ts{y}{1}{T} \right).
+  \alpha(x,t) \beta(x,t) = P_{\ti{X}{t}|\ts{Y}{0}{T}}
+  \left(x|\ts{y}{0}{T} \right).
 \end{equation}
 Defining and evaluating a \emph{\index*{backwards update}} function
 \begin{equation}
   \label{eq:bdef}
   b(x,t) \equiv \frac{\beta(x,t)
     P_{\ti{Y}{t}|\ti{X}{t}}\left(\ti{y}{t}|x
-    \right)} {P\left(\ti{y}{t}|\ts{y}{1}{t-1} \right)}
+    \right)} {P\left(\ti{y}{t}|\ts{y}{0}{t} \right)}
 \end{equation}
 lets one write Eqn.~\eqref{eq:contback} as
 \begin{equation*}
@@ -264,7 +264,7 @@ distributions described by these parameters are also Gaussian.
     $P(t^+_i)$ and Kailath et al.\cite{KSH00} use $\hat x_{i|i}$ and
     $P_{i|i}$ respectively.}, \ie,
   \begin{equation*}
-    P\left(\ti{x}{t}|\ts{y}{1}{t} \right) =
+    P\left(\ti{x}{t}|\ts{y}{0}{t} \right) =
     \NormalE{\ti{\mu_\alpha}{t}}{\ti{\Sigma_\alpha}{t}}{\ti{x}{t}}.
   \end{equation*}
 \item[$\bm{\ti{\mu_a}{t}}$ and $\bm{\ti{\Sigma_a}{t}}$] (Note
@@ -275,14 +275,14 @@ distributions described by these parameters are also Gaussian.
     $P(t^-_i)$ and Kailath et al.\cite{KSH00} use $\hat x_{i+1}$ and
     $P_{i+1}$ respectively.}, \ie,
   \begin{equation*}
-    P \left(\ti{x}{t}|\ts{y}{1}{t-1} \right) =
+    P \left(\ti{x}{t}|\ts{y}{0}{t} \right) =
     \NormalE{\ti{\mu_a}{t}}{\ti{\Sigma_a}{t}}{\ti{x}{t}}.
   \end{equation*}
 \item[$\bm{\ti{\mu_\gamma}{t}}$ and $\bm{\ti{\Sigma_\gamma}{t}}$] are
   the parameters of the conditional probability of the observation at
   time $t$ given all previous observations, \ie
   \begin{equation*}
-    P\left(\ti{y}{t}|\ts{y}{1}{t-1} \right) =
+    P\left(\ti{y}{t}|\ts{y}{0}{t} \right) =
     \NormalE{\ti{\mu_\gamma}{t}}{\ti{\Sigma_\gamma}{t}}{\ti{y}{t}}.
   \end{equation*}
   Neither the forward nor the backwards Kalman filter uses the $\gamma$
@@ -309,7 +309,7 @@ distributions described by these parameters are also Gaussian.
 \item[$\bm{\ti{\mu_{\alpha\beta}}{t}}$ and
   $\bm{\ti{\Sigma_{\alpha\beta}}{t}}$] are the mean and covariance
   of the best estimate of the state at time $t$ given all of the
-  observations, \ie $P_{\ti{X}{t}|\ts{Y}{1}{T}} \left(x|\ts{y}{1}{T}
+  observations, \ie $P_{\ti{X}{t}|\ts{Y}{0}{T}} \left(x|\ts{y}{0}{T}
   \right) =
   \NormalE{\ti{\mu_{\alpha\beta}}{t}}{\ti{\Sigma_{\alpha\beta}}{t}}{x}$.
 \end{description}
@@ -372,12 +372,12 @@ Note:
 \item One can calculate the log likelihood of a model by summing the
   increments
   \begin{equation*}
-    \log\left( P\left(\ts{y}{1}{T} \right)\right) = \sum_{t=1}^T
-    \log\left(P \left(\ti{y}{t}|\ts{y}{1}{t-1} \right) \right)
+    \log\left( P\left(\ts{y}{0}{T} \right)\right) = \sum_{t=1}^T
+    \log\left(P \left(\ti{y}{t}|\ts{y}{0}{t} \right) \right)
   \end{equation*}
   and calculating each increment as
   \begin{equation*}
-    P \left(\ti{y}{t}|\ts{y}{1}{t-1} \right) =
+    P \left(\ti{y}{t}|\ts{y}{0}{t} \right) =
     \NormalE{\ti{\mu_\gamma}{t}}{\ti{\Sigma_\gamma}{t}}{\ti{y}{t}}
   \end{equation*}
   where
@@ -385,7 +385,7 @@ Note:
     \ti{\mu_\gamma}{t} &= \ti{G}{t} \ti{\mu_a}{t}\\
     \ti{\Sigma_\gamma}{t} &= \ti{G}{t} \ti{\Sigma_a}{t} \left(
     \ti{G}{t} \right)\transpose + \Sigma_\epsilon\\
-    \log\left( P \left(\ti{y}{t}|\ts{y}{1}{t-1} \right) \right) &= -
+    \log\left( P \left(\ti{y}{t}|\ts{y}{0}{t} \right) \right) &= -
     \frac{1}{2} \Big( n \log(2\pi) + \log \left( \left|
     \ti{\Sigma_\gamma}{t} \right| \right) \\ & \quad \quad \quad
     + \big( \ti{y}{t} - \ti{\mu_\gamma}{t} \big)\transpose
@@ -452,7 +452,7 @@ Note:
 The conditional distribution of the state at time $t$ given all of the
 data is Gaussian and therefore specified by its covariance and mean, \ie,
 \begin{equation*}
-   P \left(\ti{x}{t}|\ts{y}{1}{T} \right) = \NormalE{\ti{\mu_{\alpha
+   P \left(\ti{x}{t}|\ts{y}{0}{T} \right) = \NormalE{\ti{\mu_{\alpha
    \beta}}{t}}{\ti{\Sigma_{\alpha \beta}}{t}}{\ti{x}{t}},
 \end{equation*}
 where
@@ -500,25 +500,26 @@ directly to step~\ref{PYforecast}.
   calculate $\ti{\mu_\gamma}{1}$ and $\ti{\Sigma_\gamma}{1}$ by
   setting $t=1$.
 \item \label{PXforecast} \textbf{Calculate the state forecast,
-    $\bm{P\left(\ti{x}{t}|\ts{y}{1}{t-1} \right)}$.}  The distribution
+    $\bm{P\left(\ti{x}{t}|\ts{y}{0}{t} \right)}$.}  The distribution
   of the forecast is Gaussian, and therefore determined by its mean
   and covariance.  Thus rather than evaluating the integral in
   Eqn.~\eqref{eq:IFore} to find the distribution
-  $P\left(\ti{x}{t}|\ts{y}{1}{t-1} \right)$, we can specify the
+  $P\left(\ti{x}{t}|\ts{y}{0}{t} \right)$, we can specify the
   distribution completely by calculating its first two moments.  Since
   \begin{equation*}
     \ti{x}{t} = \ti{F}{t} \ti{x}{t-1} + \ti{\eta}{t}
   \end{equation*}
-  the mean is\marginpar{Use $\EV_{\ti{X}{t-1},\ti{\eta}{t}|\ts{y}{1}{t-1}}$?}
+  the mean is\marginpar{Use
+  $\EV_{\ti{X}{t-1},\ti{\eta}{t}|\ts{y}{0}{t}}$?}\marginPar{Check t-1}
   \begin{align}
     \ti{\mu_a}{t} &= \EV_{P
-      \left(\ti{x}{t-1},\ti{\eta}{t}|\ts{y}{1}{t-1} \right)} \left[
+      \left(\ti{x}{t-1},\ti{\eta}{t}|\ts{y}{0}{t} \right)} \left[
       \ti{F}{t}\ti{X}{t-1} + \ti{\eta}{t} \right] \nonumber \\
-    &= \EV_{P\left(\ti{x}{t-1},\ti{\eta}{t}|\ts{y}{1}{t-1} \right)}
+    &= \EV_{P\left(\ti{x}{t-1},\ti{\eta}{t}|\ts{y}{0}{t} \right)}
       \ti{F}{t}\ti{X}{t-1} +
-      \EV_{P\left(\ti{x}{t-1},\ti{\eta}{t}|\ts{y}{1}{t-1} \right)} \ti{\eta}{t} \nonumber \\
+      \EV_{P\left(\ti{x}{t-1},\ti{\eta}{t}|\ts{y}{0}{t} \right)} \ti{\eta}{t} \nonumber \\
     \label{eq:etaIndependent}
-    &= \EV_{P \left(\ti{x}{t-1}|\ts{y}{1}{t-1} \right)}
+    &= \EV_{P \left(\ti{x}{t-1}|\ts{y}{0}{t} \right)}
     \ti{F}{t}\ti{X}{t-1}  + \EV_{P (\eta)} \ti{\eta}{t} \\
                                  %
      &= \ti{F}{t}\ti{\mu_\alpha}{t-1}. \nonumber
@@ -531,7 +532,7 @@ directly to step~\ref{PYforecast}.
    variance by
    \begin{align}
      \ti{\Sigma_a}{t} &= \EV_{P
-       \left(\ti{x}{t-1},\ti{\eta}{t}|\ts{y}{1}{t-1} \right)} \big[
+       \left(\ti{x}{t-1},\ti{\eta}{t}|\ts{y}{0}{t} \right)} \big[
      \left( \ti{F}{t}\ti{X}{t-1} + \ti{\eta}{t} - \ti{\mu_a}{t-1}
      \right) \nonumber\\
      & \quad \times \left( \ti{F}{t}\ti{X}{t-1} + \ti{\eta}{t} -
@@ -543,7 +544,7 @@ directly to step~\ref{PYforecast}.
   Thus Eqn.~\eqref{eq:KFore} implements the integral of
   Eqn.~\eqref{eq:IFore}.
 \item \label{PYforecast} \textbf{Calculate
-    $\bm{P\left(\ti{y}{t}|\ts{y}{1}{t-1} \right)}$.}  Using
+    $\bm{P\left(\ti{y}{t}|\ts{y}{0}{t} \right)}$.}  Using
   \begin{equation*}
     \ti{y}{t} = \ti{G}{t}\ti{x}{t} + \ti{\epsilon}{t}
   \end{equation*}
@@ -551,14 +552,14 @@ directly to step~\ref{PYforecast}.
   forecast observation as follows
   \begin{align}
     \ti{\mu_\gamma}{t} &= \EV_{P
-      \left(\ti{x}{t},\ti{\epsilon}{t}|\ts{y}{1}{t-1} \right)}
+      \left(\ti{x}{t},\ti{\epsilon}{t}|\ts{y}{0}{t} \right)}
     \ti{G}{t}\ti{X}{t} + \ti{\epsilon}{t} \nonumber \\
                                 %
     \label{eq:mugamma}
     &= \ti{G}{t}\ti{\mu_a}{t}\\
                                 %
     \ti{\Sigma_\gamma}{t} &= \EV_{P
-      \left(\ti{x}{t},\ti{\epsilon}{t}|\ts{y}{1}{t-1} \right)}
+      \left(\ti{x}{t},\ti{\epsilon}{t}|\ts{y}{0}{t} \right)}
     \left( \ti{G}{t}\ti{X}{t} + \ti{\epsilon}{t} -
       \ti{\mu_\gamma}{t} \right) \nonumber \\
     &\quad\left( \ti{G}{t}\ti{X}{t} +
@@ -570,7 +571,7 @@ directly to step~\ref{PYforecast}.
     \Sigma_\epsilon
   \end{align}
 \item \label{PZforecast} \textbf{Calculate $\bm{P\left(\ti{x}{t},
-        \ti{y}{t}|\ts{y}{1}{t-1} \right)}$.}  The conditional
+        \ti{y}{t}|\ts{y}{0}{t} \right)}$.}  The conditional
   distribution of the joint variable
   \begin{equation*}
     \ti{z}{t} =
@@ -606,26 +607,26 @@ directly to step~\ref{PYforecast}.
   We derive the off diagonal terms of $\Sigma_z$ in
   Eqn.~\eqref{eq:cont-temp} as follows
   \begin{align}
-    C &= \EV_{P\left(\ti{x}{t},\ti{\epsilon}{t}|\ts{y}{1}{t-1} \right)}
+    C &= \EV_{P\left(\ti{x}{t},\ti{\epsilon}{t}|\ts{y}{0}{t} \right)}
     \big( \ti{x}{t} - \ti{\mu_a}{t} \big) \big( \ti{y}{t}
       - \ti{\mu_\gamma}{t} \big)\transpose \nonumber \\
-    &=  \EV_{P\left(\ti{x}{t}|\ts{y}{1}{t-1} \right)}
+    &=  \EV_{P\left(\ti{x}{t}|\ts{y}{0}{t} \right)}
     \big( \ti{x}{t} - \ti{\mu_a}{t} \big)
     \big( \ti{x}{t} - \ti{\mu_a}{t} \big)\transpose
     \left(\ti{G}{t} \right)\transpose \nonumber \\
     & \quad +
-    \EV_{P\left(\ti{x}{t},\ti{\epsilon}{t}|\ts{y}{1}{t-1} \right)}
+    \EV_{P\left(\ti{x}{t},\ti{\epsilon}{t}|\ts{y}{0}{t} \right)}
     \big( \ti{x}{t} - \ti{\mu_a}{t} \big) \big( \ti{\epsilon}{t}
     \big) \nonumber \\
     \label{eq:cont:C}
     &= \ti{\Sigma_{a}}{t} \big(\ti{G}{t} \big)\transpose .
   \end{align}
 \item \label{PXupdate} \textbf{Calculate the state update,
-    $\bm{P\left(\ti{x}{t}|\ts{y}{1}{t} \right)}$.}  With the
+    $\bm{P\left(\ti{x}{t}|\ts{y}{0}{t+1} \right)}$.}  With the
   actual value of $\ti{y}{t}$ and the joint distribution of
-  $\ti{x}{t}$ and $\ti{y}{t}$ given $\ts{y}{1}{t-1}$, we use
+  $\ti{x}{t}$ and $\ti{y}{t}$ given $\ts{y}{0}{t}$, we use
   Eqn.~\eqref{eq:Gauss-Conditional} to write the parameters of
-  $P\left(\ti{x}{t}|\ts{y}{1}{t} \right)$ as
+  $P\left(\ti{x}{t}|\ts{y}{0}{t+1} \right)$ as
   \begin{subequations}
     \label{eq:UpdateRaw}
     \begin{align}
@@ -876,11 +877,11 @@ So
 
 We have defined $\alpha(x,t)$ and $\beta(x,t)$ so that
 \begin{equation*}
-   P_{\ti{X}{t}|\ts{Y}{1}{T}} \left(x|\ts{y}{1}{T} \right) =
+   P_{\ti{X}{t}|\ts{Y}{0}{T}} \left(x|\ts{y}{0}{T} \right) =
    \alpha(x,t) \beta(x,t).
 \end{equation*}
 (See Eqn.~\eqref{eq:contalphabeta}.)  In fact
-$P_{\ti{X}{t}|\ts{Y}{1}{T}}$ is Gaussian, and we denote its parameters
+$P_{\ti{X}{t}|\ts{Y}{0}{T}}$ is Gaussian, and we denote its parameters
 $\ti{\mu_{\alpha \beta}}{t}$ and $\ti{\Sigma_{\alpha \beta}}{t}$.
 Examining the exponential terms in $\alpha(x,t) \beta(x,t)$ we find
 (suppressing the time indices)

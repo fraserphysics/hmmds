@@ -51,8 +51,8 @@ form of Eqn.~\eqref{eq:contnoise},
 \end{align*}
 We have used the \index*{extended Kalman filter} described in
 chapter~\ref{chap:continuous} to obtain parametric probability
-functions $P\left(\ti{y}{t}|\ts{y}{1}{t-1} , \theta \right)$ that
-approximate $P\left(\ti{y}{t}|\ts{y}{1}{t-1}, \mu \right)$, \ie, the
+functions $P\left(\ti{y}{t}|\ts{y}{0}{t} , \theta \right)$ that
+approximate $P\left(\ti{y}{t}|\ts{y}{0}{t}, \mu \right)$, \ie, the
 conditional distribution of the measurement at time $t$ given all
 previous measurements.  Our code for generating sequences of
 measurements has the following characteristics:
@@ -90,9 +90,9 @@ measurements has the following characteristics:
 \end{description}
 Recall that for the extended Kalman filter $\ti{\mu_\gamma}{t}$ and
 $\ti{\sigma_\gamma}{t}$ completely characterize
-$ P(\ti{y}{t}|\ts{y}{1}{t-1},\theta)$ with
+$ P(\ti{y}{t}|\ts{y}{0}{t},\theta)$ with
 \begin{equation*}
-  P(\ti{y}{t}|\ts{y}{1}{t-1},\theta) =
+  P(\ti{y}{t}|\ts{y}{0}{t},\theta) =
   \NormalE{\ti{\mu_\gamma}{t}}{\ti{\sigma^2_\gamma}{t}}{\ti{y}{t}}.
 \end{equation*}
 (We use a lower case sigma here because the observations are scalars.)
@@ -147,7 +147,7 @@ map $[DF]$ that occurs then.
     A time series of observations appears in the upper plot.  The
     middle plot characterizes the one-step forecast distributions
     $P_{\gamma} \left(\ti{y}{t} \right) \equiv P
-    \left(\ti{y}{t}|\ts{y}{1}{t-1},\theta \right) =
+    \left(\ti{y}{t}|\ts{y}{0}{t},\theta \right) =
     \NormalE{\ti{\mu_\gamma}{t}}{\ti{\sigma^2_\gamma}{t}}{\ti{y}{t}}$.
     The standard deviations of the forecasts appear in the first
     trace, and the differences between the actual observations
@@ -169,11 +169,11 @@ map $[DF]$ that occurs then.
     Fig.~\ref{fig:ToyTS1}.  In each plot, the \emph{forecast} state
     distribution ellipse represents
     $P_{a} \left(\ti{x}{t} \right) \equiv P
-    \left(\ti{x}{t}|\ts{y}{1}{t-1},\theta \right) =
+    \left(\ti{x}{t}|\ts{y}{0}{t},\theta \right) =
     \NormalE{\mu_a}{\Sigma_a}{\ti{x}{t}}$ and the \emph{update} state
     distribution ellipse represents
     $P_{\alpha} \left(\ti{x}{t} \right) \equiv P
-    \left(\ti{x}{t}|\ts{y}{1}{t}, \theta \right) =
+    \left(\ti{x}{t}|\ts{y}{0}{t+1}, \theta \right) =
     \NormalE{\mu_\alpha}{\Sigma_\alpha}{\ti{x}{t}}$.  For each
     distribution, an ellipse depicts the level set
     $(x-\mu)\transpose \Sigma^{-1} (x-\mu) =1$ in the $x_1\times x_3$
@@ -190,19 +190,19 @@ Figure~\ref{fig:ToyH} illustrates the behavior of $-\hat h$, the sample
 average of the log likelihood of forecasts, for a group of simulations
 with parameters that are quite different from those in
 Figs.~\ref{fig:ToyTS1} and \ref{fig:ToyStretch}.  Given model parameters
-$\theta$ and a sample sequence $\ts{y}{1}{T}$ of length $T$, we define
+$\theta$ and a sample sequence $\ts{y}{0}{T}$ of length $T$, we define
 \begin{align*}
   -\hat h &\equiv \frac{1}{T} \sum_{t=1}^T
-    \log \left( P \left(\ti{y}{t}|\ts{y}{1}{t-1}, \theta
+    \log \left( P \left(\ti{y}{t}|\ts{y}{0}{t}, \theta
       \right)\right)\\
-    &=  \frac{1}{T} \log \left( P \left(\ts{y}{1}{T}| \theta
+    &=  \frac{1}{T} \log \left( P \left(\ts{y}{0}{T}| \theta
       \right)\right).
 \end{align*}
 The negative of this sample log likelihood is an estimate of the
 \emph{cross entropy rate} \index{entropy!cross rate}
 \begin{equation*}
   h(\mu||\theta) \equiv  \lim_{T \rightarrow \infty} - \frac{1}{T}
-  \EV_{\mu} \log \left( P \left(\ts{Y}{1}{T}|\theta \right) \right)
+  \EV_{\mu} \log \left( P \left(\ts{Y}{0}{T}|\theta \right) \right)
 \end{equation*}
 which in turn is bounded from below by the \emph{entropy rate}.  We
 discuss both entropy rate and cross entropy rate in
@@ -241,7 +241,7 @@ We have chosen the parameters\footnote{ In making Fig.~\ref{fig:ToyH},
 the caption of Fig.~\ref{fig:ToyH} with a measurement quantization
 size large enough that the log likelihood is limited primarily by
 dynamical stretching and the Gaussian model for
-$ P \left(\ti{y}{t}|\ts{y}{1}{t-1}, \theta \right)$.  We are pleased
+$ P \left(\ti{y}{t}|\ts{y}{0}{t}, \theta \right)$.  We are pleased
 to observe that the overall slope of the plot on the left in
 Fig.~\ref{fig:ToyH} is consistent with the estimate
 $\hat \lambda_1 = \toyBenettinLambdaOne$ (base $e$) that we obtain
@@ -264,7 +264,7 @@ using the Benettin procedure described in Section~\ref{sec:Benettin}.
     \end{tabular}\\
     For both plots, the vertical axis is the average log likelihood of
     the one-step forecast $-\hat h \equiv \frac{1}{T} \sum_{t=1}^T
-    \log \left( P \left(\ti{y}{t}|\ts{y}{1}{t-1}, \theta
+    \log \left( P \left(\ti{y}{t}|\ts{y}{0}{t}, \theta
       \right)\right)$.  On the left we plot $-\hat h$ as a function of
     both $\tau_s$, the time step, and $\tilde \sigma_\epsilon$, the
     standard deviation of the measurement noise model used by the
@@ -298,10 +298,10 @@ Eqn.~\eqref{eq:ToyH} by observing that in the limit of small sampling
 interval ($\tau_s \rightarrow 0$) and zero noise ($\sigma_\eta
 \rightarrow 0$ and $\sigma_\epsilon \rightarrow 0$), only one discrete
 observation $\ti{y}{t}=\bar y$ is possible given a history
-$\ts{y}{1}{t-1}$.  For data drawn from that limiting case, a Kalman
+$\ts{y}{0}{t}$.  For data drawn from that limiting case, a Kalman
 filter with parameters $\tilde \sigma_\epsilon = \Delta$ and
 $\sigma_\eta \rightarrow 0$ would make a forecast with a density
-$P(\ti{y}{t}|\ts{y}{1}{t-1}) = \NormalE{\bar
+$P(\ti{y}{t}|\ts{y}{0}{t}) = \NormalE{\bar
   y}{(\Delta)^2}{\ti{y}{t}}$.  Integrating that density over the
 quantization interval yields
  \begin{align*}
@@ -360,8 +360,8 @@ Now, to solidify the discussion, we make some formal definitions.
 
 \subsubsection{Stochastic process}
 \index{stochastic process}
-We are interested in sequences of states $\ts{X}{1}{T}$ and
-measurements  $\ts{Y}{1}{T}$ each of which can be thought of as a
+We are interested in sequences of states $\ts{X}{0}{T}$ and
+measurements  $\ts{Y}{0}{T}$ each of which can be thought of as a
 \emph{random function} on the domain $\left\{ 1,2,\ldots,T \right\}$,
 \ie, a \emph{stochastic process}.
 
@@ -408,13 +408,13 @@ The \emph{conditional entropy} of $U$ given $V$ is
 \end{equation*}
 Factoring the probability of sequences
 \begin{equation*}
-  P_{\ts{z}{1}{T} } = P _{\ti{z}{1} }
-  \prod_{t=2}^T P _{\ti{z}{t}|\ts{z}{1}{t-1} }
+  P_{\ts{z}{0}{T} } = P _{\ti{z}{0} }
+  \prod_{t=1}^T P _{\ti{z}{t}|\ts{z}{0}{t} }
 \end{equation*}
 is equivalent analyzing entropy into the sum
 \begin{equation*}
-  H(\ts{Z}{1}{T}) = H(\ti{Z}{1}) + \sum_{t=2}^T H
-  \left(\ti{Z}{t}|\ts{Z}{1}{t-1} \right).
+  H(\ts{Z}{0}{T}) = H(\ti{Z}{1}) + \sum_{t=2}^T H
+  \left(\ti{Z}{t}|\ts{Z}{0}{t} \right).
 \end{equation*}
 
 \subsubsection{Relative entropy of two probability functions}
@@ -462,7 +462,7 @@ A stochastic process is \emph{stationary} if probabilities are
 unchanged by constant shifts in time, \ie, for any two integers
 $T\geq 1$ and $\tau\geq 0$
 \begin{equation*}
-  P_{\ts{Z}{1}{T}} =  P_{\ts{Z}{1+\tau}{T+\tau}}.
+  P_{\ts{Z}{0}{T}} =  P_{\ts{Z}{0+\tau}{T+\tau}}.
 \end{equation*}
 
 \subsubsection{Ergodic}
@@ -482,12 +482,12 @@ For a discrete stochastic process $X$, the entropy rate \index{entropy
   stochastic process $X$.}
 \begin{equation}
   \label{eq:hrate1}
-  h(X) \equiv \lim_{T \rightarrow \infty} \frac{1}{T} H(\ts{X}{1}{T}).
+  h(X) \equiv \lim_{T \rightarrow \infty} \frac{1}{T} H(\ts{X}{0}{T}).
 \end{equation}
 If the process is stationary
 \begin{equation}
   \label{eq:hrate2}
-  h(X) = \lim_{T \rightarrow \infty} H(\ti{X}{T}|\ts{X}{1}{T-1}).
+  h(X) = \lim_{T \rightarrow \infty} H(\ti{X}{T}|\ts{X}{0}{T}).
 \end{equation}
 If the process is stationary and Markov
 \begin{equation}
@@ -497,7 +497,7 @@ If the process is stationary and Markov
 And if the process is ergodic
 \begin{equation}
   \label{eq:hrate4}
-  h(X) = \lim_{T \rightarrow \infty} - \frac{1}{T} \log \left( P \left(\ts{x}{1}{T}|\mu \right) \right)
+  h(X) = \lim_{T \rightarrow \infty} - \frac{1}{T} \log \left( P \left(\ts{x}{0}{T}|\mu \right) \right)
 \end{equation}
 with probability one.
 
@@ -507,9 +507,9 @@ model probabilities $P_{*|\theta}$
 \begin{align}
   \label{eq:hrate5}
   h(\mu||\theta) &\equiv  \lim_{T \rightarrow \infty} - \frac{1}{T}
-  \EV_\mu \log \left( P \left(\ts{X}{1}{T}|\theta \right) \right) \\
+  \EV_\mu \log \left( P \left(\ts{X}{0}{T}|\theta \right) \right) \\
   &=  \lim_{T \rightarrow \infty} - \frac{1}{T} \log \left( P
-  \left(\ts{x}{1}{T}| \theta \right) \right) \nonumber
+  \left(\ts{x}{0}{T}| \theta \right) \right) \nonumber
 \end{align}
 with probability one.
 
@@ -520,7 +520,7 @@ continuum, and let $\mathcal{B} = \left\{ \beta_1,\beta_2,\ldots
   \beta_n \right\}$ be a partition of ${\cal X}$ into a finite number
 of non-overlapping subsets.  By setting $\ti{b}{t}$ to the index of
 the element of $\mathcal{B}$ into which $\ti{x}{t}$ falls, we can map
-any sequence $\ts{x}{1}{T}$ into a sequence $\ts{b}{1}{T}$ thus
+any sequence $\ts{x}{0}{T}$ into a sequence $\ts{b}{0}{T}$ thus
 defining a discrete stationary stochastic process $B$.  Applying the
 definition of entropy rate to the process $B$ yields the definition of
 the entropy rate as a function of partition $\mathcal{B}$.  Suppose in
@@ -528,18 +528,18 @@ particular that on some set ${\cal X}$ the map $F:{\cal X}\mapsto{\cal
   X}$ and the probability $P_{*|\mu}$ define an ergodic process, that
 $\mathcal{B}$ is a partition of ${\cal X}$, and that the model
 probability function $P_{*|\theta}$ assigns probabilities to sequences
-of partition indices $\ts{b}{1}{T}$.  We define the entropy rate $
+of partition indices $\ts{b}{0}{T}$.  We define the entropy rate $
 h(\mathcal{B},F,\mu)$ and the \index*{cross entropy rate} %
 $h(\mathcal{B},F,\mu||\theta)$ as follows
 \begin{align}
   \label{eq:hrate6}
   h(\mathcal{B},F,\mu) &\equiv \lim_{T \rightarrow \infty} \frac{1}{T}
-  H(\ts{B}{1}{T}) \\
+  H(\ts{B}{0}{T}) \\
   &= \lim_{T \rightarrow \infty} -\frac{1}{T} \EV_\mu \log\left(P
-  \left(\ts{B}{1}{T}| \mu \right) \right) \nonumber\\
+  \left(\ts{B}{0}{T}| \mu \right) \right) \nonumber\\
   \label{eq:hrate7}
   h(\mathcal{B},F,\mu||\theta) &\equiv \lim_{T \rightarrow \infty}
-  -\frac{1}{T} \EV_\mu \log\left(P \left(\ts{B}{1}{T} | \theta \right)
+  -\frac{1}{T} \EV_\mu \log\left(P \left(\ts{B}{0}{T} | \theta \right)
   \right). \nonumber  
 \end{align}
 \subsubsection{Kolmogorov Sinai entropy $h_{KS}$}
@@ -798,11 +798,11 @@ above, if the multiplicity of each exponent is $m_i = 1$ then we know:
 \begin{align}
   \label{eq:Bound1}
   h({\cal{B}},F,\mu) &\equiv - \lim_{t \rightarrow
-    \infty} \EV_\mu \log \left( P \left( \ti{b}{t}|\ts{b}{1}{t-1}, \mu
+    \infty} \EV_\mu \log \left( P \left( \ti{b}{t}|\ts{b}{0}{t}, \mu
     \right) \right) \\
   \label{eq:Bound2}
   h({\cal{B}},F,\mu||\theta) &\equiv - \lim_{t \rightarrow \infty}
-  \EV_\mu \log \left( P \left( \ti{b}{t}|\ts{b}{1}{t-1}, \theta
+  \EV_\mu \log \left( P \left( \ti{b}{t}|\ts{b}{0}{t}, \theta
     \right) \right) \\
   \label{eq:Bound3}
   h({\cal{B}},F,\mu) &\leq h({\cal{B}},F,\mu||\theta)  &&
@@ -1103,7 +1103,7 @@ If you are working on a new model building procedure that takes
 \emph{training} samples $\left\{ \ts{y}{\tau_1}{T_1},
   \ts{y}{\tau_2}{T_2}, \ldots, \ts{y}{\tau_N}{T_N}, \right\}$ and
 produces a family of parameterized conditional probability functions
-$P \left(\ti{y}{t}|\ts{y}{1}{t-1},\theta \right)$, we recommend
+$P \left(\ti{y}{t}|\ts{y}{0}{t},\theta \right)$, we recommend
 numerically estimating the \emph{entropy gap} (see
 Theorem~\ref{GapTheorem}) $\delta_{\mu||\theta} =
 h({\cal{B}},F,\mu||\theta) - \sum_{i : \lambda_i > 0} \lambda_i$ to
@@ -1140,7 +1140,7 @@ building procedure:
   \begin{equation}
     \label{eq:ToyCE}
     \hat h(\mathcal{B},F,\mu||\theta) = \frac{-1}{T} \sum_{t=1}^T \log \left(
-    P \left(\ti{y}{t}|\ts{y}{1}{t-1},\theta \right)\right)
+    P \left(\ti{y}{t}|\ts{y}{0}{t},\theta \right)\right)
   \end{equation}
 \item \label{PPB7} Calculate an entropy gap \index{entropy!gap} by
   subtracting the two estimates
@@ -1206,12 +1206,12 @@ stretching factor is independent of initial conditions with
 \end{equation}
 
 In the limit of small noise $\sigma_\eta \rightarrow 0$, one can
-calculate $P(\ts{y}{1}{T}|\theta)$ for any sequence of observations as
+calculate $P(\ts{y}{0}{T}|\theta)$ for any sequence of observations as
 the probability of the set of initial conditions that are consistent
-with  $\ts{y}{1}{T}$, \ie, the pre-image of $\ts{y}{1}{T}$,
+with  $\ts{y}{0}{T}$, \ie, the pre-image of $\ts{y}{0}{T}$,
 \begin{equation*}
-  P(\ts{y}{1}{T}|\theta) = \int_{ \left\{ x:\ts{Y}{1}{T}(x) =
-      \ts{y}{1}{T} \right\} } P(x|\theta) dx.
+  P(\ts{y}{0}{T}|\theta) = \int_{ \left\{ x:\ts{Y}{0}{T}(x) =
+      \ts{y}{0}{T} \right\} } P(x|\theta) dx.
 \end{equation*}
 For a $d$ dimensional system, the volume of such pre-images is typically
 \begin{equation*}
@@ -1222,12 +1222,12 @@ we find
 \begin{subequations}
 \begin{equation}
   \label{eq:back.image}
-  \frac{1}{T} \log \left( P(\ts{y}{1}{T}|\theta) \right) \approx -\hat
+  \frac{1}{T} \log \left( P(\ts{y}{0}{T}|\theta) \right) \approx -\hat
   \lambda.
 \end{equation}
 
 Rather than going backwards in time to analyze the pre-image of
-$\ts{y}{1}{T}$, we can think about the forward image of the volume of
+$\ts{y}{0}{T}$, we can think about the forward image of the volume of
 initial conditions under the map $\Phi(T)$.  To first order, the
 distribution is a uniform probability density over a parallelepiped
 that extends a distance $\Lic \ti{s}{T}$ in the direction of the first
@@ -1236,7 +1236,7 @@ The measurement partition divides the image into elements that have a
 characteristic size of $\Delta$, yielding
 \begin{equation}
   \label{eq:forward.image}
-  \frac{1}{T} \log \left( P(\ts{y}{1}{T}|\theta) \right) \approx -\hat
+  \frac{1}{T} \log \left( P(\ts{y}{0}{T}|\theta) \right) \approx -\hat
   \lambda
 \end{equation}
 \end{subequations}
@@ -1345,16 +1345,16 @@ Even with many iterations, we did not build any promising models.
 In our second attempt, we exploited our knowledge of the Lorenz
 dynamics in $X=\REAL^3$ as follows:
 \begin{enumerate}
-\item Generate training data $\ts{x}{1}{T}$ and $\ts{y}{1}{T}$ by
+\item Generate training data $\ts{x}{0}{T}$ and $\ts{y}{0}{T}$ by
   integrating the Lorenz system.  Here $\ti{x}{t}$ is a point in the
   original state space and $\ti{y}{t}$ is a quantized observation that
   can take one of four values.
-\item Generate testing data $\ts{y}{T+1}{T+N}$ by continuing the integration.
+\item Generate testing data $\ts{y}{T}{T+N}$ by continuing the integration.
 \item Find a set of discrete states $\left\{s_1, s_2, \ldots,
     s_m\right\}$ by partitioning the original space with a uniform
   grid of resolution $\Delta_x$.  We only constructed states for those
   partition elements that were occupied by at least one member of
-  $\ts{x}{1}{T}$.
+  $\ts{x}{0}{T}$.
 \item Build an initial HMM using the training sequence.  We set the
   state transition probabilities by counting the frequency with which
   the partitioned $X$ sequence made each possible transition.
@@ -1372,7 +1372,7 @@ there is no training, \ie, Baum-Welch iterations, in this procedure,
 we could calculate the likelihood with a variant of the forward
 algorithm that does not store or return $\alpha$ or $\gamma$ values
 for the entire sequence.  In fact, given typical observations
-$\ts{y}{1}{t}$ up to time $t$, only a small fraction of the states
+$\ts{y}{0}{t+1}$ up to time $t$, only a small fraction of the states
 have nonzero probability.  Code that exploits these features is many
 orders of magnitude cheaper than code for the vanilla forward
 algorithm.
@@ -1380,7 +1380,7 @@ algorithm.
 Results of the procedure appear in Fig.~\ref{fig:LikeLor}.  For the
 rightmost point on the curve\footnote{While the address space limit of
   32 bit Python constrained the number of states for the first edition
-  of this book to about 1,500,000, computaion time constrains the
+  of this book to about 1,500,000, computation time constrains the
   number of number of states in 2024.  Using a high end 2023 desktop
   computer, it takes about 100 minutes to generate
   Fig.~\ref{fig:LikeLor}.} we found a model with
