@@ -312,7 +312,6 @@ An indexed sequence of random variables $\ts{X}{0}{T}$ is a
 \emph{Markov process} \index{Markov process} if
 for any $t: 1 < t < T$ the variables before and after $t$ are
 conditionally independent given $\ti{X}{t}$, \ie,
-\maginpar{Check sequence notation}
 \begin{equation}
   \label{eq:MarkovProcess}
   P_{\ts{X}{0}{t},\ts{X}{t+1}{T}|\ti{X}{t}} =
@@ -578,19 +577,19 @@ assumptions about \emph{conditional independence} relations.  Figure
   \label{fig:dhmm_net}
 \end{figure}
 
-Bayes rule and the assumptions justify\marginpar{Check sequence arguments}
+Bayes rule and the assumptions justify
 \begin{align}
   P_{\ts{Y}{0}{T},\ts{S}{0}{T}} &= P_{\ts{S}{0}{T}} \, %
                                    P_{\ts{Y}{0}{T}|\ts{S}{0}{T}},\notag\\
   \label{eq:sseqprob}%
   P_{\ts{S}{0}{T}}              &= P_{\ti{S}{0}} %
-                                   \prod_{t=1}^T P_{\ti{S}{t}|\ti{S}{t-1}}\\
+                                   \prod_{t=1}^{T-1} P_{\ti{S}{t}|\ti{S}{t-1}}\\
   \label{eq:condyseqprob}%
-  P_{\ts{Y}{0}{T}|\ts{S}{0}{T}} &= \prod_{t=1}^T P_{\ti{Y}{t}|\ti{S}{t}}\\
+  P_{\ts{Y}{0}{T}|\ts{S}{0}{T}} &= \prod_{t=1}^{T-1} P_{\ti{Y}{t}|\ti{S}{t}}\\
   \intertext{and we conclude}
-  P_{\ts{Y}{0}{T},\ts{S}{0}{T}} &= P_{\ti{S}{1}} %
-                                   \prod_{t=2}^T P_{\ti{S}{t}|\ti{S}{t-1}}\, %
-                                   \prod_{t=1}^T P_{\ti{Y}{t}|\ti{S}{t}}.\notag
+  P_{\ts{Y}{0}{T},\ts{S}{0}{T}} &= P_{\ti{S}{0}} %
+                                   \prod_{t=1}^{T-1} P_{\ti{S}{t}|\ti{S}{t-1}}\, %
+                                   \prod_{t=0}^{T-1} P_{\ti{Y}{t}|\ti{S}{t}}.\notag
 \end{align}
 
 Since the state $u$ produces the observation $d$ exclusively and no
@@ -668,16 +667,16 @@ likelihood.
 \item[The Forward Algorithm:] For each time step $t$ and each state
   $s$, the \index*{forward algorithm} calculates the conditional
   probability of being in state $s$ at time $t$ given all of the
-  observations up to that time, \ie,\marginpar{Check sequence arguments}
-  $P_{\ti{S}{t}|\ts{Y}{0}{t},\parameters} \left(s|\ts{y}{0}{t},
+  observations up to that time, \ie,
+  $P_{\ti{S}{t}|\ts{Y}{0}{t+1},\parameters} \left(s|\ts{y}{0}{t+1},
     \parameters \right)$. It also calculates
   $P\left(\ti{y}{t}|\ts{y}{0}{t}, \parameters \right)$, the
   conditional probability of each observation given previous
   observations.  Using these terms it calculates the probability of
   the entire data sequence given the model,
   \begin{equation*}
-    P \left(\ts{y}{0}{T}|\parameters \right) =  P \left(\ti{y}{1}
-      |\parameters \right) \cdot  \prod_{t=2}^T P
+    P \left(\ts{y}{0}{T}|\parameters \right) =  P \left(\ti{y}{0}
+      |\parameters \right) \cdot  \prod_{t=1}^{T-1} P
     \left(\ti{y}{t}|\ts{y}{0}{t}, \parameters \right).
   \end{equation*}
   The forward algorithm is the first phase of the Baum-Welch algorithm.
@@ -812,11 +811,11 @@ The experiment consisted of the following steps:
   times, we set $\ti{y}{t}=\textMoreThanTwicePlusOne$.  Otherwise, we set  $\ti{y}{t}$ to
   $R(\ti{w}{t})$.
 \item[Train an HMM:] Starting from a fifteen state model with random
-  parameters, we used \textTrainingIterations iterations of the
+  parameters, we used $\textTrainingIterations$ iterations of the
   Baum-Welch algorithm to obtain a trained model.
 \item[Decode a sequence of states:] By applying the Viterbi algorithm
   to $\ts{y}{0}{T}$ we obtained $\ts{s}{0}{T}$ where $\ti{s}{t}\in
-  \{0,\ldots,11\}$. \marginpar{Check sequence arguments}
+  \{0,\ldots,11\}$.
 \item[Print the most frequent words for each state:] For each state
   $s$, count the number of times each integer $y$ occurs, \ie, $c(y,s)
   = \sum_{t:\ti{s}{t}=s} \delta(y,\ti{y}{t})$.  Then print the words
@@ -919,4 +918,5 @@ be used to more accurately specify the state.
 %%% Local Variables:
 %%% TeX-master: "main"
 %%% eval: (load-file "hmmkeys.el")
+%%% mode: LaTeX
 %%% End:

@@ -375,7 +375,7 @@
 %%%   \renewcommand{\theequation}{\mbox{#1}}
 %%%   }
 
-\newcommand{\ti}[2]{{#1}{(#2)}}                  % Time Index
+\newcommand{\ti}[2]{{#1}{[#2]}}                  % Time Index
 
 %%% \newcommand{\ts}[3]{{#1}{(t\=#2,\ldots,#3)}}         % Time Sequence
 \newcommand{\ts}[3]{#1[#2:#3]}                    % Time Sequence

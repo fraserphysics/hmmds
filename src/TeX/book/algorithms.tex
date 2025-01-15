@@ -1,8 +1,6 @@
 \chapter{Basic Algorithms}
 \label{chap:algorithms}
 
-
-
 In Section~\ref{sec:intro_hmm} we mentioned the Viterbi algorithm for
 finding the state sequence that has the highest probability given an
 observation sequence, the forward algorithm for calculating the
@@ -337,69 +335,73 @@ to describe and justify the algorithm.
 
 \subsubsection*{Notation:}
 \begin{description}
-\item[$\bm{{\hat s}_1^t(s)}$ The best sequence ending in $\bm{s}$]
-  Of all length $t$ state sequences ending in $s$, we define
-  $\ts{\hat s}{1}{t}(s)$ to be the sequence with the highest joint
-  probability with the data, \ie,
+\item[$\bm{\tilde s (t,s)}$ The best $\bm{\ts{s}{0}{t+1}}$ ending in
+  $\bm{s}$] Of all length $t+1$ state sequences ending in $s$ at time
+  $t$, we define $\tilde s(t,s)$ to be the sequence with the highest
+  joint probability with the data, \ie,
   \begin{equation*}
-    \ts{\hat s}{1}{t}(s) \equiv \argmax_{ \ts{s}{0}{t}:\ti{s}{t}=s}
-    P\left(\ts{y}{0}{t}, \ts{s}{0}{t} \right).
+    \tilde s(t,s) \equiv \argmax_{ \ts{s}{0}{t+1}:\ti{s}{t}=s}
+    P\left(\ts{y}{0}{t+1}, \ts{s}{0}{t+1} \right).
   \end{equation*}
-\item[$\bm{\nu(t,s)}$ The \emph{utility} of the best sequence ending
-  in $\bm{s}$] %
+\item[$\bm{\nu(t,s)}$ The \emph{utility} of the best
+  $\bm{\ts{s}{0}{t+1}}$ ending in $\bm{s}$] %
   \nomenclature[gn]{$\nu(t,s)$}{Used in discussing the Viterbi
     algorithm to denote the \emph{utility} of the best sequence ending
     in state $s$.
     \begin{equation*}
-      \nu(t,s) \equiv \log\left( P\left(\ts{y}{0}{t}, \ts{\hat s}{1}{t}(s)
+      \nu(t,s) \equiv \log\left( P\left(\ts{y}{0}{t+1}, \ts{\tilde s}{0}{t+1}(s)
         \right) \right)
     \end{equation*}} % end nomenclature
   This is simply the log of the joint
   probability of the data with the best state sequence defined above,
   \ie
   \begin{equation*}
-    \nu(t,s) = \log\left( P\left(\ts{y}{0}{t}, \ts{\hat s}{1}{t}(s)
+    \nu(t,s) = \log\left( P\left(\ts{y}{0}{t+1}, \tilde s(t,s)
       \right) \right)
   \end{equation*}
-\item[$\bm{s'(s,t+1)}$ The immediate predecessor of state $s$ in
-  $\ts{\hat s}{1}{t+1}(s)$] In other words, given that the best
-  sequence of length $t+1$ that ends in $s$ is $\ts{\hat
-    s}{1}{t+1}(s)$, the best predecessor of $s$ is the penultimate
-  element of that sequence.
+\item[$\bm{s'(s,t)}$ The immediate predecessor of state $\bm{s}$ in
+  $\bm{\tilde s (t,s)}$] In other words, given that the best sequence
+  of length $t+1$ that ends in $s_d$ is
+  \begin{equation*}
+    \tilde s (t,s_d) = \left[ \ti{s}{0}=s_a, \ti{s}{1}=s_b, \ldots, \ti{s}{t-1}=s_c,
+      \ti{s}{t}= s_d\right]
+  \end{equation*}
+  the best predecessor of $s$ is the
+  penultimate, \ie at time $t-1$, element of that sequence, \ie $s_c$.
 \end{description}
+
 \subsubsection*{Equations:}
 Equations~\eqref{eq:cat} and \eqref{eq:nuprop} summarize the Viterbi
 algorithm.  When finally deciphered, one finds Eqn.~\eqref{eq:cat} is
 the vacuous statement that the best state sequence ending in $s$ at
-time $t+1$ consists of $s$ concatenated with the best sequence ending
-in $s'$ at time $t$, where $s'$ is the best predecessor of $s$.
+time $t$ consists of $s$ concatenated with the best sequence ending
+in $s'$ at time $t-1$, where $s'$ is the best predecessor of $s$.
 \begin{equation}
   \label{eq:cat}
-  \ts{\hat s}{1}{t+1} (s) = \left( \left[\ts{\hat s}{1}{t}
-      (s'(s,t+1))\right],s \right)
+  \tilde s(t,s) = \left[ \tilde s(t-1,s'(s,t),s \right]
 \end{equation}
 Equation~\eqref{eq:nuprop} says that the total utility of the best
-path to state $s$ at time $t+1$ is the utility of the best
+path of length $t+1$ to state $s$ is the utility of the best
 predecessor plus two terms, one that accounts for the transition from
 the predecessor to $s$ and one that accounts for the probability of
-state $s$ producing the observation $\ti{y}{t+1}$.  The equation
-follows from taking logs of
+state $s$ producing the observation $\ti{y}{t}$.  From the model
+assumptions (Eqn.~\eqref{eq:assume_markov} and
+Eqn.~\eqref{eq:assume_output}) we find
 \begin{multline*}
-  P_{\ti{Y}{t+1},\ts{Y}{0}{t},\ti{S}{t+1},\ts{S}{0}{t}}
-  \left(\ti{y}{t+1},\ts{y}{0}{t},s,\ts{s}{0}{t} \right) =\\
-  P\left(\ts{y}{0}{t}, \ts{s}{0}{t} \right) \cdot
+  P_{\ti{Y}{t+1},\ts{Y}{0}{t+1},\ti{S}{t+1},\ts{S}{0}{t+1}}
+  \left(\ti{y}{t+1},\ts{y}{0}{t+1},s,\ts{s}{0}{t+1} \right) =\\
+  P\left(\ts{y}{0}{t+1}, \ts{s}{0}{t+1} \right) \cdot
   P_{\ti{S}{t+1}|\ti{S}{t}} \left(s|\ti{s}{t} \right) \cdot
-  P_{\ti{Y}{t+1}|\ti{S}{t+1}} \left(\ti{y}{t+1}|s \right)
+  P_{\ti{Y}{t+1}|\ti{S}{t+1}} \left(\ti{y}{t}|s \right).
 \end{multline*}
-which in turn follows from the model assumptions
-(Eqn.~\eqref{eq:assume_markov} and Eqn.~\eqref{eq:assume_output}).
+Taking logs yields
 \begin{equation}
   \label{eq:nuprop}
   \begin{split}
-    \nu (t+1,s) = \nu(t,s'(s,t+1)) +
-    \log\left(P_{\ti{S}{t+1}|\ti{S}{t}} \left(s|s'(s,t+1) \right)\right)\\
+    \nu (t+1,s) = \nu(t,s'(s,t)) +
+    \log\left(P_{\ti{S}{t+1}|\ti{S}{}} \left(s|s'(s,t) \right)\right)\\
     \quad + \log \left( P_{\ti{Y}{t+1}|\ti{S}{t+1}}
-      \left(\ti{y}{t+1}|s\right)\right)
+      \left(\ti{y}{t}|s\right)\right).
   \end{split}
 \end{equation}
 
@@ -415,7 +417,7 @@ predecessor, the conditional transition probability, and the
 conditional observation probability.  At the final time $T$ the
 algorithm selects the highest utility endpoint, \ie,
 \begin{equation*}
-  \hat {\ti{s}{T}} = \argmax_s \nu(T,s),
+  \ti{\hat s}{T-1} = \argmax_s \nu(T-1,s),
 \end{equation*}
 and then backtracks through the optimal predecessor links to produce
 the entire highest utility path.
@@ -434,8 +436,8 @@ the entire highest utility path.
           XX\=XX\=XX\=XX\=XX\=XX\=XX\=XX\= \kill
           Initialize: \> \+ \\
           for each $s$\\ \> \+
-          $\nu\tnext (s) = \log \left( P_{\ti{Y}{1},\ti{S}{1}}
-            \left(\ti{y}{1},s \right)\right)$ \\ \\ \< \- \< \-
+          $\nu\tnext (s) = \log \left( P_{\ti{Y}{0},\ti{S}{0}}
+            \left(\ti{y}{0},s \right)\right)$ \\ \\ \< \- \< \-
           Iterate: \> \+ \\
           for $t$ from 1 to $T$\\ \> \+
           Swap $\nu\tnext \leftrightarrow \nu\told$\\
@@ -453,8 +455,8 @@ the entire highest utility path.
           Predecessor[$s\tnext,t$] = $s\tbest$\\ \\
           \< \- \< \- \< \- %This stuff is for tabs \< \-
           Backtrack: \> \+ \\
-          $s_1^T = \hat s_1^T(\bar s)$ , where $\bar s =
-          \argmax_s \nu\tnext(s)$ at $t=T$
+          $\ts{s}{0}{T} = \ts{\hat s}{0}{T}(\bar s)$ , where $\bar s =
+          \argmax_s \nu\tnext(s)$ at $t=T-1$
         \end{tabbing}
       \end{minipage}
     }
@@ -467,6 +469,7 @@ the entire highest utility path.
 %%% fig:viterbiB
 %%%
 \begin{sidewaysfigure}[htbp]
+  \marginpar{Check sequence notation}
   %% 0.75\textheight is approx 5.7 in.  The .eps is exactly that size.
   %% The widths for the minipages below are taken by measuring the
   %% ovals inside of XFig.
@@ -1811,4 +1814,5 @@ map $\EMmap$.
 %%% Local Variables:
 %%% TeX-master: "main"
 %%% eval: (load-file "hmmkeys.el")
+%%% mode: LaTeX
 %%% End:
