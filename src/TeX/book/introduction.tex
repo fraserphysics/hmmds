@@ -141,15 +141,15 @@ Using this parameterization, we wrote a routine based on the
 \index{Kalman filter|see{extended Kalman filter}}%
 \index{extended Kalman filter}%
 techniques described in Chapter~\ref{chap:continuous} to calculate
-approximate probabilities which we write as $P_{*|\theta}$ where
+approximate probabilities which we write as $P_{*\given \theta}$ where
 $\theta$ denotes the collection of parameters.  By passing that
 routine and Tang's data to the scipy optimization package, we found a
 parameter vector that satisfies
 \begin{equation}
   \label{eq:theta-hat-laser}
-  \hat \theta = \argmax_{\theta} ~ P(\ts{y}{0}{250}|\theta),
+  \hat \theta = \argmax_{\theta} ~ P(\ts{y}{0}{250}\given \theta),
 \end{equation}
-where $P(\ts{y}{0}{250}|\theta)$ is the conditional probability that a
+where $P(\ts{y}{0}{250}\given \theta)$ is the conditional probability that a
 sequence of 250 observations will have the values
 $\ti{y}{0},\ti{y}{1}, \ldots,\ti{y}{249}$ given the parameters
 $\theta$.  The parameter vector $\hat \theta$ is called the
@@ -165,7 +165,7 @@ piece of the log-likelihood function.
   \caption[\comment{fig:LaserLogLike }Log likelihood as function of $s$ and $b$.]%
   {Log likelihood as function of $s$ and $b$.  Other parameters were
     taken from the vector $\hat \theta$ that maximizes the likelihood
-    $P(\ts{y}{0}{250}|\theta)$ (see Eqn.~\eqref{eq:theta-hat-laser}).}
+    $P(\ts{y}{0}{250}\given \theta)$ (see Eqn.~\eqref{eq:theta-hat-laser}).}
   \label{fig:LaserLogLike}
 \end{figure}
 
@@ -176,14 +176,14 @@ states that has the highest probability, \ie,
 \begin{equation}
   \label{eq:xhatSeq}
   \ts{\hat x}{0}{250} = \argmax_{\ts{x}{0}{250}}
-  P(\ts{x}{0}{250}|\ts{y}{0}{250},\hat \theta),
+  P(\ts{x}{0}{250}\given \ts{y}{0}{250},\hat \theta),
 \end{equation}
 and in Fig.~\ref{fig:LaserForecast} we have plotted a forecast that we
 made by iterating the function $F$ on the state $\hat x$ that has
 highest probability given the first 250 observations, \ie,
 \begin{equation}
   \label{eq:xhat250}
-  \hat x = \argmax_{\ti{x}{250}} P(\ti{x}{250}|\ts{y}{0}{250},\hat \theta).
+  \hat x = \argmax_{\ti{x}{250}} P(\ti{x}{250}\given \ts{y}{0}{250},\hat \theta).
 \end{equation}
 
 \begin{figure}[htbp]
@@ -221,15 +221,15 @@ highest probability given the first 250 observations, \ie,
 To get \index*{state space model}s that are more general than the form
 (Eqn.~\eqref{eq:FandG}) that we used to describe the laser data, we
 suppose only that a conditional probability distribution
-$P_{\ti{X}{t+1}|\ti{X}{t}}$ governs evolution in state space and
-another conditional distribution $P_{\ti{Y}{t}|\ti{X}{t}}$ governs the
+$P_{\ti{X}{t+1}\given \ti{X}{t}}$ governs evolution in state space and
+another conditional distribution $P_{\ti{Y}{t}\given \ti{X}{t}}$ governs the
 observations $\ti{Y}{t}$.  Combining these two conditional
 distribution functions with a distribution $P_{\ti{X}{0}}$ of initial
 states defines probabilities for any collection of states and
 observations.  In particular, it defines the joint probabilities of
 the \emph{stochastic process} or \emph{information source} consisting
 of sequences of observations.  We refer to such a combination as a
-\emph{model} and denote it as $P_{*|\theta}$.  So defined, the class
+\emph{model} and denote it as $P_{*\given \theta}$.  So defined, the class
 of state space models is so broad that to do anything useful, we must
 use smaller subclasses.  Typically, we assume that the conditional
 distributions are time invariant and that a finite set of parameters
@@ -242,35 +242,35 @@ discrete, real scalars, real vectors, or something else.
 \label{sec:tasks}
 
 One can use a parameterized class of state space models $\left\{
-  P_{*|\theta} \right\}$ in many ways including the following:
+  P_{*\given \theta} \right\}$ in many ways including the following:
 \begin{description}
 \item[Model Parameter Estimation] Given a model class $\left\{
-    P_{*|\theta} \right\}$ and a sequence of observations $\ts{y}{0}{T}$,
+    P_{*\given \theta} \right\}$ and a sequence of observations $\ts{y}{0}{T}$,
   we often use the maximum likelihood estimate
   \begin{equation}
     \label{eq:IntroMLE}
-    \hat \theta_{MLE} \equiv \argmax_{\theta} P(\ts{y}{0}{T}|\theta)
+    \hat \theta_{MLE} \equiv \argmax_{\theta} P(\ts{y}{0}{T}\given \theta)
   \end{equation}
   to characterize the source $Y$.
-\item[Trajectory Estimation] Given a particular model $P_{*|\theta}$ and
+\item[Trajectory Estimation] Given a particular model $P_{*\given \theta}$ and
   a sequence of observations $\ts{y}{0}{T}$, one can calculate the
   conditional distribution of states
-  $P(\ts{x}{0}{T}|\ts{y}{0}{T},\theta)$.  For example,
+  $P(\ts{x}{0}{T}\given \ts{y}{0}{T},\theta)$.  For example,
   Fig.~\ref{fig:LaserStates} plots the result of a calculation of
   \begin{equation*}
     \ts{\hat x}{0}{250} = \argmax_{\ts{x}{0}{250} \in {\cal X}^{250}}
-    P(\ts{x}{0}{250}|\ts{y}{0}{250},\theta).    
+    P(\ts{x}{0}{250}\given \ts{y}{0}{250},\theta).    
   \end{equation*}
-\item[Short Term Forecasting] Given a model $P_{*|\theta}$ and a
+\item[Short Term Forecasting] Given a model $P_{*\given \theta}$ and a
   distribution of states at time $t$, $P_{\ti{X}{t}}$, one can
   calculate the conditional distribution of future states or
   observations.  For example, Fig.~\ref{fig:LaserForecast} plots the
   result of a calculation of
   \begin{equation*}
     \ts{\hat y}{250}{500} = \argmax_{\ts{y}{250}{500}}
-    P(\ts{y}{250}{500}|\ts{y}{0}{250},\theta).
+    P(\ts{y}{250}{500}\given \ts{y}{0}{250},\theta).
   \end{equation*}
-\item[Simulation] Given a model $P_{*|\theta}$, one can characterize its
+\item[Simulation] Given a model $P_{*\given \theta}$, one can characterize its
   long term behavior, answering questions like ``What is a hundred
   year flood?''.  We often find that models that we fit are not good
   for such long term extrapolation.  For example, the laser data that
@@ -280,12 +280,12 @@ One can use a parameterized class of state space models $\left\{
   the long term behavior of our estimated model is very different from
   the actual laser system.
 \item[Classification] Given sample signals like $\ts{y}{0}{T}$ and two
-  possible signal sources, $\alpha$ and $\beta$ where $P_{*|\alpha}$
-  characterizes healthy units and $P_{*|\beta}$ characterizes defective
+  possible signal sources, $\alpha$ and $\beta$ where $P_{*\given \alpha}$
+  characterizes healthy units and $P_{*\given \beta}$ characterizes defective
   units, one can can classify a unit on the basis of the
   \emph{likelihood ratio}
   \begin{equation*}
-    R(\ts{y}{0}{T}) = \frac{P(\ts{y}{0}{T}|\beta)}{P(\ts{y}{0}{T}|\alpha)}.
+    R(\ts{y}{0}{T}) = \frac{P(\ts{y}{0}{T}\given \beta)}{P(\ts{y}{0}{T}\given \alpha)}.
   \end{equation*}
   If $R(\ts{y}{0}{T})$ is above some threshold, it is classified as defective.
 \end{description}
@@ -302,12 +302,12 @@ $\ti{X}{1}$, and $\ti{X}{2}$ constitute a \emph{\index*{Markov chain}}
 if
 \begin{equation}
   \label{eq:MarkovChain}
-  P_{\ti{X}{2}|\ti{X}{0},\ti{X}{1}} = P_{\ti{X}{2}|\ti{X}{1}},
+  P_{\ti{X}{2}\given \ti{X}{0},\ti{X}{1}} = P_{\ti{X}{2}\given \ti{X}{1}},
 \end{equation}
 which is equivalent to $\ti{X}{0}$ and $\ti{X}{2}$ being conditionally
 independent given $\ti{X}{1}$, \ie,
 \begin{equation*}
-  P_{\ti{X}{2},\ti{X}{0}|\ti{X}{1}} = P_{\ti{X}{2}|\ti{X}{1}}   P_{\ti{X}{0}|\ti{X}{1}}.
+  P_{\ti{X}{2},\ti{X}{0}\given \ti{X}{1}} = P_{\ti{X}{2}\given \ti{X}{1}}   P_{\ti{X}{0}\given \ti{X}{1}}.
 \end{equation*}
 An indexed sequence of random variables $\ts{X}{0}{T}$ is a
 \emph{Markov process} \index{Markov process} if
@@ -315,8 +315,8 @@ for any $t: 1 < t < T$ the variables before and after $t$ are
 conditionally independent given $\ti{X}{t}$, \ie,
 \begin{equation}
   \label{eq:MarkovProcess}
-  P_{\ts{X}{0}{t},\ts{X}{t+1}{T}|\ti{X}{t}} =
-  P_{\ts{X}{0}{t}|\ti{X}{t}} P_{\ts{X}{t+1}{T}|\ti{X}{t}}.
+  P_{\ts{X}{0}{t},\ts{X}{t+1}{T}\given \ti{X}{t}} =
+  P_{\ts{X}{0}{t}\given \ti{X}{t}} P_{\ts{X}{t+1}{T}\given \ti{X}{t}}.
 \end{equation}
 We will restrict our attention to time invariant models, \ie, those
 for which the transition probabilities are constant over time.
@@ -362,20 +362,20 @@ $\ti{s}{1} = v$, $\ti{s}{2} = w$, and $\ti{s}{3} = v$) as follows:
 \begin{align}
   \label{eq:intro_hmm1}
   P(\ts{s}{0}{4}) &= P(\ti{s}{0}) \prod_{\tau=1}^3 %
-                     P(\ti{s}{\tau}|\ts{s}{0}{\tau-1})\\
+                     P(\ti{s}{\tau}\given \ts{s}{0}{\tau-1})\\
   \label{eq:intro_hmm2}
                   &= P(\ti{s}{0}) \prod_{\tau=1}^3 %
-                     P(\ti{s}{\tau}|\ti{s}{\tau-1}) \\
+                     P(\ti{s}{\tau}\given \ti{s}{\tau-1}) \\
   \label{eq:intro_hmm3}
-  P(u,v,w,v)      &= P(v|u,v,w) \cdot P(w|u,v) \cdot  P(v|u) \cdot P(u)\\
+  P(u,v,w,v)      &= P(v\given u,v,w) \cdot P(w\given u,v) \cdot  P(v\given u) \cdot P(u)\\
   \label{eq:intro_hmm4}
-        &= P(v|w) \cdot P(w|v) \cdot  P(v|u) \cdot P(u)\\
+        &= P(v\given w) \cdot P(w\given v) \cdot  P(v\given u) \cdot P(u)\\
   \label{eq:intro_hmm5}
         &= \frac{1}{2} \cdot \frac{1}{2} \cdot 1 %
                      \cdot \frac{1}{3} = \frac{1}{12}.
 \end{align}
 
-Applying \index*{Bayes rule} $\left( P_{A|B} P_B = P_{A,B} \right)$
+Applying \index*{Bayes rule} $\left( P_{A\given B} P_B = P_{A,B} \right)$
 recursively, yields Eqn.~\eqref{eq:intro_hmm1} and the special case,
 Eqn.~\eqref{eq:intro_hmm3}.  Equations \eqref{eq:intro_hmm2} and
 \eqref{eq:intro_hmm4} follow from Eqns.~\eqref{eq:intro_hmm1} and
@@ -445,7 +445,7 @@ specifies the random map from states to observations, \ie%
 \begin{equation*}
   \begin{array}{cr|ccc}
       &      &\multicolumn{3}{c}{Y} \\
-      \multicolumn{2}{r|}{P(y|s)} & d & e           & f \\ %
+      \multicolumn{2}{r|}{P(y\given s)} & d & e           & f \\ %
       \hline%
       & u      & 1 & 0           & 0 \\
       &        & \vspace{-1 em} \\
@@ -487,7 +487,7 @@ $P(\ts{y}{0}{4},\ts{s}{0}{4}) = 0$.
 \label{eq:pcalc}
  \begin{align}
   \ts{s}{0}{4} & & P(\ts{s}{0}{4}) %
-                & & P(\ts{y}{0}{4}|\ts{s}{0}{4}) %
+                & & P(\ts{y}{0}{4}\given \ts{s}{0}{4}) %
                  & & P(\ts{y}{0}{4},\ts{s}{0}{4})\nonumber\\[1ex]
   \hline\nonumber\\[-2ex]
   uvvv         & & \frac{1}{3} \cdot 1 \cdot \frac{1}{2} \cdot \frac{1}{2} %
@@ -517,29 +517,29 @@ of the model assumptions.
   observations, \ie,
   \begin{equation}
     \label{eq:assume_markov}
-    P_{\ti{S}{t+1}|\ts{S}{0}{t+1},\ts{Y}{0}{t+1}} = %
-        P_{\ti{S}{t+1}|\ti{S}{t}}.
+    P_{\ti{S}{t+1}\given \ts{S}{0}{t+1},\ts{Y}{0}{t+1}} = %
+        P_{\ti{S}{t+1}\given \ti{S}{t}}.
   \end{equation}
 \item[The observations are conditionally independent given the states:]
   Given the current state, the probability of the current observation is
   independent of states and observations at all earlier times, \ie,
   \begin{equation}
     \label{eq:assume_output}
-    P_{\ti{Y}{t}|\ts{S}{0}{t+1},\ts{Y}{0}{t}} = %
-        P_{\ti{Y}{t}|\ti{S}{t}}.
+    P_{\ti{Y}{t}\given \ts{S}{0}{t+1},\ts{Y}{0}{t}} = %
+        P_{\ti{Y}{t}\given \ti{S}{t}}.
   \end{equation}
 \end{description}
 Though the assumptions appear asymmetric in time, they are
 not\footnote{We often use the following facts about independence
   relations:
   \begin{align}
-    P(A|B,C) = P(A|B)   &\iff     P(A,C|B) = P(A|B) \cdot P(C|B)\nonumber\\
+    P(A\given B,C) = P(A\given B)   &\iff     P(A,C\given B) = P(A\given B) \cdot P(C\given B)\nonumber\\
     \label{eq:markov-symmetry}%
-                        &\iff     P(C|A,B) = P(C|B)\\
-    P(A|B,C,D) = P(A|B) &\iff     P(A,C,D|B) = P(A|B) \cdot P(C,D|B)\nonumber\\
-                        &\implies P(A,C|B) = P(A|B) \cdot P(C|B)\nonumber\\
+                        &\iff     P(C\given A,B) = P(C\given B)\\
+    P(A\given B,C,D) = P(A\given B) &\iff     P(A,C,D\given B) = P(A\given B) \cdot P(C,D\given B)\nonumber\\
+                        &\implies P(A,C\given B) = P(A\given B) \cdot P(C\given B)\nonumber\\
     \label{eq:independence-groups}%
-                        &\iff     P(A|B,C) = P(A|B).
+                        &\iff     P(A\given B,C) = P(A\given B).
   \end{align}
   The first chain of implications, \eqref{eq:markov-symmetry}, says
   that if a process is Markov with time going forward, then it is also
@@ -552,12 +552,12 @@ one can derive that
 \begin{description}
 \item[The joint process is Markov:] 
   \begin{equation*}
-    P_{\ts{Y}{t+1}{T},\ts{S}{t+1}{T}|\ts{Y}{0}{t+1},\ts{S}{0}{t+1}}
-      = P_{\ts{Y}{t+1}{T},\ts{S}{t+1}{T}|\ti{Y}{t},\ti{S}{t}}
+    P_{\ts{Y}{t+1}{T},\ts{S}{t+1}{T}\given \ts{Y}{0}{t+1},\ts{S}{0}{t+1}}
+      = P_{\ts{Y}{t+1}{T},\ts{S}{t+1}{T}\given \ti{Y}{t},\ti{S}{t}}
   \end{equation*}
 \item[Given $\bm{\ti{S}{t}}$, $\bm{\ti{Y}{t}}$ is conditionally independent of everything else:]
   \begin{equation*}
-    P_{\ti{Y}{t} |\ts{Y}{0}{t},\ts{Y}{t+1}{T}, \ts{S}{0}{T}} = P_{\ti{Y}{t} |\ti{S}{t}}
+    P_{\ti{Y}{t} \given \ts{Y}{0}{t},\ts{Y}{t+1}{T}, \ts{S}{0}{T}} = P_{\ti{Y}{t} \given \ti{S}{t}}
   \end{equation*}
 \end{description}
 Equations \eqref{eq:assume_markov} and \eqref{eq:assume_output} are
@@ -581,16 +581,16 @@ assumptions about \emph{conditional independence} relations.  Figure
 Bayes rule and the assumptions justify
 \begin{align}
   P_{\ts{Y}{0}{T},\ts{S}{0}{T}} &= P_{\ts{S}{0}{T}} \, %
-                                   P_{\ts{Y}{0}{T}|\ts{S}{0}{T}},\notag\\
+                                   P_{\ts{Y}{0}{T}\given \ts{S}{0}{T}},\notag\\
   \label{eq:sseqprob}%
   P_{\ts{S}{0}{T}}              &= P_{\ti{S}{0}} %
-                                   \prod_{t=1}^{T-1} P_{\ti{S}{t}|\ti{S}{t-1}}\\
+                                   \prod_{t=1}^{T-1} P_{\ti{S}{t}\given \ti{S}{t-1}}\\
   \label{eq:condyseqprob}%
-  P_{\ts{Y}{0}{T}|\ts{S}{0}{T}} &= \prod_{t=1}^{T-1} P_{\ti{Y}{t}|\ti{S}{t}}\\
+  P_{\ts{Y}{0}{T}\given \ts{S}{0}{T}} &= \prod_{t=1}^{T-1} P_{\ti{Y}{t}\given \ti{S}{t}}\\
   \intertext{and we conclude}
   P_{\ts{Y}{0}{T},\ts{S}{0}{T}} &= P_{\ti{S}{0}} %
-                                   \prod_{t=1}^{T-1} P_{\ti{S}{t}|\ti{S}{t-1}}\, %
-                                   \prod_{t=0}^{T-1} P_{\ti{Y}{t}|\ti{S}{t}}.\notag
+                                   \prod_{t=1}^{T-1} P_{\ti{S}{t}\given \ti{S}{t-1}}\, %
+                                   \prod_{t=0}^{T-1} P_{\ti{Y}{t}\given \ti{S}{t}}.\notag
 \end{align}
 
 Since the state $u$ produces the observation $d$ exclusively and no
@@ -600,7 +600,7 @@ return to $u$.  That constraint reduces the number of possible state
 sequences to eight.  The impossibility of state $w$ following itself,
 further constrains the possible state sequences to the three listed in
 the calculations of Eqn.~\eqref{eq:pcalc}.  One can verify the values
-for $P(\ts{s}{0}{T})$ and $P(\ts{y}{0}{T}|\ts{s}{0}{T})$ in those
+for $P(\ts{s}{0}{T})$ and $P(\ts{y}{0}{T}\given \ts{s}{0}{T})$ in those
 calculations by applying Eqns.~\eqref{eq:sseqprob} and
 \eqref{eq:condyseqprob}.
 
@@ -628,11 +628,11 @@ observation probabilities,
 \begin{equation*}
    \parameters \equiv \left\{
      \begin{aligned}
-       &\left\{\; P_{\ti{S}{t+1}|\ti{S}{t}} \left(s'|s
+       &\left\{\; P_{\ti{S}{t+1}\given \ti{S}{t}} \left(s'\given s
        \right)~\forall s,s' \;\right\},\\
        & \left\{\; P_{\ti{S}{0}} \left(s \right)~\forall s
        \;\right\},\\
-       &  \left\{\; P_{\ti{Y}{t}|\ti{S}{t}} \left(y_i|s' \right)
+       &  \left\{\; P_{\ti{Y}{t}\given \ti{S}{t}} \left(y_i\given s' \right)
        ~ \forall y_i,s' \;\right\}
      \end{aligned}
    \right\}.
@@ -645,7 +645,7 @@ observation probabilities,
   \begin{equation}
     \label{eq:intro-viterbi}
     \ts{\hat s}{0}{T} = \argmax_{\ts{s}{0}{T}} P
-    \left(\ts{s}{0}{T}|\ts{y}{0}{T},\parameters\right).
+    \left(\ts{s}{0}{T}\given \ts{y}{0}{T},\parameters\right).
   \end{equation}
 \item[The Baum-Welch Algorithm:] \index{Baum-Welch algorithm}
   \index{forward backward algorithm|see{Baum-Welch algorithm}}(Often
@@ -656,12 +656,12 @@ observation probabilities,
   likelihood
   \begin{equation}
     \label{eq:intro-fba}
-    P\left( \ts{y}{0}{T}|\parameters_1 \right) \geq
-    P\left( \ts{y}{0}{T}|\parameters_0 \right).
+    P\left( \ts{y}{0}{T}\given \parameters_1 \right) \geq
+    P\left( \ts{y}{0}{T}\given \parameters_0 \right).
   \end{equation}
   Equality can only occur at critical points of the likelihood
   function (where $\partial_\parameters P\left(
-    \ts{y}{0}{T}|\parameters \right) = 0$).  In generic cases,
+    \ts{y}{0}{T}\given \parameters \right) = 0$).  In generic cases,
 running many iterations of the Baum-Welch algorithm yields a sequence
 $\ts{\parameters}{0}{n}$ that approaches a local maximum of the
 likelihood.
@@ -669,16 +669,16 @@ likelihood.
   $s$, the \index*{forward algorithm} calculates the conditional
   probability of being in state $s$ at time $t$ given all of the
   observations up to that time, \ie,
-  $P_{\ti{S}{t}|\ts{Y}{0}{t+1},\parameters} \left(s|\ts{y}{0}{t+1},
+  $P_{\ti{S}{t}\given \ts{Y}{0}{t+1},\parameters} \left(s\given \ts{y}{0}{t+1},
     \parameters \right)$. It also calculates
-  $P\left(\ti{y}{t}|\ts{y}{0}{t}, \parameters \right)$, the
+  $P\left(\ti{y}{t}\given \ts{y}{0}{t}, \parameters \right)$, the
   conditional probability of each observation given previous
   observations.  Using these terms it calculates the probability of
   the entire data sequence given the model,
   \begin{equation*}
-    P \left(\ts{y}{0}{T}|\parameters \right) =  P \left(\ti{y}{0}
-      |\parameters \right) \cdot  \prod_{t=1}^{T-1} P
-    \left(\ti{y}{t}|\ts{y}{0}{t}, \parameters \right).
+    P \left(\ts{y}{0}{T}\given \parameters \right) =  P \left(\ti{y}{0}
+      \given \parameters \right) \cdot  \prod_{t=1}^{T-1} P
+    \left(\ti{y}{t}\given \ts{y}{0}{t}, \parameters \right).
   \end{equation*}
   The forward algorithm is the first phase of the Baum-Welch algorithm.
 \end{description}
@@ -721,7 +721,7 @@ $\hat \parameters$ with high likelihood for the data.  Finally we used
 the Viterbi algorithm to find the most likely state sequence
  \begin{equation*}
    {\ts{\hat s}{0}{T}} = \argmax_{\ts{s}{0}{T}}P
-   \left(\ts{s}{0}{T}|\ts{y}{0}{T}, \hat \parameters \right).
+   \left(\ts{s}{0}{T}\given \ts{y}{0}{T}, \hat \parameters \right).
  \end{equation*}
  
  Although the plot of \emph{decoded} \index{decoded state sequence}
@@ -857,7 +857,7 @@ One might imagine that HMMs are simply higher order Markov processes.
 For example, consider the suggestion that the states depicted in
 Fig.~\ref{fig:Statesintro} correspond to sequential pairs of
 observations and that the model is a second order Markov model that is
-characterized by $P_{\ti{Y}{t+1}|\ti{Y}{t},\ti{Y}{t-1}}$, the set of
+characterized by $P_{\ti{Y}{t+1}\given \ti{Y}{t},\ti{Y}{t-1}}$, the set of
 observation probabilities conditioned on the \emph{two} previous
 observations.  Although the number of unique sequential pairs
 $\ts{y}{t}{t+1}$ that occur in our data is in fact twelve, the fact

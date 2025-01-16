@@ -27,13 +27,13 @@ We suppose that a \emph{true} stochastic process that assigns
 probabilities to sequences of observations exists.  Many of the terms
 that we define are \emph{expected values} with respect to those
 probabilities, and we find that sample sequences converge to those
-expected values.  We use $P_{*|\mu}$ to denote these \emph{true}
+expected values.  We use $P_{*\given \mu}$ to denote these \emph{true}
 probabilities\footnote{Following Kolmogorov, modern probability theory
   is cast a subfield of measure theory.  The measure theory literature
   uses the Greek letter $\mu$ for a function or \emph{measure} that
   maps sets to $\REAL^+$.  In earlier chapters, we have used
-  $P_{*|\theta}$ to denote parametric families of distributions.  We
-  introduce the mongrel notation $P_{*|\mu}$ here to make our notation
+  $P_{*\given \theta}$ to denote parametric families of distributions.  We
+  introduce the mongrel notation $P_{*\given \mu}$ here to make our notation
   for comparisons between a true distribution and a parametric model
   natural.  The meaning of the Greek letter $\mu$ here is not related
   to its use to denote the mean of a distribution.}, and we use them
@@ -51,8 +51,8 @@ form of Eqn.~\eqref{eq:contnoise},
 \end{align*}
 We have used the \index*{extended Kalman filter} described in
 chapter~\ref{chap:continuous} to obtain parametric probability
-functions $P\left(\ti{y}{t}|\ts{y}{0}{t} , \theta \right)$ that
-approximate $P\left(\ti{y}{t}|\ts{y}{0}{t}, \mu \right)$, \ie, the
+functions $P\left(\ti{y}{t}\given \ts{y}{0}{t} , \theta \right)$ that
+approximate $P\left(\ti{y}{t}\given \ts{y}{0}{t}, \mu \right)$, \ie, the
 conditional distribution of the measurement at time $t$ given all
 previous measurements.  Our code for generating sequences of
 measurements has the following characteristics:
@@ -90,9 +90,9 @@ measurements has the following characteristics:
 \end{description}
 Recall that for the extended Kalman filter $\ti{\mu_\gamma}{t}$ and
 $\ti{\sigma_\gamma}{t}$ completely characterize
-$ P(\ti{y}{t}|\ts{y}{0}{t},\theta)$ with
+$ P(\ti{y}{t}\given \ts{y}{0}{t},\theta)$ with
 \begin{equation*}
-  P(\ti{y}{t}|\ts{y}{0}{t},\theta) =
+  P(\ti{y}{t}\given \ts{y}{0}{t},\theta) =
   \NormalE{\ti{\mu_\gamma}{t}}{\ti{\sigma^2_\gamma}{t}}{\ti{y}{t}}.
 \end{equation*}
 (We use a lower case sigma here because the observations are scalars.)
@@ -147,7 +147,7 @@ map $[DF]$ that occurs then.
     A time series of observations appears in the upper plot.  The
     middle plot characterizes the one-step forecast distributions
     $P_{\gamma} \left(\ti{y}{t} \right) \equiv P
-    \left(\ti{y}{t}|\ts{y}{0}{t},\theta \right) =
+    \left(\ti{y}{t}\given \ts{y}{0}{t},\theta \right) =
     \NormalE{\ti{\mu_\gamma}{t}}{\ti{\sigma^2_\gamma}{t}}{\ti{y}{t}}$.
     The standard deviations of the forecasts appear in the first
     trace, and the differences between the actual observations
@@ -169,11 +169,11 @@ map $[DF]$ that occurs then.
     Fig.~\ref{fig:ToyTS1}.  In each plot, the \emph{forecast} state
     distribution ellipse represents
     $P_{a} \left(\ti{x}{t} \right) \equiv P
-    \left(\ti{x}{t}|\ts{y}{0}{t},\theta \right) =
+    \left(\ti{x}{t}\given \ts{y}{0}{t},\theta \right) =
     \NormalE{\mu_a}{\Sigma_a}{\ti{x}{t}}$ and the \emph{update} state
     distribution ellipse represents
     $P_{\alpha} \left(\ti{x}{t} \right) \equiv P
-    \left(\ti{x}{t}|\ts{y}{0}{t+1}, \theta \right) =
+    \left(\ti{x}{t}\given \ts{y}{0}{t+1}, \theta \right) =
     \NormalE{\mu_\alpha}{\Sigma_\alpha}{\ti{x}{t}}$.  For each
     distribution, an ellipse depicts the level set
     $(x-\mu)\transpose \Sigma^{-1} (x-\mu) =1$ in the $x_1\times x_3$
@@ -193,16 +193,16 @@ Figs.~\ref{fig:ToyTS1} and \ref{fig:ToyStretch}.  Given model parameters
 $\theta$ and a sample sequence $\ts{y}{0}{T}$ of length $T$, we define
 \begin{align*}
   -\hat h &\equiv \frac{1}{T} \sum_{t=1}^T
-    \log \left( P \left(\ti{y}{t}|\ts{y}{0}{t}, \theta
+    \log \left( P \left(\ti{y}{t}\given \ts{y}{0}{t}, \theta
       \right)\right)\\
-    &=  \frac{1}{T} \log \left( P \left(\ts{y}{0}{T}| \theta
+    &=  \frac{1}{T} \log \left( P \left(\ts{y}{0}{T}\given  \theta
       \right)\right).
 \end{align*}
 The negative of this sample log likelihood is an estimate of the
 \emph{cross entropy rate} \index{entropy!cross rate}
 \begin{equation*}
   h(\mu||\theta) \equiv  \lim_{T \rightarrow \infty} - \frac{1}{T}
-  \EV_{\mu} \log \left( P \left(\ts{Y}{0}{T}|\theta \right) \right)
+  \EV_{\mu} \log \left( P \left(\ts{Y}{0}{T}\given \theta \right) \right)
 \end{equation*}
 which in turn is bounded from below by the \emph{entropy rate}.  We
 discuss both entropy rate and cross entropy rate in
@@ -241,7 +241,7 @@ We have chosen the parameters\footnote{ In making Fig.~\ref{fig:ToyH},
 the caption of Fig.~\ref{fig:ToyH} with a measurement quantization
 size large enough that the log likelihood is limited primarily by
 dynamical stretching and the Gaussian model for
-$ P \left(\ti{y}{t}|\ts{y}{0}{t}, \theta \right)$.  We are pleased
+$ P \left(\ti{y}{t}\given \ts{y}{0}{t}, \theta \right)$.  We are pleased
 to observe that the overall slope of the plot on the left in
 Fig.~\ref{fig:ToyH} is consistent with the estimate
 $\hat \lambda_1 = \toyBenettinLambdaOne$ (base $e$) that we obtain
@@ -264,7 +264,7 @@ using the Benettin procedure described in Section~\ref{sec:Benettin}.
     \end{tabular}\\
     For both plots, the vertical axis is the average log likelihood of
     the one-step forecast $-\hat h \equiv \frac{1}{T} \sum_{t=1}^T
-    \log \left( P \left(\ti{y}{t}|\ts{y}{0}{t}, \theta
+    \log \left( P \left(\ti{y}{t}\given \ts{y}{0}{t}, \theta
       \right)\right)$.  On the left we plot $-\hat h$ as a function of
     both $\tau_s$, the time step, and $\tilde \sigma_\epsilon$, the
     standard deviation of the measurement noise model used by the
@@ -301,11 +301,11 @@ observation $\ti{y}{t}=\bar y$ is possible given a history
 $\ts{y}{0}{t}$.  For data drawn from that limiting case, a Kalman
 filter with parameters $\tilde \sigma_\epsilon = \Delta$ and
 $\sigma_\eta \rightarrow 0$ would make a forecast with a density
-$P(\ti{y}{t}|\ts{y}{0}{t}) = \NormalE{\bar
+$P(\ti{y}{t}\given \ts{y}{0}{t}) = \NormalE{\bar
   y}{(\Delta)^2}{\ti{y}{t}}$.  Integrating that density over the
 quantization interval yields
  \begin{align*}
-   P_{\ti{y}{t}|\theta}(\bar y) &= \int_{\bar y -
+   P_{\ti{y}{t}\given \theta}(\bar y) &= \int_{\bar y -
      \frac{\Delta}{2}}^{\bar y + \frac{\Delta}{2}} \frac{1}{\sqrt{2\pi
        (\Delta)^2}}e^{-\frac{(y-\bar
        y)^2}{2(\Delta)^2}} dy\\
@@ -313,7 +313,7 @@ quantization interval yields
      }}e^{-\frac{1}{2}s^2} ds\\
    &= \text{erf} \left( \frac{1}{2\sqrt{2}}\right) \\
    &\approx \toyErfSqrtEight \\
-   \log \left( P_{\ti{y}{t}|\theta}(\bar y) \right) &\approx \toyLogErfSqrtEight.
+   \log \left( P_{\ti{y}{t}\given \theta}(\bar y) \right) &\approx \toyLogErfSqrtEight.
  \end{align*}
 Given the simplicity of the analysis, Eqn.~\eqref{eq:ToyH} fits the
 simulations in Fig.~\ref{fig:ToyH} remarkably well.
@@ -329,7 +329,7 @@ and short term weather, financial markets, computer data, electric
 power demand, and signals and noise in communication or
 instrumentation.  In many cases one makes decisions based on a model
 and those decisions change the \emph{cost} of future events.  The
-expected cost of basing decisions on a model $P_{*|\theta}$ depends in
+expected cost of basing decisions on a model $P_{*\given \theta}$ depends in
 a complicated fashion on many factors including how the cost of acting
 on a decision depends on lead time and which aspects of the modeled
 phenomenon are important.  For the Lorenz example at the beginning of
@@ -337,7 +337,7 @@ this chapter we implicitly assumed \emph{stationarity} and
 \emph{ergodicity} and characterized model quality in terms of the
 average of the log of the likelihood.  For a stationary ergodic
 system, the log-likelihood is tied to $D(\mu||\theta)$, the
-\emph{relative entropy} of the model $P_{*|\theta}$ given $P_{*|\mu}$
+\emph{relative entropy} of the model $P_{*\given \theta}$ given $P_{*\given \mu}$
 (see Eqn.~\eqref{eq:RelativeEntropy}).  Although relative entropy is
 not an appropriate performance measure for every application, it is a
 common tool for problems in information theory and statistics.  See
@@ -346,11 +346,11 @@ application of relative entropy to a theory of gambling.  Relative
 entropy is exactly the right performance measure for data compression.
 The arithmetic coding algorithm (see the review by Witten, Neal, and
 Cleary\cite{Witten87}) for compressing a sequence of symbols uses a
-model $P_{*|\theta}$ to make decisions that affect the cost in a
+model $P_{*\given \theta}$ to make decisions that affect the cost in a
 manner that depends on the symbol values that actually occur.  The
 relative entropy $D(\mu||\theta)$ is the expected value of the number
-of bits wasted by the algorithm if it uses a model $P_{*|\theta}$ for
-decisions when in fact $P_{*|\mu}$ is true.  More accurate models lead
+of bits wasted by the algorithm if it uses a model $P_{*\given \theta}$ for
+decisions when in fact $P_{*\given \mu}$ is true.  More accurate models lead
 to better compression.
 
 \subsection{Definitions}
@@ -409,7 +409,7 @@ The \emph{conditional entropy} of $U$ given $V$ is
 Factoring the probability of sequences
 \begin{equation*}
   P_{\ts{z}{0}{T} } = P _{\ti{z}{0} }
-  \prod_{t=1}^T P _{\ti{z}{t}|\ts{z}{0}{t} }
+  \prod_{t=1}^T P _{\ti{z}{t}\given \ts{z}{0}{t} }
 \end{equation*}
 is equivalent analyzing entropy into the sum
 \begin{equation*}
@@ -419,23 +419,23 @@ is equivalent analyzing entropy into the sum
 
 \subsubsection{Relative entropy of two probability functions}
 \index{entropy!relative} The \emph{relative entropy} between two
-probability functions $P_{*|\mu}$ and $P_{*|\theta}$ with the same
+probability functions $P_{*\given \mu}$ and $P_{*\given \theta}$ with the same
 domain ${\cal Z}$ is %
 \nomenclature[rDmu]{$D(\mu"|"|\theta)$}{The \emph{relative entropy}
-  between two probability functions $P_{*"|\mu}$ and $P_{*"|\theta}$.}
+  between two probability functions $P_{*"\given \mu}$ and $P_{*"\given \theta}$.}
 \begin{align}
   \label{eq:RelativeEntropy}
   D(\mu||\theta) &\equiv \EV_{\mu} \log \left(
-    \frac{P(Z|\mu)}{P(Z|\theta)} \right) \\
-  &= \sum_{z \in \cal{Z}} P(z|\mu) \log\left(
-  \frac{P(z|\mu)}{P(z|\theta)} \right) \nonumber.
+    \frac{P(Z\given \mu)}{P(Z\given \theta)} \right) \\
+  &= \sum_{z \in \cal{Z}} P(z\given \mu) \log\left(
+  \frac{P(z\given \mu)}{P(z\given \theta)} \right) \nonumber.
 \end{align}
 The relative entropy is coordinate independent.  The relative entropy
-between two probability functions $P_{*|\mu}$ and $P_{*|\theta}$ is never
+between two probability functions $P_{*\given \mu}$ and $P_{*\given \theta}$ is never
 negative and is zero if and only if the functions are the same on all
 sets with finite probability.  We use $D(\mu||\theta)$ to
-characterize the fidelity of a model $P_{*|\theta}$ to a \emph{true}
-distribution $P_{*|\mu}$
+characterize the fidelity of a model $P_{*\given \theta}$ to a \emph{true}
+distribution $P_{*\given \mu}$
 
 \subsubsection{Cross entropy of two probability functions}
 \index{entropy!cross}
@@ -445,16 +445,16 @@ $D(\mu||\theta)$ that we defined in Eqn.\eqref{eq:RelativeEntropy}, we
 define the cross entropy to be
 \begin{align}
   \label{eq:CrossEntropy}
-  H(\mu||\theta) &\equiv -\EV_{\mu} \log \left(P(Z|\theta) \right) \\
-  &= -\sum_{z \in \cal{Z}} P(z|\mu) \log(P(z|\theta)) \nonumber
+  H(\mu||\theta) &\equiv -\EV_{\mu} \log \left(P(Z\given \theta) \right) \\
+  &= -\sum_{z \in \cal{Z}} P(z\given \mu) \log(P(z\given \theta)) \nonumber
 \end{align}
 and note that
 \begin{equation*}
   D(\mu||\theta) = H(\mu||\theta) - H(\mu).
 \end{equation*}
 The cross entropy is the negative expected log-likelihood of a model.
-It is greater than the entropy unless the model $P_{*|\theta}$ is the same
-as $P_{*|\mu}$ for all sets with finite probability.
+It is greater than the entropy unless the model $P_{*\given \theta}$ is the same
+as $P_{*\given \mu}$ for all sets with finite probability.
 
 \subsubsection{Stationary}
 \index{stationary}
@@ -468,9 +468,9 @@ $T\geq 1$ and $\tau\geq 0$
 \subsubsection{Ergodic}
 Roughly, in an \emph{ergodic} \index{ergodic|textbf} process you can
 get anywhere from anywhere else.  Let ${\cal X}$ be the set of states
-for a stationary stochastic process with probabilities $P_{*|\mu}$.
+for a stationary stochastic process with probabilities $P_{*\given \mu}$.
 The process is ergodic if for any two subsets of ${\cal X}$, $A$ and
-$B$ with $P(A|\mu) > 0$ and $P(B|\mu) > 0$ there is a time $T$ such
+$B$ with $P(A\given \mu) > 0$ and $P(B\given \mu) > 0$ there is a time $T$ such
 that the probability of going from set $A$ to set $B$ in time $T$ is
 greater than zero.  Birkhoff's ergodic theorem says that for an
 ergodic process, time averages converge to expected values with
@@ -497,25 +497,25 @@ If the process is stationary and Markov
 And if the process is ergodic
 \begin{equation}
   \label{eq:hrate4}
-  h(X) = \lim_{T \rightarrow \infty} - \frac{1}{T} \log \left( P \left(\ts{x}{0}{T}|\mu \right) \right)
+  h(X) = \lim_{T \rightarrow \infty} - \frac{1}{T} \log \left( P \left(\ts{x}{0}{T}\given \mu \right) \right)
 \end{equation}
 with probability one.
 
 We similarly define the relative entropy rate and the cross entropy
-rate.  For an ergodic process $X$ with true probabilities $P_{*|\mu}$ and
-model probabilities $P_{*|\theta}$
+rate.  For an ergodic process $X$ with true probabilities $P_{*\given \mu}$ and
+model probabilities $P_{*\given \theta}$
 \begin{align}
   \label{eq:hrate5}
   h(\mu||\theta) &\equiv  \lim_{T \rightarrow \infty} - \frac{1}{T}
-  \EV_\mu \log \left( P \left(\ts{X}{0}{T}|\theta \right) \right) \\
+  \EV_\mu \log \left( P \left(\ts{X}{0}{T}\given \theta \right) \right) \\
   &=  \lim_{T \rightarrow \infty} - \frac{1}{T} \log \left( P
-  \left(\ts{x}{0}{T}| \theta \right) \right) \nonumber
+  \left(\ts{x}{0}{T}\given  \theta \right) \right) \nonumber
 \end{align}
 with probability one.
 
 \subsubsection{Entropy rate of a partition $\mathcal{B}$}
 \index{partition} Let ${\cal X}$, the set of states for a
-stationary stochastic process with probabilities $P_{*|\mu}$, be a
+stationary stochastic process with probabilities $P_{*\given \mu}$, be a
 continuum, and let $\mathcal{B} = \left\{ \beta_1,\beta_2,\ldots
   \beta_n \right\}$ be a partition of ${\cal X}$ into a finite number
 of non-overlapping subsets.  By setting $\ti{b}{t}$ to the index of
@@ -525,9 +525,9 @@ defining a discrete stationary stochastic process $B$.  Applying the
 definition of entropy rate to the process $B$ yields the definition of
 the entropy rate as a function of partition $\mathcal{B}$.  Suppose in
 particular that on some set ${\cal X}$ the map $F:{\cal X}\mapsto{\cal
-  X}$ and the probability $P_{*|\mu}$ define an ergodic process, that
+  X}$ and the probability $P_{*\given \mu}$ define an ergodic process, that
 $\mathcal{B}$ is a partition of ${\cal X}$, and that the model
-probability function $P_{*|\theta}$ assigns probabilities to sequences
+probability function $P_{*\given \theta}$ assigns probabilities to sequences
 of partition indices $\ts{b}{0}{T}$.  We define the entropy rate $
 h(\mathcal{B},F,\mu)$ and the \index*{cross entropy rate} %
 $h(\mathcal{B},F,\mu||\theta)$ as follows
@@ -536,10 +536,10 @@ $h(\mathcal{B},F,\mu||\theta)$ as follows
   h(\mathcal{B},F,\mu) &\equiv \lim_{T \rightarrow \infty} \frac{1}{T}
   H(\ts{B}{0}{T}) \\
   &= \lim_{T \rightarrow \infty} -\frac{1}{T} \EV_\mu \log\left(P
-  \left(\ts{B}{0}{T}| \mu \right) \right) \nonumber\\
+  \left(\ts{B}{0}{T}\given  \mu \right) \right) \nonumber\\
   \label{eq:hrate7}
   h(\mathcal{B},F,\mu||\theta) &\equiv \lim_{T \rightarrow \infty}
-  -\frac{1}{T} \EV_\mu \log\left(P \left(\ts{B}{0}{T} | \theta \right)
+  -\frac{1}{T} \EV_\mu \log\left(P \left(\ts{B}{0}{T} \given  \theta \right)
   \right). \nonumber  
 \end{align}
 \subsubsection{Kolmogorov Sinai entropy $h_{KS}$}
@@ -547,7 +547,7 @@ $h(\mathcal{B},F,\mu||\theta)$ as follows
 \index{entropy!Kolmogorov Sinai|see{Kolmogorov Sinai entropy}}%
 \nomenclature[rhw]{$h_{KS}$}{Kolmogorov Sinai entropy.}%
 As before, suppose that on some set ${\cal X}$, the map $F:{\cal
-  X}\mapsto{\cal X}$ and the probability $P_{*|\mu}$ define an ergodic
+  X}\mapsto{\cal X}$ and the probability $P_{*\given \mu}$ define an ergodic
 process.  The least upper bound over all partitions $\mathcal{B}$ on
 the entropy rate $h(\mathcal{B},F,\mu)$ is the called the
 \emph{Kolmogorov Sinai entropy}
@@ -798,11 +798,11 @@ above, if the multiplicity of each exponent is $m_i = 1$ then we know:
 \begin{align}
   \label{eq:Bound1}
   h({\cal{B}},F,\mu) &\equiv - \lim_{t \rightarrow
-    \infty} \EV_\mu \log \left( P \left( \ti{b}{t}|\ts{b}{0}{t}, \mu
+    \infty} \EV_\mu \log \left( P \left( \ti{b}{t}\given \ts{b}{0}{t}, \mu
     \right) \right) \\
   \label{eq:Bound2}
   h({\cal{B}},F,\mu||\theta) &\equiv - \lim_{t \rightarrow \infty}
-  \EV_\mu \log \left( P \left( \ti{b}{t}|\ts{b}{0}{t}, \theta
+  \EV_\mu \log \left( P \left( \ti{b}{t}\given \ts{b}{0}{t}, \theta
     \right) \right) \\
   \label{eq:Bound3}
   h({\cal{B}},F,\mu) &\leq h({\cal{B}},F,\mu||\theta)  &&
@@ -1103,7 +1103,7 @@ If you are working on a new model building procedure that takes
 \emph{training} samples $\left\{ \ts{y}{\tau_1}{T_1},
   \ts{y}{\tau_2}{T_2}, \ldots, \ts{y}{\tau_N}{T_N}, \right\}$ and
 produces a family of parameterized conditional probability functions
-$P \left(\ti{y}{t}|\ts{y}{0}{t},\theta \right)$, we recommend
+$P \left(\ti{y}{t}\given \ts{y}{0}{t},\theta \right)$, we recommend
 numerically estimating the \emph{entropy gap} (see
 Theorem~\ref{GapTheorem}) $\delta_{\mu||\theta} =
 h({\cal{B}},F,\mu||\theta) - \sum_{i : \lambda_i > 0} \lambda_i$ to
@@ -1133,14 +1133,14 @@ building procedure:
   If $\mathcal{B}$ is fine enough or a generating partition,
   $\hat h(\mathcal{B},F,\mu)) = \hat \lambda_1$ will be a good
   estimate.
-\item \label{PPB5} Produce $P_{*|\theta}$ by applying the new model building
+\item \label{PPB5} Produce $P_{*\given \theta}$ by applying the new model building
   procedure to the training data
 \item \label{PPB6} Estimate the cross entropy by evaluating the
   likelihood of the model on long sequences of testing data
   \begin{equation}
     \label{eq:ToyCE}
     \hat h(\mathcal{B},F,\mu||\theta) = \frac{-1}{T} \sum_{t=1}^T \log \left(
-    P \left(\ti{y}{t}|\ts{y}{0}{t},\theta \right)\right)
+    P \left(\ti{y}{t}\given \ts{y}{0}{t},\theta \right)\right)
   \end{equation}
 \item \label{PPB7} Calculate an entropy gap \index{entropy!gap} by
   subtracting the two estimates
@@ -1170,7 +1170,7 @@ irrelevant.  More specifically we consider a model class with the
 following properties: \newcommand{\Lic}{L_{\text{i.c.}}}
 \begin{description}
 \item[Probability density] The probability density for the initial
-  state $P(\ti{x}{1}|\theta)$ is a uniform distribution on a cube in
+  state $P(\ti{x}{1}\given \theta)$ is a uniform distribution on a cube in
   $X$ that has length $\Lic$ on each side.
 \item[State noise] The model has noise in the state dynamics,
   \begin{equation}
@@ -1191,8 +1191,8 @@ state noise in the model may be larger than the state noise in the
 true system.
 
 With this framework we can draw samples randomly from a true
-distribution $P_{*|\mu}$ and consider model probabilities
-$P_{*|\theta}$ without having to find a stationary distribution.  In
+distribution $P_{*\given \mu}$ and consider model probabilities
+$P_{*\given \theta}$ without having to find a stationary distribution.  In
 sidestepping the key issue of a stationary distribution, we have
 sacrificed ergodicity which is the basis of the definition of a
 Lyapunov exponent as a global property.  Empirically, however, the
@@ -1206,12 +1206,12 @@ stretching factor is independent of initial conditions with
 \end{equation}
 
 In the limit of small noise $\sigma_\eta \rightarrow 0$, one can
-calculate $P(\ts{y}{0}{T}|\theta)$ for any sequence of observations as
+calculate $P(\ts{y}{0}{T}\given \theta)$ for any sequence of observations as
 the probability of the set of initial conditions that are consistent
 with  $\ts{y}{0}{T}$, \ie, the pre-image of $\ts{y}{0}{T}$,
 \begin{equation*}
-  P(\ts{y}{0}{T}|\theta) = \int_{ \left\{ x:\ts{Y}{0}{T}(x) =
-      \ts{y}{0}{T} \right\} } P(x|\theta) dx.
+  P(\ts{y}{0}{T}\given \theta) = \int_{ \left\{ x:\ts{Y}{0}{T}(x) =
+      \ts{y}{0}{T} \right\} } P(x\given \theta) dx.
 \end{equation*}
 For a $d$ dimensional system, the volume of such pre-images is typically
 \begin{equation*}
@@ -1222,7 +1222,7 @@ we find
 \begin{subequations}
 \begin{equation}
   \label{eq:back.image}
-  \frac{1}{T} \log \left( P(\ts{y}{0}{T}|\theta) \right) \approx -\hat
+  \frac{1}{T} \log \left( P(\ts{y}{0}{T}\given \theta) \right) \approx -\hat
   \lambda.
 \end{equation}
 
@@ -1236,7 +1236,7 @@ The measurement partition divides the image into elements that have a
 characteristic size of $\Delta$, yielding
 \begin{equation}
   \label{eq:forward.image}
-  \frac{1}{T} \log \left( P(\ts{y}{0}{T}|\theta) \right) \approx -\hat
+  \frac{1}{T} \log \left( P(\ts{y}{0}{T}\given \theta) \right) \approx -\hat
   \lambda
 \end{equation}
 \end{subequations}

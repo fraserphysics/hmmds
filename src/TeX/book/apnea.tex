@@ -27,7 +27,7 @@ probability (MAP) estimate sequence of states from the Viterbi
 algorithm, ie,
 \begin{equation*}
   \hat {\ts{s}{0}{T}} \equiv
-  \argmax_{\ts{s}{0}{T}}P\left(\ts{s}{0}{T} | \ts{y}{0}{T} \right)
+  \argmax_{\ts{s}{0}{T}}P\left(\ts{s}{0}{T} \given  \ts{y}{0}{T} \right)
 \end{equation*}
 to estimate the sequence of classifications $\hat {\ts{c}{0}{T}}$ with
 \begin{equation*}
@@ -46,7 +46,7 @@ rather than the MAP sequence of states, ie,
 \begin{equation}
   \label{eq:decode_class}
   \hat {\ts{c}{0}{T}} \equiv
-  \argmax_{\ts{c}{0}{T}}P\left(\ts{c}{0}{T} | \ts{y}{0}{T}\right).
+  \argmax_{\ts{c}{0}{T}}P\left(\ts{c}{0}{T} \given  \ts{y}{0}{T}\right).
 \end{equation}
 While the computational complexity of Viterbi algorithm which finds
 the MAP sequence of states is linear in $T$, the length of the
@@ -269,8 +269,8 @@ associated with each class.  At each time $t$, let $\ti{c}{t}$ denote
 classification information from an expert about which states are
 possible.  Specifically $\ti{c}{t}$ is a vector that indicates that
 some states are possible and that the others are impossible.  One
-simply replaces $P_{\ti{Y}{t}|\ti{S}{t},\ts{Y}{0}{t}}$ with
-$P_{\ti{Y}{t},\ti{C}{t}|\ti{S}{t},\ts{Y}{0}{t}}$ wherever it occurs
+simply replaces $P_{\ti{Y}{t}\given \ti{S}{t},\ts{Y}{0}{t}}$ with
+$P_{\ti{Y}{t},\ti{C}{t}\given \ti{S}{t},\ts{Y}{0}{t}}$ wherever it occurs
 in the Baum-Welch algorithm.  The modification forces the system into
 states associated with the right class during training.
 
@@ -586,7 +586,7 @@ data from the estimated raw heart rate signal using these parameters.
 
 Equation \eqref{eq:wit}, ie,
 \begin{equation*}
-  w(s,t) \equiv P_{\ti{S}{t}|\ts{Y}{0}{T}} \left(s|\ts{y}{0}{T}
+  w(s,t) \equiv P_{\ti{S}{t}\given \ts{Y}{0}{T}} \left(s\given \ts{y}{0}{T}
   \right),
 \end{equation*}
 provides the probability of each state at each time given the model and

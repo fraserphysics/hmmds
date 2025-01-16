@@ -342,7 +342,7 @@
 \newcommand{\s}{{\bf s}}
 \newcommand{\bS}{{\bf S}}
 \newcommand{\Y}{{\bf Y}}
-
+\newcommand{\given}{\mid}
 \newcommand{\var}{\mathrm{var}}
 
 \newcommand{\argmin}{\operatorname*{argmin}}
