@@ -1022,7 +1022,7 @@ EXECUTE {initialize.longest.label}
 FUNCTION {category.heading}
 {
  category missing$
-  { "(Uncategorized)" 'current.category := }
+  { "( Uncategorized)" 'current.category := }
   { category 'current.category := }
  if$
 

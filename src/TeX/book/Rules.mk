@@ -61,11 +61,13 @@ apnea_values decoded_menken toy_values synthetic_values text_values))
 
 BOOK_SENTINELS = $(SYNTHETIC_DATA)/SGO
 
-$(BOOK_OUT)/main.pdf: $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_INCLUDES) $(VALUE_FILES) $(BOOK_SENTINELS)
+$(BOOK_OUT)/main.pdf: $(TEX_BOOK)/main.tex $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_INCLUDES) $(VALUE_FILES) $(BOOK_SENTINELS)
 	mkdir -p $(@D)
 	export TEXINPUTS=$(TEX_BOOK)//:$(abspath $(BUILD))//:; \
 export BIBINPUTS=$(TEX_BOOK)//:; export BSTINPUTS=$(TEX_BOOK)//:; \
-latexmk --outdir=$(@D) -pdflatex main.tex;
+pdflatex --output-directory=$(@D) $< ; makeindex $(@D)/main.nlo -s nomencl.ist -o $(@D)/main.nls; pdflatex --output-directory=$(@D) $<
+# I replaced the line below with the pdflatex stuff above because I was having trouble with nomencl
+#latexmk --outdir=$(@D) -pdflatex main.tex;
 
 # Note that latexmk seems to detect changes in dependencies without
 # using file change times.  Thus deleting and regenerating a figure
