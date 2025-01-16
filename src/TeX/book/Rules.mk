@@ -54,7 +54,7 @@ $(ECG_FIGS) \
 $(ECG_XFIGS)
 
 BOOK_CHAPTERS = $(addprefix $(TEX_BOOK)/, $(addsuffix .tex, \
-algorithms apnea appendix continuous introduction main toys variants))
+algorithms apnea particles appendix continuous introduction main toys variants))
 
 VALUE_FILES = $(addprefix $(BOOK_OUT)/, $(addsuffix .tex, \
 apnea_values decoded_menken toy_values synthetic_values text_values))

@@ -28,18 +28,19 @@ time $t$ is not sufficient to specify the state $\ti{x}{t}$ uniquely,
 and one could say that $\ti{x}{t}$ is \emph{hidden}.  That is the
 sense of \emph{hidden} in the term ``hidden Markov model''.
 
-Given a short sequence of observations, say $\left(
-  \ti{y}{1},\ti{y}{2}, \ti{y}{3}\right)$, one might hope to
-\emph{reveal} the state $\ti{x}{3}$ by looking for all initial states
-that are consistent with the observations.  The strategy will only
-work if the images of all initial states that are consistent with the
-observations all fall on the same state, \ie, if for all $x$ such that
-$ G(x) = \ti{y}{1}, G\circ F(x) = \ti{y}{2},$ and $G\circ F\circ F(x)
-= \ti{y}{3}$, we find that $F\circ F(x) = \hat x$, then the
-measurements are sufficient to identify $\ti{x}{3} = \hat x$ uniquely.
-If such a revelation procedure works, then one can use it to map long
-sequences of observations to long sequences of states and from there
-to do forecasting of both states and observations.
+Given a short sequence of observations, say
+$\ts{y}{0}{3} = \left[ \ti{y}{0},\ti{y}{1}, \ti{y}{2}\right)$, one
+might hope to \emph{reveal} the state $\ti{x}{2}$ by looking for all
+initial states that are consistent with the observations.  The
+strategy will only work if the images of all initial states that are
+consistent with the observations all fall on the same state, \ie, if
+for all $x$ such that $ G(x) = \ti{y}{0}, G\circ F(x) = \ti{y}{1},$
+and $G\circ F\circ F(x) = \ti{y}{2}$, we find that
+$F\circ F(x) = \hat x$, then the measurements are sufficient to
+identify $\ti{x}{2} = \hat x$ uniquely.  If such a revelation
+procedure works, then one can use it to map long sequences of
+observations to long sequences of states and from there to do
+forecasting of both states and observations.
 
 For most of the state space models that we consider, the function that
 governs the state dynamics and the observation function both have
@@ -150,7 +151,7 @@ parameter vector that satisfies
 \end{equation}
 where $P(\ts{y}{0}{250}|\theta)$ is the conditional probability that a
 sequence of 250 observations will have the values
-$\ti{y}{1},\ti{y}{2}, \ldots,\ti{y}{250}$ given the parameters
+$\ti{y}{0},\ti{y}{1}, \ldots,\ti{y}{249}$ given the parameters
 $\theta$.  The parameter vector $\hat \theta$ is called the
 \emph{maximum likelihood estimate} %
 \index{maximum likelihood estimate (MLE)}%
@@ -223,7 +224,7 @@ suppose only that a conditional probability distribution
 $P_{\ti{X}{t+1}|\ti{X}{t}}$ governs evolution in state space and
 another conditional distribution $P_{\ti{Y}{t}|\ti{X}{t}}$ governs the
 observations $\ti{Y}{t}$.  Combining these two conditional
-distribution functions with a distribution $P_{\ti{X}{1}}$ of initial
+distribution functions with a distribution $P_{\ti{X}{0}}$ of initial
 states defines probabilities for any collection of states and
 observations.  In particular, it defines the joint probabilities of
 the \emph{stochastic process} or \emph{information source} consisting
@@ -296,17 +297,17 @@ One can use a parameterized class of state space models $\left\{
 
 In this section we describe the simplest state space models: those
 that are discrete in time, state, and observation.  We begin with a
-couple of definitions.  Three random variables $\ti{X}{1}$,
-$\ti{X}{2}$, and $\ti{X}{3}$ constitute a \emph{\index*{Markov chain}}
+couple of definitions.  Three random variables $\ti{X}{0}$,
+$\ti{X}{1}$, and $\ti{X}{2}$ constitute a \emph{\index*{Markov chain}}
 if
 \begin{equation}
   \label{eq:MarkovChain}
-  P_{\ti{X}{3}|\ti{X}{1},\ti{X}{2}} = P_{\ti{X}{3}|\ti{X}{2}},
+  P_{\ti{X}{2}|\ti{X}{0},\ti{X}{1}} = P_{\ti{X}{2}|\ti{X}{1}},
 \end{equation}
-which is equivalent to $\ti{X}{1}$ and $\ti{X}{3}$ being conditionally
-independent given $\ti{X}{2}$, \ie,
+which is equivalent to $\ti{X}{0}$ and $\ti{X}{2}$ being conditionally
+independent given $\ti{X}{1}$, \ie,
 \begin{equation*}
-  P_{\ti{X}{3},\ti{X}{1}|\ti{X}{2}} = P_{\ti{X}{3}|\ti{X}{2}}   P_{\ti{X}{1}|\ti{X}{2}}.
+  P_{\ti{X}{2},\ti{X}{0}|\ti{X}{1}} = P_{\ti{X}{2}|\ti{X}{1}}   P_{\ti{X}{0}|\ti{X}{1}}.
 \end{equation*}
 An indexed sequence of random variables $\ts{X}{0}{T}$ is a
 \emph{Markov process} \index{Markov process} if
@@ -325,7 +326,7 @@ states $\states = \left\{u,v,w\right\}$, the probability distribution
 for the initial state
 \begin{equation}
   \label{eq:InitialProbabilites}
-P_{\ti{S}{1}} =
+P_{\ti{S}{0}} =
 \begin{bmatrix}
   \frac{1}{3}, & \frac{1}{3}, & \frac{1}{3}
 \end{bmatrix},  
@@ -355,15 +356,15 @@ sequence of states $\ts{s}{0}{T}$, which we write\footnote{We use
   argument resolves ambiguity as to which probability function we
   mean.} as $P_{\ts{S}{0}{T}}\left( \ts{s}{0}{T} \right)$.  For
 example we calculate the probability that a sequence of 4 states has
-the values $\ts{s}{0}{4} = (u,v,w,v)$, (\ie, $\ti{s}{1} = u$,
-$\ti{s}{2} = v$, $\ti{s}{3} = w$, and $\ti{s}{4} = v$) as follows:
+the values $\ts{s}{0}{4} = (u,v,w,v)$, (\ie, $\ti{s}{0} = u$,
+$\ti{s}{1} = v$, $\ti{s}{2} = w$, and $\ti{s}{3} = v$) as follows:
 
 \begin{align}
   \label{eq:intro_hmm1}
-  P(\ts{s}{0}{4}) &= P(\ti{s}{1}) \prod_{\tau=2}^4 %
+  P(\ts{s}{0}{4}) &= P(\ti{s}{0}) \prod_{\tau=1}^3 %
                      P(\ti{s}{\tau}|\ts{s}{0}{\tau-1})\\
   \label{eq:intro_hmm2}
-                  &= P(\ti{s}{1}) \prod_{\tau=2}^4 %
+                  &= P(\ti{s}{0}) \prod_{\tau=1}^3 %
                      P(\ti{s}{\tau}|\ti{s}{\tau-1}) \\
   \label{eq:intro_hmm3}
   P(u,v,w,v)      &= P(v|u,v,w) \cdot P(w|u,v) \cdot  P(v|u) \cdot P(u)\\
@@ -393,9 +394,9 @@ vector $V$ (nonnegative entries that sum to one) that satisfies
   \label{eq:statCond}
   VT = V.  
 \end{equation}
-If \eqref{eq:statCond} holds for $V = P_{\ti{S}{1}}$, then
+If \eqref{eq:statCond} holds for $V = P_{\ti{S}{0}}$, then
 \begin{equation*}
-  P_{\ti{S}{2}}  = P_{\ti{S}{1}}T = P_{\ti{S}{1}} = P_{\ti{S}{t}}
+  P_{\ti{S}{1}}  = P_{\ti{S}{0}}T = P_{\ti{S}{0}} = P_{\ti{S}{t}}
   \forall t,
 \end{equation*}
 and in fact all probabilities are independent of shifts in time, \ie,
@@ -412,7 +413,7 @@ stochastic process, it relaxes towards such a process in the sense
 that
 \begin{equation*}
   \lim_{t \rightarrow \infty} P_{\ti{S}{t}} =  \lim_{t \rightarrow
-    \infty} P_{\ti{S}{1}} T^t = \begin{bmatrix} \frac{1}{7}, & \frac{4}{7}, & \frac{2}{7}
+    \infty} P_{\ti{S}{0}} T^t = \begin{bmatrix} \frac{1}{7}, & \frac{4}{7}, & \frac{2}{7}
 \end{bmatrix}.
 \end{equation*}
 
@@ -629,7 +630,7 @@ observation probabilities,
      \begin{aligned}
        &\left\{\; P_{\ti{S}{t+1}|\ti{S}{t}} \left(s'|s
        \right)~\forall s,s' \;\right\},\\
-       & \left\{\; P_{\ti{S}{1}} \left(s \right)~\forall s
+       & \left\{\; P_{\ti{S}{0}} \left(s \right)~\forall s
        \;\right\},\\
        &  \left\{\; P_{\ti{Y}{t}|\ti{S}{t}} \left(y_i|s' \right)
        ~ \forall y_i,s' \;\right\}
@@ -712,7 +713,7 @@ Figure~\ref{fig:TSintro} depicts the first few observations.
 \end{figure}
  
 We randomly generated an HMM with twelve hidden states\footnote{We
-  chose the number of hidden state to be twelve capriciously so that
+  chose the number of hidden states to be twelve capriciously so that
   we could organize Fig.~\ref{fig:Statesintro} on a $4\times 4$ grid.}
 and 4 possible observations, and then used \syntheticLorenzTrainingIterations
 iterations of the Baum-Welch algorithm to select a set of parameters

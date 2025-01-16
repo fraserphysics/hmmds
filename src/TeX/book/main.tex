@@ -52,21 +52,23 @@
 \chapter*{Preface}
 \addcontentsline{toc}{chapter}{Preface}
 \label{chap:preface}
+
 This book arose from a pair of symposia on hidden Markov models that
 Kevin Vixie organized at the 2001 SIAM Dynamical Systems meeting.  At
 the end of the first symposium someone asked for a simple reference
 that explains the basic ideas and algorithms for applying HMMs.  We
 were stumped\footnote{In subsequent years several good references that
-  explain the basic ideas of HMMs have appeared, \eg, \ToDo{Find some}}.  A
-group of the participants suggested writing this book to answer the
-question.  Two years later, we delivered a proposal for the book that
-included about two chapters to SIAM at the 2003 Dynamical Systems
-meeting.  Sometime after SIAM published the first edition in 2008, I
-began working on updating the software we used to generate the book.
-In an effort to use better software practices, we wrote tests, and one
-of those tests revealed a conceptual error in the last chapter of the
-book.  In the current edition Chapter~\ref{chap:apnea} is a thorough
-revision that addresses the same tasks with a simpler approach.
+  explain the basic ideas of HMMs have appeared, \eg, \ToDo{Find
+    some}}.  A group of the participants suggested writing this book
+to answer the question.  Two years later, Fraser alone delivered a
+proposal for the book that included about two chapters to SIAM at the
+2003 Dynamical Systems meeting.  Sometime after SIAM published the
+first edition in 2008, we (Fraser alone again) began working on
+updating the software we used to generate the book.  In an effort to
+use better software practices, we wrote tests, and one of those tests
+revealed a conceptual error in the last chapter of the book.  In the
+current edition Chapter~\ref{chap:apnea} is a thorough revision that
+addresses the same tasks with a simpler approach.
 
 The book is intended for readers who have backgrounds and interests
 typical of those who attend the SIAM Dynamical Systems meetings.  In
@@ -77,14 +79,25 @@ in continuous time.  Thus, by using familiar analogies, it should be
 easy to explain HMMs to readers who have studied dynamical systems.
 
 The basic techniques were well developed in the 1970's for work on
-speech and language processing.  Many in speech research learned about
-the techniques at a symposium held at the Institute for Defense
-Analysis \index{Institute for Defense Analysis} in Princeton.  A small
-number of proceedings of that symposium \cite{ida80} were printed, and
-the volume was called \emph{the blue book} by workers in the field.  I
-was not part of that community, but we have a copy of the blue book.
-It explains the basic algorithms and illustrates them with simple
-concrete examples.  We hope our book is as simple, useful, and clear.
+speech and language processing.  Many in speech research in the 1980's
+through the end of the century learned about the techniques at a
+symposium held at the Institute for Defense Analysis \index{Institute
+  for Defense Analysis} in Princeton.  A small number of proceedings
+of that symposium \cite{ida80} were printed, and the volume was called
+\emph{the blue book} by workers in the field.  We were not part of
+that community, but we have a copy of the blue book.  It explains the
+basic algorithms and illustrates them with simple concrete examples.
+We hope our book is as simple, useful, and clear.
+
+In chapters \ref{chap:variants}, \ref{chap:continuous} and
+\ref{chap:particles} we extend ideas from HMMs with discrete states and
+observations to more general states and observations.  The relevant
+literature of those more general systems is called \emph{data
+  assimilation}.  Because the discrete character of the states and
+observations of basic HMMs makes the ideas and algorithms for them
+easier to explain and understand than more general data assimilation
+techniques, we recommend studying HMMs before working on applications
+that require more those general data assimilation tools.
 
 Although there are now other books and papers that are about HMMs
 exclusively or in part, we believe that the present volume is unique in
@@ -100,23 +113,23 @@ that:
   entropies, it is not a prerequisite for any other chapter.
 \item[Algorithms are explained and justified] We present enough of the
   theory behind the basic algorithms in Chapter \ref{chap:algorithms}
-  so that a reader can use it as a guide to developing his own
+  so that a reader can use it as a guide to developing her own
   variants.
-\item[We provide code implementing the algorithms and data for the
-  examples] You can fetch the code and data and build the book
-  yourself.  You can examine the source code to resolve questions
-  about how figures were made, and you can build on the software to
-  try out your own ideas for variations.
+\item[We provide Python and data for the algorithms and examples] You
+  can fetch the code and data and build the book yourself.  You can
+  examine the source code to resolve questions about how figures were
+  made, and you can build on the software to try out your own ideas
+  for variations.
 \item[It uses analogies to dynamical systems] For example, I
   demonstrate the HMM training algorithm by applying it to data
   derived from the Lorenz system.  The result, as
   Fig.~\ref{fig:Statesintro} illustrates, is that the algorithm
   estimates a discrete state generating mechanism that is an
   approximation to the state space of the original Lorenz system.
-\item[We illustrate with a practical example] In Chapter \ref{chap:apnea} I
-  present an application to experimental measurements of
-  electrocardiograms (ECGs).  \ToDo{I'd like a practical application
-    of particle filtering}
+\item[We illustrate with practical examples] In Chapter
+  \ref{chap:apnea} I present an application to experimental
+  measurements of electrocardiograms (ECGs).  \ToDo{I want a practical
+    application of particle filtering in Chapter \ref{chap:particles}}
 \end{description}
 
 \ToDo{ Point to review papers and material (I've collected some of the
@@ -135,7 +148,7 @@ that:
 \label{preface_software}
 
 The software, data and text files we used to build the book are freely
-available.  We've written a python package named \emph{hmm} that
+available.  We've written a Python package named \emph{hmm} that
 provides implementations of the general algorithms described in the
 book.  It is available from https://gitlab.com/fraserphysics1/hmm.  At
 https://gitlab.com/fraserphysics/hmmds we provide additional code,
@@ -146,19 +159,18 @@ and format the entire book.  \ToDo{Once I get that fixed, give
   detailed instructions for different environments.}
 
 Since our fortunate decision to use Python for the first edition of
-this book the continuing evolution of Python language and environment
-has made writing code easier and the resulting code is easier to
-read.  Although algorithms are given in pseudo code in the text, we
-provide a working implementation of each of the algorithms described
-in the text.
+this book the continuing evolution of Python language and ecosystem
+has made writing code easier and the resulting code is easier to read.
+Although algorithms are given in pseudo code in the text, we provide a
+working implementation of each of the algorithms described in the
+text.
 
 \subsection*{Notation}
 \label{preface_notation}
 
 In general we introduce notation as it gets used in the text and
-collect it in a section at the end of the book.  However to avoid
-confusion, we now note our use of Python notation for sequences,
-namely
+collect it in a section at the end of the book on page~\pageref{sec:notation}.  However to avoid confusion, we now note our
+use of Python notation for sequences, namely
 \begin{equation*}
   \ts{x}{0}{T} \equiv \left[ x[0], x[1], \ldots, x[T-1] \right].
 \end{equation*}
@@ -225,6 +237,7 @@ for support of a sabbatical leave
 \include{continuous}
 \include{toys}
 \include{apnea}
+\include{particles}
 \include{appendix}
 
 
@@ -234,6 +247,7 @@ for support of a sabbatical leave
 \renewcommand{\pagedeclaration}[1]{\ (page #1)}%
 \setlength{\nomlabelwidth}{2.0cm}%
 \renewcommand{\nompreamble}{%
+  \label{sec:notation} % For referencing page
   Throughout the book we write about random variables and stochastic
   processes.  We have tried to select notation that is as simple as
   possible without being ambiguous.  To illustrate the challenge
