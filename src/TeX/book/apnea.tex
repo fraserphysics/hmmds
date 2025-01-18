@@ -26,12 +26,12 @@ more consistent normal times.  However using the maximum a posteriori
 probability (MAP) estimate sequence of states from the Viterbi
 algorithm, ie,
 \begin{equation*}
-  \hat {\ts{s}{0}{T}} \equiv
+  \ts{\hat s}{0}{T} \equiv
   \argmax_{\ts{s}{0}{T}}P\left(\ts{s}{0}{T} \given  \ts{y}{0}{T} \right)
 \end{equation*}
 to estimate the sequence of classifications $\hat {\ts{c}{0}{T}}$ with
 \begin{equation*}
-  \hat {\ti{c}{t}} \equiv c:\hat {\ti{s}{t}} \in c
+  \ti{\hat c}{t} \equiv c: \ti{\hat s}{t} \in c
 \end{equation*}
 produced obvious errors.  We found that during many periods of apnea
 the probability of being in each of the apnea states was lower than
@@ -45,7 +45,7 @@ We tried to address the issue by estimating the MAP sequence of classes
 rather than the MAP sequence of states, ie,
 \begin{equation}
   \label{eq:decode_class}
-  \hat {\ts{c}{0}{T}} \equiv
+  \ts{\hat c}{0}{T} \equiv
   \argmax_{\ts{c}{0}{T}}P\left(\ts{c}{0}{T} \given  \ts{y}{0}{T}\right).
 \end{equation}
 While the computational complexity of Viterbi algorithm which finds

@@ -81,18 +81,32 @@ $(eval $(call double_rule, $(ECG)))
 # used; -D specify layers
 
 $(INTRODUCTION)/Markov_mm.pdf_t: $(XFIGS)/Markov_mm.fig
-	mkdir -p $(INTRODUCTION)
-	fig2dev -L pdftex_t -D+50 -K -p $(abspath $(INTRODUCTION)/Markov_mm.pdf) $< $@
+	mkdir -p $(@D)
+	fig2dev -L pdftex_t -D+50 -K -p $(abspath $(@D)/Markov_mm.pdf) $< $@
 $(INTRODUCTION)/Markov_mm.pdf: $(XFIGS)/Markov_mm.fig
-	mkdir -p $(INTRODUCTION)
+	mkdir -p $(@D)
 	fig2dev -L pdftex -D+50 -K $< $@
 
 $(INTRODUCTION)/Markov_dhmm.pdf_t: $(XFIGS)/Markov_mm.fig
-	mkdir -p $(INTRODUCTION)
-	fig2dev -L pdftex_t -D+40,50 -p $(abspath $(INTRODUCTION)/Markov_dhmm.pdf) $< $@
+	mkdir -p $(@D)
+	fig2dev -L pdftex_t -D+40,50 -p $(abspath $(@D)/Markov_dhmm.pdf) $< $@
 $(INTRODUCTION)/Markov_dhmm.pdf: $(XFIGS)/Markov_mm.fig
-	mkdir -p $(INTRODUCTION)
+	mkdir -p $(@D)
 	fig2dev -L pdftex -D+40,50 $< $@
+
+$(BASIC_ALGORITHMS)/forward.pdf_t: $(XFIGS)/forward.fig
+	mkdir -p $(@D)
+	fig2dev -L pdftex_t -s 7.2 -p $(abspath $(@D)/forward.pdf) $< $@
+$(BASIC_ALGORITHMS)/forward.pdf: $(XFIGS)/forward.fig
+	mkdir -p $(@D)
+	fig2dev -L pdftex -F $< $@
+
+$(VARIANTS)/ScalarGaussian.pdf_t: $(XFIGS)/ScalarGaussian.fig
+	mkdir -p $(@D)
+	fig2dev -L pdftex_t -s 9 -p $(abspath $(@D)/ScalarGaussian.pdf) $< $@
+$(VARIANTS)/ScalarGaussian.pdf: $(XFIGS)/ScalarGaussian.fig
+	mkdir -p $(@D)
+	fig2dev -L pdftex -F $< $@
 
 # Local Variables:
 # mode: makefile

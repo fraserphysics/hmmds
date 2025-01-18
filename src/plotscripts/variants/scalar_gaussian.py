@@ -44,11 +44,12 @@ def main(argv=None):
                                    ticks=numpy.arange(0, 100.1, 25))
 
     def _plot(y):
-        fig = pyplot.figure(figsize=(3.5, 2.5))
+        fig = pyplot.figure(figsize=(2.5, 2.0))
         axis = plotscripts.utilities.sub_plot(fig, (1, 1, 1), x, y, color='b')
         axis.set_ylim(-0.02, 1.02)
         fig.subplots_adjust(bottom=0.15)  # Make more space for label
         fig.subplots_adjust(left=.15, bottom=.18)
+        fig.tight_layout()
         return (axis, fig)
 
     _, fig_b = _plot(
