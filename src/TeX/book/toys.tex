@@ -868,19 +868,22 @@ non-optimality of a model.
 We begin reviewing \index*{Benettin's procedure}\cite{Benettin80} for
 estimating Lyapunov exponents by using the Lorenz system as an
 example.  The Lorenz system is
-\begin{align*}
+\begin{subequations}
+  \label{eq:LorenzTangent}
+\begin{equation}
   \dot x = F(x) = 
   \begin{bmatrix}
     s(x_1-x_0)\\ x_0(r - x_2) -x_1 \\ x_0 x_1 - bx_2.
   \end{bmatrix}
-\end{align*}
+\end{equation}
 Note that
-\begin{equation*}
+\begin{equation}
   D F(x) = 
   \begin{bmatrix}
     -s & s & 0 \\ r-x_2 & -1 & -x_0 \\ x_1 & x_0 & -b
   \end{bmatrix}
-\end{equation*}
+\end{equation}
+\end{subequations}
 where $\left(D F(x)\right)_{i,j} \equiv \frac{\partial F_i(x)}{\partial
   x_j}$.  Let $\Phi$ denote solutions to the differential equation
 with
@@ -1120,17 +1123,18 @@ a reference against which to compare model performance.  Specifically,
 we advocate the following numerical experiment for evaluating a model
 building procedure:
 \begin{enumerate}
-\item \label{PPB1} Use a numerical simulation of a chaotic dynamical
-  system to generate training data and testing data.  For simplicity,
-  consider a system with a single positive exponent $\lambda_0$
+\item \label{PPB1} Use $\Phi$ obtained by numerically integrating a
+  chaotic dynamical system with a sampling interval $\Delta\tau$ to
+  generate training data and testing data.  For simplicity, consider a
+  system with a single positive exponent $\lambda_0$
 \item \label{PPB2} Quantize the data with a partition $\mathcal{B}$
 \item \label{PPB3} Run the Benettin procedure on the system, to
   estimate Lyapunov exponents
 \item \label{PPB4} Substitute the estimated exponents into Ledrappier
   and Young's formula, Eqn.~\eqref{eq:Ledrappier} with $\gamma_0 = 1$
-  to get $\hat h(F,\mu)) = \hat \lambda_0$, an estimated entropy rate.
+  to get $\hat h(\Phi,\mu)) = \hat \lambda_0$, an estimated entropy rate.
   If $\mathcal{B}$ is fine enough or a generating partition,
-  $\hat h(\mathcal{B},F,\mu)) = \hat \lambda_0$ will be a good
+  $\hat h(\mathcal{B},\Phi,\mu)) = \hat \lambda_0$ will be a good
   estimate.
 \item \label{PPB5} Produce $P_{*\given \theta}$ by applying the new model building
   procedure to the training data
@@ -1138,14 +1142,14 @@ building procedure:
   likelihood of the model on long sequences of testing data
   \begin{equation}
     \label{eq:ToyCE}
-    \hat h(\mathcal{B},F,\mu||\theta) = \frac{-1}{T} \sum_{t=1}^T \log \left(
+    \hat h(\mathcal{B},\Phi,\mu||\theta) = \frac{-1}{T} \sum_{t=1}^T \log \left(
     P \left(\ti{y}{t}\given \ts{y}{0}{t},\theta \right)\right)
   \end{equation}
 \item \label{PPB7} Calculate an entropy gap \index{entropy!gap} by
   subtracting the two estimates
   \begin{equation*}
-    \hat \delta_{\mu||\theta} = \hat h(\mathcal{B},F,\mu||\theta)
-    -\hat h(\mathcal{B},F,\mu)).
+    \hat \delta_{\mu||\theta} = \hat h(\mathcal{B},\Phi,\mu||\theta)
+    -\hat h(\mathcal{B},\Phi,\mu)).
   \end{equation*}
   For an optimal model, expect the gap to be zero.  If the gap is much
   larger than zero, conclude that the new procedure is suboptimal.
@@ -1174,10 +1178,10 @@ following properties: \newcommand{\Lic}{L_{\text{i.c.}}}
 \item[State noise] The model has noise in the state dynamics,
   \begin{equation}
     \label{eq:PracticalStateMap}
-    \ti{x}{t+1} = F(\ti{x}{t}) + \ti{\eta}{t},
+    \ti{x}{t+1} = \Phi(\ti{x}{t}) + \ti{\eta}{t},
   \end{equation}
   where $\ti{\eta}{t}$ are \iid Gaussian with $\ti{\eta}{t} \sim
-  \Normal(0,\id \sigma_\eta^2)$.  We suppose that $F$ is the same as
+  \Normal(0,\id \sigma_\eta^2)$.  We suppose that $\Phi$ is the same as
   the \emph{true} function of the \emph{modeled} system, but that
   noise in the modeled system is smaller or zero.
 \item[Measurement function] We let the measurement function be the
@@ -1246,7 +1250,7 @@ the stretching is all that matters, and in the small noise limit we
 have
 \begin{equation}
   \label{eq:zero.noise}
-  h({\cal{B}},F,\mu||\theta) \approx \hat \lambda
+  h({\cal{B}},\Phi,\mu||\theta) \approx \hat \lambda
 \end{equation}
 
 One might wonder whether finite state noise $\sigma_\eta$ invalidates
@@ -1305,11 +1309,23 @@ Fig.~\ref{fig:benettin} we compare $\hat \lambda_{\text{aug},1}$ with
 $\hat \lambda_{1}$ for the Lorenz system.  For noise with an amplitude
 $\frac{\sigma_\eta}{\Delta} = \toyBenettinratio$, the figure indicates
 an augmentation of
-$\hat \lambda_{\text{aug},1} - \hat \lambda_{1} \approx
+$\hat \lambda_{\text{aug},0} - \hat \lambda_{0} \approx
 \toyBenettinDeltaLambda$, which is roughly an order of magnitude
 larger than the augmentation that uniform stretching would produce.
 From the figure, we conclude that the Benettin procedure produces a
 robust practical upper bound on model performance.
+
+Specifically, integrating the Lorenz system, \eqref{eq:LorenzTangent},
+over intervals of $\Delta\tau= \toyLikeLortsample $ to create $\Phi$ we
+find
+\begin{align*}
+  \hat \lambda_0(\Phi)  &= \toyLikeLorEntropy\text{ nats} =
+                          \toyLikeLorEntropyBits\text{ bits} \\
+  \hat \lambda_0(F) &= \frac{\hat \lambda_0(\Phi)}{\Delta\tau} =
+                      \toyBenettinLambdaOne \text{ nats}
+\end{align*}
+which is close to the value of 0.906 obtained by more careful
+calculations.
 
 \section{Approaching the Bound}
 \label{sec:approach}
@@ -1321,20 +1337,17 @@ likelihood per time step attained by extended Kalman filters) matches
 the entropy bound, and we are satisfied with our explanation of the
 nonzero intercept, an example of a model with a likelihood close to
 the bound without any offset would be more satisfying.  To find such
-model, we returned to the source of coarsely quantized Lorenz
+model, we return to the source of coarsely quantized Lorenz
 observations that we used for Fig.~\ref{fig:Statesintro} in the
 introduction.  That figure illustrates the association of each of the
 twelve discrete hidden states of an HMM with particular regions in
 $\REAL^3$, the state space of the Lorenz system.  Although the cross
-entropy of that twelve state model is not very close to the
-bound\marginpar{ToDo: Entropy per time step or per unit of Lorenz
-  time?}  based on our Lyapunov exponent estimate
-($\hat h(\mathcal{B},F,\mu)) = \hat \lambda_0 =
-\toyLikeLorEntropy~\text{nats} = \toyLikeLorEntropyBits~\text{bits}$),
-it seems plausible that by using HMMs with more states, we might get
-higher likelihoods.  In fact it is true, but we are surprised at how
-many states we need.  As for Fig.~\ref{fig:Statesintro}, we generated
-the observations by integrating the Lorenz system with a time step of
+entropy of that twelve state model is not very close to the bound
+based on our Lyapunov exponent estimate, it seems plausible that by
+using HMMs with more states we might get higher likelihoods.  In fact
+it is true, but we are surprised at how many states we need.  As for
+Fig.~\ref{fig:Statesintro}, we generated the observations by
+integrating the Lorenz system with a time step of
 $\tau_{\mathtt{sample}}=\toyLikeLortsample$ and quantized the first
 component into one of $\toyLikeLornquantized$ levels.
 
@@ -1386,7 +1399,8 @@ rightmost point on the curve\footnote{While the address space limit of
   computer, it takes about 100 minutes to generate
   Fig.~\ref{fig:LikeLor}.} we found a model with
 %
-\toyLikeLornstates~hidden states and a cross entropy of
+\toyLikeLornstates~hidden states and a cross entropy,
+$\hat h(\mathcal{B},\Phi,\mu||\theta)$, of
 \toyLikeLorcrossentropy~nats or \toyLikeLorcrossentropybits~bits.  By
 connecting this model to a simple data compression routine one could
 compress the test data (or presumably any other long sequence from the
