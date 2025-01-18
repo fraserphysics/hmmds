@@ -175,15 +175,15 @@ following modifications:
 \item[Reestimation] Reviewing the derivations in Section
   \ref{sec:reestimation}, we find that the first two formulas in Table
   \ref{tab:reestimation} (those for the initial state probability, %
-  $P_{\ti{S}{1}\given \ti{\parameters}{n+1}} \left(i\given \ti{\parameters}{n+1} \right)$, 
+  $P_{\ti{S}{0}\given \ti{\parameters}{n+1}} \left(i\given \ti{\parameters}{n+1} \right)$, 
   and the state transition probability,
-  $P_{\ti{S}{t+1}\given \ti{S}{t},\ti{\parameters}{n+1}} \left({\tilde s}\given s \right)$) 
+  $P_{\ti{S}{1}\given \ti{S}{0},\ti{\parameters}{n+1}} \left({\tilde s}\given s \right)$) 
   still work with the new observation model.  To derive reestimation
   formulas for the Gaussian observation model parameters, note that
   Eqn.~\eqref{eq:Loutput} becomes %
   \begin{align}
     L_{\text{observation}}(y,s) & \equiv \log
-  P_{\ti{Y}{1}\given \ti{S}{1},\parameters'} \left(y\given s,\parameters' \right)\\
+  P_{\ti{Y}{0}\given \ti{S}{0},\parameters'} \left(y\given s,\parameters' \right)\\
     \label{eq:LoutputG}
     &= -\frac{1}{2} \log (2\pi) - \log(\sigma_s) -
     \frac{(y-\mu_s)^2}{2\sigma_s^2},
@@ -193,22 +193,22 @@ following modifications:
   \label{eq:QoutG1}
   Q_{\text{observation}} (\parameters',\parameters) &=
   \sum_{\ts{q}{0}{T}\in\states^T} P_{\parameters}
-  \left(\ts{q}{0}{T}\given \ts{y}{0}{T} \right) \sum_{t=1}^T
+  \left(\ts{q}{0}{T}\given \ts{y}{0}{T} \right) \sum_{t=0}^{T-1}
   L_{\text{observation}}(\ti{y}{t},\ti{q}{t})\\
   \label{eq:QoutG2}
-  &= \sum_{s\in\states} \sum_{t=1}^T L_{\text{observation}}(\ti{y}{t},s)
+  &= \sum_{s\in\states} \sum_{t=0}^{T-1} L_{\text{observation}}(\ti{y}{t},s)
   \sum_{\ts{q}{0}{T}:\ti{q}{t}=s }P_{\parameters}
   \left(\ts{q}{0}{T}\given \ts{y}{0}{T} \right) \\
   \label{eq:QoutG3}
-  &= - \sum_{s\in\states} \sum_{t=1}^T w(s,t) \left( \frac{1}{2}
+  &= - \sum_{s\in\states} \sum_{t=0}^{T-1} w(s,t) \left( \frac{1}{2}
     \log(2\pi) + \log(\sigma_s) + \frac{\left( \ti{y}{t}-\mu_s
       \right)^2}{2\sigma_s^2} \right).
 \end{align}
 Since the formulas
 \begin{align}
   \label{eq:NewMuG}
-  \mu_s &= \sum_{t=1}^T w(s,t) \ti{y}{t} \\
-  \sigma_s^2 &= \sum_{t=1}^T w(s,t)\left( \ti{y}{t}-\mu_s \right)^2
+  \mu_s &= \sum_{t=0}^{T-1} w(s,t) \ti{y}{t} \\
+  \sigma_s^2 &= \sum_{t=0}^{T-1} w(s,t)\left( \ti{y}{t}-\mu_s \right)^2
 \end{align}
 maximize $Q_{\text{observation}} (\parameters',\parameters)$, we use them in place
 of the discrete observation reestimation formula of
@@ -279,6 +279,7 @@ without limit as $\sigma^2_2 \rightarrow 0$, \ie,
     suspicious model depicted in \emph{(b)} above.}
   \label{fig:MLEfail}
 \end{figure}
+\marginpar{ToDo: Get text inside circles of fig:MLEfail}
 
 Such singularities of likelihood are common among parametric
 probability density functions.  A particularly simple example is the
@@ -295,7 +296,7 @@ likelihood fit to the observations in
 Fig.~\ref{fig:ScalarGaussian}~(e) with the likelihood function
 \begin{equation}
   \label{eq:GMLike}
-  g(\mu_1,\sigma_1,\mu_2,\sigma_2,\lambda) = \prod_{t=1}^T f(\ti{y}{t}).
+  g(\mu_1,\sigma_1,\mu_2,\sigma_2,\lambda) = \prod_{t=0}^{T-1} f(\ti{y}{t}).
 \end{equation}
 While it is possible to find a useful \emph{local} maximum of $g$
 near
@@ -511,13 +512,13 @@ A derivation like the one leading to \eqref{eq:QoutG3} yields
 \begin{equation}
   \label{eq:QVARGmle1}
   Q_{\text{observation}} (\parameters',\parameters) =  \frac{1}{2}
-      \sum_{s\in\states} \sum_{t=1}^T w(s,t) \left[ \log\left( \left|
+      \sum_{s\in\states} \sum_{t=0}^{T-1} w(s,t) \left[ \log\left( \left|
       \Sigma_s^{-1} \right| \right) - n
       \log(2\pi) - z_s\transpose(t)
       \Sigma_s^{-1} z_s(t)\right].
 \end{equation}
 Hence each term in the sum over $s$ can be optimized separately.  One
-can write code that maximizes $ \sum_{t=1}^T w(s,t) \left[ \log \left|
+can write code that maximizes $ \sum_{t=0}^{T-1} w(s,t) \left[ \log \left|
     \Sigma_s^{-1} \right| - z_s\transpose(t) \Sigma_s^{-1}
   z_s(t)\right]$ using operations on vectors and matrices as
 follows:
@@ -551,14 +552,14 @@ follows:
   i.e., the derivative of the log of the determinant with respect to the
   $i,j^{th}$ element of $M$ is the $i,j^{th}$ element of $M^{-1}$.
   
-  Since the value of $A_s$ that minimizes $ \sum_{t=1}^T w(s,t) -
+  Since the value of $A_s$ that minimizes $ \sum_{t=0}^{T-1} w(s,t) -
   z_s\transpose(t) \Sigma_s^{-1} z_s(t)$ is independent of
 $\Sigma_s^{-1}$, it is correct to do step \ref{step:A} before step
 \ref{step:cov}. }
   \begin{equation}
     \label{eq:VARGnewSigma}
-    \Sigma_s = \frac{\sum_{t=1}^T w(s,t) z_s(t)
-      z_s\transpose(t)}{\sum_{t=1}^T w(s,t)}
+    \Sigma_s = \frac{\sum_{t=0}^{T-1} w(s,t) z_s(t)
+      z_s\transpose(t)}{\sum_{t=0}^{T-1} w(s,t)}
   \end{equation}
 \end{enumerate}
 
@@ -610,7 +611,7 @@ we find
   Q_{\text{observation}} = C + \sum_s \left( \frac{\alpha}{2}\log\left|
       \Sigma_s^{-1}\right| - \frac{1}{2} {\bf tr}(\beta
     \Sigma_s^{-1}) \right) \\
-  + \frac{1}{2} \sum_s \sum_{t=1}^T w(s,t) \left[ \log \left|
+  + \frac{1}{2} \sum_s \sum_{t=0}^{T-1} w(s,t) \left[ \log \left|
       \Sigma_s^{-1} \right| - z_s\transpose(t) \Sigma_s^{-1} z_s(t)\right],
 \end{multline*}
 where $z_s(t) \equiv y(t) - A_s x(t)$ and $w(s,t)$ is the probability
@@ -619,8 +620,8 @@ Reestimation of the regularized model is the same as reestimation for
 the unregularized model except that Eqn.~\ref{eq:VARGnewSigma} is
 replaced with
 \begin{equation}\label{eq:NewSigma}
-  \Sigma_s = \frac{\beta \id + \sum_{t=1}^T w(s,t) z_s(t)
-    z_s\transpose(t)} {\alpha + \sum_{t=1}^T w(s,t)}.
+  \Sigma_s = \frac{\beta \id + \sum_{t=0}^{T-1} w(s,t) z_s(t)
+    z_s\transpose(t)} {\alpha + \sum_{t=0}^{T-1} w(s,t)}.
 \end{equation}
 Thus in the absence of new information, a covariance matrix is given
 the default value $\frac{\beta \id}{\alpha}$, and $\alpha$ is the

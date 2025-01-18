@@ -279,11 +279,11 @@ for support of a sabbatical leave
   \item[${\cal X}$] Occasionally we use a calligraphic font to
     indicate the \emph{alphabet} or set of all possible values of a
     random variable $X$.
-  \item[$\ts{X}{1}{T}$] A stochastic process indexed by the sequence
-    $[1,2,3,\ldots,T]$, \ie,\\
-    $\ti{X}{1},\ti{X}{2}, \ldots, \ti{X}{T}$.
-  \item[$\ts{x}{1}{T}$] A particular possible outcome of the stochastic
-    process $\ts{X}{1}{T}$.
+  \item[$\ts{X}{0}{T}$] A stochastic process indexed by the sequence
+    $[0,1,2,\ldots,T-1]$, \ie,\\
+    $\ti{X}{0},\ti{X}{1}, \ldots, \ti{X}{T-1}$.
+  \item[$\ts{x}{0}{T}$] A particular possible outcome of the stochastic
+    process $\ts{X}{0}{T}$.
   \item[$\ti{X}{t}$] The random variable that results from picking a
     single component of a stochastic process.
   \item[$P(x)$] The probability (or density) that a random variable
@@ -291,9 +291,9 @@ for support of a sabbatical leave
     $P$ when the context permits us to drop it without ambiguity.
   \item[$P_{\ti{X}{t}} \left(x \right)$] The probability that the
     value of $\ti{X}{t}$ is $x$.
-  \item[$P_{\ti{X}{t+1}\given \ti{X}{t}} \left(x_1\given x_2 \right)$] The
-    conditional probability that the value of $\ti{X}{t+1}$ is $x_1$
-    given that the value of $\ti{X}{t}$ is $x_2$.
+  \item[$P_{\ti{X}{t+1}\given \ti{X}{t}} \left(x_a\given x_b \right)$] The
+    conditional probability that the value of $\ti{X}{t+1}$ is $x_a$
+    given that the value of $\ti{X}{t}$ is $x_b$.
   \item[$\mu(\beta)$] The probability that an outcome is in the
     \emph{set} $\beta$.  We occasionally use this notation from
     measure theory in Chapter~\ref{chap:toys}.
@@ -326,7 +326,26 @@ that the entry refers to a definition.]
 
 ToDo:
 
-Figure 2.4 (MAP sequence of states is not sequence of MAP states) is gone.
+Throughout use uniform (s,t) for things like alpha.  Look at the code
+to decide alpha[s,t] vs alpha[t,s]
+
+Maybe work to get better parts of speech
+
+z-axis of fig:LaserLogLike y_1^250 -> y[0:250]
+
+fig:GaussMix \theta(1) -> \theta[0]
+
+Shrink text in fig:forward
+
+Check color highlighting around eq:gamma
+
+Add to Notation \alpha_n etc in fig:train around page 35
+
+3-d rotation of cover fig in qt-5 viewer.
+
+Things to mention in Conclusion chapter:
+
+* Graphical Models
 
 References:
 

@@ -194,7 +194,7 @@ Briefly, one can fetch the following records from PhysioNet:
 \end{description}
 
 Using data visualization tools\footnote{One can use the script
-  hmmds.applications.apnea.explore.py from the software we used to
+  hmmds/applications/apnea/explore.py from the software we used to
   create this book to explore aspects of the data.} one can see
 striking oscillations in the apnea time series.  The patients stop
 breathing for tens of seconds, gasp a few breaths, and stop again.
@@ -329,19 +329,18 @@ automatically, his work suggests the following points:
 \section{Using HMMs to Address the Challenge}
 \label{sec:apnea_hmms}
 
-In the following sections, as the final example in the book, we use
-HMMs to address the CINC2000 challenge.  We begin with an HMM scheme
-for estimating heart rate because, like McNames, we find off-the-shelf
-QRS detection codes are not adequate for the variety of the CINC2000
-data.  From the estimated heart rate signal for each record, we derive
-a sequence of two dimensional observations.  The first component is
-the low pass filtered heart rate, and the second is roughly the
-intensity of the spectrogram in the range of respiration near 15
-beats per minute.  Next we fit an HMM with vector autoregressive
-observation models as described in Section~\ref{sec:ARVGaussian} to
-the two dimensional observations derived from the training data
-records.  And finally we apply that HMM to classify each minute of the
-test data.
+In the following sections we use HMMs to address the CINC2000
+challenge.  We begin with an HMM scheme for estimating heart rate
+because, like McNames, we find off-the-shelf QRS detection codes are
+not adequate for the variety of the CINC2000 data.  From the estimated
+heart rate signal for each record, we derive a sequence of two
+dimensional observations.  The first component is the low pass
+filtered heart rate, and the second is roughly the intensity of the
+spectrogram in the range of respiration near 15 beats per minute.
+Next we fit an HMM with vector autoregressive observation models as
+described in Section~\ref{sec:ARVGaussian} to the two dimensional
+observations derived from the training data records.  And finally we
+apply that HMM to classify each minute of the test data.
 
 \subsection{Estimating Heart Rate}
 \label{sec:ecg_hmms}
@@ -367,6 +366,8 @@ test data.
   \label{fig:a03a10b03c02}
 \end{figure}
 
+\marginpar{ToDo: Use red for the plots on the right and on the left
+  highlight the intervals in red.}
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{\includegraphics{constant_a03.pdf}}}
   \caption[Invariant PQRST shape]%
@@ -397,6 +398,7 @@ Figure~\ref{fig:constant_a03} illustrates the invariance.
 \subsubsection{State topology}
 \label{sec:state_topology}
 
+\marginpar{ToDO: Start at S1 and F1 in Fig.~\ref{fig:ecg_hmm}}
 \begin{figure}
   \centering{\resizebox{0.5\textwidth}{!}{\input{ecg_hmm.pdf_t}}
   }
@@ -404,7 +406,7 @@ Figure~\ref{fig:constant_a03} illustrates the invariance.
   shapes]{Illustration of the topology of HMMs for exploiting
     invariance of PQRST shapes. The chain of 49 fast states models the
     invariant PQRST shape.  The variable duration paths through the
-    slow states, $S_1$, $S_2$, and $S_3$, model the flexible time
+    slow states, $S_0$, $S_1$, and $S_2$, model the flexible time
     between $T$ and $P$ waves.}
   \label{fig:ecg_hmm}
 \end{figure}

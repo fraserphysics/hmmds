@@ -73,7 +73,7 @@ calculates two quantities.  First, it calculates the conditional
 probability of the of the observation at time $t$ given earlier
 observations
 \begin{equation*}
-  \gamma(t+1) \equiv P\left(\ti{y}{t+1}\given \ts{y}{0}{t} \right).
+  \ti{\gamma}{t+1} \equiv P\left(\ti{y}{t+1}\given \ts{y}{0}{t} \right).
 \end{equation*}
 Then it calculates the conditional distribution of states given the
 observations up to the present time
@@ -84,23 +84,23 @@ observations up to the present time
 The equations
 \begin{align}
   \label{eq:ContInitial}
-  P_{\ti{X}{1},\ti{Y}{1}} \left(x,\ti{y}{1} \right) &=
-  P_{\ti{Y}{1}\given \ti{X}{1}} \left(\ti{y}{1}\given x \right)P_{\ti{X}{1}}
+  P_{\ti{X}{0},\ti{Y}{0}} \left(x,\ti{y}{0} \right) &=
+  P_{\ti{Y}{0}\given \ti{X}{0}} \left(\ti{y}{0}\given x \right)P_{\ti{X}{0}}
   \left(x \right) \\
                                 %
-  \gamma(1) = P\left(\ti{y}{1} \right) & = \int
-  P_{\ti{X}{1},\ti{Y}{1}}
-  \left(x,\ti{y}{1} \right) dx \\
+  \ti{\gamma}{0} = P\left(\ti{y}{0} \right) & = \int
+  P_{\ti{X}{0},\ti{Y}{0}}
+  \left(x,\ti{y}{0} \right) dx \\
                                 %
-  \alpha(x,1) \equiv P_{\ti{X}{1}\given \ti{Y}{1}} \left(x\given \ti{y}{1} \right) &=
-  \frac{P_{\ti{X}{1},\ti{Y}{1}} \left(x,\ti{y}{1}
-    \right)}{P\left(\ti{y}{1} \right)}
+  \alpha(x,0) \equiv P_{\ti{X}{0}\given \ti{Y}{0}} \left(x\given \ti{y}{0} \right) &=
+  \frac{P_{\ti{X}{0},\ti{Y}{0}} \left(x,\ti{y}{0}
+    \right)}{P\left(\ti{y}{0} \right)}
 \end{align}
-specify the calculation of $\gamma(1)$, the probability of the first
-observation, and of $\alpha(x,1)$, the conditional distribution of the
+specify the calculation of $\ti{\gamma}{0}$, the probability of the first
+observation, and of $\alpha(x,0)$, the conditional distribution of the
 first state given the first observation, that initialize the
-algorithm.  Given $\gamma(1)$ and $\alpha(x,1)$, the forward algorithm
-executes the following recursion to calculate $\gamma(t)$ and
+algorithm.  Given $\ti{\gamma}{0}$ and $\alpha(x,0)$, the forward algorithm
+executes the following recursion to calculate $\ti{\gamma}{t}$ and
 $\alpha(x,t)$ for each of the remaining observations $\ti{y}{t}$.
 \begin{description}
 \item[Forecast the state distribution] \index{forecast} Find the
@@ -178,7 +178,7 @@ Similarly, the backward algorithm finds a function called the
   \left(\ts{y}{t+1}{T}\given x \right)}{P\left(\ts{y}{t+1}{T}\given \ts{y}{0}{t}
                \right)},
 \end{equation}
-for each time $t$ by starting with $\beta(x,T) = 1$ and following with
+for each time $t$ by starting with $\beta(x,T-1) = 1$ and following with
 the recursion
 \begin{equation}
   \label{eq:contback}
@@ -223,11 +223,11 @@ and Gaussian\footnote{We assume \emph{identical} distributions only to
   mean $\mu$ and covariance $\Sigma$.} with $\ti{\eta}{t} \sim
 \Normal(0,\Sigma_\eta)$ and $\ti{\epsilon}{t} \sim
 \Normal(0,\Sigma_\epsilon)$, and the distribution of the initial state
-$\ti{X}{1}$ is also Gaussian, then we can write
+$\ti{X}{0}$ is also Gaussian, then we can write
 \begin{subequations}
   \label{eq:LinearG}
   \begin{align}
-  \ti{X}{1} & \sim \Normal\left(\mu_{\ti{X}{1}},\Sigma_{\ti{X}{1}}
+  \ti{X}{0} & \sim \Normal\left(\mu_{\ti{X}{0}},\Sigma_{\ti{X}{0}}
   \right)\\
                                 %
   \ti{x}{t} &= \ti{F}{t} \cdot \ti{x}{t-1} + \ti{\eta}{t} &
@@ -264,7 +264,7 @@ distributions described by these parameters are also Gaussian.
     $P(t^+_i)$ and Kailath et al.\cite{KSH00} use $\hat x_{i|i}$ and
     $P_{i|i}$ respectively.}, \ie,
   \begin{equation*}
-    P\left(\ti{x}{t}\given \ts{y}{0}{t} \right) =
+    P\left(\ti{x}{t}\given \ts{y}{0}{t+1} \right) =
     \NormalE{\ti{\mu_\alpha}{t}}{\ti{\Sigma_\alpha}{t}}{\ti{x}{t}}.
   \end{equation*}
 \item[$\bm{\ti{\mu_a}{t}}$ and $\bm{\ti{\Sigma_a}{t}}$] (Note
@@ -283,7 +283,8 @@ distributions described by these parameters are also Gaussian.
   time $t$ given all previous observations, \ie
   \begin{equation*}
     P\left(\ti{y}{t}\given \ts{y}{0}{t} \right) =
-    \NormalE{\ti{\mu_\gamma}{t}}{\ti{\Sigma_\gamma}{t}}{\ti{y}{t}}.
+    \NormalE{\ti{\mu_\gamma}{t}}{\ti{\Sigma_\gamma}{t}}{\ti{y}{t}}
+    \equiv \ti{\gamma}{t}.
   \end{equation*}
   Neither the forward nor the backwards Kalman filter uses the $\gamma$
   terms, but they are useful for calculating the likelihood of model
@@ -357,22 +358,26 @@ Note:
 \begin{itemize}
 \item Equations~\eqref{eq:KUpdate} are usually presented in the
   equivalent but computationally more efficient form
-  \begin{align*}
+  \begin{subequations}
+    \label{eq:KalmanGain}
+  \begin{align}
     \ti{\mu_\alpha}{t} &= \ti{\mu_a}{t} + \ti{K}{t} \left( \ti{y}{t} -
     \ti{G}{t} \ti{\mu_a}{t} \right) \\
     \ti{\Sigma_\alpha}{t} &= \left( \id - \ti{K}{t} \G \right) \SX 
-  \end{align*}
+  \end{align}
   where
-  \begin{equation*}
+  \begin{equation}
     \ti{K}{t} \equiv \SX \GT \left( \G \SX \GT + \Sigma_\epsilon \right)^{-1}
-  \end{equation*}
-  is called \emph{the \index*{Kalman gain matrix}} %
-  \index{matrix!Kalman gain}%
+  \end{equation}
+  \end{subequations}
+  is called \emph{the \index*{Kalman gain matrix}}\footnote{This
+    computationaly more efficient form was Kalman's principle
+    contribution.}  \index{matrix!Kalman gain}%
   (See Eqn.~\eqref{eq:KalmanGain}.).
 \item One can calculate the log likelihood of a model by summing the
   increments
   \begin{equation*}
-    \log\left( P\left(\ts{y}{0}{T} \right)\right) = \sum_{t=1}^T
+    \log\left( P\left(\ts{y}{0}{T} \right)\right) = \sum_{t=0}^{T-1}
     \log\left(P \left(\ti{y}{t}\given \ts{y}{0}{t} \right) \right)
   \end{equation*}
   and calculating each increment as
@@ -480,7 +485,7 @@ update parameters, \ie, $\alpha$ and $b$, for smoothing is an error.
 
 Here we connect the integrals that describe the forward and backward
 algorithms (Eqns.~\eqref{eq:ContInitial}-\eqref{eq:bdef}) to the
-Kalman formulas (Eqns.~\eqref{eq:KFore}-\eqref{eq:smoothing}).
+formulas (Eqns.~\eqref{eq:KFore}-\eqref{eq:smoothing}).
 \ToDo{Simplify this section.  Try to make the forward and backward
   derivations more similar.  Perhaps do more in the appendix and less
   here.}
@@ -490,14 +495,14 @@ Kalman formulas (Eqns.~\eqref{eq:KFore}-\eqref{eq:smoothing}).
 
 The basic loop consists of steps \ref{PXforecast} through
 \ref{PXupdate} below.  In the first iteration, we use the model
-parameters that describe $P\left(\ti{x}{1} \right)$ and proceed
+parameters that describe $P\left(\ti{x}{0} \right)$ and proceed
 directly to step~\ref{PYforecast}.
 \begin{enumerate}
-\item \label{PX1} \textbf{Use $\bm{P\left(\ti{x}{1} \right)}$.}  We
-  initialize the recursion using the mean $\ti{\mu_a}{1}$ and
-  covariance $\ti{\Sigma_a}{1}$ of $P(\ti{x}{1})$ which are parameters
+\item \label{PX1} \textbf{Use $\bm{P\left(\ti{x}{0} \right)}$.}  We
+  initialize the recursion using the mean $\ti{\mu_a}{0}$ and
+  covariance $\ti{\Sigma_a}{0}$ of $P(\ti{x}{0})$ which are parameters
   of the model and entering the loop at step~\ref{PYforecast} to
-  calculate $\ti{\mu_\gamma}{1}$ and $\ti{\Sigma_\gamma}{1}$ by
+  calculate $\ti{\mu_\gamma}{0}$ and $\ti{\Sigma_\gamma}{0}$ by
   setting $t=1$.
 \item \label{PXforecast} \textbf{Calculate the state forecast,
     $\bm{P\left(\ti{x}{t}\given \ts{y}{0}{t} \right)}$.}  The distribution
@@ -589,7 +594,8 @@ directly to step~\ref{PYforecast}.
     \end{bmatrix}
   \end{equation*}
   and\footnote{We have introduced the blocks $A$, $B$, and $C$ to
-    match the matrix identities in Eqns.~\eqref{eq:MI:ABCDEF} where we
+    match the matrix identities in Eqns.~\eqref{eq:MI:ABCDEF} on page
+    \pageref{eq:MI:ABCDEF} of the appendix where we
     denote,
     \begin{equation*}
       \begin{bmatrix} A & C \\ C\transpose & B \end{bmatrix}^{-1} \equiv
@@ -625,8 +631,9 @@ directly to step~\ref{PYforecast}.
     $\bm{P\left(\ti{x}{t}\given \ts{y}{0}{t+1} \right)}$.}  With the
   actual value of $\ti{y}{t}$ and the joint distribution of
   $\ti{x}{t}$ and $\ti{y}{t}$ given $\ts{y}{0}{t}$, we use
-  Eqn.~\eqref{eq:Gauss-Conditional} to write the parameters of
-  $P\left(\ti{x}{t}\given \ts{y}{0}{t+1} \right)$ as
+  Eqn.~\eqref{eq:Gauss-Conditional} from page
+  \pageref{eq:Gauss-Conditional} in the appendix to write the
+  parameters of $P\left(\ti{x}{t}\given \ts{y}{0}{t+1} \right)$ as
   \begin{subequations}
     \label{eq:UpdateRaw}
     \begin{align}
@@ -673,10 +680,10 @@ choice improves the numerical speed and accuracy of the algorithm.
 Kalman's form keeps track of state space covariances and uses the
 \emph{\index*{Kalman gain matrix}} %
 \index{matrix!Kalman gain}%
-which in the notation of
-Eqn.~\eqref{eq:cont-temp} is $K=CB^{-1}$.  To get
-Eqn.~\eqref{eq:UpdateRaw} into Kalman's form, note that by
-Eqn.~\eqref{eq:MI:D}, $D^{-1} = A -CB^{-1} C\transpose$, and thus
+which in the notation of Eqn.~\eqref{eq:cont-temp} is $K=CB^{-1}$.  To
+get Eqn.~\eqref{eq:UpdateRaw} into Kalman's form, note that by
+Eqn.~\eqref{eq:MI:D} on page \pageref{eq:MI:D},
+$D^{-1} = A -CB^{-1} C\transpose$, and thus
 \begin{subequations}
   \label{eq:KalmanGain}
   \begin{align}
@@ -939,7 +946,7 @@ $\ti{\eta}{t}$ and $\ti{\epsilon}{t}$ are independent and Gaussian
 that the Kalman filter implements the forward algorithm.  If on the
 other hand, the functions $F$ and $G$ are nonlinear but the errors of
 first order approximations to them are small compared to the size of
-the noise, then one can reasonably apply the same algorithm to the
+the state covariance, then one can reasonably apply the same algorithm to the
 approximations.  The resulting procedure is called an \emph{extended
   Kalman filter}.  While, as we noted in Section~\ref{sec:related}
 there are more robust alternatives, the simplicity of extended Kalman

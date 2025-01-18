@@ -74,7 +74,7 @@ measurements has the following characteristics:
     \end{equation*}
   \item[Measurement function] A simple projection
     \begin{equation*}
-      G(x) = x_1 = \begin{bmatrix} 1,0,0 \end{bmatrix} \cdot x
+      G(x) = x_0 = \begin{bmatrix} 1,0,0 \end{bmatrix} \cdot x
     \end{equation*}
   \item[iid measurement noise] 
     \begin{equation*}
@@ -88,9 +88,9 @@ measurements has the following characteristics:
     functions rather than \emph{coordinate dependent} probability
     density functions.
 \end{description}
-Recall that for the extended Kalman filter $\ti{\mu_\gamma}{t}$ and
-$\ti{\sigma_\gamma}{t}$ completely characterize
-$ P(\ti{y}{t}\given \ts{y}{0}{t},\theta)$ with
+Recall that for the extended Kalman filter the means
+$\ti{\mu_\gamma}{t}$ and variances $\ti{\sigma^2_\gamma}{t}$ completely
+characterize $ P(\ti{y}{t}\given \ts{y}{0}{t},\theta)$ with
 \begin{equation*}
   P(\ti{y}{t}\given \ts{y}{0}{t},\theta) =
   \NormalE{\ti{\mu_\gamma}{t}}{\ti{\sigma^2_\gamma}{t}}{\ti{y}{t}}.
@@ -157,7 +157,6 @@ map $[DF]$ that occurs then.
   \label{fig:ToyTS1}
 \end{figure}
 %%%
-\ToDo{$x_0$ or $x_1$?}
 \begin{figure}[htbp]
   \centering{\resizebox{\textwidth}{!}{\includegraphics{ToyStretch.pdf}}
   }
@@ -176,9 +175,9 @@ map $[DF]$ that occurs then.
     \left(\ti{x}{t}\given \ts{y}{0}{t+1}, \theta \right) =
     \NormalE{\mu_\alpha}{\Sigma_\alpha}{\ti{x}{t}}$.  For each
     distribution, an ellipse depicts the level set
-    $(x-\mu)\transpose \Sigma^{-1} (x-\mu) =1$ in the $x_1\times x_3$
+    $(x-\mu)\transpose \Sigma^{-1} (x-\mu) =1$ in the $x_0\times x_2$
     plane.  To support visual comparisons, the sizes of the ranges for
-    $x_1$ and $x_3$ are the same in each of the plots.  In mapping the
+    $x_0$ and $x_2$ are the same in each of the plots.  In mapping the
     updated distribution at $t=\toyHviewTMaxVar$ (on the left) to the
     forecast distribution at time $t=\toyHviewTMaxVarPlusOne$ (on the
     right), the function $F$ that implements state dynamics stretches
@@ -192,7 +191,7 @@ with parameters that are quite different from those in
 Figs.~\ref{fig:ToyTS1} and \ref{fig:ToyStretch}.  Given model parameters
 $\theta$ and a sample sequence $\ts{y}{0}{T}$ of length $T$, we define
 \begin{align*}
-  -\hat h &\equiv \frac{1}{T} \sum_{t=1}^T
+  -\hat h &\equiv \frac{1}{T} \sum_{t=0}^{T-1}
     \log \left( P \left(\ti{y}{t}\given \ts{y}{0}{t}, \theta
       \right)\right)\\
     &=  \frac{1}{T} \log \left( P \left(\ts{y}{0}{T}\given  \theta
@@ -208,15 +207,15 @@ which in turn is bounded from below by the \emph{entropy rate}.  We
 discuss both entropy rate and cross entropy rate in
 Section~\ref{sec:pesin}, and in Section~\ref{sec:PesinFormula} we
 review the \emph{Pesin Formula}.  That formula says that the largest
-\emph{Lyapunov exponent} $\lambda_1$, a characterization of the
+\emph{Lyapunov exponent} $\lambda_0$, a characterization of the
 stretching action of the dynamics, is equal to the entropy rate, a
 characterization of the predictability.  For good models, we expect
 the log likelihood of forecasts to fall off with a slope of
-$-\lambda_1$ as the sample time $\tau_s$ increases, and for the best
+$-\lambda_0$ as the sample time $\tau_s$ increases, and for the best
 possible model we expect
 \begin{equation}
   \label{eq:bound1}
-  h(\tau_s) = \lambda_1 \tau_s.
+  h(\tau_s) = \lambda_0 \tau_s.
 \end{equation}
 
 We have chosen the parameters\footnote{ In making Fig.~\ref{fig:ToyH},
@@ -244,7 +243,7 @@ dynamical stretching and the Gaussian model for
 $ P \left(\ti{y}{t}\given \ts{y}{0}{t}, \theta \right)$.  We are pleased
 to observe that the overall slope of the plot on the left in
 Fig.~\ref{fig:ToyH} is consistent with the estimate
-$\hat \lambda_1 = \toyBenettinLambdaOne$ (base $e$) that we obtain
+$\hat \lambda_0 = \toyBenettinLambdaOne$ (base $e$) that we obtain
 using the Benettin procedure described in Section~\ref{sec:Benettin}.
 %%% code/python/lorenzLyap.py
 
@@ -263,7 +262,7 @@ using the Benettin procedure described in Section~\ref{sec:Benettin}.
      $T=\toyToyhnt$ & Number of samples
     \end{tabular}\\
     For both plots, the vertical axis is the average log likelihood of
-    the one-step forecast $-\hat h \equiv \frac{1}{T} \sum_{t=1}^T
+    the one-step forecast $-\hat h \equiv \frac{1}{T} \sum_{t=0}^{T-1}
     \log \left( P \left(\ti{y}{t}\given \ts{y}{0}{t}, \theta
       \right)\right)$.  On the left we plot $-\hat h$ as a function of
     both $\tau_s$, the time step, and $\tilde \sigma_\epsilon$, the
@@ -289,7 +288,7 @@ size $\Delta$, the log likelihood closely follows the approximation
 \begin{equation}
   \label{eq:ToyH}
   \hat h(\tau_s) = \log\left(\text{erf}\left(\frac{1}{2\sqrt{2}}\right)\right)
-  + \lambda_1 \tau_s,
+  + \lambda_0 \tau_s,
 \end{equation}
 where \emph{erf} is the error function\footnote{The error function is
   defined by $\operatorname{erf}(x) = \frac{2}{\sqrt{\pi}}\int_0^x
@@ -368,7 +367,7 @@ measurements  $\ts{Y}{0}{T}$ each of which can be thought of as a
 \subsubsection{Entropy of a discrete random variable}
 \index{entropy}
 If a discrete random variable $U$ takes on the values
-$u_1,u_2,\ldots,u_n$ with probabilities $P(u_1),P(u_2),\ldots,P(u_n)$,
+$u_0,u_1,\ldots,u_n$ with probabilities $P(u_0),P(u_1),\ldots,P(u_n)$,
 then the \emph{entropy} of $U$ is
 \nomenclature[rHU]{$H(U)$}{The entropy of a discrete random variable $U$.}
 \begin{equation}
@@ -409,11 +408,11 @@ The \emph{conditional entropy} of $U$ given $V$ is
 Factoring the probability of sequences
 \begin{equation*}
   P_{\ts{z}{0}{T} } = P _{\ti{z}{0} }
-  \prod_{t=1}^T P _{\ti{z}{t}\given \ts{z}{0}{t} }
+  \prod_{t=0}^{T-1} P _{\ti{z}{t}\given \ts{z}{0}{t} }
 \end{equation*}
 is equivalent analyzing entropy into the sum
 \begin{equation*}
-  H(\ts{Z}{0}{T}) = H(\ti{Z}{1}) + \sum_{t=2}^T H
+  H(\ts{Z}{0}{T}) = H(\ti{Z}{0}) + \sum_{t=1}^{T-1} H
   \left(\ti{Z}{t}|\ts{Z}{0}{t} \right).
 \end{equation*}
 
@@ -516,7 +515,7 @@ with probability one.
 \subsubsection{Entropy rate of a partition $\mathcal{B}$}
 \index{partition} Let ${\cal X}$, the set of states for a
 stationary stochastic process with probabilities $P_{*\given \mu}$, be a
-continuum, and let $\mathcal{B} = \left\{ \beta_1,\beta_2,\ldots
+continuum, and let $\mathcal{B} = \left\{ \beta_0,\beta_1,\ldots
   \beta_n \right\}$ be a partition of ${\cal X}$ into a finite number
 of non-overlapping subsets.  By setting $\ti{b}{t}$ to the index of
 the element of $\mathcal{B}$ into which $\ti{x}{t}$ falls, we can map
@@ -720,7 +719,7 @@ only takes on $r \leq n$ discrete values called the \emph{spectrum of
   \index*{Lyapunov exponents}}
 \begin{equation}
   \label{eq:LyapunovSpectrum}
-  \lambda_1(F,x) > \lambda_2(F,x) > ... > \lambda_r(F,x).
+  \lambda_0(F,x) > \lambda_1(F,x) > ... > \lambda_r(F,x).
 \end{equation}
 The tangent space $TX(x)$ is the direct sum of subspaces $E_i \subset
 TX(x)$ associated with each exponent, with
@@ -772,8 +771,8 @@ incremental dimension
 \begin{equation*}
   \gamma_i \equiv
   \begin{cases}
-    \delta_1 & i=1\\
-    \delta_i - \delta_{i-1} & i > 1
+    \delta_0 & i=0\\
+    \delta_i - \delta_{i-1} & i > 0
   \end{cases}
 \end{equation*}
 Now \index*{Ledrappier and Young's formula} is
@@ -872,14 +871,14 @@ example.  The Lorenz system is
 \begin{align*}
   \dot x = F(x) = 
   \begin{bmatrix}
-    s(x_2-x_1)\\ x_1(r - x_3) -x_2 \\ x_1 x_2 - bx_3.
+    s(x_1-x_0)\\ x_0(r - x_2) -x_1 \\ x_0 x_1 - bx_2.
   \end{bmatrix}
 \end{align*}
 Note that
 \begin{equation*}
   D F(x) = 
   \begin{bmatrix}
-    -s & s & 0 \\ r-x_3 & -1 & -x_1 \\ x_2 & x_1 & -b
+    -s & s & 0 \\ r-x_2 & -1 & -x_0 \\ x_1 & x_0 & -b
   \end{bmatrix}
 \end{equation*}
 where $\left(D F(x)\right)_{i,j} \equiv \frac{\partial F_i(x)}{\partial
@@ -936,7 +935,7 @@ intervals $\tau$, one could:
 \end{enumerate}
 On a real computer, the procedure fails because the ratio of the
 largest and smallest singular values
-$\frac{\ti{S_1}{\ct}}{\ti{S_d}{\ct}}$ grows exponentially with $\ct$
+$\frac{\ti{S_0}{\ct}}{\ti{S_d}{\ct}}$ grows exponentially with $\ct$
 and becomes larger than the precision of the machine.
 
 Rather than using an SVD decomposition for each $\tau$ in
@@ -962,9 +961,9 @@ Eqn.~\eqref{eq:lambdaSVD} converge to the same values\footnote{In the
   SVD of Eqn.~\eqref{eq:TangentSVD}, the first column of $\ti{V}{\ct}$
   specifies the direction of the initial vector in the tangent space
   with the largest stretching.  The exponential stretching rate is the
-  Lyapunov exponent $\lambda_1$.  However, with probability one, a
+  Lyapunov exponent $\lambda_0$.  However, with probability one, a
   randomly chosen vector will have the same stretching rate.  The
-  estimate $\ti{\hat \lambda_1}{\ct}$ of Eqn~\eqref{eq:lambdaQR} is
+  estimate $\ti{\hat \lambda_0}{\ct}$ of Eqn~\eqref{eq:lambdaQR} is
   based on the stretching rate of the first standard basis vector, \ie,
   $[1,0,0]$.
   Similar arguments using the growth rates of areas, volumes,
@@ -1035,12 +1034,12 @@ Fig.~\ref{fig:QR}.  Results of applying the procedure to the Lorenz
 system appear in Fig.~\ref{fig:benettin}.
 \begin{figure}[htbp]
   \centering{\plotsize%
-    \def\Mone{$ \begin{bmatrix} \begin{bmatrix} e_1
-        \end{bmatrix} & \begin{bmatrix} e_2 \end{bmatrix} \end{bmatrix} $}%
-    \def\Mtwo{$ R \begin{bmatrix} \begin{bmatrix} e_1
-        \end{bmatrix} & \begin{bmatrix} e_2 \end{bmatrix} \end{bmatrix} $}%
-    \def\Mthree{$ QR \begin{bmatrix} \begin{bmatrix} e_1
-        \end{bmatrix} & \begin{bmatrix} e_2 \end{bmatrix} \end{bmatrix} $}%
+    \def\Mone{$ \begin{bmatrix} \begin{bmatrix} e_0
+        \end{bmatrix} & \begin{bmatrix} e_1 \end{bmatrix} \end{bmatrix} $}%
+    \def\Mtwo{$ R \begin{bmatrix} \begin{bmatrix} e_0
+        \end{bmatrix} & \begin{bmatrix} e_1 \end{bmatrix} \end{bmatrix} $}%
+    \def\Mthree{$ QR \begin{bmatrix} \begin{bmatrix} e_0
+        \end{bmatrix} & \begin{bmatrix} e_1 \end{bmatrix} \end{bmatrix} $}%
     \def\Mfour{$ \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} $}%
     \def\Mfive{$ \begin{bmatrix} 5 & 0.15 \\ 0 & 0.2 \end{bmatrix} $}%
     \def\Msix{$ \begin{bmatrix}3 & 0.25 \\ -4 & 0 \end{bmatrix} $}%
@@ -1064,11 +1063,11 @@ system appear in Fig.~\ref{fig:benettin}.
   the Lorenz system.]%
   {The effect of noise on Lyapunov exponent calculations for the
     Lorenz system.  In the upper plot, the colored lines trace
-    $\frac{1}{T} \sum_{t=1}^T \log\left( \left| \ti{r_{1,1}}{t}
+    $\frac{1}{T} \sum_{t=0}^{T-1} \log\left( \left| \ti{r_{0,0}}{t}
       \right| \right)$ (See Eqn.~\eqref{eq:rii}) for three different
     initial conditions and the black lines trace the 5\% and 95\%
     limits on 1,000 separate runs.  The lower plot is the same except
-    that $\left| \ti{r_{1,1}}{t} \right|$ is augmented by a noise term
+    that $\left| \ti{r_{0,0}}{t} \right|$ is augmented by a noise term
     with amplitude $\frac{\sigma_\eta}{\Delta} = \toyBenettinratio$
     (See Eqn.~\eqref{eq:LE.aug}).  At $\tau=\toyBenettintrun$ the
     Laypunov exponent estimates from the upper and lower plots are
@@ -1100,8 +1099,8 @@ numerical Lyapunov exponent estimates nonetheless provide a
 \emph{practical} reference for the performance of models.
 
 If you are working on a new model building procedure that takes
-\emph{training} samples $\left\{ \ts{y}{\tau_1}{T_1},
-  \ts{y}{\tau_2}{T_2}, \ldots, \ts{y}{\tau_N}{T_N}, \right\}$ and
+\emph{training} samples $\left\{ \ts{y}{\tau_0}{T_0},
+  \ts{y}{\tau_1}{T_1}, \ldots, \ts{y}{\tau_N}{T_N}, \right\}$ and
 produces a family of parameterized conditional probability functions
 $P \left(\ti{y}{t}\given \ts{y}{0}{t},\theta \right)$, we recommend
 numerically estimating the \emph{entropy gap} (see
@@ -1123,15 +1122,15 @@ building procedure:
 \begin{enumerate}
 \item \label{PPB1} Use a numerical simulation of a chaotic dynamical
   system to generate training data and testing data.  For simplicity,
-  consider a system with a single positive exponent $\lambda_1$
+  consider a system with a single positive exponent $\lambda_0$
 \item \label{PPB2} Quantize the data with a partition $\mathcal{B}$
 \item \label{PPB3} Run the Benettin procedure on the system, to
   estimate Lyapunov exponents
 \item \label{PPB4} Substitute the estimated exponents into Ledrappier
-  and Young's formula, Eqn.~\eqref{eq:Ledrappier} with $\gamma_1 = 1$
-  to get $\hat h(F,\mu)) = \hat \lambda_1$, an estimated entropy rate.
+  and Young's formula, Eqn.~\eqref{eq:Ledrappier} with $\gamma_0 = 1$
+  to get $\hat h(F,\mu)) = \hat \lambda_0$, an estimated entropy rate.
   If $\mathcal{B}$ is fine enough or a generating partition,
-  $\hat h(\mathcal{B},F,\mu)) = \hat \lambda_1$ will be a good
+  $\hat h(\mathcal{B},F,\mu)) = \hat \lambda_0$ will be a good
   estimate.
 \item \label{PPB5} Produce $P_{*\given \theta}$ by applying the new model building
   procedure to the training data
@@ -1192,17 +1191,17 @@ true system.
 
 With this framework we can draw samples randomly from a true
 distribution $P_{*\given \mu}$ and consider model probabilities
-$P_{*\given \theta}$ without having to find a stationary distribution.  In
-sidestepping the key issue of a stationary distribution, we have
+$P_{*\given \theta}$ without having to find a stationary distribution.
+In sidestepping the key issue of a stationary distribution, we have
 sacrificed ergodicity which is the basis of the definition of a
 Lyapunov exponent as a global property.  Empirically, however, the
 convergence of the Benettin procedure is similar for any initial
 condition (See Fig.~\ref{fig:benettin}).  Relying on this empirical
 observation, we suppose for some time interval $\tau$ that the
-stretching factor is independent of initial conditions with
+stretching factor is roughly independent of initial conditions with
 \begin{equation}
   \label{eq:Stretch}
-  \ti{S}{\tau} = \prod_{t=1}^\tau \ti{r_{1,1}}{t} = e^{\hat \lambda \tau}.
+  \ti{S}{\tau} \approx \prod_{t=1}^{\tau-1} \ti{r_{0,0}}{t} = e^{\hat \lambda \tau}.
 \end{equation}
 
 In the limit of small noise $\sigma_\eta \rightarrow 0$, one can
@@ -1271,11 +1270,12 @@ and $n$ in Eqn.~\eqref{eq:rii} of the Benettin procedure, \ie,
   \hat \lambda_{\text{aug},i} \equiv \frac{1}{N}  \sum_{n=1}^N \log( \left|
     \ti{r_{i,i}}{n} \right|  + \frac{\sigma_\eta}{\Delta}).
 \end{equation}
-Notice that knowledge of $\hat \lambda_i$ and $\frac{\sigma_\eta}
-{\Delta}$, is not sufficient to calculate $\hat
-\lambda_{\text{aug},i}$.  If the stretching were uniform with $\left|
-  \ti{r_{i,i}}{n} \right| = e^{\lambda} ~\forall n$, the augmented
-result would be $\hat \lambda_{\text{aug},i} = \log\left( e^\lambda +
+Notice that knowledge of $\hat \lambda_i$ and
+$\frac{\sigma_\eta} {\Delta}$, is not sufficient to calculate
+$\hat \lambda_{\text{aug},i}$.  If the stretching were uniform with
+$\left| \ti{r_{i,i}}{n} \right| = e^{\lambda} ~\forall n$, the
+augmented result would be
+$\hat \lambda_{\text{aug},i} = \log\left( e^\lambda +
   \frac{\sigma_\eta} {\Delta} \right)$, but the result increases
 without bound\footnote{If,
   \begin{equation*}
@@ -1298,18 +1298,18 @@ without bound\footnote{If,
    \left( \lambda + (N-1) \log
      \left( \frac{\sigma_\eta}{\delta\Delta} \right)
    \right) \rightarrow \infty.
-   \end{align*} } as $ \left| \ti{r_{i,i}}{n} \right|$ varies more with
- $n$.  In Fig.~\ref{fig:benettin} we compare
- $\hat \lambda_{\text{aug},1}$ with $\hat \lambda_{1}$ for the Lorenz
- system.  For noise with an amplitude
- $\frac{\sigma_\eta}{\Delta} = \toyBenettinratio$, the figure
- indicates an augmentation of
- $\hat \lambda_{\text{aug},1} - \hat \lambda_{1} \approx
- \toyBenettinDeltaLambda$, which is roughly ten times the augmentation
- that uniform stretching would produce.  From the figure, we conclude
- that the Benettin procedure produces a robust practical upper bound
- on model performance.
-
+   \end{align*}
+ } %
+as $ \left| \ti{r_{i,i}}{n} \right|$ varies more with $n$.  In
+Fig.~\ref{fig:benettin} we compare $\hat \lambda_{\text{aug},1}$ with
+$\hat \lambda_{1}$ for the Lorenz system.  For noise with an amplitude
+$\frac{\sigma_\eta}{\Delta} = \toyBenettinratio$, the figure indicates
+an augmentation of
+$\hat \lambda_{\text{aug},1} - \hat \lambda_{1} \approx
+\toyBenettinDeltaLambda$, which is roughly an order of magnitude
+larger than the augmentation that uniform stretching would produce.
+From the figure, we conclude that the Benettin procedure produces a
+robust practical upper bound on model performance.
 
 \section{Approaching the Bound}
 \label{sec:approach}
@@ -1326,16 +1326,17 @@ observations that we used for Fig.~\ref{fig:Statesintro} in the
 introduction.  That figure illustrates the association of each of the
 twelve discrete hidden states of an HMM with particular regions in
 $\REAL^3$, the state space of the Lorenz system.  Although the cross
-entropy of that twelve state model is not very close to the bound
-based on our Lyapunov exponent estimate
-($\hat h(\mathcal{B},F,\mu)) = \hat \lambda_1 =
+entropy of that twelve state model is not very close to the
+bound\marginpar{ToDo: Entropy per time step or per unit of Lorenz
+  time?}  based on our Lyapunov exponent estimate
+($\hat h(\mathcal{B},F,\mu)) = \hat \lambda_0 =
 \toyLikeLorEntropy~\text{nats} = \toyLikeLorEntropyBits~\text{bits}$),
 it seems plausible that by using HMMs with more states, we might get
 higher likelihoods.  In fact it is true, but we are surprised at how
-many states we need.  As for Fig.~\ref{fig:Statesintro}, we
-generated the observations by integrating the Lorenz system with a
-time step of $\tau_{\mathtt{sample}}=\toyLikeLortsample$ and quantized
-the first component into one of $\toyLikeLornquantized$ levels.
+many states we need.  As for Fig.~\ref{fig:Statesintro}, we generated
+the observations by integrating the Lorenz system with a time step of
+$\tau_{\mathtt{sample}}=\toyLikeLortsample$ and quantized the first
+component into one of $\toyLikeLornquantized$ levels.
 
 Our first attempt was to train a sequence of models with ever more
 hidden states.  We initialized each model randomly and ran many
@@ -1350,16 +1351,16 @@ dynamics in $X=\REAL^3$ as follows:
   original state space and $\ti{y}{t}$ is a quantized observation that
   can take one of four values.
 \item Generate testing data $\ts{y}{T}{T+N}$ by continuing the integration.
-\item Find a set of discrete states $\left\{s_1, s_2, \ldots,
+\item Find a set of discrete states $\left\{s_0, s_1, \ldots,
     s_m\right\}$ by partitioning the original space with a uniform
   grid of resolution $\Delta_x$.  We only constructed states for those
   partition elements that were occupied by at least one member of
   $\ts{x}{0}{T}$.
-\item Build an initial HMM using the training sequence.  We set the
-  state transition probabilities by counting the frequency with which
-  the partitioned $X$ sequence made each possible transition.
-  Similarly, we set the observation model by counting the frequency
-  with which each partition element was associated with each possible
+\item Build an HMM using the training sequence.  We set the state
+  transition probabilities by counting the frequency with which the
+  partitioned $X$ sequence made each possible transition.  Similarly,
+  we set the observation model by counting the frequency with which
+  each partition element was associated with each possible
   observation.
 \item Estimate the cross entropy ($ \hat h(\mathcal{B},F,\mu||\theta)$
   See Eqn.~\eqref{eq:ToyCE}) of the model by calculating its
@@ -1373,15 +1374,15 @@ we could calculate the likelihood with a variant of the forward
 algorithm that does not store or return $\alpha$ or $\gamma$ values
 for the entire sequence.  In fact, given typical observations
 $\ts{y}{0}{t+1}$ up to time $t$, only a small fraction of the states
-have nonzero probability.  Code that exploits these features is many
-orders of magnitude cheaper than code for the vanilla forward
-algorithm.
+have nonzero probability.  Code that uses sparse matrices to exploit
+these features is many orders of magnitude cheaper than vanilla code
+for the forward algorithm.
 
 Results of the procedure appear in Fig.~\ref{fig:LikeLor}.  For the
 rightmost point on the curve\footnote{While the address space limit of
   32 bit Python constrained the number of states for the first edition
   of this book to about 1,500,000, computation time constrains the
-  number of number of states in 2024.  Using a high end 2023 desktop
+  number of number of states in 2025.  Using a high end 2023 desktop
   computer, it takes about 100 minutes to generate
   Fig.~\ref{fig:LikeLor}.} we found a model with
 %
@@ -1403,7 +1404,7 @@ sample that the Lyapunov exponent estimate suggests is possible.
     number of discrete states in the models.  We built the models
     using simulated Lorenz state space trajectories as described in
     the text.  The lower line indicates an estimate of the entropy
-    rate, $\hat h(F,\mu)) = \hat \lambda_1$, of the true process based
+    rate, $\hat h(F,\mu)) = \hat \lambda_0$, of the true process based
     on Lyapunov exponents estimated by the Benettin procedure.  The
     distance between the curves is the \emph{entropy gap}
     $\hat \delta_{\mu||\theta}$. The gap seems to be going to zero,
