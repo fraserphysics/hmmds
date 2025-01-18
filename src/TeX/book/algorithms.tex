@@ -61,9 +61,9 @@ not feasible to do the sum for even modest lengths $T$.
   %% The following definitions are invoked by the XFig forward.fig.
   \centering{\plotsize%
     %% Column a
-    \def\colaa{$\alpha(s_1,t-1)$}%
-    \def\colab{$\alpha(s_2,t-1)$}%
-    \def\colac{$\alpha(s_3,t-1)$}%
+    \def\colaa{$\alpha(t-1,s_1)$}%
+    \def\colab{$\alpha(t-1,s_2)$}%
+    \def\colac{$\alpha(t-1,s_3)$}%
     %% Column b
     \def\colba{$P \left(s_1\given \ts{y}{0}{t} \right)$}%
     \def\colbb{$P \left(s_2\given \ts{y}{0}{t} \right)$}%
@@ -98,9 +98,9 @@ not feasible to do the sum for even modest lengths $T$.
         Eqn.~\eqref{eq:forwardC}
       \end{minipage}}%
     %% Column e
-    \def\colea{$\alpha(s_1,t)$}%
-    \def\coleb{$\alpha(s_2,t)$}%
-    \def\colec{$\alpha(s_3,t)$}%
+    \def\colea{$\alpha(t,s_1)$}%
+    \def\coleb{$\alpha(t,s_2)$}%
+    \def\colec{$\alpha(t,s_3)$}%
     \def\quoteqforwardD{%
       \begin{minipage}[t]{1.8in}
         \raggedright% 
@@ -173,11 +173,11 @@ these equations we use color highlighting to emphasize repeated
 instances of the same quantity.  The algorithm saves the following
 intermediate results
 %
-\nomenclature[ga]{$\alpha(s,t)$}{The conditional probability that at time
+\nomenclature[ga]{$\alpha(t,s)$}{The conditional probability that at time
   $t$ the system is in state $s$ given the observations up to the
   present,
   \begin{equation*}
-    \alpha(s,t) \equiv  P_{S(t) \given \ts{Y}{0}{t}}\left(s \given \ts{y}{0}{t}
+    \alpha(t,s) \equiv  P_{S(t) \given \ts{Y}{0}{t}}\left(s \given \ts{y}{0}{t}
     \right).
   \end{equation*}
   Also called the forward updated distribution in the Kalman filter
@@ -187,17 +187,17 @@ intermediate results
   given the history.}%, $P(y(t)\given y_1^{t-1}$.}
 \begin{align}
   \label{eq:alpha}
-  \alpha(s,t) &\equiv \alphax{t}{s}\\
+  \alpha(t,s) &\equiv \alphax{t}{s}\\
   \label{eq:gamma}
   \ti{\gamma}{t} &\equiv \gammax .
 \end{align}
-In words\footnote{In Ferguson's notation $\alpha(s,t) \equiv
+In words\footnote{In Ferguson's notation $\alpha(t,s) \equiv
   P_{\ti{S}{t},\ts{Y}{0}{t}} \left(s,\ts{y}{0}{t} \right)$.  Our
   notation differs from that by a factor of $P(\ts{y}{0}{t})$.
   Ferguson did not have notation for the term
   $P(\ti{y}{t}\given \ts{y}{0}{t})$ which we call $\gamma$, but he did use
   $\gamma$ for quantities that we will denote by $w$ in
-  Eqns.~\eqref{eq:wit} and \eqref{eq:wijt}.}, $\alpha(s,t)$ is the
+  Eqns.~\eqref{eq:wit} and \eqref{eq:wijt}.}, $\alpha(t,s)$ is the
 conditional probability of being in state $s$ at time $t$ given all
 of the observations up to time $t$ and $\ti{\gamma}{t}$ is the
 conditional probability of the observation at time $t$ given all of
@@ -206,7 +206,7 @@ the previous observations.  To initialize the algorithm, one assigns
   \ti{\gamma}{0} &= P_{\ti{Y}{0}}(\ti{y}{0}) =
               \sum_{s}P_{\ti{S}{0}}(s)P_{\ti{Y}{t}\given \ti{S}{t}}(\ti{y}{0}\given s)
   \\
-  \alpha(s,0) &= P_{\ti{S}{0}\given \ti{Y}{0}}(s\given \ti{y}{0}) =
+  \alpha(0,s) &= P_{\ti{S}{0}\given \ti{Y}{0}}(s\given \ti{y}{0}) =
   \frac{P_{\ti{S}{0}}(s)P_{\ti{Y}{t}\given \ti{S}{t}}(\ti{y}{0}\given s)}
   {\gamma(1)}
 ~\forall s \in \states
@@ -232,7 +232,7 @@ a loop doing the following four calculations:
       \left. \times \alphax{t-1}{{\tilde s}} \right) \\
       \mlabel{eq:forwardA3}
       & = \sum_{{\tilde s}\in\states} P_{\ti{S}{t}\given \ti{S}{t-1}} \left( s\given {\tilde s} \right)
-      \cdot \alpha({\tilde s},t-1) .
+      \cdot \alpha(t-1,{\tilde s}) .
     \end{align}
   \end{subequations}
   We justify the operations as follows:
@@ -284,7 +284,7 @@ Equation~\eqref{eq:forwardC} is an application of $P(a) = \sum_b P(a,b)$.
     \label{eq:forwardD}
     \begin{align}
       \mlabel{eq:forwardD1}
-      \alpha(s,t) &\equiv
+      \alpha(t,s) &\equiv
       \alphax{t}{s} \\
       \mlabel{eq:forwardD2}
       &= \pregamma \div \gammax
@@ -359,7 +359,7 @@ to describe and justify the algorithm.
     \nu(t,s) = \log\left( P\left(\ts{y}{0}{t+1}, \tilde s(t,s)
       \right) \right)
   \end{equation*}
-\item[$\bm{s'(s,t)}$ The immediate predecessor of state $\bm{s}$ in
+\item[$\bm{s'(t,s)}$ The immediate predecessor of state $\bm{s}$ in
   $\bm{\tilde s (t,s)}$] In other words, given that the best sequence
   of length $t+1$ that ends in $s_d$ is
   \begin{equation*}
@@ -378,7 +378,7 @@ time $t$ consists of $s$ concatenated with the best sequence ending
 in $s'$ at time $t-1$, where $s'$ is the best predecessor of $s$.
 \begin{equation}
   \label{eq:cat}
-  \tilde s(t,s) = \left[ \tilde s(t-1,s'(s,t),s \right]
+  \tilde s(t,s) = \left[ \tilde s(t-1,s'(t,s),s \right]
 \end{equation}
 Equation~\eqref{eq:nuprop} says that the total utility of the best
 path of length $t+1$ to state $s$ is the utility of the best
@@ -398,8 +398,8 @@ Taking logs yields
 \begin{equation}
   \label{eq:nuprop}
   \begin{split}
-    \nu (t+1,s) = \nu(t,s'(s,t)) +
-    \log\left(P_{\ti{S}{t+1}\given \ti{S}{}} \left(s\given s'(s,t) \right)\right)\\
+    \nu (t+1,s) = \nu(t,s'(t,s)) +
+    \log\left(P_{\ti{S}{t+1}\given \ti{S}{}} \left(s\given s'(t,s) \right)\right)\\
     \quad + \log \left( P_{\ti{Y}{t+1}\given \ti{S}{t+1}}
       \left(\ti{y}{t}\given s\right)\right).
   \end{split}
@@ -474,44 +474,44 @@ the entire highest utility path.
   %% ovals inside of XFig.
   \centering{\plotsize%
     %% Column a
-    \def\colaa{$\nu(s_1,t-1)$}%
-    \def\colab{$\nu(s_2,t-1)$}%
-    \def\colac{$\nu(s_3,t-1)$}%
+    \def\colaa{$\nu(t-1,s_1)$}%
+    \def\colab{$\nu(t-1,s_2)$}%
+    \def\colac{$\nu(t-1,s_3)$}%
     %% Column b
-    \def\colba{$ \begin{matrix} s'(s_1,t) = \argmax_{{\tilde s}}\\%
-        \log\left(P(s_1\given {\tilde s}) \right)\\+ \nu({\tilde s},t-1)
+    \def\colba{$ \begin{matrix} s'(t,s_1) = \argmax_{{\tilde s}}\\%
+        \log\left(P(s_1\given {\tilde s}) \right)\\+ \nu(t-1,{\tilde s})
       \end{matrix}$}%
-    \def\colbb{$ \begin{matrix} s'(s_2,t) = \argmax_{{\tilde s}}\\%
-        \log\left(P(s_2\given {\tilde s}) \right)\\+ \nu({\tilde s},t-1)
+    \def\colbb{$ \begin{matrix} s'(t,s_2) = \argmax_{{\tilde s}}\\%
+        \log\left(P(s_2\given {\tilde s}) \right)\\+ \nu(t-1,{\tilde s})
       \end{matrix}$}%
-    \def\colbc{$ \begin{matrix} s'(s_3,t) = \argmax_{{\tilde s}}\\%
-        \log\left(P(s_3\given {\tilde s}) \right)\\+ \nu({\tilde s},t-1)
+    \def\colbc{$ \begin{matrix} s'(t,s_3) = \argmax_{{\tilde s}}\\%
+        \log\left(P(s_3\given {\tilde s}) \right)\\+ \nu(t-1,{\tilde s})
       \end{matrix}$}%
     \def\bestpred{%
       \begin{minipage}[t]{3.9in}
         \raggedright%
         For each state $s$ find the best\\%
-        predecessor $s'(s,t)$, \ie, the\\%
+        predecessor $s'(t,s)$, \ie, the\\%
         one that maximizes\\%
-        $\log\left(P(s\given s'(s,t)) \right) + \nu(s'(s,t),t-1)$.\\%
+        $\log\left(P(s\given s'(t,s)) \right) + \nu(t-1,s'(t,s))$.\\%
         The bolder lines indicate best\\%
         predecessors.
       \end{minipage}}%
     %% Column c
-    \def\colca{$\nu(s_1,t)$}%
-    \def\colcb{$\nu(s_2,t)$}%
-    \def\colcc{$\nu(s_3,t)$}%
+    \def\colca{$\nu(t,s_1)$}%
+    \def\colcb{$\nu(t,s_2)$}%
+    \def\colcc{$\nu(t,s_3)$}%
     \def\newnu{%
       \begin{minipage}[t]{2.7in}
         \raggedright%
         For each state $s$\\%
-        calculate $\nu(s,t)$\\%
+        calculate $\nu(t,s)$\\%
         by including the\\%
         conditional probability\\%
         of the observation $\ti{y}{t}$,\\%
-        \ie, $ \nu(s,t) = \log\left(P(\ti{y}{t}\given s) \right) $\\
-        \qquad$+ \log\left(P(s\given s'(s,t)) \right)$\\
-        \qquad$+ \nu(s'(s,t),t-1)$.
+        \ie, $ \nu(t,s) = \log\left(P(\ti{y}{t}\given s) \right) $\\
+        \qquad$+ \log\left(P(s\given s'(t,s)) \right)$\\
+        \qquad$+ \nu(t-1,s'(t,s))$.
       \end{minipage}}
     %%
     \input{viterbiB.pdf_t}}
@@ -600,27 +600,27 @@ both the forward algorithm and the backward algorithm, one can
 calculate $P_{\ti{S}{t}\given \ts{Y}{0}{T}} \left(s\given \ts{y}{0}{T} \right)$,
 the conditional probability of being in any state $s \in \states$ at
 any time $t: 1\leq t \leq T$ given the entire sequence of
-observations.  The forward algorithm provides the terms $\alpha(s,t)
+observations.  The forward algorithm provides the terms $\alpha(t,s)
 \equiv P_{\ti{S}{t}\given \ts{Y}{0}{t}} \left(s\given \ts{y}{0}{t} \right)\,
-\forall (s,t)$.  Thus the backward algorithm must provide terms, call
-them $\beta(s,t)$, with the values
+\forall (t,s)$.  Thus the backward algorithm must provide terms, call
+them $\beta(t,s)$, with the values
 \begin{equation}
-  \label{eq:bw1} \beta(s,t) =
+  \label{eq:bw1} \beta(t,s) =
   \frac{P_{\ti{S}{t}\given \ts{Y}{0}{T}} \left(s\given \ts{y}{0}{T} \right)}
-  {\alpha(s,t)} = \frac{P_{\ti{S}{t}\given \ts{Y}{0}{T}}
+  {\alpha(t,s)} = \frac{P_{\ti{S}{t}\given \ts{Y}{0}{T}}
     \left(s\given \ts{y}{0}{T} \right)}
   {P_{\ti{S}{t}\given \ts{Y}{0}{t}} \left(s\given \ts{y}{0}{t} \right)}.
 \end{equation}
-\nomenclature[gb]{$\beta(s,t)$}{An intermediate quantity calculated in the
+\nomenclature[gb]{$\beta(t,s)$}{An intermediate quantity calculated in the
   backwards algorithm which is used somewhat like $\alpha$ in the
   forward algorithm.  One may use either of the following two
   equations to define $\beta$
   \begin{align*}
-    \beta(s,t) &= \frac{P_{\ts{Y}{t+1}{T} \given \ti{S}{t}}
+    \beta(t,s) &= \frac{P_{\ts{Y}{t+1}{T} \given \ti{S}{t}}
       \left(\ts{y}{t+1}{T} \given s
       \right)} {P \left(\ts{y}{t+1}{T} \given \ts{y}{0}{t} \right)}\\
     &= \frac{P_{\ti{S}{t} \given \ts{Y}{0}{T}} \left(s \given \ts{y}{0}{T} \right)}
-    {\alpha(s,t)} = \frac{P_{\ti{S}{t} \given \ts{Y}{0}{T}}
+    {\alpha(t,s)} = \frac{P_{\ti{S}{t} \given \ts{Y}{0}{T}}
       \left(s \given \ts{y}{0}{T} \right)} {P_{\ti{S}{t} \given \ts{Y}{0}{t}}
       \left(s \given \ts{y}{0}{t} \right)}.
   \end{align*}
@@ -629,7 +629,7 @@ them $\beta(s,t)$, with the values
   distribution in the Kalman filter literature.}% end nomenclature
 Invoking Bayes rule and the model assumptions we find
 \begin{align}
-  \mlabel{eq:bw2} \beta(s,t) &= \frac{P_{\ts{Y}{0}{T},\ti{S}{t}}
+  \mlabel{eq:bw2} \beta(t,s) &= \frac{P_{\ts{Y}{0}{T},\ti{S}{t}}
     \left(\ts{y}{0}{T},s \right)\cdot P \left(\ts{y}{0}{t} \right)}
   {P_{\ts{Y}{0}{t},\ti{S}{t}}
     \left(\ts{y}{0}{t},s \right)\cdot P \left(\ts{y}{0}{T} \right)}\\
@@ -640,20 +640,20 @@ Invoking Bayes rule and the model assumptions we find
   & = \frac{P_{\ts{Y}{t+1}{T}\given \ti{S}{t}} \left(\ts{y}{t+1}{T}\given s
     \right)} {P \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t} \right)}.
 \end{align}
-(Note that if $\alpha(s,t)=0$, Eqn.~\eqref{eq:bw1} is undefined, but
+(Note that if $\alpha(t,s)=0$, Eqn.~\eqref{eq:bw1} is undefined, but
 we can nonetheless implement Eqn.~\eqref{eq:bw4}.)
 
 The algorithm starts at the final time $T$ with $\beta$ set to
-one\footnote{From the premises that $\alpha(s,t) \beta(s,t) =
+one\footnote{From the premises that $\alpha(t,s) \beta(t,s) =
   P_{\ti{S}{t}\given \ts{Y}{0}{T}} \left(s\given \ts{y}{0}{T} \right)$ and
-  $\alpha(s,T) \equiv P_{S(T)\given \ts{Y}{0}{T}}\left(s \given \ts{y}{0}{T}
-  \right)$, we conclude that $\beta(s,T) = 1 ~\forall s$.} %
-for each state, $\beta(s,T) = 1,~\forall s \in \states$, and solves
+  $\alpha(t,s) \equiv P_{S(T)\given \ts{Y}{0}{T}}\left(s \given \ts{y}{0}{T}
+  \right)$, we conclude that $\beta(t,s) = 1 ~\forall s$.} %
+for each state, $\beta(t,s) = 1,~\forall s \in \states$, and solves
 for $\beta$ at earlier times with the following recursion that goes
 \emph{backwards} through time:
 \begin{equation}
   \label{eq:backformula}
-  \beta({\tilde s},t-1) = \sum_{s\in\states} \beta(s,t)
+  \beta(t-1,{\tilde s}) = \sum_{s\in\states} \beta(t,s)
   \frac{ P_{\ti{Y}{t}\given \ti{S}{t}}
     \left(\ti{y}{t}\given s \right) \cdot P_{\ti{S}{t}\given \ti{S}{t-1}}
     \left(s\given {\tilde s} \right)} {\ti{\gamma}{t}}
@@ -663,7 +663,7 @@ Note that ${\ti{\gamma}{t} \equiv P \left( \ti{y}{t} \given
 that the terms in the numerator are model parameters.  We justify
 Eqn.~\eqref{eq:backformula} by using Eqn.~\eqref{eq:bw4}
 \begin{align}
-  \beta({\tilde s},t-1) & \equiv \frac{P_{\ts{Y}{t}{T}\given \ti{S}{t-1}}
+  \beta(t-1,{\tilde s}) & \equiv \frac{P_{\ts{Y}{t}{T}\given \ti{S}{t-1}}
     \left(\ts{y}{t}{T}\given {\tilde s} \right)}
   {P \left(\ts{y}{t}{T}\given \ts{y}{0}{t} \right)} \\
   \mlabel{eq:back2}
@@ -673,7 +673,7 @@ Eqn.~\eqref{eq:backformula} by using Eqn.~\eqref{eq:bw4}
 \end{align}
 Next, factor each term in the numerator of Eqn.~\eqref{eq:back2} using
 Bayes rule twice then apply the model assumptions and the expression
-for $\beta(s,t)$ from Eqn.~\eqref{eq:bw4}:
+for $\beta(t,s)$ from Eqn.~\eqref{eq:bw4}:
 \begin{align*}
   & P_{\ts{Y}{t}{T},\ti{S}{t}\given \ti{S}{t-1}}\left( \ts{y}{t}{T},s\given {\tilde s} \right)\\
   \begin{split}
@@ -685,7 +685,7 @@ for $\beta(s,t)$ from Eqn.~\eqref{eq:bw4}:
   &\quad= P_{\ts{Y}{t+1}{T}\given \ti{S}{t}} \left(\ts{y}{t+1}{T}\given s\right)
            \cdot P_{\ti{Y}{t}\given \ti{S}{t}} \left(\ti{y}{t}\given s \right) \cdot
             P_{\ti{S}{t}\given \ti{S}{t-1}} \left(s\given {\tilde s} \right) \\
-  &\quad= \beta(s,t) \cdot P \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t} \right)
+  &\quad= \beta(t,s) \cdot P \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t} \right)
            \cdot P_{\ti{Y}{t}\given \ti{S}{t}} \left(\ti{y}{t}\given s \right) \cdot
             P_{\ti{S}{t}\given \ti{S}{t-1}} \left(s\given {\tilde s} \right)
 \end{align*}
@@ -699,13 +699,13 @@ Bayes rule:
 Finally by substituting these values into the fraction of
 \eqref{eq:back2}, we verify the recursion \eqref{eq:backformula}
 \begin{align}
-  \mlabel{eq:back3} \beta({\tilde s},t-1) &= \frac{\sum_{s\in\states}
-    \beta(s,t) \cdot P \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t} \right)
+  \mlabel{eq:back3} \beta(t-1,{\tilde s}) &= \frac{\sum_{s\in\states}
+    \beta(t,s) \cdot P \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t} \right)
     \cdot P_{\ti{Y}{t}\given \ti{S}{t}} \left(\ti{y}{t}\given s \right) \cdot
     P_{\ti{S}{t}\given \ti{S}{t-1}} \left(s\given {\tilde s} \right)} {P
     \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t} \right) \cdot {P \left(
         \ti{y}{t}\given \ts{y}{0}{t}\right)}} \\
-  \mlabel{eq:back4} &= \sum_{s\in\states} \beta(s,t) \frac{
+  \mlabel{eq:back4} &= \sum_{s\in\states} \beta(t,s) \frac{
     P_{\ti{Y}{t}\given \ti{S}{t}} \left(\ti{y}{t}\given s \right) \cdot
     P_{\ti{S}{t}\given \ti{S}{t-1}} \left(s\given {\tilde s} \right)} {\ti{\gamma}{t}}.
 \end{align}
@@ -715,10 +715,10 @@ Finally by substituting these values into the fraction of
 
 Each pass of the Baum-Welch algorithm consists of the following steps:
 Run the forward algorithm described in Section~\ref{sec:forward} to
-calculate the values of $\alpha(s,t)$ and $\gamma(t)$ for each time $t
+calculate the values of $\alpha(t,s)$ and $\gamma(t)$ for each time $t
 \in [0,\ldots,T-1]$ and each state $s \in \states$; Run the backward
 algorithm described in Section~\ref{sec:backward} to calculate the
-values of $\beta({\tilde s},t)$; Reestimate the model parameters using the
+values of $\beta(t,{\tilde s})$; Reestimate the model parameters using the
 formulas in Table~\ref{tab:reestimation}.
 
 We write the reestimation formulas in terms of \emph{weights} which
@@ -728,13 +728,13 @@ conditional probability of being in state $s$ at time $t$ given all of
 the data by
 \begin{equation}
   \label{eq:wit}
-  w(s,t) \equiv P_{\ti{S}{t}\given \ts{Y}{0}{T}} \left(s\given \ts{y}{0}{T}
+  w(t,s) \equiv P_{\ti{S}{t}\given \ts{Y}{0}{T}} \left(s\given \ts{y}{0}{T}
   \right),
 \end{equation}
-\nomenclature[rwst]{$w(s,t)$}{In the reestimation phase of the Baum-Welch
+\nomenclature[rwst]{$w(t,s)$}{In the reestimation phase of the Baum-Welch
   algorithm, the \emph{weight} assigned to state $s$ at time $t$,
   \begin{equation*}
-    w(s,t) \equiv P_{\ti{S}{t} \given \ts{Y}{0}{T}} \left(s \given \ts{y}{0}{T}
+    w(t,s) \equiv P_{\ti{S}{t} \given \ts{Y}{0}{T}} \left(s \given \ts{y}{0}{T}
     \right).
   \end{equation*}}% end nomenclature
 and we denote the conditional probability, given all of the data, of
@@ -742,14 +742,14 @@ being in state $s$ at time $t$ and being in state ${\tilde s}$ at time
 $t+1$ by
 \begin{equation}
   \label{eq:wijt}
-  {\tilde w}({\tilde s},s,t) \equiv P_{\ti{S}{t+1},\ti{S}{t}\given \ts{Y}{0}{T}}
+  {\tilde w}(t,{\tilde s},s) \equiv P_{\ti{S}{t+1},\ti{S}{t}\given \ts{Y}{0}{T}}
   \left({\tilde s},s\given \ts{y}{0}{T} \right).
 \end{equation}
-\nomenclature[rwsst]{$ {\tilde w}({\tilde s},s,t)$}{In the reestimation phase
+\nomenclature[rwsst]{$ {\tilde w}(t,{\tilde s},s)$}{In the reestimation phase
   of the Baum-Welch algorithm, the \emph{weight} assigned to the
   transition from state $s$ at time $t$ to state $\tilde s$ at time $t+1$,
   \begin{equation*}
-     {\tilde w}({\tilde s},s,t) \equiv P_{\ti{S}{t+1},\ti{S}{t} \given \ts{Y}{0}{T}}
+     {\tilde w}(t,{\tilde s},s) \equiv P_{\ti{S}{t+1},\ti{S}{t} \given \ts{Y}{0}{T}}
   \left({\tilde s},s \given \ts{y}{0}{T} \right).
   \end{equation*}}
 Table~\ref{tab:reestimation} (page \pageref{tab:reestimation})
@@ -761,14 +761,14 @@ $P_{\ti{Y}{t}\given \ti{S}{t}}$ we will consider a sum over all possible
 state sequences $\ts{s}{0}{T}$, \ie,
 \begin{equation}
   \label{eq:witFFE}
-  w(s,t) = \sum_{\ts{s}{0}{T}:\ti{s}{t}=s}
+  w(t,s) = \sum_{\ts{s}{0}{T}:\ti{s}{t}=s}
   P \left(\ts{s}{0}{T}\given \ts{y}{0}{T}
   \right).
 \end{equation}
 Since this is virtually unimplementable, the actual algorithm uses
 \begin{equation}
   \label{eq:witalphabeta}
-  w(s,t) = \alpha(s,t) \beta(s,t).
+  w(t,s) = \alpha(t,s) \beta(t,s).
 \end{equation}
 In fact, in Eqn.~\eqref{eq:bw1}, we chose the expression for $\beta$
 to make Eqn.~\eqref{eq:witalphabeta} true.
@@ -777,15 +777,15 @@ Similarly, we will derive the reestimation formula for
 $P_{\ti{S}{t+1}\given \ti{S}{t}}$ using
 \begin{equation}
   \label{eq:wijtFFE}
-  {\tilde w}({\tilde s},s,t) = \sum_{\substack{\ts{s}{0}{T}:\ti{s}{t+1}={\tilde s},\\\ti{s}{t}=s}}
+  {\tilde w}(t,{\tilde s},s) = \sum_{\substack{\ts{s}{0}{T}:\ti{s}{t+1}={\tilde s},\\\ti{s}{t}=s}}
   P \left(\ts{s}{0}{T}\given \ts{y}{0}{T} \right),
 \end{equation}
 but in the algorithm we use
 \begin{equation}
   \label{eq:wijtalphabeta}
-  {\tilde w}({\tilde s},s,t) = \frac{ \alpha(s,t) \cdot P_{\ti{S}{t+1}\given \ti{S}{t}}
+  {\tilde w}(t,{\tilde s},s) = \frac{ \alpha(t,s) \cdot P_{\ti{S}{t+1}\given \ti{S}{t}}
     \left({\tilde s}\given s \right)  \cdot P_{\ti{Y}{t+1}\given \ti{S}{t+1}}
-    \left(\ti{y}{t+1}\given {\tilde s} \right) \cdot \beta({\tilde s},t+t) }
+    \left(\ti{y}{t+1}\given {\tilde s} \right) \cdot \beta(t+1,{\tilde s}) }
   {\ti{\gamma}{t+1}}.
 \end{equation}
 One can verify Eqn.~\eqref{eq:wijtalphabeta} using the model
@@ -795,7 +795,7 @@ Bayes rule.
 \subsubsection{Reestimation}
 
 With Eqns.~\eqref{eq:witalphabeta} and \eqref{eq:wijtalphabeta} for
-$w(i,t)$ and ${\tilde w}({\tilde s},s,t)$ in terms of known quantities
+$w(t,i)$ and ${\tilde w}(t,{\tilde s},s)$ in terms of known quantities
 ($\alpha$, $\beta$, $\gamma$, $\ts{y}{0}{T}$, and the old model
 parameters $\ti{\parameters}{n}$), we are prepared to use the formulas
 in Table \ref{tab:reestimation} to calculate new estimates of the
@@ -806,7 +806,7 @@ model parameters, $\ti{\parameters}{n+1}$ with higher likelihood.
   {Summary of reestimation formulas.\index{reestimation formulas}}
   \centering{\plotsize%
     \begin{minipage}{.7\textwidth}
-      Note that formulas for $w(s,t)$ and ${\tilde w}({\tilde s},s,t)$
+      Note that formulas for $w(t,s)$ and ${\tilde w}(t,{\tilde s},s)$
       appear in Eqns.~\eqref{eq:witalphabeta} and
       \eqref{eq:wijtalphabeta} respectively.
     \end{minipage}\\[1ex]
@@ -817,15 +817,15 @@ model parameters, $\ti{\parameters}{n+1}$ with higher likelihood.
       \hline
       \rule{0pt}{2.5ex}Initial State Prob.
       & $P_{\ti{S}{0}\given \ti{\parameters}{n+1}} \left(s\given \ti{\parameters}{n+1} \right)$
-      & $ w(s,0) $ \\[1.5ex]
+      & $ w(0,s) $ \\[1.5ex]
       State Transition Prob.
       & $P_{\ti{S}{t+1}\given \ti{S}{t},\ti{\parameters}{n+1}} \left({\tilde
           s}\given s, \ti{\parameters}{n+1} \right)$
-      & $ \frac {\sum_{t=1}^{T-1} {\tilde w}({\tilde s},s,t)} {\sum_{s'\in\states}
-        \sum_{t=1}^{T-1} {\tilde w}(s',s,t)}$ \\[2.5ex]
+      & $ \frac {\sum_{t=1}^{T-1} {\tilde w}(t,{\tilde s},s)} {\sum_{s'\in\states}
+        \sum_{t=1}^{T-1} {\tilde w}(t,s',s)}$ \\[2.5ex]
       Cond. Observation Prob.
       & $P_{\ti{Y}{t}\given \ti{S}{t},\ti{\parameters}{n+1}} \left(y\given s, \ti{\parameters}{n+1} \right)$
-      & $ \frac {\sum_{t:\ti{y}{t}=y} w(s,t)} {\sum_{t} w(s,t)}$ \\[2.0ex]
+      & $ \frac {\sum_{t:\ti{y}{t}=y} w(t,s)} {\sum_{t} w(t,s)}$ \\[2.0ex]
       \hline
 %    \end{tabular*}}
     \end{tabular}}
@@ -922,7 +922,7 @@ Now to optimize $Q_{\text{initial}}$ write Eqn.~\eqref{eq:Qinitial} as
   \left(\ts{s}{0}{T}\given \ts{y}{0}{T},\parameters \right)\\
   &= \sum_s L_{\text{initial}}(s) P_{\ti{S}{0}\given \ts{Y}{0}{T},\parameters}
   \left(s\given \ts{y}{0}{T},\parameters \right) \text{ see Eqn.~\eqref{eq:witFFE}}\\
-  &= \sum_s L_{\text{initial}}(s) w(s,0)
+  &= \sum_s L_{\text{initial}}(s) w(0,s)
 \end{align}
 We wish to find the set $\left\{ L_{\text{initial}}(s) \right\}$ that
 maximizes $Q_{\text{initial}} (\parameters',\parameters)$ subject to the
@@ -934,12 +934,12 @@ constraint
 The method of Lagrange multipliers yields
 \begin{equation}
   \label{eq:LiSol}
-   L_{\text{initial}}(s) = \log w(s,0) ~ \forall s,
+   L_{\text{initial}}(s) = \log w(0,s) ~ \forall s,
 \end{equation}
 ie, the new estimates of the initial probabilities are
 \begin{equation}
   \label{eq:InitialRe}
-  P_{\ti{S}{0}\given \ti{\parameters}{n+1}} \left(s\given \ti{\parameters}{n+1} \right) = w(s,0).
+  P_{\ti{S}{0}\given \ti{\parameters}{n+1}} \left(s\given \ti{\parameters}{n+1} \right) = w(0,s).
 \end{equation}
 
 To derive new estimates of the state transition probabilities, write
@@ -953,15 +953,15 @@ To derive new estimates of the state transition probabilities, write
         s},\\\ti{s}{t-1}=s}}
   P\left(\ts{s}{0}{T}\given \ts{y}{0}{T},\parameters \right)\\
   &= \sum_{s,{\tilde s}} L_{\text{transition}}(s,{\tilde s})
-  \sum_{t=1}^{T-1} {\tilde w}({\tilde s},s,t).
+  \sum_{t=1}^{T-1} {\tilde w}(t,{\tilde s},s).
 \end{align}
 Optimization yields
 \begin{equation}
   \label{eq:NewTrans}
   P_{\ti{S}{1}\given \ti{S}{0},\ti{\parameters}{n+1}} \left({\tilde
       s}\given s,\ti{\parameters}{n+1} \right) = \frac
-  {\sum_{t=1}^{T-1} {\tilde w}({\tilde s},s,t)} {\sum_{s'}
-    \sum_{t=1}^{T-1} {\tilde w}(s',s,t)}.
+  {\sum_{t=1}^{T-1} {\tilde w}(t,{\tilde s},s)} {\sum_{s'}
+    \sum_{t=1}^{T-1} {\tilde w}(t,s',s)}.
 \end{equation}
 
 Similarly, we derive the new estimates of the conditional observation
@@ -976,14 +976,14 @@ probabilities from
   \sum_{t:\ti{y}{t}=y}
   \sum_{\ts{s}{0}{T}:\ti{s}{t}=s }P
   \left(\ts{s}{0}{T}\given \ts{y}{0}{T},\parameters \right) \\
-  &= \sum_{y,s} L_{\text{observation}}(y,s) \sum_{t:\ti{y}{t}=y} w(s,t).
+  &= \sum_{y,s} L_{\text{observation}}(y,s) \sum_{t:\ti{y}{t}=y} w(t,s).
 \end{align}
 Optimization yields
 \begin{equation}
   \label{eq:NewOut}
   P_{\ti{Y}{t}\given \ti{S}{t},\ti{\parameters}{n+1}}
   \left(y\given s,\ti{\parameters}{n+1} \right) = \frac
-  {\sum_{t:\ti{y}{t}=y} w(s,t)} {\sum_{t=1}^{T-1} w(s,t)}.
+  {\sum_{t:\ti{y}{t}=y} w(t,s)} {\sum_{t=1}^{T-1} w(t,s)}.
 \end{equation}
 
 %%%
@@ -1088,7 +1088,7 @@ at a particular time $t$ is the best guess for where the system was at
 that time given all of the observations, \ie
 %
 $\ti{\hat s}{t} = \argmax_{s'}P(\ti{s'}{t}\given \ts{y}{0}{T}) =
-\argmax_{s'}\alpha(s',t) \beta(s',t)$
+\argmax_{s'}\alpha(t,s') \beta(t,s')$
 %
 (see \eqref{eq:wit} --
 \eqref{eq:witalphabeta}).  While it seems reasonable that a sequence
@@ -1177,7 +1177,7 @@ In particular for each iteration, one should:
 \item Modify the reestimated initial state probabilities using
   \begin{equation*}
     P_{\ti{S}{0}\given \ti{\parameters}{m+1}} \left(s\given \ti{\parameters}{m+1}
-    \right) = \frac{1}{n} \sum_{k=0}^{n-1} \alpha_k(s,0) \beta_k(s,0)
+    \right) = \frac{1}{n} \sum_{k=0}^{n-1} \alpha_k(s,0) \beta_k(0,s)
   \end{equation*}
 \end{itemize}
 
@@ -1198,7 +1198,7 @@ estimates using
 \begin{equation}
   \label{eq:Ps0stationary}
   P_{\ti{S}{0}(\text{stationary})} \left(s \right) =
-  \frac{\sum_{t}w(i,t)}{\sum_{j,t}w(j,t)}
+  \frac{\sum_{t}w(t,i)}{\sum_{j,t}w(t,j)}
 \end{equation}
 
 

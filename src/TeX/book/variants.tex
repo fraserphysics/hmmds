@@ -200,15 +200,15 @@ following modifications:
   \sum_{\ts{q}{0}{T}:\ti{q}{t}=s }P_{\parameters}
   \left(\ts{q}{0}{T}\given \ts{y}{0}{T} \right) \\
   \label{eq:QoutG3}
-  &= - \sum_{s\in\states} \sum_{t=0}^{T-1} w(s,t) \left( \frac{1}{2}
+  &= - \sum_{s\in\states} \sum_{t=0}^{T-1} w(t,s) \left( \frac{1}{2}
     \log(2\pi) + \log(\sigma_s) + \frac{\left( \ti{y}{t}-\mu_s
       \right)^2}{2\sigma_s^2} \right).
 \end{align}
 Since the formulas
 \begin{align}
   \label{eq:NewMuG}
-  \mu_s &= \sum_{t=0}^{T-1} w(s,t) \ti{y}{t} \\
-  \sigma_s^2 &= \sum_{t=0}^{T-1} w(s,t)\left( \ti{y}{t}-\mu_s \right)^2
+  \mu_s &= \sum_{t=0}^{T-1} w(t,s) \ti{y}{t} \\
+  \sigma_s^2 &= \sum_{t=0}^{T-1} w(t,s)\left( \ti{y}{t}-\mu_s \right)^2
 \end{align}
 maximize $Q_{\text{observation}} (\parameters',\parameters)$, we use them in place
 of the discrete observation reestimation formula of
@@ -512,23 +512,23 @@ A derivation like the one leading to \eqref{eq:QoutG3} yields
 \begin{equation}
   \label{eq:QVARGmle1}
   Q_{\text{observation}} (\parameters',\parameters) =  \frac{1}{2}
-      \sum_{s\in\states} \sum_{t=0}^{T-1} w(s,t) \left[ \log\left( \left|
+      \sum_{s\in\states} \sum_{t=0}^{T-1} w(t,s) \left[ \log\left( \left|
       \Sigma_s^{-1} \right| \right) - n
       \log(2\pi) - z_s\transpose(t)
       \Sigma_s^{-1} z_s(t)\right].
 \end{equation}
 Hence each term in the sum over $s$ can be optimized separately.  One
-can write code that maximizes $ \sum_{t=0}^{T-1} w(s,t) \left[ \log \left|
+can write code that maximizes $ \sum_{t=0}^{T-1} w(t,s) \left[ \log \left|
     \Sigma_s^{-1} \right| - z_s\transpose(t) \Sigma_s^{-1}
   z_s(t)\right]$ using operations on vectors and matrices as
 follows:
 \begin{enumerate}
 \item Create a weighted \emph{context} matrix $X_s$ with columns
-  $\ti{x}{t}\sqrt{w(s,t)}$, where $w(s,t) =
+  $\ti{x}{t}\sqrt{w(t,s)}$, where $w(t,s) =
   P_{\ti{S}{t}\given \ts{y}{0}{T}} \left(s\given \ts{y}{0}{T} \right)$ and
   Eqn.~\eqref{eq:context} defines $\ti{x}{t}$.
 \item Create a weighted \emph{observation} matrix $Y_s$ with columns
-  $\ti{y}{t}\sqrt{w(s,t)}$.
+  $\ti{y}{t}\sqrt{w(t,s)}$.
 \item \label{step:A} Solve
   \begin{equation}
     \label{eq:VARGnewA}
@@ -552,14 +552,14 @@ follows:
   i.e., the derivative of the log of the determinant with respect to the
   $i,j^{th}$ element of $M$ is the $i,j^{th}$ element of $M^{-1}$.
   
-  Since the value of $A_s$ that minimizes $ \sum_{t=0}^{T-1} w(s,t) -
+  Since the value of $A_s$ that minimizes $ \sum_{t=0}^{T-1} w(t,s) -
   z_s\transpose(t) \Sigma_s^{-1} z_s(t)$ is independent of
 $\Sigma_s^{-1}$, it is correct to do step \ref{step:A} before step
 \ref{step:cov}. }
   \begin{equation}
     \label{eq:VARGnewSigma}
-    \Sigma_s = \frac{\sum_{t=0}^{T-1} w(s,t) z_s(t)
-      z_s\transpose(t)}{\sum_{t=0}^{T-1} w(s,t)}
+    \Sigma_s = \frac{\sum_{t=0}^{T-1} w(t,s) z_s(t)
+      z_s\transpose(t)}{\sum_{t=0}^{T-1} w(t,s)}
   \end{equation}
 \end{enumerate}
 
@@ -611,17 +611,17 @@ we find
   Q_{\text{observation}} = C + \sum_s \left( \frac{\alpha}{2}\log\left|
       \Sigma_s^{-1}\right| - \frac{1}{2} {\bf tr}(\beta
     \Sigma_s^{-1}) \right) \\
-  + \frac{1}{2} \sum_s \sum_{t=0}^{T-1} w(s,t) \left[ \log \left|
+  + \frac{1}{2} \sum_s \sum_{t=0}^{T-1} w(t,s) \left[ \log \left|
       \Sigma_s^{-1} \right| - z_s\transpose(t) \Sigma_s^{-1} z_s(t)\right],
 \end{multline*}
-where $z_s(t) \equiv y(t) - A_s x(t)$ and $w(s,t)$ is the probability
+where $z_s(t) \equiv y(t) - A_s x(t)$ and $w(t,s)$ is the probability
 of being in state $s$ at time $t$ given the data $\ts{y}{0}{T}$.
 Reestimation of the regularized model is the same as reestimation for
 the unregularized model except that Eqn.~\ref{eq:VARGnewSigma} is
 replaced with
 \begin{equation}\label{eq:NewSigma}
-  \Sigma_s = \frac{\beta \id + \sum_{t=0}^{T-1} w(s,t) z_s(t)
-    z_s\transpose(t)} {\alpha + \sum_{t=0}^{T-1} w(s,t)}.
+  \Sigma_s = \frac{\beta \id + \sum_{t=0}^{T-1} w(t,s) z_s(t)
+    z_s\transpose(t)} {\alpha + \sum_{t=0}^{T-1} w(t,s)}.
 \end{equation}
 Thus in the absence of new information, a covariance matrix is given
 the default value $\frac{\beta \id}{\alpha}$, and $\alpha$ is the

@@ -366,8 +366,6 @@ apply that HMM to classify each minute of the test data.
   \label{fig:a03a10b03c02}
 \end{figure}
 
-\marginpar{ToDo: Use red for the plots on the right and on the left
-  highlight the intervals in red.}
 \begin{figure}
   \centering{\resizebox{\textwidth}{!}{\includegraphics{constant_a03.pdf}}}
   \caption[Invariant PQRST shape]%
@@ -398,7 +396,6 @@ Figure~\ref{fig:constant_a03} illustrates the invariance.
 \subsubsection{State topology}
 \label{sec:state_topology}
 
-\marginpar{ToDO: Start at S1 and F1 in Fig.~\ref{fig:ecg_hmm}}
 \begin{figure}
   \centering{\resizebox{0.5\textwidth}{!}{\input{ecg_hmm.pdf_t}}
   }
@@ -588,14 +585,14 @@ data from the estimated raw heart rate signal using these parameters.
 
 Equation \eqref{eq:wit}, ie,
 \begin{equation*}
-  w(s,t) \equiv P_{\ti{S}{t}\given \ts{Y}{0}{T}} \left(s\given \ts{y}{0}{T}
+  w(t,s) \equiv P_{\ti{S}{t}\given \ts{Y}{0}{T}} \left(s\given \ts{y}{0}{T}
   \right),
 \end{equation*}
 provides the probability of each state at each time given the model and
 all of the observations.  From such state weights, we construct a
 sequence of ratios with
 \begin{equation*}
-  \ti{r}{t} \equiv \frac{\sum_{s\in A} w(s,t)}{\sum_{s\in N} w(s,t)}
+  \ti{r}{t} \equiv \frac{\sum_{s\in A} w(t,s)}{\sum_{s\in N} w(t,s)}
 \end{equation*}
 where $A$ is the set of apnea states and $N$ is the set of normal
 states.  Finally we derive a sequence of classifications,

@@ -78,7 +78,7 @@ observations
 Then it calculates the conditional distribution of states given the
 observations up to the present time
 \begin{equation*}
-  \alpha(x,t) \equiv P_{\ti{X}{t}\given \ts{Y}{0}{t}} \left(x\given \ts{y}{0}{t}
+  \alpha(t,x) \equiv P_{\ti{X}{t}\given \ts{Y}{0}{t}} \left(x\given \ts{y}{0}{t}
   \right).
 \end{equation*}
 The equations
@@ -92,16 +92,16 @@ The equations
   P_{\ti{X}{0},\ti{Y}{0}}
   \left(x,\ti{y}{0} \right) dx \\
                                 %
-  \alpha(x,0) \equiv P_{\ti{X}{0}\given \ti{Y}{0}} \left(x\given \ti{y}{0} \right) &=
+  \alpha(0,x) \equiv P_{\ti{X}{0}\given \ti{Y}{0}} \left(x\given \ti{y}{0} \right) &=
   \frac{P_{\ti{X}{0},\ti{Y}{0}} \left(x,\ti{y}{0}
     \right)}{P\left(\ti{y}{0} \right)}
 \end{align}
 specify the calculation of $\ti{\gamma}{0}$, the probability of the first
-observation, and of $\alpha(x,0)$, the conditional distribution of the
+observation, and of $\alpha(0,x)$, the conditional distribution of the
 first state given the first observation, that initialize the
-algorithm.  Given $\ti{\gamma}{0}$ and $\alpha(x,0)$, the forward algorithm
+algorithm.  Given $\ti{\gamma}{0}$ and $\alpha(0,x)$, the forward algorithm
 executes the following recursion to calculate $\ti{\gamma}{t}$ and
-$\alpha(x,t)$ for each of the remaining observations $\ti{y}{t}$.
+$\alpha(t,x)$ for each of the remaining observations $\ti{y}{t}$.
 \begin{description}
 \item[Forecast the state distribution] \index{forecast} Find the
   conditional distribution of the state at the next time given the
@@ -115,7 +115,7 @@ $\alpha(x,t)$ for each of the remaining observations $\ti{y}{t}$.
   &= P\left(\ti{x}{t+1}\given \ti{x}{t} \right)
   P\left(\ti{x}{t}\given \ts{y}{0}{t} \right) \\
   &= P\left(\ti{x}{t+1}\given \ti{x}{t} \right)
-  \alpha(\ti{x}{t},t)\\
+  \alpha(t,\ti{x}{t})\\
                                 %
   \label{eq:t277}
   P\left(\ti{x}{t+1}\given \ts{y}{0}{t} \right) &= \int
@@ -124,7 +124,7 @@ $\alpha(x,t)$ for each of the remaining observations $\ti{y}{t}$.
 %%   P\left(\ti{x}{t}\given \ts{y}{0}{t} \right) d\ti{x}{t} \\
   \label{eq:IFore}
   &= \int P \left(\ti{x}{t+1}\given \ti{x}{t} \right)
-  \alpha(\ti{x}{t},t) d\ti{x}{t}
+  \alpha(t,\ti{x}{t}) d\ti{x}{t}
 \end{align}
 Here we justify \eqref{eq:t274} by Bayes rule, \eqref{eq:t275} by
 the model assumptions, and \eqref{eq:t277} by the definition of a
@@ -157,7 +157,7 @@ the model assumptions.
   the conditional distribution of the state at time $t+1$ given all of
   the measurements up to time $t+1$.
 \begin{align}
-  \alpha(x(t+1),t+1) &= P\left(\ti{x}{t+1}\given \ts{y}{0}{t+2} \right) \\
+  \alpha(t+1,x(t+1)) &= P\left(\ti{x}{t+1}\given \ts{y}{0}{t+2} \right) \\
   &=  \frac{ P\left(\ti{x}{t+1},\ti{y}{t+1}\given \ts{y}{0}{t+1}
     \right)}{P\left(\ti{y}{t+1}\given \ts{y}{0}{t} \right)}\\
   \label{eq:IUpdate}
@@ -174,39 +174,39 @@ Similarly, the backward algorithm finds a function called the
 \index*{backwards forecast},
 \begin{equation}
   \label{eq:contbeta}
-  \beta(x,t) \equiv \frac{P_{\ts{Y}{t+1}{T}\given \ti{X}{t}}
+  \beta(t,x) \equiv \frac{P_{\ts{Y}{t+1}{T}\given \ti{X}{t}}
   \left(\ts{y}{t+1}{T}\given x \right)}{P\left(\ts{y}{t+1}{T}\given \ts{y}{0}{t}
                \right)},
 \end{equation}
-for each time $t$ by starting with $\beta(x,T-1) = 1$ and following with
+for each time $t$ by starting with $\beta(T-1,x) = 1$ and following with
 the recursion
 \begin{equation}
   \label{eq:contback}
-  \beta(x,t-1) = \int 
-  \frac{\beta(x',t) P_{\ti{Y}{t}\given \ti{X}{t}}\left(\ti{y}{t}\given x' \right)
+  \beta(t-1,x) = \int 
+  \frac{\beta(t,x') P_{\ti{Y}{t}\given \ti{X}{t}}\left(\ti{y}{t}\given x' \right)
   P_{\ti{X}{t}\given \ti{X}{t-1}}\left(x'\given x \right)}
   {P\left(\ti{y}{t}\given \ts{y}{0}{t} \right)} dx'.
 \end{equation}
 Note that by replacing the sum over discrete states $s$ in
 \eqref{eq:back4} with an integral over continuous states $x'$ one
 obtains \eqref{eq:contback}, and that as with the discrete case we
-have chosen to define $\beta(x,t)$ so that the conditional
+have chosen to define $\beta(t,x)$ so that the conditional
 distribution of the state at time $t$ given all of the observations is
 \begin{equation}
   \label{eq:contalphabeta}
-  \alpha(x,t) \beta(x,t) = P_{\ti{X}{t}\given \ts{Y}{0}{T}}
+  \alpha(t,x) \beta(t,x) = P_{\ti{X}{t}\given \ts{Y}{0}{T}}
   \left(x\given \ts{y}{0}{T} \right).
 \end{equation}
 Defining and evaluating a \emph{\index*{backwards update}} function
 \begin{equation}
   \label{eq:bdef}
-  b(x,t) \equiv \frac{\beta(x,t)
+  b(x,t) \equiv \frac{\beta(t,x)
     P_{\ti{Y}{t}\given \ti{X}{t}}\left(\ti{y}{t}\given x
     \right)} {P\left(\ti{y}{t}\given \ts{y}{0}{t} \right)}
 \end{equation}
 lets one write Eqn.~\eqref{eq:contback} as
 \begin{equation*}
-  \beta(x,t-1) = \int b(x',t) P_{\ti{X}{t}\given \ti{X}{t-1}}\left(x'\given x
+  \beta(t-1,x) = \int b(x',t) P_{\ti{X}{t}\given \ti{X}{t-1}}\left(x'\given x
   \right) dx'
 \end{equation*}
 which may make evaluating the integral easier.
@@ -293,11 +293,11 @@ distributions described by these parameters are also Gaussian.
   $\bm{\ti{\Sigma_\beta}{t}}$] are the parameters\footnote{On page
     342, Kailath et al.\cite{KSH00} use $\hat x_i^b$ to denote the
     quantity that we call $\ti{\mu_\beta}{t}$.} of the
-  backwards forecast function $\beta(x,t)$, which as a ratio of
+  backwards forecast function $\beta(t,x)$, which as a ratio of
   Gaussian functions is itself an unnormalized Gaussian.  We define
   $\ti{N_\beta}{t}$ by
   \begin{equation*}
-    \frac{\beta(x,t)}{\ti{N_\beta}{t}} =
+    \frac{\beta(t,x)}{\ti{N_\beta}{t}} =
     \NormalE{\ti{\mu_\beta}{t}}{\ti{\Sigma_\beta}{t}}{x}.
   \end{equation*}
 \item[$\bm{\ti{\mu_b}{t}}$ and $\bm{\ti{\Sigma_b}{t}}$] are the
@@ -714,7 +714,7 @@ the state $x$.
 Equation \eqref{eq:contback} states the backward recursion as the
 integral
 \begin{equation*}
-  \beta(x,t-1) =  
+  \beta(t-1,x) =  
   \frac{1}{\ti{\gamma}{t}} \int\beta(x',t)
   P_{\ti{Y}{t}\given \ti{X}{t}}\left(\ti{y}{t}\given x' \right)
   P_{\ti{X}{t}\given \ti{X}{t-1}}\left(x'\given x \right) dx'.
@@ -724,10 +724,10 @@ In the context of linear Gaussian systems, $P
 $\NormalE{\ti{G}{t}\ti{x}{t}}{\Sigma_\epsilon}{\ti{y}{t}}$, $P
 \left(\ti{x}{t}\given \ti{x}{t-1}\right) $ is the Gaussian $
 \NormalE{\ti{F}{t} \ti{x}{t-1}}{\Sigma_\eta)}{\ti{x}{t}}$, and
-$\frac{\beta(x,t)}{\ti{N_\beta}{t}} $ is the Gaussian $
+$\frac{\beta(t,x)}{\ti{N_\beta}{t}} $ is the Gaussian $
 \NormalE{\ti{\mu_\beta}{t}}{\ti{\Sigma_\beta}{t}}{x}$.  Thus
 \begin{equation*}
-  \beta(x,t-1) =  
+  \beta(t-1,x) =  
   \frac{\ti{N_\beta}{t}}{\ti{\gamma}{t}} \int
   \NormalE{\ti{\mu_\beta}{t}}{\ti{\Sigma_\beta}{t}}{x'}
   \NormalE{\ti{G}{t}x'}{\Sigma_\epsilon}{\ti{y}{t}}
@@ -758,7 +758,7 @@ calculate those parameters without evaluating the entire integral:
   term $(x' - \mu)\transpose \Sigma^{-1} (x' - \mu)$ and $R$ only
   affects normalization, the surviving parameters
   $\ti{\mu_\beta}{t-1}$ and $\ti{\Sigma_\beta}{t-1}$ describe the
-  function $\beta(x,t-1)$ up to normalization
+  function $\beta(t-1,x)$ up to normalization
 \end{enumerate}
 
 We begin with step~\ref{BackList3} in the list above by examining the
@@ -882,15 +882,15 @@ So
 \label{sec:DetailSmoothing}
 \index{smoothing}
 
-We have defined $\alpha(x,t)$ and $\beta(x,t)$ so that
+We have defined $\alpha(t,x)$ and $\beta(t,x)$ so that
 \begin{equation*}
    P_{\ti{X}{t}\given \ts{Y}{0}{T}} \left(x\given \ts{y}{0}{T} \right) =
-   \alpha(x,t) \beta(x,t).
+   \alpha(t,x) \beta(t,x).
 \end{equation*}
 (See Eqn.~\eqref{eq:contalphabeta}.)  In fact
 $P_{\ti{X}{t}\given \ts{Y}{0}{T}}$ is Gaussian, and we denote its parameters
 $\ti{\mu_{\alpha \beta}}{t}$ and $\ti{\Sigma_{\alpha \beta}}{t}$.
-Examining the exponential terms in $\alpha(x,t) \beta(x,t)$ we find
+Examining the exponential terms in $\alpha(t,x) \beta(t,x)$ we find
 (suppressing the time indices)
 \begin{align*}
   &\left( x - \mu_\alpha \right)\transpose \Sigma_\alpha^{-1} \left( x
