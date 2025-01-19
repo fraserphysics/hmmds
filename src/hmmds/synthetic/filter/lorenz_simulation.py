@@ -10,7 +10,7 @@ import argparse
 import numpy
 
 import hmm.state_space
-import hmmds.synthetic.filter.lorenz_sde
+import hmmds.synthetic.filter.lorenz_sde  # Cython
 
 from hmmds.synthetic.filter import linear_map_simulation
 

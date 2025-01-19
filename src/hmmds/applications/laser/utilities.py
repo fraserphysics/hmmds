@@ -142,16 +142,23 @@ def observe(parameters, n_samples):
 
 
 class FixedPoint:
-    """Characterizes the focus of the Lorenz system at x_i > 0
+    """Characterizes a focus of the Lorenz system
+
+    Args:
+        r,s,b: Parameters of Lorenz system
+        sign: Specifies which focus to characterize
     """
 
     def __init__(
             self,  # FixedPoint
-            r,
+            r=28.0,
             s=10.0,
-            b=8.0 / 3):
+            b=8.0 / 3,
+            sign=1,
+    ):
+        assert abs(sign) == 1
         self.r = r
-        root = numpy.sqrt(b * (r - 1))
+        root = sign*numpy.sqrt(b * (r - 1))
         self.fixed_point = numpy.array([root, root, r - 1])
         df_dx = numpy.array([  # derivative of x_dot wrt x
             [-s, s, 0], [1, -1, -root], [root, root, -b]
