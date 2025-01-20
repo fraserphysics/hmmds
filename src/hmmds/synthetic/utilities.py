@@ -93,7 +93,6 @@ def get_bins(args):
     return numpy.linspace(-20, 20, args.levels + 1)[1:-1]
 
 
-
 class FixedPoint:
     """Characterizes a focus of the Lorenz system
 
@@ -103,12 +102,12 @@ class FixedPoint:
     """
 
     def __init__(
-            self,  # FixedPoint
-            r=28.0,
-            s=10.0,
-            b=8.0 / 3,
-            t_sample=0.15,
-            sign=1,
+        self,  # FixedPoint
+        r=28.0,
+        s=10.0,
+        b=8.0 / 3,
+        t_sample=0.15,
+        sign=1,
     ):
         self.r = r
         self.s = s
@@ -118,7 +117,7 @@ class FixedPoint:
             self.fixed_point = numpy.zeros(3)
             return
         assert abs(sign) == 1
-        root = sign*numpy.sqrt(b * (r - 1))
+        root = sign * numpy.sqrt(b * (r - 1))
         self.fixed_point = numpy.array([root, root, r - 1])
 
     def dPhi_dx(self, t_sample):
@@ -126,6 +125,7 @@ class FixedPoint:
         """
         _, result = integrate_tangent(t_sample, self.fixed_point, numpy.eye(3))
         return result
+
 
 #---------------
 # Local Variables:

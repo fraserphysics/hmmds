@@ -11,6 +11,7 @@ import argparse
 import numpy
 import numpy.random
 
+import utilities
 import hmm.base
 import hmm.observe_float
 import hmm.simple
@@ -25,8 +26,9 @@ def parse_args(argv):
         "Make data for figure of states from vector autoregressive model")
     parser.add_argument('--n_states', type=int, default=12)
     parser.add_argument('--random_seed', type=int, default=1)
-    parser.add_argument('--nu', type=float, default=1.0e6)
-    parser.add_argument('--psi', type=float, default=4.0e6)
+    parser.add_argument('--nu', type=float, default=1.0)
+    parser.add_argument('--Psi', type=float, default=4.0)
+    parser.add_argument('--t_sample', type=float, default=0.15)
     parser.add_argument('data_dir', type=str)
     parser.add_argument('data_in', type=str)
     parser.add_argument('out_preface', type=str)
@@ -60,21 +62,32 @@ def main(argv=None):
     n_t -= 1
     context_dim = vector_dim + 1
     assert context_dim == 4
+    assert vector_dim == 3
 
-    # Make initial model
-    model = make_varg_hmm(args, vector_dim, context_dim, vectors)
+    # Initial 5 state model has plausible approximate symmetry
+    model_5 = make_varg_hmm(args, vector_dim, context_dim, vectors, n_states=5)
+    # Overwrite states with fits to fixed points
+    for state, sign in enumerate((-1, 0, 1)):
+        fixed_point = utilities.FixedPoint(sign=sign)
+        model_5.y_mod.a_mean[state, 0:3,
+                             0:3] = fixed_point.dPhi_dx(args.t_sample)
+        model_5.y_mod.a_mean[state, :, 3] = fixed_point.fixed_point
+    iterations = 70
+    model_5.train(y, iterations)
 
-    # Train while loosening prior.  Recall update formula: Cov[s] =
-    # (Psi + rrsum)/(wsum[s]+nu+dimension+1).  FixMe: Don't modify
-    # from outside.  Call some kind of method of model.y_mod instead.
-    iterations = 10
-    for scale in (1, 1e-5, .5, .5):
-        model.y_mod.nu *= scale
-        model.y_mod.Psi *= scale
-        model.train(y, iterations)
+    # I don't understand why the trained 12 state model has so many
+    # states along the x_2 axis
+    model_12 = make_varg_hmm(args,
+                             vector_dim,
+                             context_dim,
+                             vectors,
+                             n_states=12)
+    model_12.y_mod.a_mean[:5, :, :] = model_5.y_mod.a_mean
+    model_12.y_mod.sigma[:5, :, :] = model_5.y_mod.sigma
+    model_12.train(y, iterations)
 
     # Do Viterbi decoding
-    states = model.decode(y)
+    states = model_12.decode(y)
 
     # Write the vectors that were decoded for each state.
     # pylint: disable = consider-using-f-string, consider-using-with
@@ -88,13 +101,17 @@ def main(argv=None):
     return 0
 
 
-def make_varg_hmm(args, out_dimension, context_dimension, vectors):
+def make_varg_hmm(args,
+                  out_dimension,
+                  context_dimension,
+                  vectors,
+                  n_states=None):
     """Returns a normalized random initial model.
 
     Args:
-        args: Command line args, n_states, random_seed, nu, psi
-        out_dimension:
-        context_dimension:
+        args: From command line need: n_states, random_seed, nu, Psi, t_sample
+        out_dimension: 3-d Lorenz data
+        context_dimension: 4-d Lorenz + offset
         vectors: A sequence of observations
 
     Return:
@@ -102,35 +119,33 @@ def make_varg_hmm(args, out_dimension, context_dimension, vectors):
 
     """
 
+    assert out_dimension == 3
+    assert context_dimension == 4
+
+    if n_states is None:
+        n_states = args.n_states
+
     # Make VARG observation model
     rng = numpy.random.default_rng(args.random_seed)
-
-    # Generate a random time for each state
-    t_state = rng.integers(1, high=len(vectors), size=args.n_states)
-
-    # Setup forecast and to work perfectly for state s at time t_state[state]
-    a_forecast = numpy.zeros((args.n_states, out_dimension, context_dimension))
-    for state in range(args.n_states):
-        # Assign one column at a time
-        a_forecast[state, :, 0] = [1, 0, 0]
-        a_forecast[state, :, 1] = [0, 1, 0]
-        a_forecast[state, :, 2] = [0, 0, 1]
-        a_forecast[state, :,
-                   3] = vectors[t_state[state]] - vectors[t_state[state] - 1]
+    a_forecast = numpy.zeros((n_states, out_dimension, context_dimension))
+    for state in range(n_states):
+        # Setup forecast to work perfectly for state at time t_state
+        a_forecast[state, 0:3, 0:3] = numpy.eye(out_dimension)
+        t_state = rng.integers(1, high=len(vectors))
+        a_forecast[state, :, 3] = vectors[t_state] - vectors[t_state - 1]
 
     # Setup covariance of each state to be the covariance of all of the data
     covariance = numpy.cov(vectors.T)
     assert covariance.shape == (3, 3)
-    covariance_state = numpy.empty((args.n_states, 3, 3))
-    for state in range(args.n_states):
+    covariance_state = numpy.empty((n_states, 3, 3))
+    for state in range(n_states):
         covariance_state[state] = covariance
 
-    # Make other parameters for HMM
-    p_s0 = hmm.simple.Prob(rng.random((1, args.n_states))).normalize()[0]
-    p_s0_ergodic = hmm.simple.Prob(rng.random(
-        (1, args.n_states))).normalize()[0]
-    p_s_to_s = hmm.simple.Prob(rng.random(
-        (args.n_states, args.n_states))).normalize()
+    # Make other parameters for HMM.  Rely on differing a_forecast to
+    # break symmetry
+    p_s0 = hmm.simple.Prob(numpy.ones((1, n_states))).normalize()[0]
+    p_s0_ergodic = hmm.simple.Prob(numpy.ones((1, n_states))).normalize()[0]
+    p_s_to_s = hmm.simple.Prob(numpy.ones((n_states, n_states))).normalize()
 
     # Make the model
     model = hmm.base.HMM(
@@ -139,8 +154,8 @@ def make_varg_hmm(args, out_dimension, context_dimension, vectors):
                                covariance_state,
                                rng,
                                nu=args.nu,
-                               Psi=args.psi))
-    assert model.p_state_initial.shape == (12,)
+                               Psi=args.Psi))
+    assert model.p_state_initial.shape == (n_states,)
     return model
 
 

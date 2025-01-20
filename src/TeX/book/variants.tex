@@ -279,7 +279,6 @@ without limit as $\sigma^2_2 \rightarrow 0$, \ie,
     suspicious model depicted in \emph{(b)} above.}
   \label{fig:MLEfail}
 \end{figure}
-\marginpar{ToDo: Get text inside circles of fig:MLEfail}
 
 Such singularities of likelihood are common among parametric
 probability density functions.  A particularly simple example is the
@@ -630,12 +629,18 @@ weight of that default.
 \section{Related Models}
 \label{sec:related}
 
-Figure~\ref{fig:VARGstates} illustrates the strength \ToDo{Edit this
-  paragraph or the figure if the figure doesn't support it.} of the
-HMMs with vector autoregressive observations described in
-Section~\ref{sec:ARVGaussian}, namely that optimization finds regions
-over which dynamics are approximately linear and assigns those regions
-to single states.  The model class used to make the figure does not
+Results from applying our code for HMMs with the vector autoregressive
+observations described in Section~\ref{sec:ARVGaussian} to a time
+series of 3-d vectors from the Lorenz system appear in
+Figure~\ref{fig:VARGstates}.  Aside from the different observation
+models, we used the same procedure and much of the same code to make
+Figure~\ref{fig:VARGstates} and Figure~\ref{fig:Statesintro} on
+page~\pageref{fig:Statesintro}.  Here the model for each state uses a
+single previous observed vector to forecast the next observation.
+Optimization should find regions over which dynamics are approximately
+linear and assign those regions to single states.  We have no
+intuitive explanation for the many stripe like regions in the center
+of the figure.  The model class used to make the figure does not
 exploit all of the available features of the Lorenz data.  In
 particular it does not use the Lorenz equations.  Modeling techniques
 exist that can exploit knowledge of nonlinear generating equations,
@@ -651,8 +656,8 @@ mention below.
     observations.  Here the observations are a trajectory of three
     dimensional state vectors from the Lorenz system.  In each state
     the observation $\ti{y}{t}$ is modeled as a Gaussian with a mean
-    that is an affine (linear plus fixed offset) function of the
-    observation $\ti{y}{t-1}$.}
+    that is an affine (linear plus fixed offset) function of one
+    previous observation $\ti{y}{t-1}$.}
   \label{fig:VARGstates}
 \end{figure}
 

@@ -36,7 +36,9 @@ def main(argv=None):
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
-    fig, ((aa,ab),(ba,bb)) = pyplot.subplots(nrows=2, ncols=2, figsize=(8, 5))
+    fig, ((aa, ab), (ba, bb)) = pyplot.subplots(nrows=2,
+                                                ncols=2,
+                                                figsize=(8, 5))
     # aa ab
     # ba bb
     with open(args.ecg_file, 'rb') as _file:
@@ -48,20 +50,21 @@ def main(argv=None):
     delta_b = 0.012  # Interval length in seconds for right column
     t_aa = 56.1  # Start time for upper left
     t_ba = 56.3  # Start time for lower left
-    t_ab = 56.1083 # Start time for upper right
-    t_bb = 56.346 # Start time for lower right
+    t_ab = 56.1083  # Start time for upper right
+    t_bb = 56.346  # Start time for lower right
+
     def plot(axes, start, delta, linewidth=1, color='b'):
         n_start, n_stop = numpy.searchsorted(
-            ecg_times.to('minutes').magnitude, (start, start+delta))
+            ecg_times.to('minutes').magnitude, (start, start + delta))
         times = 60 * (ecg_times[n_start:n_stop].to('minutes').magnitude - 56)
         axes.plot(times, ecg[n_start:n_stop], linewidth=linewidth, color=color)
+
     plot(aa, t_aa, delta_a)
     plot(ba, t_ba, delta_a)
     plot(ab, t_ab, delta_b, color='r')
     plot(bb, t_bb, delta_b, color='r')
     plot(aa, t_ab, delta_b, color='r')
     plot(ba, t_bb, delta_b, color='r')
-        
 
     for axes in (ba, bb):
         axes.set_xlabel(r'($t-$00:56:00)/seconds')

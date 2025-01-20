@@ -150,15 +150,15 @@ class FixedPoint:
     """
 
     def __init__(
-            self,  # FixedPoint
-            r=28.0,
-            s=10.0,
-            b=8.0 / 3,
-            sign=1,
+        self,  # FixedPoint
+        r=28.0,
+        s=10.0,
+        b=8.0 / 3,
+        sign=1,
     ):
         assert abs(sign) == 1
         self.r = r
-        root = sign*numpy.sqrt(b * (r - 1))
+        root = sign * numpy.sqrt(b * (r - 1))
         self.fixed_point = numpy.array([root, root, r - 1])
         df_dx = numpy.array([  # derivative of x_dot wrt x
             [-s, s, 0], [1, -1, -root], [root, root, -b]
