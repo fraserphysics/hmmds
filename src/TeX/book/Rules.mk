@@ -14,7 +14,7 @@ LASER_FIGS = $(addsuffix .pdf, $(addprefix $(LASER_FIG_DIR), \
 LaserLP5 LaserLogLike LaserStates LaserForecast LaserHist))
 
 INTRODUCTION_FIGS = $(addsuffix .pdf, $(addprefix $(BUILD)/figs/introduction/, \
-TSintro STSintro Statesintro))
+TSintro STSintro Statesintro GraphStates))
 INTRODUCTION_XFIGS = $(call ADD_PDF_PDF_T, $(BUILD)/figs/introduction, Markov_mm Markov_dhmm Markov_dhmm_net nonmm)
 
 BASIC_ALGORITHMS_FIGS = $(addsuffix .pdf, $(addprefix $(BUILD)/figs/basic_algorithms/, \

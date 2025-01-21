@@ -759,13 +759,24 @@ the Viterbi algorithm to find the most likely state sequence
 
  \begin{figure}[p]
    \centering{\plotsize%
-     \includegraphics[width=1.0\textwidth]{Statesintro}}%
+     \includegraphics[width=0.95\textwidth]{Statesintro}}%
    \caption[\comment{fig:Statesintro }Relationship between states of HMM and Lorenz system.]%
    {The relationship between the hidden states of an HMM and the
-     original coordinates of the Lorenz system.}
+     original coordinates of the Lorenz system.  A state transition
+     graph appears in Figure~\ref{fig:GraphStates}.}
    \label{fig:Statesintro}
  \end{figure}
-\ToDo{Transition diagram for back cover}
+
+ \begin{figure}[p]
+   \centering{\plotsize%
+     \includegraphics[width=1.0\textwidth]{GraphStates}}%
+   \caption[\comment{fig:GraphStates }Graph of transitions between
+   states.]%
+   {Graph of transitions between states depicted in
+     Figure~\ref{fig:Statesintro} drawn by the \emph{graphviz}
+     program.}
+   \label{fig:GraphStates}
+ \end{figure}
 
 
 \subsection{Example: Hidden States as Parts of Speech}

@@ -23,6 +23,11 @@ $(FIGS_INTRO)/Statesintro.pdf: $(IntroPlotScripts)/stateplot.py $(SYNTHETIC_DATA
 	mkdir -p $(FIGS_INTRO)
 	python $<  --data_dir $(SYNTHETIC_DATA) --base_name state --fig_path $@
 
+$(FIGS_INTRO)/GraphStates.pdf: $(IntroPlotScripts)/model_viz.py $(SYNTHETIC_DATA)/m12s.4y
+	python $(IntroPlotScripts)/stateplots.py --data_dir $(SYNTHETIC_DATA) --base_name state --fig_path $(@D)
+	python $< --image_path $(@D) --layout sfdp $(SYNTHETIC_DATA)/m12s.4y $(@D)/GraphStates
+
+
 # Local Variables:
 # mode: makefile
 # End:
