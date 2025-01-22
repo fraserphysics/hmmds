@@ -378,20 +378,16 @@ apply that HMM to classify each minute of the test data.
 
 At first we tried using off-the-shelf code to extract heart rates from
 the PhysioNet ECG data.  Figure~\ref{fig:elgendi} illustrates results
-of using one of the detectors\footnote{Elgendi, Mohamed \& Jonkman,
-  Mirjam \& De Boer, Friso. (2010). "Frequency Bands Effects on QRS
-  Detection" The 3rd International Conference on Bio-inspired Systems
-  and Signal Processing (BIOSIGNALS2010). 428-431.} implemented by
-Porr et al.\footnote{https://github.com/berndporr/py-ecg-detectors},
-and Figure~\ref{fig:a03a10b03c02} illustrates the challenging
-diversity of waveforms in the PhysioNet data.  \ToDo{Move citations
-  from foonotes to bibliography.}  To address the diversity of
-waveforms, we developed an approach to estimating heart rates from
-ECGs based on HMMs that relies on the observation that for each record
-the shape and duration of the $PQRST$ pattern doesn't vary much.  For
-different heart rates the time between the $T$ wave and the next $P$
-wave does change, but the rest of the pattern varies very little.
-Figure~\ref{fig:constant_a03} illustrates the invariance.
+of using one of the detectors\cite{Elgendi2010} implemented by Porr et
+al.\cite{py-ecg-detectors}, and Figure~\ref{fig:a03a10b03c02}
+illustrates the challenging diversity of waveforms in the PhysioNet
+data.  To address the diversity of waveforms, we developed an approach
+to estimating heart rates from ECGs based on HMMs that relies on the
+observation that for each record the shape and duration of the $PQRST$
+pattern doesn't vary much.  For different heart rates the time between
+the $T$ wave and the next $P$ wave does change, but the rest of the
+pattern varies very little.  Figure~\ref{fig:constant_a03} illustrates
+the invariance.
 
 \subsubsection{State topology}
 \label{sec:state_topology}
