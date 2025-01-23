@@ -68,20 +68,26 @@ integrals.
 \subsection{Forward Algorithm}
 \index{forward algorithm!for continuous states}
 
-As the forward algorithm uses each successive observation, it
-calculates two quantities.  First, it calculates the conditional
-probability of the of the observation at time $t$ given earlier
-observations
+Like the forward algorithm for a simple HMM (see Equations
+\eqref{eq:ForwardDefinitions}) the forward algorithm for continuous
+variables uses each successive observation and calculates the incremental
+likelihood
 \begin{equation*}
-  \ti{\gamma}{t+1} \equiv P\left(\ti{y}{t+1}\given \ts{y}{0}{t} \right).
+  \ti{\gamma}{t} \equiv \gammax
 \end{equation*}
-Then it calculates the conditional distribution of states given the
-observations up to the present time
-\begin{equation*}
-  \alpha(t,x) \equiv P_{\ti{X}{t}\given \ts{Y}{0}{t}} \left(x\given \ts{y}{0}{t}
-  \right).
-\end{equation*}
-The equations
+and the three distributions
+\begin{align*}
+  \alpha(t,x) &\equiv \alphax{X}{t}{t+1}{x} && \text{updated} \\
+  a(t,x) &\equiv \StateForecast{X}{x}{t} && \text{forecast} \\
+  \tilde a(t,x) &\equiv \JointForecast{X}{x}{t} && \text{joint forecast}.
+\end{align*}
+
+Using the distributions $P_{\ti{X}{0}}$ and
+$P_{\ti{Y}{0}\given \ti{X}{0}}$ which are parts of the model, we start
+by initializing in step~\ref{step:initialize} and then we loop over
+the remaining steps for the subsequent observations:
+\begin{enumerate}
+\item \textbf{Initialize} \label{step:initialize} The calculations
 \begin{align}
   \label{eq:ContInitial}
   P_{\ti{X}{0},\ti{Y}{0}} \left(x,\ti{y}{0} \right) &=
@@ -92,80 +98,77 @@ The equations
   P_{\ti{X}{0},\ti{Y}{0}}
   \left(x,\ti{y}{0} \right) dx \\
                                 %
-  \alpha(0,x) \equiv P_{\ti{X}{0}\given \ti{Y}{0}} \left(x\given \ti{y}{0} \right) &=
+  \alpha(0,x) \equiv \alphax{X}{0}{1}{x} &=
   \frac{P_{\ti{X}{0},\ti{Y}{0}} \left(x,\ti{y}{0}
     \right)}{P\left(\ti{y}{0} \right)}
 \end{align}
-specify the calculation of $\ti{\gamma}{0}$, the probability of the first
-observation, and of $\alpha(0,x)$, the conditional distribution of the
-first state given the first observation, that initialize the
-algorithm.  Given $\ti{\gamma}{0}$ and $\alpha(0,x)$, the forward algorithm
-executes the following recursion to calculate $\ti{\gamma}{t}$ and
-$\alpha(t,x)$ for each of the remaining observations $\ti{y}{t}$.
-\begin{description}
-\item[Forecast the state distribution] \index{forecast} Find the
-  conditional distribution of the state at the next time given the
-  observations up to the present time.
+specify $\ti{\gamma}{0}$, the probability of the first
+observation and $\alpha(0,x)$, the conditional distribution of the
+first state given the first observation.
+\item \textbf{Forecast the state distribution} \index{forecast} Find
+  the conditional distribution of the state at the present time given
+  the past observations.
 \begin{align}
   \label{eq:t274}
-  P\left(\ti{x}{t+1},\ti{x}{t}\given \ts{y}{0}{t} \right) &=
-  P\left(\ti{x}{t+1}\given \ti{x}{t},\ts{y}{0}{t} \right)
-  P\left(\ti{x}{t}\given \ts{y}{0}{t} \right) \\
+  P\left(\ti{x}{t},\ti{x}{t-1}\given \ts{y}{0}{t} \right) &=
+  P\left(\ti{x}{t}\given \ti{x}{t-1},\ts{y}{0}{t} \right)
+  P\left(\ti{x}{t-1}\given \ts{y}{0}{t} \right) \\
   \label{eq:t275}
-  &= P\left(\ti{x}{t+1}\given \ti{x}{t} \right)
-  P\left(\ti{x}{t}\given \ts{y}{0}{t} \right) \\
-  &= P\left(\ti{x}{t+1}\given \ti{x}{t} \right)
-  \alpha(t,\ti{x}{t})\\
+  &= P\left(\ti{x}{t}\given \ti{x}{t-1} \right)
+  P\left(\ti{x}{t-1}\given \ts{y}{0}{t} \right) \\
+  &= P\left(\ti{x}{t}\given \ti{x}{t-1} \right)
+  \alpha(t-1,\ti{x}{t-1})\\
                                 %
   \label{eq:t277}
-  P\left(\ti{x}{t+1}\given \ts{y}{0}{t} \right) &= \int
-  P\left(\ti{x}{t+1},\ti{x}{t}\given \ts{y}{0}{t} \right) d\ti{x}{t}\\
-%%   &= \int P \left(\ti{x}{t+1}\given \ti{x}{t} \right)
-%%   P\left(\ti{x}{t}\given \ts{y}{0}{t} \right) d\ti{x}{t} \\
-  \label{eq:IFore}
-  &= \int P \left(\ti{x}{t+1}\given \ti{x}{t} \right)
-  \alpha(t,\ti{x}{t}) d\ti{x}{t}
+  a(t,x) \equiv \StateForecast{X}{x}{t} &= \int
+  P\left(\ti{x}{t},\ti{x}{t-1}\given \ts{y}{0}{t} \right) d\ti{x}{t-1}\\
+  \label{eq:FIForecast}
+  &= \int P_{\ti{X}{1} \given \ti{X}{0}} \left(x|x' \right)
+    \alpha(t-1,x') dx'
 \end{align}
 Here we justify \eqref{eq:t274} by Bayes rule, \eqref{eq:t275} by
 the model assumptions, and \eqref{eq:t277} by the definition of a
 marginal distribution.
-\item[Calculate the joint forecast] Leaving the state at the next time
-  as a free parameter, calculate the joint conditional distribution of
-  the next state and observation given the observations up to the
-  present time.
-\begin{align}
+\item \textbf{Calculate the joint forecast} Leaving the state at the
+  present time as a free parameter, calculate the joint conditional
+  distribution of the state and this observation given past
+  observations.
+  \begin{align}
+    \nonumber
+  \tilde a(t,x) & \equiv \JointForecast{X}{x}{t} \\
   \label{eq:t279}
-  P\left(\ti{x}{t+1},\ti{y}{t+1}\given \ts{y}{0}{t} \right) &=
-  P\left(\ti{y}{t+1}\given \ti{x}{t+1},\ts{y}{0}{t} \right)
-  P\left(\ti{x}{t+1}\given \ts{y}{0}{t} \right) \\
-  \label{eq:t280}
-  &=P\left(\ti{y}{t+1}\given \ti{x}{t+1} \right)
-  P\left(\ti{x}{t+1}\given \ts{y}{0}{t} \right)
+                &= P\left(\ti{y}{t}\given \ti{x}{t},\ts{y}{0}{t} \right)
+  \StateForecast{X}{x}{t} \\
+  \label{eq:FIUpdate}
+  &=P\left(\ti{y}{t}\given \ti{x}{t} \right) a(t,x)
 \end{align}
-Here we justify \eqref{eq:t279} by Bayes rule and \eqref{eq:t280} by
+Here we justify \eqref{eq:t279} by Bayes rule and \eqref{eq:FIUpdate} by
 the model assumptions.
-\item[Calculate the conditional probability of the observation]
-  Integrate out $\ti{x}{t+1}$ to get the conditional probability of
-  the next observation given the observations up to the present time.
-\begin{equation}
-  \label{eq:Igamma}
-  \ti{\gamma}{t+1} \equiv P\left(\ti{y}{t+1}\given \ts{y}{0}{t+1} \right) = \int
-  P\left(\ti{x}{t+1},\ti{y}{t+1}\given \ts{y}{0}{t+1} \right) d\ti{x}{t+1} \\
-\end{equation}
-\item[Update the conditional state distribution] \index{update} Use
-  Bayes rule to combine \eqref{eq:t280} and \eqref{eq:Igamma} and get
-  the conditional distribution of the state at time $t+1$ given all of
-  the measurements up to time $t+1$.
-\begin{align}
-  \alpha(t+1,x(t+1)) &= P\left(\ti{x}{t+1}\given \ts{y}{0}{t+2} \right) \\
-  &=  \frac{ P\left(\ti{x}{t+1},\ti{y}{t+1}\given \ts{y}{0}{t+1}
-    \right)}{P\left(\ti{y}{t+1}\given \ts{y}{0}{t} \right)}\\
-  \label{eq:IUpdate}
-  &= \frac{ P\left(\ti{x}{t+1},\ti{y}{t+1}\given \ts{y}{0}{t}
-    \right)}{\ti{\gamma}{t+1}}.
+\item \textbf{Calculate the incremental likelihood}
+  Integrate out $\ti{x}{t}$ to get the conditional probability of
+  this observation given previous observations
+  \begin{align}
+    \nonumber
+    \ti{\gamma}{t} &\equiv \gammax = \int
+  \JointForecast{X}{x}{t} d\ti{x}{t} \\
+    \label{eq:Igamma}
+    &= \int \tilde a(t,x) dx
 \end{align}
-\end{description}
-\marginpar{Maybe use highlight?}
+\item \textbf{Update the conditional state distribution} \index{update} Use
+  Bayes rule to combine \eqref{eq:FIUpdate} and \eqref{eq:Igamma} and get
+  the conditional distribution of the present state given all past
+  observations and the present observation.
+\begin{align}
+  \alpha(t,x) &\equiv \alphax{X}{t}{t+1}{x} \\
+  &=  \frac{ \JointForecast{X}{x}{t}}{\gammax}\\
+  \label{eq:IUpdate}
+  &= \frac{\tilde a(t,x)}{\ti{\gamma}{t}}.
+\end{align}
+\end{enumerate}
+Note that aside from normalization, the forward algorithm alternates
+between multiplying by the observation likelihood in
+\eqref{eq:FIUpdate} and integrating with the state transition
+probability in \eqref{eq:FIForecast}.
 
 \subsection{Backward Algorithm}
 \index{backward algorithm!for continuous states}
@@ -175,7 +178,7 @@ Similarly, the backward algorithm finds a function called the
 \begin{equation}
   \label{eq:contbeta}
   \beta(t,x) \equiv \frac{P_{\ts{Y}{t+1}{T}\given \ti{X}{t}}
-  \left(\ts{y}{t+1}{T}\given x \right)}{P\left(\ts{y}{t+1}{T}\given \ts{y}{0}{t}
+  \left(\ts{y}{t+1}{T}\given x \right)}{P\left(\ts{y}{t+1}{T}\given \ts{y}{0}{t+1}
                \right)},
 \end{equation}
 for each time $t$ by starting with $\beta(T-1,x) = 1$ and following with
@@ -199,17 +202,21 @@ distribution of the state at time $t$ given all of the observations is
 \end{equation}
 Defining and evaluating a \emph{\index*{backwards update}} function
 \begin{equation}
-  \label{eq:bdef}
-  b(x,t) \equiv \frac{\beta(t,x)
+  \label{eq:BIUpdate}
+  b(t,x) \equiv \frac{\beta(t,x)
     P_{\ti{Y}{t}\given \ti{X}{t}}\left(\ti{y}{t}\given x
     \right)} {P\left(\ti{y}{t}\given \ts{y}{0}{t} \right)}
 \end{equation}
-lets one write Eqn.~\eqref{eq:contback} as
-\begin{equation*}
-  \beta(t-1,x) = \int b(x',t) P_{\ti{X}{t}\given \ti{X}{t-1}}\left(x'\given x
+lets one write Eqn.~\eqref{eq:contback} as the \emph{backwards forecast}
+\begin{equation}
+  \label{eq:BIForecast}
+  \beta(t-1,x) = \int b(t,x') P_{\ti{X}{t}\given \ti{X}{t-1}}\left(x'\given x
   \right) dx'
-\end{equation*}
-which may make evaluating the integral easier.
+\end{equation}
+which may make evaluating the integral easier and emphasizes the
+alternation between multiplying by the observation likelihood in
+\eqref{eq:BIUpdate} and integrating with the transition probability
+\eqref{eq:BIForecast}.
 
 \section{Linear Gaussian Systems}
 \label{sec:LinearGaussian}
@@ -231,9 +238,13 @@ $\ti{X}{0}$ is also Gaussian, then we can write
   \right)\\
                                 %
   \ti{x}{t} &= \ti{F}{t} \cdot \ti{x}{t-1} + \ti{\eta}{t} &
-  \ti{\eta}{t} &\sim \Normal\left( 0, \Sigma_\eta \right) \\
+                                                            \ti{\eta}{t} &\sim \Normal\left( 0, \Sigma_\eta \right) \\
+    P(\ti{x}{t}\given \ti{x}{t-1}) &=
+                                    \NormalE{F\ti{x}{t-1}}{\Sigma_\eta}{\ti{x}{t}} \\
   \ti{y}{t} &= \ti{G}{t} \cdot \ti{x}{t} + \ti{\epsilon}{t} &
-  \ti{\epsilon}{t} &\sim \Normal\left( 0, \Sigma_\epsilon \right),
+  \ti{\epsilon}{t} &\sim \Normal\left( 0, \Sigma_\epsilon \right) \\
+    P(\ti{y}{t}\given \ti{x}{t}) &=
+                                    \NormalE{G\ti{x}{t}}{\Sigma_\epsilon}{\ti{y}{t}},
   \end{align}
 \end{subequations}
 where $\ti{F}{t}$ and $\ti{G}{t}$ are matrices.  We use the notation
@@ -287,7 +298,7 @@ distributions described by these parameters are also Gaussian.
     \equiv \ti{\gamma}{t}.
   \end{equation*}
   Neither the forward nor the backwards Kalman filter uses the $\gamma$
-  terms, but they are useful for calculating the likelihood of model
+  terms, but they are useful for calculating the likelihood for model
   parameters.
 \item[$\bm{\ti{N_\beta}{t},\ti{\mu_\beta}{t}}$ and
   $\bm{\ti{\Sigma_\beta}{t}}$] are the parameters\footnote{On page
@@ -303,7 +314,7 @@ distributions described by these parameters are also Gaussian.
 \item[$\bm{\ti{\mu_b}{t}}$ and $\bm{\ti{\Sigma_b}{t}}$] are the
   mean\footnote{Kailath et al.\cite{KSH00} use $\hat x_{i|i}^b$ to
     denote the quantity that we call $\ti{\mu_b}{t}$.} and covariance
-  of the backwards update function $b(x,t)$ (see Eqn.~\eqref{eq:bdef})
+  of the backwards update function $b(t,x)$ (see Eqn.~\eqref{eq:BUpdate})
   which is an intermediate term in the backward algorithm.  Notice
   that the parameters of the forward forecast have Roman subscripts
   while the parameters of the backward forecast have Greek subscripts.
@@ -371,7 +382,7 @@ Note:
   \end{equation}
   \end{subequations}
   is called \emph{the \index*{Kalman gain matrix}}\footnote{This
-    computationaly more efficient form was Kalman's principle
+    computationally more efficient form was Kalman's principle
     contribution.}  \index{matrix!Kalman gain}%
   (See Eqn.~\eqref{eq:KalmanGain}.).
 \item One can calculate the log likelihood of a model by summing the
@@ -440,13 +451,13 @@ Note:
   matrix (See Eqn.~\eqref{eq:KalmanGainBack}).
 \item Ideally one would initialize the backward algorithm with
   \begin{align*}
-    \left( \ti{\Sigma_\beta}{T} \right)^{-1} &= 0\\
-    \ti{\mu_\beta}{T} &= 0
+    \left( \ti{\Sigma_\beta}{T-1} \right)^{-1} &= 0\\
+    \ti{\mu_\beta}{T-1} &= 0
   \end{align*}
-  but that would make $\left( \ti{\Sigma_b}{T} \right)^{-1}$
+  but that would make $\left( \ti{\Sigma_b}{T-1} \right)^{-1}$
   uninvertible and preclude using Eqn.~\eqref{eq:SigmaBeta} to
   evaluate $\ti{\Sigma_\beta}{T-1}$.  One can address the problem by
-  initializing $\ti{\Sigma_\beta^{-1}}{T}$ with small values, or by using
+  initializing $\ti{\Sigma_\beta^{-1}}{T-1}$ with small values, or by using
   the \emph{\index*{inverse covariance form}} of the algorithm (see
   Section~\ref{sec:DetailInverse}.).
 \end{itemize}
@@ -484,48 +495,67 @@ update parameters, \ie, $\alpha$ and $b$, for smoothing is an error.
 \label{sec:KDerive}
 
 Here we connect the integrals that describe the forward and backward
-algorithms (Eqns.~\eqref{eq:ContInitial}-\eqref{eq:bdef}) to the
-formulas (Eqns.~\eqref{eq:KFore}-\eqref{eq:smoothing}).
-\ToDo{Simplify this section.  Try to make the forward and backward
-  derivations more similar.  Perhaps do more in the appendix and less
-  here.}
+algorithms (Eqns.~\eqref{eq:ContInitial}-\eqref{eq:BUpdate}) to the
+formulas (Eqns.~\eqref{eq:KFore}-\eqref{eq:smoothing}).  In this
+context each distribution is Gaussian.  So we can characterize each
+distribution by its mean and covariance and ignore normalization.
+Given two $d$-dimensional Gaussian density functions
+\begin{align*}
+  P_1(x) &\equiv \frac{1}{\sqrt{(2\pi)^d\left| \Sigma_1 \right|}}\exp \left(-\frac{1}{2}
+    (x-\mu_1)\transpose \Sigma_1^{-1}(x-\mu_1) \right) \equiv
+           \NormalE{\mu_1}{\Sigma_1}{x} &&\text{and} \\
+  P_2(x) &\equiv \frac{1}{\sqrt{(2\pi)^d\left| \Sigma_2 \right|}}\exp \left(-\frac{1}{2}
+    (x-\mu_2)\transpose \Sigma_2^{-1}(x-\mu_2)  \right) \equiv
+           \NormalE{\mu_2}{\Sigma_2}{x},
+\end{align*}
+we can characterize their product or ratio by respectively adding or
+subtracting their exponents (see Equation~\eqref{eq:GaussianProduct}
+on page \pageref{eq:GaussianProduct}).
 
 \subsection{Forward Kalman Filter}
 \label{sec:DetailForward}
+
+Recall that the forward algorithm for a simple HMM (see
+Eqn.~\eqref{eq:2LineForward} on page \pageref{eq:2LineForward})
+alternates between multiplying a state distribution by a likelihood
+and multiplying the result by the state transition probability matrix.
+In the forward Kalman filter the state transition matrix is a Gaussian
+and the sum is replaced by an integral.
 
 The basic loop consists of steps \ref{PXforecast} through
 \ref{PXupdate} below.  In the first iteration, we use the model
 parameters that describe $P\left(\ti{x}{0} \right)$ and proceed
 directly to step~\ref{PYforecast}.
 \begin{enumerate}
-\item \label{PX1} \textbf{Use $\bm{P\left(\ti{x}{0} \right)}$.}  We
-  initialize the recursion using the mean $\ti{\mu_a}{0}$ and
-  covariance $\ti{\Sigma_a}{0}$ of $P(\ti{x}{0})$ which are parameters
-  of the model and entering the loop at step~\ref{PYforecast} to
-  calculate $\ti{\mu_\gamma}{0}$ and $\ti{\Sigma_\gamma}{0}$ by
-  setting $t=1$.
+\item \label{PX1} \textbf{Initialize with
+    $\bm{\ti{\mu_a}{0}}$ and $\bm{\ti{\Sigma_a}{0}}$.}  We
+  initialize the recursion using the model parameters $\ti{\mu_a}{0}$
+  and $\ti{\Sigma_a}{0}$ of $P(\ti{x}{0})$ and entering the loop at
+  step~\ref{PYforecast} to calculate $\ti{\mu_\gamma}{0}$ and
+  $\ti{\Sigma_\gamma}{0}$ by setting $t=0$.
 \item \label{PXforecast} \textbf{Calculate the state forecast,
-    $\bm{P\left(\ti{x}{t}\given \ts{y}{0}{t} \right)}$.}  The distribution
-  of the forecast is Gaussian, and therefore determined by its mean
-  and covariance.  Thus rather than evaluating the integral in
-  Eqn.~\eqref{eq:IFore} to find the distribution
-  $P\left(\ti{x}{t}\given \ts{y}{0}{t} \right)$, we can specify the
-  distribution completely by calculating its first two moments.  Since
+    $\bm{P\left(\ti{x}{t}\given \ts{y}{0}{t} \right)}$.}  From
+  Eqn.~\eqref{eq:FIForecast}
+  \begin{equation}
+    \label{eq:ForecastKIntegral}
+    a(t,x) = \int \NormalE{Fx'}{\Sigma_\eta}{x} \alpha((t-1), x') dx'
+  \end{equation}
+  Rather than evaluating the integral to find the distribution, we can
+  specify it completely by calculating its first two moments.  Since
   \begin{equation*}
-    \ti{x}{t} = \ti{F}{t} \ti{x}{t-1} + \ti{\eta}{t}
+    \ti{x}{t} = \ti{F}{t} \ti{x}{t-1} + \ti{\eta}{t}.
   \end{equation*}
-  the mean is\marginpar{Use
-  $\EV_{\ti{X}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}}$?}
+  the mean is
   \begin{align}
-    \ti{\mu_a}{t} &= \EV_{P
-      \left(\ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t} \right)} \left[
+    \ti{\mu_a}{t} &= \EV_{
+      \ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}} \left[
       \ti{F}{t}\ti{X}{t-1} + \ti{\eta}{t} \right] \nonumber \\
-    &= \EV_{P\left(\ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t} \right)}
+    &= \EV_{\ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}}
       \ti{F}{t}\ti{X}{t-1} +
-      \EV_{P\left(\ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t} \right)} \ti{\eta}{t} \nonumber \\
+      \EV_{\ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}} \ti{\eta}{t} \nonumber \\
     \label{eq:etaIndependent}
-    &= \EV_{P \left(\ti{x}{t-1}\given \ts{y}{0}{t} \right)}
-    \ti{F}{t}\ti{X}{t-1}  + \EV_{P (\eta)} \ti{\eta}{t} \\
+    &= \EV_{ \ti{x}{t-1}\given \ts{y}{0}{t}}
+    \ti{F}{t}\ti{X}{t-1}  + \EV_{\eta} \ti{\eta}{t} \\
                                  %
      &= \ti{F}{t}\ti{\mu_\alpha}{t-1}. \nonumber
    \end{align}
@@ -536,8 +566,8 @@ directly to step~\ref{PYforecast}.
    earlier times $\tau$.  Similarly we calculate the
    variance by
    \begin{align}
-     \ti{\Sigma_a}{t} &= \EV_{P
-       \left(\ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t} \right)} \big[
+     \ti{\Sigma_a}{t} &= \EV_{
+       \ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}} \big[
      \left( \ti{F}{t}\ti{X}{t-1} + \ti{\eta}{t} - \ti{\mu_a}{t-1}
      \right) \nonumber\\
      & \quad \times \left( \ti{F}{t}\ti{X}{t-1} + \ti{\eta}{t} -
@@ -547,7 +577,7 @@ directly to step~\ref{PYforecast}.
     \Sigma_\eta .
   \end{align}
   Thus Eqn.~\eqref{eq:KFore} implements the integral of
-  Eqn.~\eqref{eq:IFore}.
+  Eqn.~\eqref{eq:FIForecast}.
 \item \label{PYforecast} \textbf{Calculate
     $\bm{P\left(\ti{y}{t}\given \ts{y}{0}{t} \right)}$.}  Using
   \begin{equation*}
@@ -556,18 +586,18 @@ directly to step~\ref{PYforecast}.
   we calculate the mean and covariance of the distribution of the
   forecast observation as follows
   \begin{align}
-    \ti{\mu_\gamma}{t} &= \EV_{P
-      \left(\ti{x}{t},\ti{\epsilon}{t}\given \ts{y}{0}{t} \right)}
+    \ti{\mu_\gamma}{t} &= \EV_{
+      \ti{x}{t},\ti{\epsilon}{t}\given \ts{y}{0}{t}}
     \ti{G}{t}\ti{X}{t} + \ti{\epsilon}{t} \nonumber \\
                                 %
     \label{eq:mugamma}
     &= \ti{G}{t}\ti{\mu_a}{t}\\
                                 %
-    \ti{\Sigma_\gamma}{t} &= \EV_{P
-      \left(\ti{x}{t},\ti{\epsilon}{t}\given \ts{y}{0}{t} \right)}
+    \ti{\Sigma_\gamma}{t} &= \EV_{
+      \ti{x}{t},\ti{\epsilon}{t}\given \ts{y}{0}{t}}
     \left( \ti{G}{t}\ti{X}{t} + \ti{\epsilon}{t} -
       \ti{\mu_\gamma}{t} \right) \nonumber \\
-    &\quad\left( \ti{G}{t}\ti{X}{t} +
+    &\quad\times \left( \ti{G}{t}\ti{X}{t} +
       \ti{\epsilon}{t} - \ti{\mu_\gamma}{t}
     \right)\transpose \nonumber \\
                                 %
@@ -576,7 +606,7 @@ directly to step~\ref{PYforecast}.
     \Sigma_\epsilon
   \end{align}
 \item \label{PZforecast} \textbf{Calculate $\bm{P\left(\ti{x}{t},
-        \ti{y}{t}\given \ts{y}{0}{t} \right)}$.}  The conditional
+        \ti{y}{t}\given \ts{y}{0}{t} \right)}$.}  The forecast
   distribution of the joint variable
   \begin{equation*}
     \ti{z}{t} =
@@ -585,7 +615,7 @@ directly to step~\ref{PYforecast}.
       \ti{y}{t}
     \end{bmatrix}
   \end{equation*}
-  is a Gaussian characterized by
+  is characterized by
   \begin{equation*}
     \mu_z =
     \begin{bmatrix}
@@ -593,47 +623,64 @@ directly to step~\ref{PYforecast}.
       \ti{\mu_\gamma}{t}      
     \end{bmatrix}
   \end{equation*}
-  and\footnote{We have introduced the blocks $A$, $B$, and $C$ to
-    match the matrix identities in Eqns.~\eqref{eq:MI:ABCDEF} on page
-    \pageref{eq:MI:ABCDEF} of the appendix where we
-    denote,
-    \begin{equation*}
-      \begin{bmatrix} A & C \\ C\transpose & B \end{bmatrix}^{-1} \equiv
-      \begin{bmatrix} D & F \\ F\transpose & E \end{bmatrix}.
-    \end{equation*}}
+  and
   \begin{equation}
     \label{eq:cont-temp}
-    \Sigma_z \equiv
-    \begin{bmatrix} A & C \\ C\transpose & B \end{bmatrix} =
+    \Sigma_z  =
     \begin{bmatrix}
-      \ti{\Sigma_a}{t} & \ti{\Sigma_a}{t} (\ti{G}{t})\transpose
+      \ti{\Sigma_a}{t} & \ti{\Sigma_a}{t} (\ti{G}{t})\transpose 
       \\ \ti{G}{t} \ti{\Sigma_a}{t}&\ti{\Sigma_\gamma}{t} 
-    \end{bmatrix}.
+    \end{bmatrix}\equiv
+    \begin{bmatrix} A & C \\ C\transpose & B \end{bmatrix}.
   \end{equation}
   We derive the off diagonal terms of $\Sigma_z$ in
   Eqn.~\eqref{eq:cont-temp} as follows
   \begin{align}
-    C &= \EV_{P\left(\ti{x}{t},\ti{\epsilon}{t}\given \ts{y}{0}{t} \right)}
+    C &= \EV_{\ti{x}{t},\ti{\epsilon}{t}\given \ts{y}{0}{t}}
     \big( \ti{x}{t} - \ti{\mu_a}{t} \big) \big( \ti{y}{t}
       - \ti{\mu_\gamma}{t} \big)\transpose \nonumber \\
-    &=  \EV_{P\left(\ti{x}{t}\given \ts{y}{0}{t} \right)}
+    &=  \EV_{\ti{x}{t}\given \ts{y}{0}{t}}
     \big( \ti{x}{t} - \ti{\mu_a}{t} \big)
     \big( \ti{x}{t} - \ti{\mu_a}{t} \big)\transpose
     \left(\ti{G}{t} \right)\transpose \nonumber \\
     & \quad +
-    \EV_{P\left(\ti{x}{t},\ti{\epsilon}{t}\given \ts{y}{0}{t} \right)}
+    \EV_{\ti{x}{t},\ti{\epsilon}{t}\given \ts{y}{0}{t}}
     \big( \ti{x}{t} - \ti{\mu_a}{t} \big) \big( \ti{\epsilon}{t}
     \big) \nonumber \\
     \label{eq:cont:C}
-    &= \ti{\Sigma_{a}}{t} \big(\ti{G}{t} \big)\transpose .
+      &= \ti{\Sigma_{a}}{t} \big(\ti{G}{t} \big)\transpose .
   \end{align}
-\item \label{PXupdate} \textbf{Calculate the state update,
-    $\bm{P\left(\ti{x}{t}\given \ts{y}{0}{t+1} \right)}$.}  With the
-  actual value of $\ti{y}{t}$ and the joint distribution of
-  $\ti{x}{t}$ and $\ti{y}{t}$ given $\ts{y}{0}{t}$, we use
-  Eqn.~\eqref{eq:Gauss-Conditional} from page
-  \pageref{eq:Gauss-Conditional} in the appendix to write the
-  parameters of $P\left(\ti{x}{t}\given \ts{y}{0}{t+1} \right)$ as
+  We use the terms $A$, $B$ and $C$ in the right block matrix of
+  \eqref{eq:cont-temp} to match \eqref{eq:MI:ABCDEF} on page
+  \pageref{eq:MI:ABCDEF} of the appendix where we derive expressions
+  for $D$, $E$ and $F$ in 
+    \begin{equation*}
+      \begin{bmatrix} A & C \\ C\transpose & B \end{bmatrix}^{-1} \equiv
+      \begin{bmatrix} D & F \\ F\transpose & E \end{bmatrix}.
+    \end{equation*}
+    we will use those expressions when we calculate the conditional
+    distribution of $\ti{x}{t}$ given $\ti{y}{t}$ in
+    step~\ref{PXupdate}.
+
+    Note that the calculation in this step is equivalent to completing
+    the square in the sum of the exponents we would get by multiplying
+    $P(\ti{y}{t} \given \ti{x}{t})$ and $a(t,x)$ in
+    \eqref{eq:FIUpdate}, \ie,
+    \begin{align}
+      \nonumber
+      \NormalE{\mu_{\tilde a}}{\Sigma_{\tilde a}}{x,\ti{y}{t}}
+      &\equiv \JointForecast{X}{x}{t} \\
+      \label{eq:NormalJointForecast}
+      &= \NormalE{Gx}{\Sigma_\epsilon}{\ti{y}{t}} \NormalE{\mu_a}{\Sigma_a}{x}
+    \end{align}
+  \item \label{PXupdate} \textbf{Calculate the state update,
+      $\bm{P\left(\ti{x}{t}\given \ts{y}{0}{t+1} \right)}$.}  With the
+    actual value of $\ti{y}{t}$ and the joint distribution of
+    $\ti{x}{t}$ and $\ti{y}{t}$ given $\ts{y}{0}{t}$ from step
+    \ref{PZforecast}, we use Eqn.~\eqref{eq:Gauss-Conditional} from
+    page \pageref{eq:Gauss-Conditional} in the appendix to write the
+    parameters of the conditional
+    $P\left(\ti{x}{t}\given \ts{y}{0}{t+1} \right)$ as
   \begin{subequations}
     \label{eq:UpdateRaw}
     \begin{align}
@@ -642,7 +689,7 @@ directly to step~\ref{PYforecast}.
         \ti{y}{t} - \ti{\mu_\gamma}{t}\right).
     \end{align}
   \end{subequations}
-  Note the following facts and justifications:
+  Note the following equations and justifications:
   \begin{align*}
     E^{-1} &= B - C\transpose A^{-1}C && \text{See \eqref{eq:MI:E}}\\
     &= \ti{\Sigma_\gamma}{t} - \ti{G}{t}\ti{\Sigma_a}{t} \left(
@@ -656,7 +703,9 @@ directly to step~\ref{PYforecast}.
     D &= A^{-1} + A^{-1} CEC\transpose A^{-1} && \text{See \eqref{eq:MI:D}}.
   \end{align*}
   Thus
-    \begin{align*}
+  \begin{subequations}
+    \label{eq:FUpdateAgain}
+    \begin{align}
       \left( \ti{\Sigma_\alpha}{t} \right)^{-1} &= \left(
         \ti{\Sigma_a}{t} \right)^{-1} + \left( \ti{G}{t}
         \right)\transpose \Sigma_\epsilon^{-1} \ti{G}{t} \\
@@ -664,7 +713,8 @@ directly to step~\ref{PYforecast}.
       \ti{\Sigma_{\alpha}}{t} \left( \ti{G}{t} \right)\transpose
       \Sigma_\epsilon^{-1} \big[\ti{y}{t} - \ti{G}{t}
       \ti{\mu_a}{t}\big]
-    \end{align*}
+    \end{align}
+  \end{subequations}
   which are the update equations in \eqref{eq:KUpdate}.
 \end{enumerate}
 
@@ -711,164 +761,55 @@ the state $x$.
 \label{sec:DetailBack}
 \index{backward algorithm!for continuous states}
 
-Equation \eqref{eq:contback} states the backward recursion as the
-integral
-\begin{equation*}
-  \beta(t-1,x) =  
-  \frac{1}{\ti{\gamma}{t}} \int\beta(x',t)
-  P_{\ti{Y}{t}\given \ti{X}{t}}\left(\ti{y}{t}\given x' \right)
-  P_{\ti{X}{t}\given \ti{X}{t-1}}\left(x'\given x \right) dx'.
-\end{equation*}
-In the context of linear Gaussian systems, $P
-\left(\ti{y}{t}\given \ti{x}{t} \right)$ is the Gaussian
-$\NormalE{\ti{G}{t}\ti{x}{t}}{\Sigma_\epsilon}{\ti{y}{t}}$, $P
-\left(\ti{x}{t}\given \ti{x}{t-1}\right) $ is the Gaussian $
-\NormalE{\ti{F}{t} \ti{x}{t-1}}{\Sigma_\eta)}{\ti{x}{t}}$, and
-$\frac{\beta(t,x)}{\ti{N_\beta}{t}} $ is the Gaussian $
-\NormalE{\ti{\mu_\beta}{t}}{\ti{\Sigma_\beta}{t}}{x}$.  Thus
-\begin{equation*}
-  \beta(t-1,x) =  
-  \frac{\ti{N_\beta}{t}}{\ti{\gamma}{t}} \int
-  \NormalE{\ti{\mu_\beta}{t}}{\ti{\Sigma_\beta}{t}}{x'}
-  \NormalE{\ti{G}{t}x'}{\Sigma_\epsilon}{\ti{y}{t}}
-  \NormalE{\ti{F}{t}x}{\Sigma_\eta}{x'}   dx'.
-\end{equation*}
-Since, for smoothing, the only parameters of $\beta$ that we need are
-$\mu_\beta$ and $\Sigma_\beta$, we adopt the following strategy to
-calculate those parameters without evaluating the entire integral:
+On page \pageref{eq:BIUpdate} we described the backwards recursion as
+alternating between multiplying a prior by a likelihood in
+\eqref{eq:BIUpdate} and integrating the product of a state probability
+and a state transition probability in \eqref{eq:BIForecast}.
+
+We should initialize the backward recursion with a uniform
+distribution $\beta(T-1,x) = 1$ or $\Sigma^{-1}_{\beta(T-1)} = 0$.  We
+will ignore that for now and focus on the two alternating steps:
 \begin{enumerate}
-\item \label{BackList1} Drop time from notation in calculations
-\item \label{BackList2} Forget normalization and work only with exponents
-\item \label{BackList3} Combine $\ti{y}{t}$ with
-  $\NormalE{\ti{\mu_\beta}{t}}{\ti{\Sigma_\beta}{t}}{x'}$ and
-  $\NormalE{\ti{G}{t}x'}{\Sigma_\epsilon}{\ti{y}{t}}$ to get an
-  \emph{updated distribution} for $\ti{x}{t}$ with mean
-  $\ti{\mu_b}{t}$ and covariance $\ti{\Sigma_b}{t}$
-\item \label{BackList4} Write the exponent of the product
-  $\NormalE{\ti{\mu_\beta}{t}}{\ti{\Sigma_\beta}{t}}{x'} \cdot
-  \NormalE{\ti{F}{t}x}{\Sigma_\eta}{x'}$ as
-  \begin{equation*}
-    Q = (x' - \mu)\transpose \Sigma^{-1} (x' - \mu) +
-    (x - \ti{\mu_\beta}{t-1})\transpose \left(\ti{\Sigma_\beta}{t-1}
-    \right)^{-1}(x - \ti{\mu_\beta}{t-1}) + R
-  \end{equation*}
-  where $Q$ is quadratic and the remainder $R$ depends on neither $x'$
-  nor $x$
-\item \label{BackList5} Since the integration over $x'$ eliminates the
-  term $(x' - \mu)\transpose \Sigma^{-1} (x' - \mu)$ and $R$ only
-  affects normalization, the surviving parameters
-  $\ti{\mu_\beta}{t-1}$ and $\ti{\Sigma_\beta}{t-1}$ describe the
-  function $\beta(t-1,x)$ up to normalization
+\item \textbf{Backwards Update} ignoring normalization, given the
+  backwards forecast $\beta(t,x)$ the update formula is
+  \begin{align}
+    \nonumber
+    b(t,x) &= \beta(t,x) P(y[t] \given x) \\
+    \label{eq:NormalJointBackcast}
+           &= \NormalE{\mu_{\beta(t,x)}}{\Sigma_{\beta(t,x)}}{x} \NormalE{G[t]x}{\epsilon}{\ti{y}{t}}. 
+  \end{align}
+  Notice that the form of \eqref{eq:NormalJointBackcast} matches the
+  form of \eqref{eq:NormalJointForecast} on page
+  \pageref{eq:NormalJointForecast} in the forward recursion.  After
+  taking the conditional given the actual value of $\ti{y}{t}$ we copy
+  the result from \eqref{eq:FUpdateAgain} and obtain
+    \begin{align*}
+      \left( \ti{\Sigma_b}{t} \right)^{-1} &= \left(
+        \ti{\Sigma_\beta}{t} \right)^{-1} + \left( \ti{G}{t}
+        \right)\transpose \Sigma_\epsilon^{-1} \ti{G}{t} \\
+      \ti{\mu_b}{t} &= \ti{\mu_\beta}{t} +
+      \ti{\Sigma_{b}}{t} \left( \ti{G}{t} \right)\transpose
+      \Sigma_\epsilon^{-1} \big[\ti{y}{t} - \ti{G}{t}
+      \ti{\mu_\beta}{t}\big]
+    \end{align*}
+  \item \textbf{Backwards Forecast} compare
+    \eqref{eq:ForecastKIntegral} use \eqref{eq:BIForecast}
+    \begin{align}
+      \label{eq:BackwardKIntrgral}
+      \beta(t-1,x) &= \int b(t,x')\NormalE{Fx}{\Sigma_\eta}{x'} dx' 
+    \end{align}
+    Want:
+  \begin{subequations}
+    \begin{align}
+      \ti{\mu_\beta}{t-1} &= \left( \ti{F}{t} \right)^{-1}
+      \ti{\mu_b}{t} \\
+      \ti{\Sigma_\beta}{t-1} &= \left( \ti{F}{t} \right)^{-1} \left(
+        \Sigma_\eta + \ti{\Sigma_b}{t} \right) \left( \left( \ti{F}{t}
+        \right)^{-1} \right)\transpose
+    \end{align}
+  \end{subequations}
 \end{enumerate}
 
-We begin with step~\ref{BackList3} in the list above by examining the
-quadratic form in the exponent of
-$\NormalE{\mu_\beta}{\Sigma_\beta}{x} \cdot
-\NormalE{Gx}{\Sigma_\epsilon}{y}$
-\begin{align*}
-  &(x-\mu_\beta)\transpose \Sigma_\beta^{-1} (x-\mu_\beta) +
-  (y-Gx)\transpose \Sigma_\epsilon^{-1} (y-Gx) \\
-  &= x\transpose \left(\Sigma_\beta^{-1} + G\transpose
-    \Sigma_\epsilon^{-1} G \right) x - 2x\transpose
-  \left(\Sigma_\beta^{-1}\mu_\beta + G\transpose \Sigma_\epsilon^{-1}
-    y \right) + \mu_\beta \transpose \Sigma_\beta^{-1}\mu_\beta +
-  y\transpose \Sigma_\epsilon^{-1} y
-\end{align*}
-\begin{align*}
-  \Sigma_b &= \left( \Sigma_\beta^{-1} + G\transpose
-    \Sigma_\epsilon^{-1} G \right)^{-1}\\
-  &= \Sigma_\beta - \Sigma_\beta G\transpose \left(G \Sigma_\beta
-    G\transpose + \Sigma_\epsilon \right)^{-1} G \Sigma_\beta\\
-  \mu_b &= \Sigma_b \left(\Sigma_\beta^{-1}\mu_\beta + G\transpose
-    \Sigma_\epsilon^{-1} y \right) \\
-  &= \Sigma_b \left( \left( \Sigma_b^{-1} - G\transpose
-      \Sigma_\epsilon^{-1} G \right) \mu_\beta + G\transpose
-    \Sigma_\epsilon^{-1} y \right)\\
-  &= \mu_\beta + \Sigma_b G\transpose \Sigma_\epsilon^{-1}
-  (y-G\mu_\beta) \\
-  &= \mu_\beta + \Sigma_\beta G\transpose \left(G \Sigma_\beta
-    G\transpose + \Sigma_\epsilon \right)^{-1}(y-G\mu_\beta),
-\end{align*}
-where we justify the last equation by observing that
-\begin{align*}
-  \Sigma_b G\transpose \Sigma_\epsilon^{-1} &= \Sigma_\beta
-  G\transpose \Sigma_\epsilon^{-1} - \Sigma_\beta G\transpose \left(G
-    \Sigma_\beta G\transpose + \Sigma_\epsilon \right)^{-1}G
-  \Sigma_\beta
-  G\transpose \Sigma_\epsilon^{-1} \\
-  &= \Sigma_\beta G\transpose \left( \id - \left(G \Sigma_\beta
-      G\transpose + \Sigma_\epsilon \right)^{-1}G \Sigma_\beta
-    G\transpose \right)\Sigma_\epsilon^{-1} \\
-  &= \Sigma_\beta G\transpose \left(G \Sigma_\beta G\transpose +
-    \Sigma_\epsilon \right)^{-1} \left(G \Sigma_\beta G\transpose +
-    \Sigma_\epsilon - G \Sigma_\beta G\transpose
-  \right)\Sigma_\epsilon^{-1}\\
-  &= \Sigma_\beta G\transpose \left(G \Sigma_\beta G\transpose +
-    \Sigma_\epsilon \right)^{-1}.
-\end{align*}
-Thus
-\begin{subequations}
-  \label{eq:KalmanGainBack}
-  \begin{align}
-    \Sigma_b &= \left(\id  -  K_b G \right) \Sigma_\beta\\
-    \mu_b &= \mu_\beta + K_b (y-G\mu_\beta)
-  \end{align}
-  where
-  \begin{equation}
-    K_b \equiv \Sigma_\beta G\transpose \left(G \Sigma_\beta
-    G\transpose + \Sigma_\epsilon \right)^{-1}
-  \end{equation}
-  is called the \index*{backwards Kalman gain matrix}.%
-  \index{Kalman gain matrix, backwards}%
-  \index{matrix,Kalman gain, backwards}%
-\end{subequations}
-
-Next, we address step~\ref{BackList4} in the list above, using the
-abbreviations
-\begin{align*}
-  \tilde \Sigma &\equiv (\Sigma_b^{-1} + \Sigma_\eta^{-1})^{-1} \\
-  &= \Sigma_\eta - \Sigma_\eta( \Sigma_\eta + \Sigma_b)^{-1}
-  \Sigma_\eta \\
-  \tilde \mu &\equiv \tilde \Sigma \left( \Sigma_b^{-1} \mu_b +
-  \Sigma_\eta^{-1} F x  \right)
-\end{align*}
-to analyze $Q_{x,x'}$, the exponent of $\NormalE{\mu_b}{\Sigma_b}{x'}
-\cdot \NormalE{\ti{F}{t}x}{\Sigma_\eta}{x'}$.
-\begin{align*}
-  Q_{x,x'} &= (x' - \mu_b)\transpose \Sigma_b^{-1} (x' - \mu_b) + (x' -
-  Fx)\transpose \Sigma_\eta^{-1} (x' - Fx)\\
-   &= (x')\transpose (\Sigma_b^{-1} + \Sigma_\eta^{-1}) x' -2(x')\transpose
-   ( \Sigma_b^{-1} \mu_b - \Sigma_\eta^{-1} F x) + \mu_b\transpose
-   \Sigma_b^{-1} \mu_b + x\transpose F\transpose \Sigma_\eta^{-1} F
-   x \\
-   &= (x' - \tilde \mu)\transpose \tilde \Sigma^{-1}(x' - \tilde \mu) -
-   \tilde \mu \transpose \tilde \Sigma^{-1} \tilde \mu +
-   \mu_b\transpose \Sigma_b^{-1} \mu_b + x\transpose F\transpose
-   \Sigma_\eta^{-1} F x
-\end{align*}
-Note that $(x' - \tilde \mu)\transpose \tilde \Sigma^{-1}(x' - \tilde
-\mu)$ goes away with the integration, and 
-\begin{align*}
-  \tilde \mu \transpose \tilde \Sigma^{-1} \tilde \mu &= \left(
-    \Sigma_b^{-1}\mu_b + \Sigma_\eta^{-1} F x \right)\transpose \left(
-    \Sigma_b^{-1} + \Sigma_\eta^{-1} \right)^{-1}
-  \left( \Sigma_b^{-1}\mu_b + \Sigma_\eta^{-1} F x \right) \\
-  &= x F\transpose \Sigma_\eta^{-1} \tilde \Sigma^{-1}
-  \Sigma_\eta^{-1} F x + 2x F\transpose \Sigma_\eta^{-1} \tilde
-  \Sigma^{-1} \Sigma_b^{-1}\mu_b + \mu_b\transpose \Sigma_b^{-1}
-  \tilde \Sigma^{-1} \Sigma_b^{-1}\mu_b\\
-  &= x F\transpose \left( \Sigma_\eta^{-1} - \left(\Sigma_\eta +
-      \Sigma_b \right)^{-1} \right) F x + 2x F\transpose
-  \left(\Sigma_\eta + \Sigma_b \right)^{-1}\mu_b + \mu_b\transpose
-  \Sigma_b^{-1} \tilde \Sigma^{-1} \Sigma_b^{-1}\mu_b .
-\end{align*}
-After integrating, the exponent of
-$\NormalE{\mu_\beta}{\Sigma_\beta}{x}$ is
-\begin{equation*}
-  Q_x = x\transpose F\transpose (\Sigma_\eta + \Sigma_b)^{-1} Fx - 2x
-  F\transpose \left(\Sigma_\eta + \Sigma_b \right)^{-1}\mu_b +
-  \text{ scalar terms}. 
-\end{equation*}
 So
 \begin{align*}
   \ti{\Sigma_\beta}{t-1} &= (\ti{F}{t})^{-1} ( \Sigma_\eta +
