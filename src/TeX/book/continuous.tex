@@ -102,9 +102,9 @@ the remaining steps for the subsequent observations:
   \frac{P_{\ti{X}{0},\ti{Y}{0}} \left(x,\ti{y}{0}
     \right)}{P\left(\ti{y}{0} \right)}
 \end{align}
-specify $\ti{\gamma}{0}$, the probability of the first
-observation and $\alpha(0,x)$, the conditional distribution of the
-first state given the first observation.
+specify $\ti{\gamma}{0}$, the likelihood for the first observation and
+$\alpha(0,x)$, the conditional distribution of the first state given
+the first observation.
 \item \textbf{Forecast the state distribution} \index{forecast} Find
   the conditional distribution of the state at the present time given
   the past observations.
@@ -446,6 +446,11 @@ through the observations in reverse order.
 \end{description}
 Note:
 \begin{itemize}
+\item The the backward update formulas, \eqref{eq:BUpdate} are exactly
+  the same as the forward update formulas, \eqref{eq:KUpdate}, and the
+  forecast formulas, \eqref{eq:BFore} \eqref{eq:KFore}, principally
+  differ in that the backward formula uses $F^{-1}$ where the forward
+  formula uses $F$.
 \item As for the forward recursion, the update formulas are usually
   presented in a computationally more efficient form using a gain
   matrix (See Eqn.~\eqref{eq:KalmanGainBack}).
@@ -461,6 +466,24 @@ Note:
   the \emph{\index*{inverse covariance form}} of the algorithm (see
   Section~\ref{sec:DetailInverse}.).
 \end{itemize}
+
+
+From 3a53d00d3f56bdf2de98
+\begin{subequations}
+  \label{eq:KalmanGainBack}
+  \begin{align}
+    \Sigma_b &= \left(\id  -  K_b G \right) \Sigma_\beta\\
+    \mu_b &= \mu_\beta + K_b (y-G\mu_\beta)
+  \end{align}
+  where
+  \begin{equation}
+    K_b \equiv \Sigma_\beta G\transpose \left(G \Sigma_\beta
+    G\transpose + \Sigma_\epsilon \right)^{-1}
+  \end{equation}
+  is called the \index*{backwards Kalman gain matrix}.%
+  \index{Kalman gain matrix, backwards}%
+  \index{matrix,Kalman gain, backwards}%
+\end{subequations}
 
 \subsection{Smoothing}
 \index{smoothing}
@@ -546,18 +569,20 @@ directly to step~\ref{PYforecast}.
     \ti{x}{t} = \ti{F}{t} \ti{x}{t-1} + \ti{\eta}{t}.
   \end{equation*}
   the mean is
+  \begin{subequations}
+    \label{eq:DeriveForecast}
   \begin{align}
     \ti{\mu_a}{t} &= \EV_{
       \ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}} \left[
-      \ti{F}{t}\ti{X}{t-1} + \ti{\eta}{t} \right] \nonumber \\
+      \ti{F}{t}\ti{X}{t-1} + \ti{\eta}{t} \right] \\
     &= \EV_{\ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}}
       \ti{F}{t}\ti{X}{t-1} +
-      \EV_{\ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}} \ti{\eta}{t} \nonumber \\
+      \EV_{\ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}} \ti{\eta}{t} \\
     \label{eq:etaIndependent}
     &= \EV_{ \ti{x}{t-1}\given \ts{y}{0}{t}}
     \ti{F}{t}\ti{X}{t-1}  + \EV_{\eta} \ti{\eta}{t} \\
                                  %
-     &= \ti{F}{t}\ti{\mu_\alpha}{t-1}. \nonumber
+     &= \ti{F}{t}\ti{\mu_\alpha}{t-1}.
    \end{align}
    The key step in the above sequence is
    Eqn.~\eqref{eq:etaIndependent} which we justify by observing that
@@ -576,6 +601,7 @@ directly to step~\ref{PYforecast}.
     &= \ti{F}{t}\ti{\Sigma_\alpha}{t-1}\ti{F}{t}\transpose +
     \Sigma_\eta .
   \end{align}
+  \end{subequations}
   Thus Eqn.~\eqref{eq:KFore} implements the integral of
   Eqn.~\eqref{eq:FIForecast}.
 \item \label{PYforecast} \textbf{Calculate
@@ -671,7 +697,7 @@ directly to step~\ref{PYforecast}.
       \NormalE{\mu_{\tilde a}}{\Sigma_{\tilde a}}{x,\ti{y}{t}}
       &\equiv \JointForecast{X}{x}{t} \\
       \label{eq:NormalJointForecast}
-      &= \NormalE{Gx}{\Sigma_\epsilon}{\ti{y}{t}} \NormalE{\mu_a}{\Sigma_a}{x}
+      &= \NormalE{\mu_a}{\Sigma_a}{x} \NormalE{\ti{G}{t}x}{\Sigma_\epsilon}{\ti{y}{t}}
     \end{align}
   \item \label{PXupdate} \textbf{Calculate the state update,
       $\bm{P\left(\ti{x}{t}\given \ts{y}{0}{t+1} \right)}$.}  With the
@@ -792,32 +818,55 @@ will ignore that for now and focus on the two alternating steps:
       \Sigma_\epsilon^{-1} \big[\ti{y}{t} - \ti{G}{t}
       \ti{\mu_\beta}{t}\big]
     \end{align*}
-  \item \textbf{Backwards Forecast} compare
-    \eqref{eq:ForecastKIntegral} use \eqref{eq:BIForecast}
-    \begin{align}
+  \item \textbf{Backwards Forecast} From
+    Equation~\eqref{eq:BIForecast} on page \pageref{eq:BIForecast} the
+    integral for the backward forecast is
+    \begin{equation}
       \label{eq:BackwardKIntrgral}
-      \beta(t-1,x) &= \int b(t,x')\NormalE{Fx}{\Sigma_\eta}{x'} dx' 
-    \end{align}
-    Want:
-  \begin{subequations}
-    \begin{align}
+      \beta(t-1,x) = \int
+      \NormalE{\mu_{\ti{b}{t}}}{\Sigma_{\ti{b}{t}}}{x'}
+      \NormalE{Fx}{\Sigma_\eta}{x'} dx'
+    \end{equation}
+    and from Equation~\eqref{eq:FIForecast} on page
+    \pageref{eq:FIForecast} the corresponding integral for the forward
+    forecast is
+    \begin{equation}
+      \label{eq:ForwardKIntegral}
+      a(t+1,x) = \int
+      \NormalE{\mu_{\ti{\alpha}{t}}}{\Sigma_{\ti{\alpha}{t}}}{x'}
+      \NormalE{Fx'}{\Sigma_\eta}{x} dx'.
+    \end{equation}
+    On page \pageref{eq:DeriveForecast} via
+    Equations~\eqref{eq:DeriveForecast} we showed that the forward
+    forecast is
+    \begin{align*}
+      \ti{\mu_a}{t} &= \ti{F}{t} \cdot \ti{\mu_\alpha}{t-1}\\
+      \ti{\Sigma_a}{t} &= \ti{F}{t} \cdot \ti{\Sigma_\alpha}{t-1}
+      \cdot \left(\ti{F}{t}\right)\transpose + \Sigma_\eta.
+    \end{align*}
+    Manipulating the quadratic for in the exponent of
+    $\NormalE{\mu_{\ti{b}{t}}}{\Sigma_{\ti{b}{t}}}{x'}$ we find
+    \begin{align*}
+      Q
+      &\equiv \left(x'-Fx\right)\transpose \Sigma^{-1}_\eta
+        \left(x'-Fx\right) \\
+      &= \left(F^{-1}x'- x\right)\transpose F\transpose
+        \Sigma^{-1}_\eta F \left(F^{-1}x'-x\right)  && \text{so} \\
+      \NormalE{Fx}{\Sigma_\eta}{x'}
+      &= \NormalE{F^{-1}x'}{F\transpose\Sigma_\eta F}{x}  &&
+                                                             \text{using
+                                                             this in
+                                                             \eqref{eq:ForwardKIntegral}
+                                                             yields}
+      \\
       \ti{\mu_\beta}{t-1} &= \left( \ti{F}{t} \right)^{-1}
       \ti{\mu_b}{t} \\
       \ti{\Sigma_\beta}{t-1} &= \left( \ti{F}{t} \right)^{-1} \left(
         \Sigma_\eta + \ti{\Sigma_b}{t} \right) \left( \left( \ti{F}{t}
-        \right)^{-1} \right)\transpose
-    \end{align}
-  \end{subequations}
+        \right)^{-1} \right)\transpose,
+    \end{align*}
+    which exactly matches \eqref{eq:BFore} on page \pageref{eq:BFore}.
 \end{enumerate}
-
-So
-\begin{align*}
-  \ti{\Sigma_\beta}{t-1} &= (\ti{F}{t})^{-1} ( \Sigma_\eta +
-  \ti{\Sigma_b}{t} ) \left( \left( \ti{F}{t} \right)^{-1}
-  \right)\transpose
-  \\
-  \ti{\mu_\beta}{t-1} &= (\ti{F}{t})^{-1}\ti{\mu_b}{t}.
-\end{align*}
 
 \subsection{Smoothing}
 \label{sec:DetailSmoothing}
