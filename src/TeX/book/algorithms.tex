@@ -138,16 +138,16 @@ avoids underflow:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
 %%% #1 = time #2 = state
-\newcommand{\alphax}[2]{%
+\newcommand{\alphax}[4]{% updated state distribution
   \colorbox{yellow}{%
-    $P_{S(#1)\given \ts{Y}{0}{#1}}\left(#2 \given \ts{y}{0}{#1} \right)$%
+    $P_{\ti{#1}{#2}\given \ts{Y}{0}{#3}}\left(#4 \given \ts{y}{0}{#3} \right)$%
   }%
 }%
 %%%
 %%%
-\newcommand{\prealpha}{%
+\newcommand{\StateForecast}[3]{% state forecast
   \colorbox{green}{%
-    $P_{\ti{S}{t}\given \ts{Y}{0}{t}} \left(s \given  \ts{y}{0}{t} \right)$%
+    $P_{\ti{#1}{#3}\given \ts{Y}{0}{#3}} \left(#2 \given  \ts{y}{0}{#3} \right)$%
   }%
 }%
 %%%
@@ -158,18 +158,19 @@ avoids underflow:
 }%
 %%%
 %%%
-\newcommand{\pregamma}{%
+\newcommand{\JointForecast}[3]{% joint forecast
   \colorbox{pink}{%
-    $P_{\ti{S}{t},\ti{Y}{t}\given \ts{Y}{0}{t}} \left(s,\ti{y}{t}\given \ts{y}{0}{t}\right)$%
+    $P_{\ti{#1}{#3},\ti{Y}{#3}\given \ts{Y}{0}{#3}} \left(#2,\ti{y}{#3}\given \ts{y}{0}{#3}\right)$%
   }%
 }%
 %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 For each time step we do the four calculations specified in the
-equations below\footnote{In Section~\ref{sec:Clarity} we present four
-  lines of python code that implement these four calculations.}.  In
-these equations we use color highlighting to emphasize repeated
+equations below\footnote{In \eqref{code:forward} on
+  page~\pageref{code:forward} in Section~\ref{sec:Clarity} we present
+  four lines of python code that implement these four calculations.}.
+In these equations we use color highlighting to emphasize repeated
 instances of the same quantity.  The algorithm saves the following
 intermediate results
 %
@@ -185,30 +186,42 @@ intermediate results
 %
 \nomenclature[gc]{$\gamma(t)$}{The probability of the present observation
   given the history.}%, $P(y(t)\given y_1^{t-1}$.}
-\begin{align}
-  \label{eq:alpha}
-  \alpha(t,s) &\equiv \alphax{t}{s}\\
-  \label{eq:gamma}
-  \ti{\gamma}{t} &\equiv \gammax .
-\end{align}
-In words\footnote{In Ferguson's notation $\alpha(t,s) \equiv
-  P_{\ti{S}{t},\ts{Y}{0}{t}} \left(s,\ts{y}{0}{t} \right)$.  Our
-  notation differs from that by a factor of $P(\ts{y}{0}{t})$.
-  Ferguson did not have notation for the term
-  $P(\ti{y}{t}\given \ts{y}{0}{t})$ which we call $\gamma$, but he did use
-  $\gamma$ for quantities that we will denote by $w$ in
-  Eqns.~\eqref{eq:wit} and \eqref{eq:wijt}.}, $\alpha(t,s)$ is the
-conditional probability of being in state $s$ at time $t$ given all
-of the observations up to time $t$ and $\ti{\gamma}{t}$ is the
-conditional probability of the observation at time $t$ given all of
-the previous observations.  To initialize the algorithm, one assigns
+\begin{subequations}
+  \label{eq:ForwardDefinitions}
+  \begin{align}
+    \label{eq:alpha}
+    \alpha(t,s) &\equiv \alphax{S}{t}{t+1}{s} && \text{The updated state distribution}\\
+    \label{eq:gamma}
+    \ti{\gamma}{t} &\equiv \gammax  && \text{The incremental likelihood}.
+  \end{align}
+  In words\footnote{In Ferguson's notation $\alpha(t,s) \equiv
+    P_{\ti{S}{t},\ts{Y}{0}{t}} \left(s,\ts{y}{0}{t} \right)$.  Our
+    notation differs from that by a factor of $P(\ts{y}{0}{t})$.
+    Ferguson did not have notation for the term
+    $P(\ti{y}{t}\given \ts{y}{0}{t})$ which we call $\gamma$, but he did use
+    $\gamma$ for quantities that we will denote by $w$ in
+    Eqns.~\eqref{eq:wit} and \eqref{eq:wijt}.}, $\alpha(t,s)$ is the
+  conditional probability of being in state $s$ at time $t$ given all
+  of the past observations including $\ti{y}{t}$ and $\ti{\gamma}{t}$ is the
+  conditional probability of the observation at time $t$ given all of
+  the previous observations.  We also define two intermediate terms that
+  are not saved
+  \begin{align}
+    \label{eq:StateForecast}
+    a(s,t) &\equiv \StateForecast{S}{s}{t}  && \text{The state forecast} \\
+    \label{eq:JointForecast}
+    \tilde a(s,t) &\equiv \JointForecast{S}{s}{t}  && \text{The joint forecast}.
+  \end{align}
+\end{subequations}
+
+To initialize the algorithm, one assigns
 \begin{align*}
   \ti{\gamma}{0} &= P_{\ti{Y}{0}}(\ti{y}{0}) =
               \sum_{s}P_{\ti{S}{0}}(s)P_{\ti{Y}{t}\given \ti{S}{t}}(\ti{y}{0}\given s)
   \\
   \alpha(0,s) &= P_{\ti{S}{0}\given \ti{Y}{0}}(s\given \ti{y}{0}) =
   \frac{P_{\ti{S}{0}}(s)P_{\ti{Y}{t}\given \ti{S}{t}}(\ti{y}{0}\given s)}
-  {\gamma(1)}
+  {\ti{\gamma}{0}}
 ~\forall s \in \states
 \end{align*}
 where the distributions $P_{\ti{S}{0}}$ and $P_{\ti{Y}{t}\given \ti{S}{t}}$
@@ -222,14 +235,14 @@ a loop doing the following four calculations:
     \label{eq:forwardA}
     \begin{align}
       \mlabel{eq:forwardA1}
-      \prealpha & = \sum_{{\tilde s}\in\states}
+      \StateForecast{S}{s}{t} & = \sum_{{\tilde s}\in\states}
       P_{\ti{S}{t},\ti{S}{t-1}\given \ts{Y}{0}{t}} \left( s, {\tilde s}
       \given \ts{y}{0}{t} \right)\\
       \mlabel{eq:forwardA2}
       & = \sum_{{\tilde s}\in\states} \left(
         P_{\ti{S}{t}\given \ti{S}{t-1},\ts{Y}{0}{t}}
         \left( s\given {\tilde s},\ts{y}{0}{t} \right) \right. \nonumber \\ &
-      \left. \times \alphax{t-1}{{\tilde s}} \right) \\
+      \left. \times \alphax{S}{t-1}{t}{{\tilde s}} \right) \\
       \mlabel{eq:forwardA3}
       & = \sum_{{\tilde s}\in\states} P_{\ti{S}{t}\given \ti{S}{t-1}} \left( s\given {\tilde s} \right)
       \cdot \alpha(t-1,{\tilde s}) .
@@ -240,9 +253,9 @@ a loop doing the following four calculations:
   \item[\eqref{eq:forwardA1}] $P(a) = \sum_b P(a,b)$
   \item[\eqref{eq:forwardA2}] $P(a\given b)\cdot P(b) = P(a,b)$
   \item[\eqref{eq:forwardA3}] Assumption of
-    Eqn.~\eqref{eq:assume_markov}: The state process is Markov
+    Eqn.~\eqref{eq:assume_markov} on page~\pageref{eq:assume_markov}: The state process is Markov
   \end{description}
-\item[Update the Joint Probability of States and the Current
+\item[Forecast the Joint Probability of States and the Current
   Observation] Find for time $t$ and each possible state $s$, the
   conditional probability, given the previous observations, of the
   state being $s$ and the observation being $\ti{y}{t}$ (the value
@@ -251,20 +264,20 @@ a loop doing the following four calculations:
     \label{eq:forwardB}
     \begin{align}
       \mlabel{eq:forwardB1}
-      \pregamma &= P_{\ti{Y}{t} \given 
+      \JointForecast{S}{s}{t} &= P_{\ti{Y}{t} \given 
         \ti{S}{t},\ts{Y}{0}{t}}\left(\ti{y}{t} \given s, \ts{y}{0}{t}
-      \right) \nonumber \\& \times \prealpha\\
+      \right) \nonumber \\& \times \StateForecast{S}{s}{t}\\
       \mlabel{eq:forwardB2}
       &= P_{\ti{Y}{t} \given  \ti{S}{t}}\left(\ti{y}{t} \given s \right) \cdot
-      \prealpha .
+      \StateForecast{S}{s}{t} .
     \end{align}
   \end{subequations}
 We justify the equations as follows:
 \begin{description}
 \item[\eqref{eq:forwardB1}]  $P(a\given b)\cdot P(b) = P(a,b)$
 \item[\eqref{eq:forwardB2}] Assumption of
-  Eqn.~\eqref{eq:assume_output}: The observations are conditionally
-  independent given the states
+  Eqn.~\eqref{eq:assume_output} on page~\pageref{eq:assume_output}:
+  The observations are conditionally independent given the states
 \end{description}
 \item[Calculate the Conditional Probability of the Current Observation]
   Find for time $t$, the conditional probability, given the previous
@@ -272,10 +285,10 @@ We justify the equations as follows:
   observed):
   \begin{align}
     \mlabel{eq:forwardC}
-    \gammax &= \sum_{s \in \states} \pregamma .
+    \gammax &= \sum_{s \in \states} \JointForecast{S}{s}{t} .
   \end{align}
 Equation~\eqref{eq:forwardC} is an application of $P(a) = \sum_b P(a,b)$.
-\item[Normalize the Updated Distribution of States] For each possible
+\item[Calculate the Updated Distribution of States] For each possible
   state $s$, find the conditional probability of being in that state
   at time $t$ given all of the observations up to time $t$.  Note that
   this differs from the first calculation, \eqref{eq:forwardA}, in that
@@ -285,14 +298,29 @@ Equation~\eqref{eq:forwardC} is an application of $P(a) = \sum_b P(a,b)$.
     \begin{align}
       \mlabel{eq:forwardD1}
       \alpha(t,s) &\equiv
-      \alphax{t}{s} \\
+      \alphax{S}{t}{t+1}{s} \\
       \mlabel{eq:forwardD2}
-      &= \pregamma \div \gammax
+      &= \JointForecast{S}{s}{t} \div \gammax
     \end{align}
   \end{subequations}
   Equation \eqref{eq:forwardD2} is an application of Bayes rule, \ie,
   $P(a\given b)\cdot P(b) = P(a,b)$.
 \end{description}
+Note that given the incremental likelihoods $\ti{\gamma}{t}$ the
+forward algorithm simply alternates between multiplying a state
+distribution by a likelihood and multiplying the result by the matrix
+of state transition probabilities, \ie,
+\begin{subequations}
+    \label{eq:2LineForward}
+  \begin{align}
+    \label{eq:alpha2a}
+    a(t,s) &= \sum_{\tilde s} P_{\ti{s}{1}\given\ti{s}{0}} \left(s\given
+             \tilde s \right) \alpha(t-1,\tilde s) \\
+    \label{eq:a2alpha}
+    \alpha(t,s) &= \frac{P(\ti{y}{t}|s) a(t,s)}{\ti{\gamma}{t}}.
+  \end{align}
+\end{subequations}
+
 
 \section{The Viterbi Algorithm}
 \label{sec:viterbi}
@@ -709,6 +737,22 @@ Finally by substituting these values into the fraction of
     P_{\ti{Y}{t}\given \ti{S}{t}} \left(\ti{y}{t}\given s \right) \cdot
     P_{\ti{S}{t}\given \ti{S}{t-1}} \left(s\given {\tilde s} \right)} {\ti{\gamma}{t}}.
 \end{align}
+By introducing the intermediate quantity $b(t,s)$ we can break
+\eqref{eq:back4} into the two steps
+\begin{subequations}
+  \label{eq:2LineBackward}
+  \begin{align}
+    \mlabel{eq:back5}
+    b(s,t) &= \frac{\beta(t,s) \ti{y}{t}}{\ti{\gamma}{t}} \\
+    \mlabel{eq:back6}
+    \beta(t-1,\tilde s) &= \sum_{s\in\states} b(s,t) P_{\ti{S}{1}\given
+                          \ti{S}{0}} \left(s\given {\tilde s} \right),
+  \end{align}
+\end{subequations}
+which clarifies that, aside from normalization, the backward algorithm
+like the forward algorithm alternates between multiplying a state
+distribution by an observation likelihood and then multiplying the
+result by the transition probability matrix or its transpose.
 
 \subsection{Weights and Reestimation}
 \label{sec:reestimation}

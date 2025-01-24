@@ -271,7 +271,9 @@ that the solution is
   R &= s -  \mu\transpose \Sigma^{-1} \mu.
 \end{align*}
 For the product of Gaussians example \eqref{eq:Qu.a},
-\begin{align*}
+\begin{subequations}
+  \label{eq:GaussianProduct}
+  \begin{align}
   \Sigma^{-1} &= \Sigma_1^{-1} + \Sigma_2^{-1} \\
   \mu &= \Sigma \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2
   \right) \\
@@ -284,7 +286,8 @@ For the product of Gaussians example \eqref{eq:Qu.a},
   \mu_2  \right) \transpose \left( \Sigma_1^{-1} + \Sigma_2^{-1}
   \right)^{-1} \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2
   \right).
-\end{align*}
+\end{align}
+\end{subequations}
 In words the product of two Gaussian density functions is an
 unnormalized Gaussian density function in which the inverse covariance
 is the sum of the inverse covariances of the factors and the mean is
@@ -371,9 +374,40 @@ We used the following sets of data for examples:
 \section{Clarity and Efficiency}
 \label{sec:Clarity}
 
+Here is the heart of our simple python implementation of the forward
+algorithm described in Section~\ref{sec:forward}:
+\ref{code:forward}
+\begin{verbatim}
+        # last is a conditional distribution of state probabilities.
+        # What it is conditioned on changes as the calculations
+        # progress.
+        last = numpy.copy(self.p_state_initial.reshape(-1))
+        for t, likelihood_t in enumerate(self.state_likelihood):
+            last *= likelihood_t  # Element-wise multiply
+            self.gamma_inv[t] = 1 / last.sum()
+            last *= self.gamma_inv[t]
+            self.alpha[t, :] = last
+            last[:] = numpy.dot(last, self.p_state2state)
+\end{verbatim}
+
+
+Here is the heart of our simple implementation of the backward
+algorithm in python:
+\ref{code:backward}
+\begin{verbatim}
+        # last and beta are analogous to last and alpha in forward(),
+        # but the precise interpretations are more complicated.
+        last = numpy.ones(self.n_states)
+        for t in range(len(self.state_likelihood) - 1, -1, -1):
+            self.beta[t, :] = last
+            last *= self.state_likelihood[t] * self.gamma_inv[t]
+            last[:] = numpy.dot(self.p_state2state, last)
+\end{verbatim}
+
 %%% Local Variables:
 %%% TeX-master: "main"
 %%% eval: (load-file "hmmkeys")
+%%% mode: LaTeX
 %%% End:
 
 % LocalWords:  Welch Viterbi HMM

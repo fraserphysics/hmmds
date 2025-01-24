@@ -61,7 +61,7 @@ measurements has the following characteristics:
     \begin{equation*}
       x \equiv 
       \begin{bmatrix}
-        x_1\\x_2\\x_3
+        x_0\\x_1\\x_2
       \end{bmatrix}
     \end{equation*}
   \item[Time step] We obtain the map $F$ by numerically integrating
@@ -69,8 +69,8 @@ measurements has the following characteristics:
     absolute error tolerance of $\toyHviewatol$.
   \item[iid state noise] 
     \begin{equation*}
-      \ti{\eta}{t} \sim \Normal(0, \begin{bmatrix} 1 & 0 & 0\\0 & 1 &
-        0\\0&0&1 \end{bmatrix} \sigma_\eta^2)
+      \ti{\eta}{t} \sim \Normal\left(0, \begin{bmatrix} 1 & 0 & 0\\0 & 1 &
+        0\\0&0&1 \end{bmatrix} \sigma_\eta^2\right)
     \end{equation*}
   \item[Measurement function] A simple projection
     \begin{equation*}
@@ -117,7 +117,8 @@ that dynamical noise and measurement quantization are negligible
 compared to the effects of measurement noise and dynamical stretching.
 In the middle plot of Fig.~\ref{fig:ToyTS1} notice that while for most
 times the forecast deviation of the prediction $\ti{\sigma_\gamma}{t}$
-is very close to the size of the state noise
+is very close to the size of the state noise \ToDo{or close to the
+measurement noise?}
 $\sigma_\eta = \toyHviewStateNoise$, occasionally the forecast
 deviations are many times larger.  The log likelihood per time step
 which appears in the bottom plot of the figure is low when either the
@@ -185,14 +186,8 @@ map $[DF]$ that occurs then.
   \label{fig:ToyStretch}
 \end{figure}
 
-Figure~\ref{fig:ToyH} illustrates the behavior of $-\hat h$, the sample
-average of the log likelihood of forecasts, for a group of simulations
-with parameters that are quite different from those in
-Figs.~\ref{fig:ToyTS1} and \ref{fig:ToyStretch}.  Given model parameters
-$\theta$ and a sample sequence $\ts{y}{0}{T}$ of length $T$, we define
-\begin{align*}
-  -\hat h &\equiv \frac{1}{T} \sum_{t=0}^{T-1}
-    \log \left( P \left(\ti{y}{t}\given \ts{y}{0}{t}, \theta
+Figure~\ref{fig:ToyH} illustrates the behavior of $-\hat h$, the
+ sample average of the log likelihood of forecasts, for a group of simulations with parameters that are quite different from those in Figs.~\ref{fig:ToyTS1} and \ref{fig:ToyStretch}.  Given model parameters $\theta$ and a sample sequence $\ts{y}{0}{T}$ of length $T$, we define \begin{align*} -\hat h &\equiv \frac{1}{T} \sum_{t=0}^{T-1} \log \left( P \left(\ti{y}{t}\given \ts{y}{0}{t}, \theta
       \right)\right)\\
     &=  \frac{1}{T} \log \left( P \left(\ts{y}{0}{T}\given  \theta
       \right)\right).
@@ -273,7 +268,7 @@ using the Benettin procedure described in Section~\ref{sec:Benettin}.
     sampling time through the formula $\tilde \sigma_\epsilon(\tau_s) =
     10^{m \cdot \tau_s + b}$, with $m =0.4$ and $b=-4.85$ chosen by hand to
     follow the ridge top in the plot
-    on the left.  Also on the right, the Bottom row of dots
+    on the left.  Also on the right, the bottom row of dots
     indicates the performance of
     filters that use $\tilde \sigma_\epsilon = \toyToyhystep$, \ie the
     measurement quantization level, and the solid line traces
@@ -368,7 +363,7 @@ measurements  $\ts{Y}{0}{T}$ each of which can be thought of as a
 \index{entropy}
 If a discrete random variable $U$ takes on the values
 $u_0,u_1,\ldots,u_n$ with probabilities $P(u_0),P(u_1),\ldots,P(u_n)$,
-then the \emph{entropy} of $U$ is
+then the \emph{entropy} of $U$ is \ToDo{should sum be from 0?}
 \nomenclature[rHU]{$H(U)$}{The entropy of a discrete random variable $U$.}
 \begin{equation}
   \label{eq:HDef}
@@ -646,16 +641,17 @@ exclude the digit ``1''.  The symbol sequences produced by applying
 the map $F_3$ and partition $\mathcal{B}_3$ to the middle third Cantor
 set are the sequences of coefficients in the base three expansions of
 the starting points, \ie, they consist exclusively of $0's$ and $2's$.
-Given any finite sequence $d_0^n$, we define the set of infinite
-coefficient sequences $\left\{d_0^n,\ldots \right\}$ as those that
-begin with the sequence $d_0^n$.  Now we define a probability measure
+Given any finite sequence $\ts{d}{0}{n}$, we define the set of infinite
+coefficient sequences $\left\{\ts{d}{0}{n}
+,\ldots \right\}$ as those that
+begin with the sequence $\ts{d}{0}{n}$.  Now we define a probability measure
 $\mu_c$ in terms of such sets of infinite sequences,
 \begin{equation}
   \label{eq:muC}
-  \mu_c\left( \left\{ d_0^n,\ldots \right\} \right) \equiv 
+  \mu_c\left( \left\{ \ts{d}{0}{n},\ldots \right\} \right) \equiv 
   \begin{cases}
-    2^{-(n+1)} & \text{if ``1'' does not appear in } d_0^n\\
-    0 & \text{if ``1'' does appear in } d_0^n
+    2^{-(n+1)} & \text{if ``1'' does not appear in } \ts{d}{0}{n}\\
+    0 & \text{if ``1'' does appear in } \ts{d}{0}{n}
   \end{cases}
 \end{equation}
 With this measure we find
@@ -728,7 +724,7 @@ TX(x)$ associated with each exponent, with
 \end{equation*}
 and
 \begin{equation*}
-  TX(x) = \bigoplus_{i=1}^r E_i. %\bigoplus?
+  TX(x) = \bigoplus_{i=0}^{r-1} E_i. %\bigoplus?
 \end{equation*}
 The dimension of $E_i$ is called the \emph{multiplicity} $m_i$ of the
 exponent $\lambda_i$. If $\mu$ is ergodic with respect to $F$, then
@@ -834,6 +830,7 @@ Thus we have the following two theorems:
   \begin{equation}
     \label{eq:BoundTheorem}
     h({\cal{B}},F,\mu||\theta) \geq \sum_{i : \lambda_i > 0} \lambda_i
+= h({\cal{B}},F,\mu)
   \end{equation}
 \end{theorem}
 \begin{theorem}[Entropy gap] \label{GapTheorem}
@@ -1164,9 +1161,10 @@ and thus the bound is tight.
 In this class of models, the probability measure for the generating
 process is not necessarily ergodic or even stationary; it is derived
 from a uniform density over a box that covers possible starting
-conditions, and it includes a little bit of noise in the dynamics so
-that even in the long time limit it does not become fractal.  Because
-the probability is smooth, the models cannot exploit fractal
+conditions, and it includes a little bit of noise \ToDo{I don't like
+\emph{a little bit of noise}.} in the dynamics so that even in the %
+long time limit it does not become fractal.  Because the probability
+is smooth, the models cannot exploit fractal
 properties that might exist in the modeled system and consequently
 $\gamma$, the Ledrappier and Young correction to the Pesin formula, is
 irrelevant.  More specifically we consider a model class with the
@@ -1233,6 +1231,9 @@ Rather than going backwards in time to analyze the pre-image of
 $\ts{y}{0}{T}$, we can think about the forward image of the volume of
 initial conditions under the map $\Phi(T)$.  To first order, the
 distribution is a uniform probability density over a parallelepiped
+%
+\ToDo{What is $\Lic$?}
+%
 that extends a distance $\Lic \ti{s}{T}$ in the direction of the first
 column of the orthogonal matrix $\ti{Q}{t}$ in Eqn.~\eqref{eq:QR1}.
 The measurement partition divides the image into elements that have a

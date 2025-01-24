@@ -61,25 +61,28 @@ Section~\ref{sec:LinearGaussian}.
 \label{sec:integrals}
 
 Here we write out the forward and backward algorithms for models with
-continuously distributed states and observations by simply taking the
-descriptions in Chapter \ref{chap:algorithms} and replacing sums with
-integrals.
+continuously distributed states and observations by simply replacing
+sums in Chapter~\ref{chap:algorithms} with integrals.
 
 \subsection{Forward Algorithm}
 \index{forward algorithm!for continuous states}
 
 Like the forward algorithm for a simple HMM (see Equations
-\eqref{eq:ForwardDefinitions}) the forward algorithm for continuous
-variables uses each successive observation and calculates the incremental
-likelihood
+\eqref{eq:ForwardDefinitions} on page~\pageref{eq:ForwardDefinitions})
+the forward algorithm for continuous variables uses each successive
+observation and calculates the incremental likelihood
 \begin{equation*}
   \ti{\gamma}{t} \equiv \gammax
 \end{equation*}
 and the three distributions
 \begin{align*}
-  \alpha(t,x) &\equiv \alphax{X}{t}{t+1}{x} && \text{updated} \\
-  a(t,x) &\equiv \StateForecast{X}{x}{t} && \text{forecast} \\
-  \tilde a(t,x) &\equiv \JointForecast{X}{x}{t} && \text{joint forecast}.
+  \alpha(t,x) &\equiv \alphax{X}{t}{t+1}{x} && \text{Updated state
+                                               distribution} \\
+  a(t,x) &\equiv \StateForecast{X}{x}{t} && \text{Forecast state
+                                            distribution} \\
+  \tilde a(t,x) &\equiv \JointForecast{X}{x}{t} && \text{Joint
+                                                   forecast
+                                                   distribution}.
 \end{align*}
 
 Using the distributions $P_{\ti{X}{0}}$ and
@@ -110,28 +113,31 @@ the first observation.
   the past observations.
 \begin{align}
   \label{eq:t274}
-  P\left(\ti{x}{t},\ti{x}{t-1}\given \ts{y}{0}{t} \right) &=
-  P\left(\ti{x}{t}\given \ti{x}{t-1},\ts{y}{0}{t} \right)
-  P\left(\ti{x}{t-1}\given \ts{y}{0}{t} \right) \\
+  P\left(\ti{x}{t},\ti{x}{t-1}\given \ts{y}{0}{t} \right)
+  &= P\left(\ti{x}{t}\given \ti{x}{t-1},\ts{y}{0}{t} \right) \\
+  \nonumber
+  &\quad \times P\left(\ti{x}{t-1}\given \ts{y}{0}{t} \right) \\
   \label{eq:t275}
   &= P\left(\ti{x}{t}\given \ti{x}{t-1} \right)
-  P\left(\ti{x}{t-1}\given \ts{y}{0}{t} \right) \\
+    P\left(\ti{x}{t-1}\given \ts{y}{0}{t} \right) \\
+  \nonumber
   &= P\left(\ti{x}{t}\given \ti{x}{t-1} \right)
-  \alpha(t-1,\ti{x}{t-1})\\
-                                %
+    \alpha(t-1,\ti{x}{t-1})\\
+  \nonumber
+  a(t,x) &\equiv \StateForecast{X}{x}{t} \\
   \label{eq:t277}
-  a(t,x) \equiv \StateForecast{X}{x}{t} &= \int
-  P\left(\ti{x}{t},\ti{x}{t-1}\given \ts{y}{0}{t} \right) d\ti{x}{t-1}\\
+  &= \int P\left(\ti{x}{t},\ti{x}{t-1}\given \ts{y}{0}{t} \right)
+    d\ti{x}{t-1}\\
   \label{eq:FIForecast}
   &= \int P_{\ti{X}{1} \given \ti{X}{0}} \left(x|x' \right)
-    \alpha(t-1,x') dx'
+    \alpha(t-1,x') dx'.
 \end{align}
 Here we justify \eqref{eq:t274} by Bayes rule, \eqref{eq:t275} by
 the model assumptions, and \eqref{eq:t277} by the definition of a
 marginal distribution.
 \item \textbf{Calculate the joint forecast} Leaving the state at the
   present time as a free parameter, calculate the joint conditional
-  distribution of the state and this observation given past
+  distribution of the state and the observation $\ti{y}{t}$ given past
   observations.
   \begin{align}
     \nonumber
@@ -154,10 +160,11 @@ the model assumptions.
     \label{eq:Igamma}
     &= \int \tilde a(t,x) dx
 \end{align}
-\item \textbf{Update the conditional state distribution} \index{update} Use
-  Bayes rule to combine \eqref{eq:FIUpdate} and \eqref{eq:Igamma} and get
-  the conditional distribution of the present state given all past
-  observations and the present observation.
+\item \textbf{Update the conditional state distribution}
+  \index{update} Use Bayes rule to combine \eqref{eq:FIUpdate} and
+  \eqref{eq:Igamma} to get $\alpha(t,x)$, the conditional distribution
+  of the present state given all past observations and the present
+  observation.
 \begin{align}
   \alpha(t,x) &\equiv \alphax{X}{t}{t+1}{x} \\
   &=  \frac{ \JointForecast{X}{x}{t}}{\gammax}\\
@@ -191,10 +198,11 @@ the recursion
   {P\left(\ti{y}{t}\given \ts{y}{0}{t} \right)} dx'.
 \end{equation}
 Note that by replacing the sum over discrete states $s$ in
-\eqref{eq:back4} with an integral over continuous states $x'$ one
-obtains \eqref{eq:contback}, and that as with the discrete case we
-have chosen to define $\beta(t,x)$ so that the conditional
-distribution of the state at time $t$ given all of the observations is
+\eqref{eq:back4} on page \pageref{eq:back4} with an integral over
+continuous states $x'$ one obtains \eqref{eq:contback}, and that as
+with the discrete case we have chosen to define $\beta(t,x)$ so that
+the conditional distribution of the state at time $t$ given all of the
+observations is
 \begin{equation}
   \label{eq:contalphabeta}
   \alpha(t,x) \beta(t,x) = P_{\ti{X}{t}\given \ts{Y}{0}{T}}
@@ -224,25 +232,27 @@ alternation between multiplying by the observation likelihood in
 If the functions $F$ and $G$ in Eqn.~\eqref{eq:contnoise} are linear
 in $x$, the noise terms $\ti{\eta}{t}$ and $\ti{\epsilon}{t}$ are \iid
 and Gaussian\footnote{We assume \emph{identical} distributions only to
-  simplify the notation.  The procedures generalize easily to time
-  dependent noise terms.  The notation $X\sim\Normal(\mu,\Sigma)$
-  means, ``The random variable $X$ has a Gaussian distribution with
-  mean $\mu$ and covariance $\Sigma$.} with $\ti{\eta}{t} \sim
-\Normal(0,\Sigma_\eta)$ and $\ti{\epsilon}{t} \sim
-\Normal(0,\Sigma_\epsilon)$, and the distribution of the initial state
-$\ti{X}{0}$ is also Gaussian, then we can write
+  simplify the notation.  It lets us write $\eta$ and $\epsilon$
+  instead of $\ti{\eta}{t}$ and $\ti{\epsilon}{t}$.  The procedures
+  generalize easily to time dependent noise terms.  The notation
+  $X\sim\Normal(\mu,\Sigma)$ means, ``The random variable $X$ has a
+  Gaussian distribution with mean $\mu$ and covariance $\Sigma$.} with
+$\ti{\eta}{t} \sim \Normal(0,\Sigma_\eta)$ and
+$\ti{\epsilon}{t} \sim \Normal(0,\Sigma_\epsilon)$, and the
+distribution of the initial state $\ti{X}{0}$ is also Gaussian, then
+we can write
 \begin{subequations}
   \label{eq:LinearG}
   \begin{align}
   \ti{X}{0} & \sim \Normal\left(\mu_{\ti{X}{0}},\Sigma_{\ti{X}{0}}
   \right)\\
                                 %
-  \ti{x}{t} &= \ti{F}{t} \cdot \ti{x}{t-1} + \ti{\eta}{t} &
-                                                            \ti{\eta}{t} &\sim \Normal\left( 0, \Sigma_\eta \right) \\
+  \ti{x}{t} &= \ti{F}{t} \cdot \ti{x}{t-1} + \eta &
+                                                            \eta &\sim \Normal\left( 0, \Sigma_\eta \right) \\
     P(\ti{x}{t}\given \ti{x}{t-1}) &=
                                     \NormalE{F\ti{x}{t-1}}{\Sigma_\eta}{\ti{x}{t}} \\
-  \ti{y}{t} &= \ti{G}{t} \cdot \ti{x}{t} + \ti{\epsilon}{t} &
-  \ti{\epsilon}{t} &\sim \Normal\left( 0, \Sigma_\epsilon \right) \\
+  \ti{y}{t} &= \ti{G}{t} \cdot \ti{x}{t} + \epsilon &
+  \epsilon &\sim \Normal\left( 0, \Sigma_\epsilon \right) \\
     P(\ti{y}{t}\given \ti{x}{t}) &=
                                     \NormalE{G\ti{x}{t}}{\Sigma_\epsilon}{\ti{y}{t}},
   \end{align}
@@ -275,7 +285,7 @@ distributions described by these parameters are also Gaussian.
     $P(t^+_i)$ and Kailath et al.\cite{KSH00} use $\hat x_{i|i}$ and
     $P_{i|i}$ respectively.}, \ie,
   \begin{equation*}
-    P\left(\ti{x}{t}\given \ts{y}{0}{t+1} \right) =
+    P\left(\ti{x}{t}\given \ts{y}{0}{t+1} \right) \equiv
     \NormalE{\ti{\mu_\alpha}{t}}{\ti{\Sigma_\alpha}{t}}{\ti{x}{t}}.
   \end{equation*}
 \item[$\bm{\ti{\mu_a}{t}}$ and $\bm{\ti{\Sigma_a}{t}}$] (Note
@@ -286,14 +296,14 @@ distributions described by these parameters are also Gaussian.
     $P(t^-_i)$ and Kailath et al.\cite{KSH00} use $\hat x_{i+1}$ and
     $P_{i+1}$ respectively.}, \ie,
   \begin{equation*}
-    P \left(\ti{x}{t}\given \ts{y}{0}{t} \right) =
+    P \left(\ti{x}{t}\given \ts{y}{0}{t} \right) \equiv
     \NormalE{\ti{\mu_a}{t}}{\ti{\Sigma_a}{t}}{\ti{x}{t}}.
   \end{equation*}
 \item[$\bm{\ti{\mu_\gamma}{t}}$ and $\bm{\ti{\Sigma_\gamma}{t}}$] are
   the parameters of the conditional probability of the observation at
   time $t$ given all previous observations, \ie
   \begin{equation*}
-    P\left(\ti{y}{t}\given \ts{y}{0}{t} \right) =
+    P\left(\ti{y}{t}\given \ts{y}{0}{t} \right) \equiv
     \NormalE{\ti{\mu_\gamma}{t}}{\ti{\Sigma_\gamma}{t}}{\ti{y}{t}}
     \equiv \ti{\gamma}{t}.
   \end{equation*}
@@ -308,7 +318,7 @@ distributions described by these parameters are also Gaussian.
   Gaussian functions is itself an unnormalized Gaussian.  We define
   $\ti{N_\beta}{t}$ by
   \begin{equation*}
-    \frac{\beta(t,x)}{\ti{N_\beta}{t}} =
+    \frac{\beta(t,x)}{\ti{N_\beta}{t}} \equiv
     \NormalE{\ti{\mu_\beta}{t}}{\ti{\Sigma_\beta}{t}}{x}.
   \end{equation*}
 \item[$\bm{\ti{\mu_b}{t}}$ and $\bm{\ti{\Sigma_b}{t}}$] are the
@@ -321,11 +331,13 @@ distributions described by these parameters are also Gaussian.
 \item[$\bm{\ti{\mu_{\alpha\beta}}{t}}$ and
   $\bm{\ti{\Sigma_{\alpha\beta}}{t}}$] are the mean and covariance
   of the best estimate of the state at time $t$ given all of the
-  observations, \ie $P_{\ti{X}{t}\given \ts{Y}{0}{T}} \left(x\given \ts{y}{0}{T}
-  \right) =
-  \NormalE{\ti{\mu_{\alpha\beta}}{t}}{\ti{\Sigma_{\alpha\beta}}{t}}{x}$.
+  observations, \ie
+  \begin{equation*}
+    P \left(\ti{x}{t}\given \ts{y}{0}{T}
+  \right) \equiv
+  \NormalE{\ti{\mu_{\alpha\beta}}{t}}{\ti{\Sigma_{\alpha\beta}}{t}}{x}.
+  \end{equation*}
 \end{description}
-
 
 \subsection{Kalman Filter: The Forward Algorithm}
 \index{Kalman filter}
@@ -400,14 +412,14 @@ Note:
   \begin{align*}
     \ti{\mu_\gamma}{t} &= \ti{G}{t} \ti{\mu_a}{t}\\
     \ti{\Sigma_\gamma}{t} &= \ti{G}{t} \ti{\Sigma_a}{t} \left(
-    \ti{G}{t} \right)\transpose + \Sigma_\epsilon\\
+    \ti{G}{t} \right)\transpose + \Sigma_\epsilon && \text{and} \\
     \log\left( P \left(\ti{y}{t}\given \ts{y}{0}{t} \right) \right) &= -
     \frac{1}{2} \Big( n \log(2\pi) + \log \left( \left|
-    \ti{\Sigma_\gamma}{t} \right| \right) \\ & \quad \quad \quad
+    \ti{\Sigma_\gamma}{t} \right| \right) \\ & \quad \quad
     + \big( \ti{y}{t} - \ti{\mu_\gamma}{t} \big)\transpose
     \left( \ti{\Sigma_\gamma}{t} \right)^{-1}
     \big( \ti{y}{t} - \ti{\mu_\gamma}{t} \big)
-    \Big)
+    \Big).
   \end{align*}
 \end{itemize}
 
@@ -448,7 +460,7 @@ Note:
 \begin{itemize}
 \item The the backward update formulas, \eqref{eq:BUpdate} are exactly
   the same as the forward update formulas, \eqref{eq:KUpdate}, and the
-  forecast formulas, \eqref{eq:BFore} \eqref{eq:KFore}, principally
+  forecast formulas, \eqref{eq:BFore} and \eqref{eq:KFore}, principally
   differ in that the backward formula uses $F^{-1}$ where the forward
   formula uses $F$.
 \item As for the forward recursion, the update formulas are usually
@@ -467,8 +479,7 @@ Note:
   Section~\ref{sec:DetailInverse}.).
 \end{itemize}
 
-
-From 3a53d00d3f56bdf2de98
+\ToDo{From 3a53d00d3f56bdf2de98}
 \begin{subequations}
   \label{eq:KalmanGainBack}
   \begin{align}
@@ -546,8 +557,8 @@ In the forward Kalman filter the state transition matrix is a Gaussian
 and the sum is replaced by an integral.
 
 The basic loop consists of steps \ref{PXforecast} through
-\ref{PXupdate} below.  In the first iteration, we use the model
-parameters that describe $P\left(\ti{x}{0} \right)$ and proceed
+\ref{PXupdate} below.  For the first iteration, we start with the
+model parameters that describe $P\left(\ti{x}{0} \right)$ and proceed
 directly to step~\ref{PYforecast}.
 \begin{enumerate}
 \item \label{PX1} \textbf{Initialize with
@@ -558,7 +569,7 @@ directly to step~\ref{PYforecast}.
   $\ti{\Sigma_\gamma}{0}$ by setting $t=0$.
 \item \label{PXforecast} \textbf{Calculate the state forecast,
     $\bm{P\left(\ti{x}{t}\given \ts{y}{0}{t} \right)}$.}  From
-  Eqn.~\eqref{eq:FIForecast}
+  Eqn.~\eqref{eq:FIForecast} on page \pageref{eq:FIForecast}
   \begin{equation}
     \label{eq:ForecastKIntegral}
     a(t,x) = \int \NormalE{Fx'}{\Sigma_\eta}{x} \alpha((t-1), x') dx'
@@ -566,36 +577,36 @@ directly to step~\ref{PYforecast}.
   Rather than evaluating the integral to find the distribution, we can
   specify it completely by calculating its first two moments.  Since
   \begin{equation*}
-    \ti{x}{t} = \ti{F}{t} \ti{x}{t-1} + \ti{\eta}{t}.
+    \ti{x}{t} = \ti{F}{t} \ti{x}{t-1} + \eta.
   \end{equation*}
   the mean is
   \begin{subequations}
     \label{eq:DeriveForecast}
   \begin{align}
     \ti{\mu_a}{t} &= \EV_{
-      \ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}} \left[
-      \ti{F}{t}\ti{X}{t-1} + \ti{\eta}{t} \right] \\
-    &= \EV_{\ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}}
+      \ti{x}{t-1},\eta\given \ts{y}{0}{t}} \left[
+      \ti{F}{t}\ti{X}{t-1} + \eta \right] \\
+    &= \EV_{\ti{x}{t-1},\eta\given \ts{y}{0}{t}}
       \ti{F}{t}\ti{X}{t-1} +
-      \EV_{\ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}} \ti{\eta}{t} \\
+      \EV_{\ti{x}{t-1},\eta\given \ts{y}{0}{t}} \eta \\
     \label{eq:etaIndependent}
     &= \EV_{ \ti{x}{t-1}\given \ts{y}{0}{t}}
-    \ti{F}{t}\ti{X}{t-1}  + \EV_{\eta} \ti{\eta}{t} \\
+    \ti{F}{t}\ti{X}{t-1}  + \EV_{\eta} \eta \\
                                  %
      &= \ti{F}{t}\ti{\mu_\alpha}{t-1}.
    \end{align}
    The key step in the above sequence is
    Eqn.~\eqref{eq:etaIndependent} which we justify by observing that
-   the distribution of the noise $\ti{\eta}{t}$ is independent of time
+   the distribution of the noise $\eta$ is independent of time
    and independent of $\ti{x}{\tau}$, and $\ti{y}{\tau}$ for all
    earlier times $\tau$.  Similarly we calculate the
    variance by
    \begin{align}
      \ti{\Sigma_a}{t} &= \EV_{
-       \ti{x}{t-1},\ti{\eta}{t}\given \ts{y}{0}{t}} \big[
-     \left( \ti{F}{t}\ti{X}{t-1} + \ti{\eta}{t} - \ti{\mu_a}{t-1}
+       \ti{x}{t-1},\eta\given \ts{y}{0}{t}} \big[
+     \left( \ti{F}{t}\ti{X}{t-1} + \eta - \ti{\mu_a}{t-1}
      \right) \nonumber\\
-     & \quad \times \left( \ti{F}{t}\ti{X}{t-1} + \ti{\eta}{t} -
+     & \quad \times \left( \ti{F}{t}\ti{X}{t-1} + \eta -
        \ti{\mu_a}{t-1} \right)\transpose \big] \\
                                 %
     &= \ti{F}{t}\ti{\Sigma_\alpha}{t-1}\ti{F}{t}\transpose +
@@ -607,24 +618,24 @@ directly to step~\ref{PYforecast}.
 \item \label{PYforecast} \textbf{Calculate
     $\bm{P\left(\ti{y}{t}\given \ts{y}{0}{t} \right)}$.}  Using
   \begin{equation*}
-    \ti{y}{t} = \ti{G}{t}\ti{x}{t} + \ti{\epsilon}{t}
+    \ti{y}{t} = \ti{G}{t}\ti{x}{t} + \epsilon
   \end{equation*}
   we calculate the mean and covariance of the distribution of the
   forecast observation as follows
   \begin{align}
     \ti{\mu_\gamma}{t} &= \EV_{
-      \ti{x}{t},\ti{\epsilon}{t}\given \ts{y}{0}{t}}
-    \ti{G}{t}\ti{X}{t} + \ti{\epsilon}{t} \nonumber \\
+      \ti{x}{t},\epsilon\given \ts{y}{0}{t}}
+    \ti{G}{t}\ti{X}{t} + \epsilon \nonumber \\
                                 %
     \label{eq:mugamma}
     &= \ti{G}{t}\ti{\mu_a}{t}\\
                                 %
     \ti{\Sigma_\gamma}{t} &= \EV_{
-      \ti{x}{t},\ti{\epsilon}{t}\given \ts{y}{0}{t}}
-    \left( \ti{G}{t}\ti{X}{t} + \ti{\epsilon}{t} -
+      \ti{x}{t},\epsilon\given \ts{y}{0}{t}}
+    \left( \ti{G}{t}\ti{X}{t} + \epsilon -
       \ti{\mu_\gamma}{t} \right) \nonumber \\
     &\quad\times \left( \ti{G}{t}\ti{X}{t} +
-      \ti{\epsilon}{t} - \ti{\mu_\gamma}{t}
+      \epsilon - \ti{\mu_\gamma}{t}
     \right)\transpose \nonumber \\
                                 %
     \label{eq:Sigmagamma}
@@ -662,7 +673,7 @@ directly to step~\ref{PYforecast}.
   We derive the off diagonal terms of $\Sigma_z$ in
   Eqn.~\eqref{eq:cont-temp} as follows
   \begin{align}
-    C &= \EV_{\ti{x}{t},\ti{\epsilon}{t}\given \ts{y}{0}{t}}
+    C &= \EV_{\ti{x}{t},\epsilon\given \ts{y}{0}{t}}
     \big( \ti{x}{t} - \ti{\mu_a}{t} \big) \big( \ti{y}{t}
       - \ti{\mu_\gamma}{t} \big)\transpose \nonumber \\
     &=  \EV_{\ti{x}{t}\given \ts{y}{0}{t}}
@@ -670,8 +681,8 @@ directly to step~\ref{PYforecast}.
     \big( \ti{x}{t} - \ti{\mu_a}{t} \big)\transpose
     \left(\ti{G}{t} \right)\transpose \nonumber \\
     & \quad +
-    \EV_{\ti{x}{t},\ti{\epsilon}{t}\given \ts{y}{0}{t}}
-    \big( \ti{x}{t} - \ti{\mu_a}{t} \big) \big( \ti{\epsilon}{t}
+    \EV_{\ti{x}{t},\epsilon\given \ts{y}{0}{t}}
+    \big( \ti{x}{t} - \ti{\mu_a}{t} \big) \big( \epsilon
     \big) \nonumber \\
     \label{eq:cont:C}
       &= \ti{\Sigma_{a}}{t} \big(\ti{G}{t} \big)\transpose .
@@ -793,8 +804,9 @@ alternating between multiplying a prior by a likelihood in
 and a state transition probability in \eqref{eq:BIForecast}.
 
 We should initialize the backward recursion with a uniform
-distribution $\beta(T-1,x) = 1$ or $\Sigma^{-1}_{\beta(T-1)} = 0$.  We
-will ignore that for now and focus on the two alternating steps:
+distribution $\beta(T-1,x) = 1$ which requires
+$\Sigma^{-1}_{\beta(T-1)} = 0$.  We will ignore that for now and focus
+on the two alternating steps:
 \begin{enumerate}
 \item \textbf{Backwards Update} ignoring normalization, given the
   backwards forecast $\beta(t,x)$ the update formula is
@@ -926,13 +938,14 @@ which implies
 \label{sec:EKF}
 \index{extended Kalman filter|textbf}
 
-Recall Eqn.~\eqref{eq:contnoise} from the beginning of the chapter
+Recall that Eqn.~\eqref{eq:contnoise} on page \pageref{eq:contnoise}
+at the beginning of the chapter is
 \begin{align*}
-  \ti{x}{t+1} &= F(\ti{x}{t},t) + \ti{\eta}{t}\\
-  \ti{y}{t}   &= G(\ti{x}{t},t) + \ti{\epsilon}{t},
+  \ti{x}{t+1} &= F(\ti{x}{t},t) + \eta\\
+  \ti{y}{t}   &= G(\ti{x}{t},t) + \epsilon,
 \end{align*}
 and that if the functions $F$ and $G$ are linear and the noise terms
-$\ti{\eta}{t}$ and $\ti{\epsilon}{t}$ are independent and Gaussian
+$\eta$ and $\epsilon$ are independent and Gaussian
 that the Kalman filter implements the forward algorithm.  If on the
 other hand, the functions $F$ and $G$ are nonlinear but the errors of
 first order approximations to them are small compared to the size of
