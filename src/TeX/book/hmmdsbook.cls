@@ -254,10 +254,14 @@
 \renewcommand{\nomgroup}[1]{\medskip}
 \makenomenclature
 
+%%% In this example "\nomenclature[rECG]{ECG}{Electrocardiogram}"
+%%% [rECG] is the <prefix> which the nomencl package uses for sorting.
+%%% I use r to indicate roman and g for greek.
+
 %%% This is used to make the description list in the nompreamble
-%%% format the same as the one in the nomenclature itself.  I took it
-%%% straight out of the nomencl.sty.
-%%%
+%%% format the same as the one in the nomenclature itself.  I (Karl)
+%%% took it straight out of the nomencl.sty.
+
 \newenvironment{symbdescription}{%
   \list{}{%
     \labelwidth\nomlabelwidth

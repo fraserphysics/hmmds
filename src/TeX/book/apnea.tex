@@ -435,11 +435,10 @@ appropriate for heart rates above 120~bpm.
 \label{sec:ecg_training}
 
 We used a Gaussian scalar autoregressive observation model with means
-for each state being an affine \ToDo{Put \emph{affine} in the
-  nomenclature.} function of the previous three observations and
-variances fit to each state separately.  The models are one
-dimensional versions of those described in
-Section~\ref{sec:ARVGaussian}.
+for each state being a linear function of the previous three
+observations with a fixed offset and variances fit to each state
+separately.  The models are one dimensional versions of those
+described in Section~\ref{sec:ARVGaussian}.
 
 We used \emph{scipy.signal.find\_peaks} from \emph{SciPy} to supervise
 training of an initial model for one of the records from CINC 2000.

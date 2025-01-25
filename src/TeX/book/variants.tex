@@ -432,22 +432,27 @@ estimation.
 \subsubsection{Overview of the model}
 
 Rather than choosing a prior and developing algorithms for the
-independent scalar observations of Section~\ref{sec:ScalarGaussian} we will
-work on more general models with vector autoregressive Gaussian
+independent scalar observations of Section~\ref{sec:ScalarGaussian} we
+will work on more general models with vector autoregressive Gaussian
 observations associated with each hidden state.  If at time $t$ such a
 system is in state $s$, then the mean of the conditional distribution
 for $\ti{y}{t}$ is a linear function of the $d$ previous observations
-$\ts{y}{t-d}{t}$ added to a fixed offset.  Specifically, the
-conditional distributions for observations are $n$ dimensional vector
-Gaussians as follows:
+$\ts{y}{t-d}{t}$ added to a fixed offset\footnote{%
+  The function $g$ in $y=g(x)=mx$ is \emph{\index*{linear}} because:
+  $g(cx) = c(gx)$ and $g(x+z) = g(x) + g(z)$.  On the other hand in
+  the equation for a line, $y=f(x)=mx+b$, $f$ is an
+  \emph{\index*{affine}} function, in other words a linear function
+  plus a constant offset.  Subsequently we will not make the
+  distinction and refer to functions like $f$ as linear.}.
+Specifically, the conditional distributions for observations are $n$
+dimensional vector Gaussians as follows:
 \begin{description}
 \item[Covariance] The covariance is a state dependent positive
   definite $n\times n$ matrix $\Sigma_s$.
 \item[Mean] Given that the system is in state $s$, the parameters
   $\left\{ c_{s,i,\tau,j}, \bar y_{s,i} \right\}$ and the $d$ previous
   observations determine the mean of the observation distribution
-  through an \emph{affine} function, \ie, the sum of a linear function
-  and a fixed offset, with components
+  through a linear function, with components
   \begin{equation}
     \label{eq:ARVGout1}
     \mu_i\left(s,\ts{y}{t-d}{t}\right) = \bar y_{s,i} + \sum_{\tau =
@@ -656,8 +661,8 @@ mention below.
     observations.  Here the observations are a trajectory of three
     dimensional state vectors from the Lorenz system.  In each state
     the observation $\ti{y}{t}$ is modeled as a Gaussian with a mean
-    that is an affine (linear plus fixed offset) function of one
-    previous observation $\ti{y}{t-1}$.}
+    that is a linear function of one previous observation
+    $\ti{y}{t-1}$.}
   \label{fig:VARGstates}
 \end{figure}
 

@@ -382,7 +382,7 @@ Note:
 \item Equations~\eqref{eq:KUpdate} are usually presented in the
   equivalent but computationally more efficient form
   \begin{subequations}
-    \label{eq:KalmanGain}
+    \label{eq:KalmanForm}
   \begin{align}
     \ti{\mu_\alpha}{t} &= \ti{\mu_a}{t} + \ti{K}{t} \left( \ti{y}{t} -
     \ti{G}{t} \ti{\mu_a}{t} \right) \\
@@ -396,7 +396,7 @@ Note:
   is called \emph{the \index*{Kalman gain matrix}}\footnote{This
     computationally more efficient form was Kalman's principle
     contribution.}  \index{matrix!Kalman gain}%
-  (See Eqn.~\eqref{eq:KalmanGain}.).
+  (See Eqn.~\eqref{eq:KalmanForm}.).
 \item One can calculate the log likelihood of a model by summing the
   increments
   \begin{equation*}
@@ -464,8 +464,26 @@ Note:
   differ in that the backward formula uses $F^{-1}$ where the forward
   formula uses $F$.
 \item As for the forward recursion, the update formulas are usually
-  presented in a computationally more efficient form using a gain
-  matrix (See Eqn.~\eqref{eq:KalmanGainBack}).
+  presented in the computationally more efficient form
+\begin{subequations}
+  \label{eq:KalmanFormBack}
+  \begin{align}
+    \ti{\Sigma_b}{t} &= \left(\id  -  \ti{K_b}{t} \ti{G}{t} \right)
+                       \ti{\Sigma_\beta}{t} \\
+    \ti{\mu_b}{t} &= \ti{\mu_\beta}{t} + \ti{K_b}{t}
+                    (\ti{y}{t}-\ti{G}{t} \ti{\mu_\beta}{t})
+  \end{align}
+  where
+  \begin{equation}
+  \label{eq:KalmanGainBack}
+    \ti{K_b}{t} \equiv \ti{\Sigma_\beta}{t} \ti{G}{t}\transpose
+    \left(\ti{G}{t} \ti{\Sigma_\beta}{t} \ti{G}{t}\transpose +
+      \ti{\Sigma_\epsilon}{t} \right)^{-1}
+  \end{equation}
+  is called the \index*{backwards Kalman gain matrix}.%
+  \index{Kalman gain matrix, backwards}%
+  \index{matrix,Kalman gain, backwards}%
+\end{subequations}
 \item Ideally one would initialize the backward algorithm with
   \begin{align*}
     \left( \ti{\Sigma_\beta}{T-1} \right)^{-1} &= 0\\
@@ -478,23 +496,6 @@ Note:
   the \emph{\index*{inverse covariance form}} of the algorithm (see
   Section~\ref{sec:DetailInverse}.).
 \end{itemize}
-
-\ToDo{From 3a53d00d3f56bdf2de98}
-\begin{subequations}
-  \label{eq:KalmanGainBack}
-  \begin{align}
-    \Sigma_b &= \left(\id  -  K_b G \right) \Sigma_\beta\\
-    \mu_b &= \mu_\beta + K_b (y-G\mu_\beta)
-  \end{align}
-  where
-  \begin{equation}
-    K_b \equiv \Sigma_\beta G\transpose \left(G \Sigma_\beta
-    G\transpose + \Sigma_\epsilon \right)^{-1}
-  \end{equation}
-  is called the \index*{backwards Kalman gain matrix}.%
-  \index{Kalman gain matrix, backwards}%
-  \index{matrix,Kalman gain, backwards}%
-\end{subequations}
 
 \subsection{Smoothing}
 \index{smoothing}
@@ -772,7 +773,7 @@ get Eqn.~\eqref{eq:UpdateRaw} into Kalman's form, note that by
 Eqn.~\eqref{eq:MI:D} on page \pageref{eq:MI:D},
 $D^{-1} = A -CB^{-1} C\transpose$, and thus
 \begin{subequations}
-  \label{eq:KalmanGain}
+  \label{eq:KalmanFormAgain}
   \begin{align}
     \ti{\Sigma_\alpha}{t} &= \big(\id - \ti{K}{t} \ti{G}{t}
     \big) \ti{\Sigma_a}{t} \\
@@ -783,13 +784,16 @@ $D^{-1} = A -CB^{-1} C\transpose$, and thus
 Using Eqns.~\eqref{eq:Sigmagamma}, \eqref{eq:cont-temp} and
 \eqref{eq:cont:C}, we find the Kalman gain matrix in terms of known
 quantities to be
-\begin{align*}
+\begin{align}
+  \nonumber
   CB^{-1} &\equiv \ti{K}{t}\\
+  \nonumber
   &= \ti{\Sigma_{a}}{t} \big(\ti{G}{t} \big)\transpose \big(
-  \ti{\Sigma_\gamma}{t}\big)^{-1}\\
+    \ti{\Sigma_\gamma}{t}\big)^{-1}\\
+  \label{eq:KalmanGainDerived}
   &= \ti{\Sigma_{a}}{t} \big(\ti{G}{t} \big)\transpose \big(\ti{G}{t}\ti{\Sigma_a}{t}\ti{G}{t}\transpose +
     \Sigma_\epsilon \big)^{-1}.
-\end{align*}
+\end{align}
 The formula requires inversion of an $m\times m$ matrix where $m$, the
 dimension of the observation $y$, is usually less than the dimension of
 the state $x$.
@@ -809,7 +813,7 @@ $\Sigma^{-1}_{\beta(T-1)} = 0$.  We will ignore that for now and focus
 on the two alternating steps:
 \begin{enumerate}
 \item \textbf{Backwards Update} ignoring normalization, given the
-  backwards forecast $\beta(t,x)$ the update formula is
+  backwards forecast $\beta(t,x)$, the update formula is
   \begin{align}
     \nonumber
     b(t,x) &= \beta(t,x) P(y[t] \given x) \\
@@ -821,7 +825,9 @@ on the two alternating steps:
   \pageref{eq:NormalJointForecast} in the forward recursion.  After
   taking the conditional given the actual value of $\ti{y}{t}$ we copy
   the result from \eqref{eq:FUpdateAgain} and obtain
-    \begin{align*}
+  \begin{subequations}
+    \label{eq:BUpdateAgain}
+    \begin{align}
       \left( \ti{\Sigma_b}{t} \right)^{-1} &= \left(
         \ti{\Sigma_\beta}{t} \right)^{-1} + \left( \ti{G}{t}
         \right)\transpose \Sigma_\epsilon^{-1} \ti{G}{t} \\
@@ -829,7 +835,8 @@ on the two alternating steps:
       \ti{\Sigma_{b}}{t} \left( \ti{G}{t} \right)\transpose
       \Sigma_\epsilon^{-1} \big[\ti{y}{t} - \ti{G}{t}
       \ti{\mu_\beta}{t}\big]
-    \end{align*}
+    \end{align}
+  \end{subequations}
   \item \textbf{Backwards Forecast} From
     Equation~\eqref{eq:BIForecast} on page \pageref{eq:BIForecast} the
     integral for the backward forecast is
@@ -878,7 +885,16 @@ on the two alternating steps:
         \right)^{-1} \right)\transpose,
     \end{align*}
     which exactly matches \eqref{eq:BFore} on page \pageref{eq:BFore}.
-\end{enumerate}
+  \end{enumerate}
+
+  Since the form of the forward update formula,
+  \eqref{eq:FUpdateAgain} on page \pageref{eq:FUpdateAgain}, is the
+  same as the form of the backwards update formula,
+  \eqref{eq:BUpdateAgain} on page \pageref{eq:BUpdateAgain}, the
+  formula for the backwards gain, \eqref{eq:KalmanGainBack} on page
+  \pageref{eq:KalmanGainBack}, matches the formula for the forward
+  gain, \eqref{eq:KalmanGainDerived} on page
+  \pageref{eq:KalmanGainDerived}.
 
 \subsection{Smoothing}
 \label{sec:DetailSmoothing}
