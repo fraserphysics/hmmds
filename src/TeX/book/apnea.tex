@@ -247,7 +247,7 @@ apnea.
   \caption[A segment of record 03 at the end of an episode of apnea]%
   {A segment of record 03 at the end of an episode of apnea with
     indications in both the $SpO_2$ signal and the heart rate
-    \emph{(HR)} signal.  The expert marked the time before 1:00 as
+    (\emph{HR}) signal.  The expert marked the time before 1:00 as
     apnea and the time afterwards as normal.}
   \label{fig:a03erHR}
 \end{figure}
@@ -282,7 +282,11 @@ memorable, models with more states were promising.
 
 To diagnose the errors, McNames printed spectrograms of every record.
 As he reported in \cite{Mcnames2000ObstructiveSA}, the first step in
-McNames analysis was implementing his own QRS detection algorithm.
+McNames analysis was implementing his own QRS\footnote{The ECG of a
+  typical heart beat has five distinctive features or \emph{waves}
+  unimaginatively called \emph{P,Q,R,S}, and \emph{T}.  The largest
+  feature is the spike called \emph{R}.  We have labeled the
+  features in Figure~\ref{fig:constant_a03}. } detection algorithm.
 Then he derived spectrograms from the resulting QRS analyses.
 Although the spectrograms discarded phase information that we hoped
 was important, they clearly indicated the oscillations that we had
@@ -291,7 +295,7 @@ frequencies below 2 bpm (beats per minute).
 \nomenclature[rbpm]{bpm}{Beats per minute.}  In addition to those low
 frequency oscillations, he noticed bands of power between 10 and 20
 bpm in the spectrograms (See Fig.~\ref{fig:sgram}).  That higher
-frequency power was evidence of respiration.  Using both of those
+frequency power is evidence of respiration.  Using both of those
 features, he classified the test data by hand.  First he classified
 each entire record for \emph{event 1}.  Since almost none of the
 minutes in the normal records are apnea, he classified each minute in
@@ -411,9 +415,10 @@ special \emph{outlier} state accommodates ECG-lead noise.  Here are
 the essential characteristics of the topology:
 \begin{itemize}
 \item A loop of 52 discrete states.
-\item A sequence of 49 \emph{fast} states that don't branch.  State $n$ must
-  transition to state $n+1$ at each time step.  These fast states
-  model the unvarying PQRST shape.
+\item A sequence of 49 \emph{fast} states that don't branch.  Each
+  state $n$ in that sequence transitions exclusively to its successor
+  $n+1$ at each time step.  These fast states model the unvarying
+  PQRST shape.
 \item Three \emph{slow} states that model heart rate variations.
   Each of these three states transitions to one of the following:
   \begin{itemize}
@@ -430,17 +435,18 @@ appropriate for heart rates above 120~bpm.
 \label{sec:ecg_training}
 
 We used a Gaussian scalar autoregressive observation model with means
-for each state being an affine function of the previous three
-observations and variances fit to each state separately.  The models
-are one dimensional versions of those described in
+for each state being an affine \ToDo{Put \emph{affine} in the
+  nomenclature.} function of the previous three observations and
+variances fit to each state separately.  The models are one
+dimensional versions of those described in
 Section~\ref{sec:ARVGaussian}.
 
-We used scipy.signal.find\_peaks to supervise training of an initial
-model for one of the records from CINC 2000.  We derived models for
-the most\footnote{For a few of the records we used other techniques to
-  obtain initial models.  However models for all records were trained
-  similarly.} other records from that initial model via unsupervised
-training.
+We used \emph{scipy.signal.find\_peaks} from \emph{SciPy} to supervise
+training of an initial model for one of the records from CINC 2000.
+We derived models for most\footnote{For a few of the records we used
+  other techniques to obtain initial models.  However models for all
+  records were trained similarly.} of the other records from that
+initial model via unsupervised training.
 
 \subsubsection{Applying trained ECG models}
 \label{sec:applying_ECG_models}
@@ -491,8 +497,8 @@ simulated ECGs, eg, Figure~\ref{fig:simulated}.
   \label{fig:ecg2hr}
 \end{figure}
 
-We've built HMMs of ECG signals to estimate heart rate signals because
-we believe that the timing of heart beats has the information that is
+We built HMMs of ECG signals to estimate heart rate signals because we
+believe that the timing of heart beats has the information that is
 relevant for detecting apnea.  Decoded state sequences like those that
 appear in Figure~\ref{fig:a01c02_states} are sufficient for estimating
 heart rate.  Considering the circular character of the topology
@@ -537,7 +543,7 @@ observations, with components called \textbf{low pass heart rate} and
   signal.]{An illustration of apnea characteristic data derived from
     heart rate at a transition into apnea.  The expert marked a
     transition from normal respiration to apnea in record \emph{a03}
-    at minute 427.  A low pass Gaussian filter applied to the raw
+    at minute 427=7:07.  A low pass Gaussian filter applied to the raw
     heart rate signal produces the trace labeled \emph{Low Pass}, and
     the dots on that trace indicate the data passed as one component
     of the observation data to the HMM.  A Gaussian filter that passes
@@ -554,8 +560,8 @@ observations, with components called \textbf{low pass heart rate} and
 \begin{figure}
   \centering{\resizebox{1.0\textwidth}{!}{\includegraphics{errors_vs_fs.pdf}} }
   \caption[Error rate as a function of sample frequency.]{Performance
-    vs observations per minute on the training records (\emph{a b} and
-    \emph{c} records excluding defective records). The models have
+    on the training records (\emph{a b} and \emph{c} records excluding
+    defective records) vs observations per minute. The models have
     eleven states and the observation models are vector autoregressive
     models for heart rate and respiration.}
   \label{fig:errors_vs_fs}

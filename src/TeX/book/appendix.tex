@@ -4,8 +4,9 @@
 \label{cha:MatrixFormulas}
 
 Here we review some material necessary for deriving
-Eqns.~\eqref{eq:KUpdate}-\eqref{eq:smoothing}.  Similar material
-appears in Appendix A of Kailath et al.\cite{KSH00}.
+Eqns.~\eqref{eq:KUpdate}-\eqref{eq:smoothing} on page
+\pageref{eq:KUpdate}.  Similar material appears in Appendix A of
+Kailath et al.\cite{KSH00}.
 
 \subsubsection{Block Matrix Inverse}
 \index{block matrix inverse}%
@@ -49,7 +50,7 @@ Eqn.~\eqref{eq:MatrixInverse}.
 By noting
 \begin{multline*}
   \begin{bmatrix}
-    (G-HK^{-1}J)^{-1} & -G^{-1}H(K-JG^{-1}H)^{-1} \\
+    (G-HK^{-1}J)^{-1} & -(G-HK^{-1}J)^{-1}HK^{-1} \\
     0 & (K-JG^{-1}H)^{-1}
   \end{bmatrix}
   \begin{bmatrix}
@@ -64,11 +65,10 @@ By noting
 and taking the determinant of both sides
 \renewcommand{\det}[1]{\left| #1 \right|}
 \begin{equation*}
-  \det{(K-JG^{-1}H)^{-1}} \det{K} = \det{(G-HK^{-1}J)^{-1}}
-  \det{(K-JG^{-1}H)^{-1}} \det{
-  \begin{bmatrix}
+  \det{(G-HK^{-1}J)^{-1}} \cdot \det{(K-JG^{-1}H)^{-1}} \cdot 
+  \det{\begin{bmatrix}
     G & H \\ J & K
-  \end{bmatrix}}
+  \end{bmatrix}} = \det{(K-JG^{-1}H)^{-1}} \cdot \det {K}
 \end{equation*}
 one finds the following formula for determinants
 \index{block matrix determinant}
@@ -81,25 +81,28 @@ one finds the following formula for determinants
 \subsubsection{Sherman Morrison Woodbury Formula}
 \index{Sherman Morrison Woodbury formula}
 
-If $G$ and $J$ are invertible matrices, $H$ and $K$ have dimensions so
-that $\left( G + HJK \right)$ makes sense, and $\left(KG^{-1}H +
-  J^{-1} \right)^{-1}$ exists, then
+If $G$ and $ K $ are invertible matrices, $H$ and $ J $ have
+dimensions so that $\left( G + H K J \right)^{-1}$ makes sense and
+exists, and $\left( J G^{-1}H + K ^{-1} \right)^{-1}$ exists, then
 \begin{equation}
   \label{eq:SMW}
-  \left( G + HJK \right)^{-1} = G^{-1} - G^{-1}H\left(KG^{-1}H +
-  J^{-1}\right)^{-1}KG^{-1}.
+  \left( G + H K  J  \right)^{-1} = G^{-1} - G^{-1}H\left( J G^{-1}H +
+   K ^{-1}\right)^{-1} J G^{-1}.
 \end{equation}
-Multiplying both sides by $\left( G + HJK \right)$ verifies the
+Multiplying both sides by $\left( G + H K  J  \right)$ verifies the
 formula.  Equation~\eqref{eq:SMW} is called the Sherman Morrison
-Woodbury formula.  The special case
+Woodbury formula.
+
+To invert $(A^{-1} + C\transpose B^{-1} C)$, when $A$ is an $n\times
+n$ matrix and $B$ is an $m \times m$ matrix, if $n > m$ one can use
+\eqref{eq:SMW} to write
 \begin{equation}
   \label{eq:MatrixInversion}
-  \left(L^{-1} + H\transpose J^{-1}H \right)^{-1} = L - LH\transpose
-  \left( HLH\transpose + J \right)^{-1}HL
+  \left(A^{-1} + C\transpose  B ^{-1}C \right)^{-1} = A - AC\transpose
+  \left( CAC\transpose +  B  \right)^{-1}CA.
 \end{equation}
-is efficient when the dimension, $m$, of $J$ is smaller than the
-dimension $n$ of $L$ because an $n\times n$ matrix inversion on the
-left is replaced by an $m \times m$ matrix inversion on the right.
+The right hand side requires inverting an $m \times m$ matrix while
+the left hand side requires inverting an $n \times n$ matrix.
 
 \subsubsection{Marginal and Conditional Distributions of a Gaussian}
 \index{marginal distribution, Gaussian}
@@ -311,8 +314,8 @@ platforms for which the dependencies are available.  In addition to
 the standard gnu development tools, we require at least the following
 and their dependencies:
   \begin{description}
-  \item[python] An interpreted, interactive, object-oriented,
-    extensible programming language.  The following python packages
+  \item[Python] The interpreted, interactive programming language, and
+    the following Python packages
     \begin{description}
     \item[numpy] 
     \item[scipy] 
@@ -322,7 +325,7 @@ and their dependencies:
     \item[pathlib2] For py-ecg-detectors
     \item[pywavelets] For py-ecg-detectors
     \item[pygraphviz] For making pdf graph of HMM
-    \item[pandas] For wfdb
+    \item[pandas] For wfdb package from PhysioNet
     \item[pyqtgraph] For GUIs
     \item[pyqt5] GUIs import PyQt5
     \end{description}
@@ -374,9 +377,23 @@ We used the following sets of data for examples:
 \section{Clarity and Efficiency}
 \label{sec:Clarity}
 
-Here is the heart of our simple python implementation of the forward
-algorithm described in Section~\ref{sec:forward}:
-\ref{code:forward}
+We wrote earlier versions of the code for this book in C to make it
+run faster than Python.  In particular the C code exploited sparsity
+in the probability arrays in models.  Since we wrote those early
+versions, SciPy has provided support for sparse matrices making our C
+code obsolete.  Now we have Python code for all of the algorithms
+described in the book.
+
+We also provide Cython code for a few of the algorithms.  While the
+Cython code is faster, it is harder to read and debug.  The interfaces
+to call Cython code match the interfaces to the Python code.  We
+recommend developing with the Python code and after that if you need
+to run faster, try the Cython versions.
+
+Here is the heart of our simple Python implementation of the forward
+algorithm described in about 4 pages in Section~\ref{sec:forward}.  It
+looks pretty simple here.
+\label{code:forward}
 \begin{verbatim}
         # last is a conditional distribution of state probabilities.
         # What it is conditioned on changes as the calculations
@@ -392,8 +409,8 @@ algorithm described in Section~\ref{sec:forward}:
 
 
 Here is the heart of our simple implementation of the backward
-algorithm in python:
-\ref{code:backward}
+algorithm in Python.  It is even simpler.
+\label{code:backward}
 \begin{verbatim}
         # last and beta are analogous to last and alpha in forward(),
         # but the precise interpretations are more complicated.
