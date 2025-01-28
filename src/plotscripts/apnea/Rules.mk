@@ -27,7 +27,7 @@ $(ApneaFigDir)/a03HR.pdf: $(APNEA_TS_PLOTS) $(ALL_SELVES)
 $(ApneaFigDir)/ApneaNLD.pdf: $(APNEA_TS_PLOTS) $(ALL_SELVES)
 	$(PLOT_COMMAND)   $@
 
-$(ApneaFigDir)/sgram.pdf:  $(APNEA_PLOTSCRIPTS)/spectrogram.py $(ApneaDerivedData)/a11.sgram
+$(ApneaFigDir)/sgram.jpg:  $(APNEA_PLOTSCRIPTS)/spectrogram.py $(ApneaDerivedData)/a11.sgram
 	mkdir -p $(@D)
 	python $< --root $(ROOT) --time_window 20 150  --frequency_window 4 25 --record_name a11 \
 $(ApneaDerivedData)/a11.sgram $(EXPERT) $@
@@ -39,6 +39,13 @@ $(APNEA_FIG_DIR)/errors_vs_%.pdf: $(APNEA_PLOTSCRIPTS)/comparison_plot.py $(DERI
 $(APNEA_FIG_DIR)/explore.pdf: $(APNEA_PLOTSCRIPTS)/explore.py
 	mkdir -p $(@D)
 	python $< --heart_rate_path_format build/derived_data/ECG/{}_self_AR3/heart_rate \
+  --root $(ROOT) --model_sample_frequency 4 $@
+
+# Target for short document for Don Hush and David Izraelvitz on how I
+# derive the respiration signal
+$(APNEA_FIG_DIR)/respiration_filter.pdf: $(APNEA_PLOTSCRIPTS)/explore.py
+	mkdir -p $(@D)
+	python $< --x_ticks 96 98 100 102 104 106 --start_stop 96 106 --record_name a11 --heart_rate_path_format build/derived_data/ECG/{}_self_AR3/heart_rate \
   --root $(ROOT) --model_sample_frequency 4 $@
 
 $(APNEA_FIG_DIR)/viz.pdf: $(ApneaCode)/model_viz.py $(BEST)

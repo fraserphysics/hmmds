@@ -1,0 +1,190 @@
+
+% Notes on modeling heart rate
+
+\documentclass[twocolumn]{article}
+\usepackage{graphicx,color}
+\usepackage{amsmath, amsfonts}
+\usepackage{placeins}
+\usepackage{verbatim}
+%\usepackage{showlabels}
+
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\INTEGER}{\field{Z}}
+\newcommand{\REAL}{\field{R}}
+\newcommand{\COMPLEX}{\field{C}}
+\newcommand{\id}{\mathbb{I}}
+\newcommand{\variance}[1]{\field{V}\left[ #1 \right]}
+\newcommand{\normal}[2]{{\cal N}\left(#1,#2 \right)}
+\newcommand{\argmax}{\operatorname*{argmax}}
+\newcommand{\BestModel}{\emph{two\_ar5\_masked}}
+
+\title{Deriving a Respiration Signal from Estimated Heart Rate}
+\author{Andrew M.\ Fraser}
+
+\begin{document}
+\maketitle
+
+\section{The Application}
+\label{sec:application}
+
+In 2008, SIAM published the first edition of my book \emph{Hidden
+Markov Models and Dynamical Systems}.  In the last chapter,
+\emph{Obstructive Sleep Apnea}, I addressed the \emph{Computers in
+Cardiology 2000 Challenge} which my colleague, James McNames and I won
+by having James print out and examine spectrograms of all of the data.
+He marked up each of the roughly 17,760 minutes of test data by hand.
+
+In the first edition, I used HMMs and a clever variant of Viterbi
+decoding to do the classification.  Unfortunately my clever variant
+was hopelessly flawed.  It was just luck that it worked on the data
+for the book.
+
+I'm working on a second edition in which I hope to use un-flawed ideas
+to do the classification.  \textbf{I'm doing some frequency domain
+  filtering that I want an expert to review.}  Hence this document.
+
+I've plotted a spectrogram in Figure~\ref{fig:sgram}.  James noticed
+that the power between 10 and 20 cpm indicates normal respiration.
+The other characteristic for classification is heart rate oscillations
+with a period of about 45 seconds.  In Figure~\ref{fig:explore} I've
+plotted raw heart rate and four derived signals.  I feed signals
+corresponding to the traces labeled \emph{Low Pass} and
+\emph{Respiration} to an HMM, and I get OK performance.
+
+\begin{figure}
+  \centering{\resizebox{\columnwidth}{!}{\includegraphics{sgram.jpg}}
+  }
+  \caption[Information about respiration in high
+  frequency phase variations]
+  {Information about respiration in high frequency bands of power
+    spectra.  This is derived from the $a11$ record between 20 minutes
+    and 2 hours and 30 minutes after the start.  The upper plot is
+    heart rate (bandpass filtered 0.09-3.66 bpm), the middle plot is a
+    spectrogram of the heart rate, and the lower plot is the expert
+    classification.  A single band of spectral power between about 10
+    and 20 bpm without much power below the band in the spectrogram
+    indicates normal respiration.}
+  \label{fig:sgram}
+\end{figure}
+
+\begin{figure}
+  \centering{\resizebox{1.0\columnwidth}{!}{\includegraphics{respiration_filter.pdf}}
+  }
+  \caption[Apnea characteristics derived from estimated heart rate
+  signal.]{An illustration of apnea characteristic data derived from
+    heart rate at a transition into apnea.  The expert marked a
+    transition from normal respiration to apnea in record \emph{a11}
+    at minute 100=1:40.  A low pass Gaussian filter applied to the raw
+    heart rate signal produces the trace labeled \emph{Low Pass}, and
+    the dots on that trace indicate the data passed as one component
+    of the observation data to the HMM.  A Gaussian filter that passes
+    frequencies in a band typical for respiration yields the
+    \emph{Band Pass} trace.  The \emph{Respiration} trace is a low
+    pass filtered version of the envelope of the \emph{Band Pass}
+    trace.  Again, the dots indicate data passed to the HMM.  The
+    characteristics of apnea are the large slow oscillations in the
+    \emph{Low Pass} signal and the drops of the \emph{Respiration}
+    signal to low levels.}
+  \label{fig:explore}
+\end{figure}
+
+\section{My Filters}
+\label{sec:filters}
+
+\begin{enumerate}
+\item I do an fft on each 8 hour record of heart rate sampled at 2 Hz
+  with zero padding out to 36 hours to get \emph{RAW\_HR}.
+\item \label{resp_pass} I multiply \emph{RAW\_HR} by a Gaussian
+  centered at 11.53 cpm and width of 3.2 cpm and do an inverse fft to
+  get \emph{resp\_pass}
+\item To get \emph{shifted} I repeat step \ref{resp_pass} except that
+  after multiplying \emph{RAW\_HR} by the Gaussian, I multiply the
+  result by $j$.
+\item I create an \emph{unnamed} time domain signal with
+  \begin{equation}
+    \label{eq:unnamed}
+    \text{unnamed} = \sqrt{\text{resp\_pass}^2 + \text{shifted}^2}
+  \end{equation}
+\item I create \emph{RESPIRATION} in the frequency domain via an fft
+  on \emph{unnamed}
+\item I create \emph{respiration} in the time domain by applying a
+  window of width 0.486 cpm to \emph{RESPIRATION} and doing an inverse fft.
+\item I create \emph{envelope} in the time domain by an inverse fft on
+  \emph{RESPIRATION}.
+\end{enumerate}
+
+\textbf{Do you see anything wrong with this chain of filtering?}
+
+\subsection{Bits of Code}
+\label{sec:code}
+
+Here mostly for my reference are sections of the code that implements
+the filters.
+\begin{verbatim}
+def window(F: numpy.ndarray,
+           t_sample,
+           center,
+           width,
+           shift=False) -> numpy.ndarray:
+    """ Multiply F by a Gaussian window
+
+    Args:
+        F: The RFFT of a time series f
+        t_sample: The time (pint) between samples in f
+        center: The center frequency in radians per pint time
+        width: Sigma in radians per pint time
+        shift: Shift phase pi/2
+    """
+    # FixMe: Is this right?
+    # *.to('Hz').magnitude enables different registries.
+    omega_max = (numpy.pi / t_sample).to('Hz').magnitude
+    n_center = len(F) * (center / omega_max).to('Hz').magnitude
+    n_width = len(F) * (width / omega_max).to('Hz').magnitude
+    delta_n = numpy.arange(len(F)) - n_center
+    denominator = (2 * n_width * n_width)
+    assert denominator > 0
+    result = F * numpy.exp(-(delta_n * delta_n) / denominator)
+    if shift:
+        return result * 1j
+    return result
+
+        # Set up for fft based filtering
+        self.fft_length = 131072
+        self.RAW_HR = numpy.fft.rfft(self.raw_hr, self.fft_length)
+
+        omega_center = resp_pass_center * 2 * numpy.pi
+        omega_width = resp_pass_width * 2 * numpy.pi
+        omega_envelope = respiration_smooth * 2 * numpy.pi
+        omega_low_pass = low_pass_width * 2 * numpy.pi
+
+        sample_period_in = 1 / self.hr_sample_frequency
+        resp_pass = numpy.fft.irfft(
+            window(self.RAW_HR, sample_period_in, omega_center, omega_width))
+
+        # This block calculates a positive envelope of resp_pass.  FixMe:
+        # I'm not sure it's right.  SBP is spectral domain of band pass
+        # shifted by pi/2
+        SBP = window(self.RAW_HR,
+                     sample_period_in,
+                     omega_center,
+                     omega_width,
+                     shift=True)
+        shifted = numpy.fft.irfft(SBP)
+        RESPIRATION = numpy.fft.rfft(
+            numpy.sqrt(shifted * shifted + resp_pass * resp_pass),
+            self.fft_length)
+        self.envelope = numpy.fft.irfft(RESPIRATION)[:n_t]
+        self.respiration = numpy.fft.irfft(
+            window(RESPIRATION, sample_period_in, 0 / sample_period_in,
+                   omega_envelope))[:n_t]
+        self.resp_pass = resp_pass[:n_t]
+
+\end{verbatim}
+
+\end{document}
+
+%%%---------------
+%%% Local Variables:
+%%% eval: (load-file "hmmkeys.el")
+%%% mode: LaTeX
+%%% End:

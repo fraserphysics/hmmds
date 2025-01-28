@@ -27,6 +27,13 @@ def parse_args(argv):
     parser = argparse.ArgumentParser(
         description='Make one of the figures illustrating apnea data')
     hmmds.applications.apnea.utilities.common_arguments(parser)
+
+    parser.add_argument('--record_name', type=str, default='a03')
+    parser.add_argument('--start_stop', type=int, nargs=2, default=(423, 429))
+    parser.add_argument('--x_ticks',
+                        type=int,
+                        nargs='*',
+                        default=(424, 426, 428))
     parser.add_argument(
         '--show',
         action='store_true',
@@ -109,16 +116,18 @@ def main(argv=None):
     fig, (ax_heart_rate, ax_low_pass, ax_band_pass,
           ax_respiration) = pyplot.subplots(nrows=4, ncols=1, sharex=True)
 
-    heart_rate = hmmds.applications.apnea.utilities.HeartRate(args, 'a03')
+    heart_rate = hmmds.applications.apnea.utilities.HeartRate(
+        args, args.record_name)
     heart_rate.filter_hr()
 
     assert heart_rate.hr_sample_frequency.to('Hz').magnitude == 2
     assert heart_rate.model_sample_frequency.to('1/minute').magnitude == 4
 
-    t_start, t_stop = (x * PINT('minute') for x in (423, 429))
+    t_start, t_stop = (x * PINT('minute') for x in args.start_stop)
 
     for signal, key, axes in (
-        (heart_rate.raw_hr, 'a03 (Raw Heart Rate)/bpm', ax_heart_rate),
+        (heart_rate.raw_hr, f'{args.record_name} (Raw Heart Rate)/bpm',
+         ax_heart_rate),
         (heart_rate.slow, 'Low Pass', ax_low_pass),
         (heart_rate.resp_pass, 'Band Pass', ax_band_pass),
         (heart_rate.envelope, 'Envelope', ax_band_pass),
@@ -129,7 +138,7 @@ def main(argv=None):
         plot_signal(signal, heart_rate.hr_sample_frequency, key, axes, t_start,
                     t_stop)
 
-    x_label_times = [time * PINT('minutes') for time in (424, 426, 428)]
+    x_label_times = [time * PINT('minutes') for time in args.x_ticks]
     ax_respiration.set_xticks(
         [time.to('minutes').magnitude for time in x_label_times])
     ax_respiration.set_xticklabels(

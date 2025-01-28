@@ -33,6 +33,15 @@ $(Apnea_Build)/hand_opt.pdf: $(ApneaTeX)/hand_opt.tex $(HANDOPT_FIGS) $(APNEA_TE
 	export TEXINPUTS=$(abspath $(BUILD))//:; \
 	pdflatex --output-directory=$(@D) $< ; pdflatex --output-directory=$(@D) $<
 
+########################Build respiration.pdf####################################
+
+RESPIRATION_FIGS = $(APNEA_FIG_DIR)/sgram.jpg $(APNEA_FIG_DIR)/respiration_filter.pdf
+
+$(Apnea_Build)/respiration.pdf: $(ApneaTeX)/respiration.tex $(RESPIRATION_FIGS)
+	mkdir -p  $(@D)
+	export TEXINPUTS=$(abspath $(BUILD))//:; \
+	pdflatex --output-directory=$(@D) $< ; pdflatex --output-directory=$(@D) $<
+
 # Local Variables:
 # mode: makefile
 # End:

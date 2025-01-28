@@ -29,7 +29,7 @@ ToyTS1 ToyStretch ToyH benettin LikeLor))
 BOUNDS_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/bounds, QR)
 
 APNEA_FIGS =  $(addprefix $(BUILD)/figs/apnea/,  $(addsuffix .pdf, \
-a03erA a03erN a03HR sgram explore viz errors_vs_fs explore))
+a03erA a03erN a03HR explore viz errors_vs_fs explore) sgram.jpg)
 APNEA_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/apnea, class_net)
 
 ECG_FIGS =  $(addprefix $(BUILD)/figs/ecg/,  $(addsuffix .pdf, \

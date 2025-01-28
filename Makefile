@@ -36,6 +36,10 @@ ddays25: $(BUILD)/TeX/dynamics_days_25/poster.pdf
 .PHONY : skeleton
 skeleton: $(BUILD)/TeX/skeleton/figures.pdf
 
+## respiration                    : A short explanation of how I derive the respiration signal
+.PHONY : respiration
+respiration: $(BUILD)/TeX/apnea/respiration.pdf
+
 ## hand_opt                       : Optimizing parameters for detecting apnea
 .PHONY : hand_opt
 hand_opt: $(BUILD)/TeX/apnea/hand_opt.pdf
