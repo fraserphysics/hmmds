@@ -50,7 +50,13 @@ def logistic_space(low, high, n):
     return values, logit_values
 
 
-def level_set(f, hmm, center, value, n_angles=100, initial_r=0.1):
+def level_set(f,
+              hmm,
+              center,
+              value,
+              trajectory=None,
+              n_angles=100,
+              initial_r=0.1):
     '''Calculate a sequence of pairs for plotting a level set around a
     center
 
@@ -74,12 +80,16 @@ def level_set(f, hmm, center, value, n_angles=100, initial_r=0.1):
             _r: 
         '''
         vector = logistic(_r * direction + l_center)
-        return q_u(vector[0], hmm) + q_v(vector[1], hmm) - value
+        return f(vector, hmm, trajectory) - value
 
+    high = 20
+    low = 0.0
     result = []
     for theta in numpy.linspace(0, 2 * numpy.pi, n_angles, endpoint=True):
         direction = numpy.array([numpy.cos(theta), numpy.sin(theta)])
-        r = scipy.optimize.brentq(f_r, 0, 10)
+        r = scipy.optimize.brentq(f_r, low, high)
+        low = r * .8
+        high = r / .8
         logit_result = r * direction + l_center
         result.append(logistic(logit_result))
     return numpy.array(result)
@@ -237,9 +247,14 @@ def q_v(v, hmm):
     return numpy.log(v) * p_y_given_s1[0] + numpy.log(1 - v) * p_y_given_s1[1]
 
 
-def q_sum(uv, hmm):
+def q_sum(uv, hmm, y_values=None):
     u, v = uv
     return q_u(u, hmm) + q_v(v, hmm)
+
+
+def likelihood(uv, hmm, y_values):
+    hmm_uv = make_model(uv[0], uv[1], hmm.rng)
+    return numpy.log(hmm_uv.likelihood(y_values)).sum() / len(y_values)
 
 
 def survey_q(hmm, n_u, n_v):
@@ -314,13 +329,23 @@ def plot_trajectory(trajectory, hmm, y_values):
             numpy.log(hmm_uv.likelihood(y_values)).sum() / len(y_values))
     like_axes.plot(like_trajectory)
     q_axes.plot(q_trajectory)
-    for uv in trajectory[0:-1]:
+    for iteration, uv in enumerate(trajectory):
         new_hmm = make_model(uv[0], uv[1], hmm.rng)
         new_hmm.train(y_values, 1, display=False)
+        if iteration % 3 != 1:
+            continue
         # Get a level set centered at new uv that goes through old uv
-        value = q_sum(uv, new_hmm)
-        loop = level_set(q_sum, new_hmm, new_hmm.uv(), value)
-        xy_axes.plot(loop[:, 0], loop[:, 1], color='b')
+        q_value = q_sum(uv, new_hmm)
+        q_loop = level_set(q_sum, new_hmm, new_hmm.uv(), q_value)
+        xy_axes.plot(q_loop[:, 0], q_loop[:, 1], color='b')
+        l_value = likelihood(uv, hmm, y_values)
+        l_loop = level_set(likelihood,
+                           new_hmm,
+                           hmm.uv(),
+                           l_value,
+                           y_values,
+                           n_angles=50)
+        xy_axes.plot(l_loop[:, 0], l_loop[:, 1], color='r')
     plt.show()
 
 
@@ -341,7 +366,7 @@ def main(argv=None):
     initial_u = .001
     initial_v = .01
     hmm = make_model(initial_u, initial_v, rng)
-    n_train = 10
+    n_train = 11
     trajectory = numpy.empty((n_train, 2))
     for iteration in range(n_train):
         trajectory[iteration, :] = hmm.uv()
