@@ -101,16 +101,27 @@ class Observation(hmm.simple.Observation):
         hmm.simple.Observation.__init__(self, py_state, rng)
         self.untrainable = set([x for x, y in untrainable])
 
+
     def reestimate(self: Observation, weight: numpy.ndarray):
-        """
-        Estimate new _py_state
+        """Estimate new _py_state.  Differences from parent: 1) Hold
+        some parameters fixed. 2) Save wsy for calculating Qs
 
         Args:
             weight: weight[t,s] = Prob(state[t]=s) given data and old model
+
         """
 
         old_py_state = self._py_state.copy()
-        hmm.simple.Observation.reestimate(self, weight)
+        # Loop over range of allowed values of y
+        for y_i in range(self._py_state.shape[1]):
+            # yi was observed at times: numpy.where(self._y == yi)[0]
+            # w.take(...) is the conditional state probabilities at those times
+            self._py_state.assign_col(
+                y_i,
+                weight.take(numpy.where(self._y == y_i)[0], axis=0).sum(axis=0))
+        self.wsy = self._py_state.copy()
+        self._py_state.normalize()
+        self._cummulative_y = numpy.cumsum(self._py_state, axis=1)
         for state in self.untrainable:
             self._py_state[state, :] = old_py_state[state, :]
         self._py_state.normalize()
@@ -163,11 +174,36 @@ class HMM(hmm.simple.HMM):
         self.untrainable_values = untrainable_values
 
     def reestimate(self: HMM):
-        """Variant can hold some self.p_state2state values constant.
+        """Differences from parent: 1. Freezes some parameters.
+        2. Saves weights for calculating Qs
 
         """
 
-        hmm.simple.HMM.reestimate(self)
+        # u_sum[i,j] = \sum_t alpha[t,i] * beta[t+1,j] *
+        # state_likelihood[t+1]/gamma[t+1]
+        #
+        # The term at t is the conditional probability that there was
+        # a transition from state i to state j at time t given all of
+        # the observed data.  pylint: disable = duplicate-code
+        u_sum = numpy.einsum(
+            "ti,tj,tj,t->ij",  # Specifies the i,j indices and sum over t
+            self.alpha[:-1],  # indices t,i
+            self.beta[1:],  # indices t,j
+            self.state_likelihood[1:],  # indices t,j
+            self.gamma_inv[1:]  # index t
+        )
+        self.alpha *= self.beta  # Saves allocating a new array for
+        alpha_beta = self.alpha  # the result
+
+        self.p_state_time_average = alpha_beta.sum(axis=0)  # type: ignore
+        self.p_state_initial = numpy.copy(alpha_beta[0])
+        for x in (self.p_state_time_average, self.p_state_initial):
+            x /= x.sum()
+        assert u_sum.shape == self.p_state2state.shape
+        self.p_state2state *= u_sum  # Now self.p_state2state[a,b] = sum_t w[t,a,b]
+        self.wss = self.p_state2state.copy()
+        self.p_state2state.normalize()
+        self.y_mod.reestimate(alpha_beta)
         if self.untrainable_indices is None or len(
                 self.untrainable_indices) == 0:
             return
@@ -238,13 +274,25 @@ def survey_like(n_u, n_v, y_values, rng):
 
 
 def q_u(u, hmm):
-    return numpy.log(u) * hmm.p_state2state[1, 0] + numpy.log(
-        1 - u) * hmm.p_state2state[1, 1]
+    '''Return Q_transition for u using last iteration of training
+
+    Args:
+       u: A transition probability
+       hmm: A model
+    '''
+    # See Eqn 2.44 on page 35.
+    return numpy.log(u) * hmm.wss[1, 0] + numpy.log(1 - u) * hmm.wss[1, 1]
 
 
 def q_v(v, hmm):
-    p_y_given_s1 = hmm.y_mod._py_state[1]
-    return numpy.log(v) * p_y_given_s1[0] + numpy.log(1 - v) * p_y_given_s1[1]
+    '''Return Q_observation for v using last iteration of training
+
+    Args:
+       v: An observation probability
+       hmm: A model
+    '''
+    # See Eqn 2.48 on page 35.
+    return numpy.log(v) * hmm.y_mod.wsy[1, 0] + numpy.log(1 - v) * hmm.y_mod.wsy[1, 1]
 
 
 def q_sum(uv, hmm, y_values=None):
