@@ -296,6 +296,124 @@ unnormalized Gaussian density function in which the inverse covariance
 is the sum of the inverse covariances of the factors and the mean is
 the average of the factor means weighted by the inverse covariances.
 
+\chapter{EM Convergence Rate}
+\label{chap:em_appendix}
+
+Now we calculate a linear approximation of the behavior of the EM
+algorithm in the neighborhood of a fixed point.  The manipulations
+here require that the probability and likelihood functions have
+continuous first and second derivatives which we implicitly assume.
+We let $\Phi$ denote the action of one iteration of the algorithm and
+let $\hat \theta$ denote a fixed point with
+\begin{align}
+  \ti{\theta}{n+1} &= \Phi\left( \ti{\theta}{n} \right) \\
+  \Phi(\hat \theta) &= \hat \theta && \text{with Taylor series} \\
+  \Phi(\theta) &= \hat \theta + \left[ \frac{\partial
+                 \Phi(\theta')}{\partial \theta'} \right]_{\hat
+                 \theta} (\theta - \hat \theta) + \text{Remainder} \\
+  Q(\theta, \theta') &\equiv \EV_{S|y,\theta'} \log\left(P(y,S \given
+  \theta \right) \\
+  \Phi(\theta') &= \argmax_\theta Q(\theta, \theta'). 
+\end{align}
+For a given value of $\theta'$, the derivative of $\Phi(\theta,
+\theta')$ at a maximum is zero, and we write
+\begin{align}
+  \Psi(\theta,\theta')
+  &\equiv \frac{\partial Q(\theta,
+    \theta')}{\partial \theta} \\
+  \Psi(\Phi(\theta'), \theta')
+  &= 0 \\
+  \frac{d\Psi(\Phi(\theta'), \theta')}{d \theta'}
+  &= 0 \\
+  \frac{d\Psi(\Phi(\theta'), \theta')}{d \theta'}
+  &= \left. \frac{\partial \Psi(\theta, \theta')}{\partial \theta}
+    \right|_{\Phi(\theta'), \theta'} \left.\frac{\partial
+    \Phi(\theta)}{\partial \theta} \right|_{\theta'} +
+    \left. \frac{\partial \Psi(\theta, \theta')}{\partial \theta'}
+    \right|_{\Phi(\theta'), \theta'} \\
+  &= \left. \frac{\partial^2 Q(\theta, \theta')}{\partial \theta^2}
+    \right|_{\Phi(\theta'), \theta'} \left.\frac{\partial
+    \Phi(\theta)}{\partial \theta} \right|_{\theta'} +
+    \left. \frac{\partial^2 Q(\theta, \theta')}{\partial \theta'
+    \partial \theta} \right|_{\Phi(\theta'), \theta'} =0 \\
+  \label{eq:two_second_derivatives}
+  \left.\frac{\partial \Phi(\theta)}{\partial \theta}
+  \right|_{\theta'}
+  &= - \left[ \left. \frac{\partial^2 Q(\theta,  \theta')}{\partial
+    \theta^2} \right|_{\Phi(\theta'), \theta'} \right]^{-1} \left[
+    \left. \frac{\partial^2 Q(\theta, \theta')}{\partial \theta'
+    \partial \theta} \right|_{\Phi(\theta'), \theta'} \right].
+\end{align}
+Manipulating the first of the two second derivatives in
+\eqref{eq:two_second_derivatives} we find
+\begin{align}
+  \frac{\partial^2 Q(\theta,  \theta')}{\partial \theta^2}
+  &= \frac{\partial^2}{\partial \theta^2} \EV_{S \given y, \theta'}
+    \log \left( P(y, S \given \theta \right) \\
+  &= \frac{\partial^2}{\partial \theta^2} \EV_{S \given y, \theta'}
+    \left( \log \left( P(y \given \theta \right) + \log \left( P(S
+    \given y, \theta \right) \right)\\
+  &=  \frac{\partial^2}{\partial \theta^2} \log \left( P(y \given
+    \theta \right) + \EV_{S \given y, \theta'} \left(
+    \frac{\partial^2}{\partial \theta^2} \log \left( P(S \given y,
+    \theta \right) \right) \\
+  \label{eq:second_partial_information}
+  &= -J_y - I_{S|y},
+\end{align}
+where $J_y$ is called the \emph{observed information} that $y$
+provides about $\theta$, and $I_{S|y}$ is the \emph{Fisher information}
+of the unobserved data.  Now manipulating the second of the two second
+derivatives in \eqref{eq:two_second_derivatives} we find
+\begin{align}
+  \frac{\partial^2 Q(\theta,  \theta')}{\partial \theta \partial
+  \theta'}
+  &= \frac{\partial^2}{\partial \theta \partial \theta'} \EV_{S \given y, \theta'}
+    \log \left( P(y, S \given \theta \right) \\
+  &= \frac{\partial^2}{\partial \theta \partial \theta'} \EV_{S \given y, \theta'}
+    \left( \log \left( P(y \given \theta \right) + \log \left( P(S
+    \given y, \theta \right) \right)\\
+  &=  \frac{\partial^2}{\partial \theta \partial \theta'} \log \left( P(y \given
+    \theta \right) + \frac{\partial}{\partial \theta'} \EV_{S \given y, \theta'} \left(
+    \frac{\partial}{\partial \theta} \log \left( P(S \given y,
+    \theta \right) \right) \\
+  &=  \frac{\partial}{\partial \theta'} \EV_{S \given y, \theta'} \left(
+    \frac{\partial}{\partial \theta} \log \left( P(S \given y,
+    \theta \right) \right) \\
+  &= \frac{\partial}{\partial \theta'} \sum_s P(s \given y, \theta') %
+    \frac{ %
+    \frac{\partial P(s \given y,\theta )}{\partial \theta}
+    }{P(s \given y,\theta )}  \\
+  &= \sum_s P(s \given y, \theta') %
+    \frac{ %
+    \frac{\partial P(s \given y,\theta' )}{\partial \theta'}
+    }{P(s \given y,\theta' )}
+    \frac{ %
+    \frac{\partial P(s \given y,\theta )}{\partial \theta}
+    }{P(s \given y,\theta )}
+\end{align}
+At the fixed point $\hat \theta = \theta = \theta'$ and
+\begin{align}
+  \left. \frac{\partial^2 Q(\theta,  \theta')}{\partial \theta
+  \partial \theta'} \right|_{\hat \theta, \hat \theta}
+  &= \EV_{S \given y, \hat \theta} \left( \frac{\partial}{\partial
+    \theta} \log \left( P(S \given y, \theta )\right) \right)^2\\
+  \label{eq:mixed_partial_information}
+  &\equiv I_{S|y}.
+\end{align}
+Combining \eqref{eq:mixed_partial_information} and
+\eqref{eq:second_partial_information} with
+\eqref{eq:two_second_derivatives} we write
+\begin{equation}
+  \label{eq:information_em_derivative}
+  \left.\frac{\partial \Phi(\theta)}{\partial \theta}
+  \right|_{\theta'} = \left[J_y + I_{S|y}  \right]^{-1} I_{S|y}.
+\end{equation}
+Equation~\eqref{eq:information_em_derivative} appeals to our
+intuition.  If the observed information is much larger than the
+unobserved information, the derivative is small and the convergence is
+fast and if the unobserved information dominates the derivative is
+close to one and the convergence is slow.
+
 \chapter{Notes on Software}
 \label{cha:Software}
 
