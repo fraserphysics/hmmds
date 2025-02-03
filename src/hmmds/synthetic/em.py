@@ -10,6 +10,7 @@ import pickle
 import argparse
 
 import numpy
+import numpy.linalg
 import scipy.optimize
 
 import hmm.simple
@@ -50,18 +51,81 @@ def logistic_space(low, high, n):
     return values, logit_values
 
 
-def level_set(f,
-              hmm,
-              center,
-              value,
-              trajectory=None,
-              n_angles=100,
-              initial_r=0.1):
+def fit_quadratic(y_values, max_uv, delta=1.0e-4):
+    '''Fit a quadratic to the maximum of the log likelihood
+
+    Args:
+        y_values:
+        max_uv: Values that maximize the log likelihood
+        initial_abc: Starting value of variable vector
+        delta: Grid resolution
+    '''
+
+    function_max = likelihood(max_uv, y_values)
+    # Create 3x3 grids of function values and arguments
+    uv_values = numpy.empty((9, 2))
+    function_values = numpy.empty(9)
+    uv = numpy.empty(2)
+    for i in range(3):
+        uv[0] = max_uv[0] + (i - 1) * delta
+        for j in range(3):
+            uv[1] = max_uv[1] + (j - 1) * delta
+            uv_values[3 * i + j, :] = uv
+            function_values[3 * i + j] = likelihood(uv, y_values)
+
+    def objective(abc):
+        ''''''
+        result = 0
+        (a, b, c) = abc
+        A = numpy.array([[a, c], [c, b]])
+        for i in range(9):
+            delta = uv_values[i] - max_uv
+            df = function_values[i] - (function_max +
+                                       float(delta @ A @ delta) / 2)
+            result += df * df
+        return result
+
+    result = scipy.optimize.minimize(objective,
+                                     numpy.array([-17.0, -7.0, -5.0]) * 2e3,
+                                     method='powell')
+    if not result.success:
+        print(f'{result=}')
+        raise RuntimeError
+    (a, b, c) = result.x
+    A = numpy.array([[a, c], [c, b]])
+    (values, vectors) = numpy.linalg.eigh(A)
+    return {
+        'max_uv': max_uv,
+        'function_max': function_max,
+        'hessian': A,
+        'eigenvalues': values,
+        'eigenvectors': vectors,
+    }
+
+
+def quadratic_function(uv, fit_dict):
+    '''Evaluate the result of fit_quadratic at a point
+
+    Args:
+        uv: A 2-d vector
+        fig_dict: Dictionary of parameters describing quadratic fit
+    '''
+    
+    max_uv = fit_dict['max_uv']
+    function_max = fit_dict['function_max']
+    A = fit_dict['hessian']
+
+    delta = uv - max_uv
+    return function_max + float(delta @ A @ delta) / 2
+
+
+def level_set(f, args, center, value, n_angles=100, initial_r=0.1):
     '''Calculate a sequence of pairs for plotting a level set around a
     center
 
     Args:
         f: function that maps numpy pairs to real
+        args: Additional arguments to f
         center: numpy pair
         value:
         n_angles: number of angles
@@ -80,7 +144,7 @@ def level_set(f,
             _r: 
         '''
         vector = logistic(_r * direction + l_center)
-        return f(vector, hmm, trajectory) - value
+        return f(vector, *args) - value
 
     high = 20
     low = 0.0
@@ -88,8 +152,8 @@ def level_set(f,
     for theta in numpy.linspace(0, 2 * numpy.pi, n_angles, endpoint=True):
         direction = numpy.array([numpy.cos(theta), numpy.sin(theta)])
         r = scipy.optimize.brentq(f_r, low, high)
-        low = r * .8
-        high = r / .8
+        low = r * .6
+        high = r / .6
         logit_result = r * direction + l_center
         result.append(logistic(logit_result))
     return numpy.array(result)
@@ -100,7 +164,6 @@ class Observation(hmm.simple.Observation):
     def __init__(self: Observation, py_state: numpy.ndarray, rng, untrainable):
         hmm.simple.Observation.__init__(self, py_state, rng)
         self.untrainable = set([x for x, y in untrainable])
-
 
     def reestimate(self: Observation, weight: numpy.ndarray):
         """Estimate new _py_state.  Differences from parent: 1) Hold
@@ -292,17 +355,25 @@ def q_v(v, hmm):
        hmm: A model
     '''
     # See Eqn 2.48 on page 35.
-    return numpy.log(v) * hmm.y_mod.wsy[1, 0] + numpy.log(1 - v) * hmm.y_mod.wsy[1, 1]
+    return numpy.log(v) * hmm.y_mod.wsy[1, 0] + numpy.log(
+        1 - v) * hmm.y_mod.wsy[1, 1]
 
 
-def q_sum(uv, hmm, y_values=None):
+def q_sum(uv, hmm):
     u, v = uv
     return q_u(u, hmm) + q_v(v, hmm)
 
 
-def likelihood(uv, hmm, y_values):
-    hmm_uv = make_model(uv[0], uv[1], hmm.rng)
-    return numpy.log(hmm_uv.likelihood(y_values)).sum() / len(y_values)
+def likelihood(uv, y_values):
+    '''Calculate the log likelihood of parameters uv
+
+    Args:
+        uv: The pair of values u=uv[0] and v=uv[1]
+        _: To match call signature of q_sum
+        y_values:  Sequence of observations
+    '''
+    hmm_uv = make_model(uv[0], uv[1], None)
+    return numpy.log(hmm_uv.likelihood(y_values)).sum()
 
 
 def survey_q(hmm, n_u, n_v):
@@ -355,7 +426,7 @@ def do_surveys_plot(trained_hmm, y_values, trajectory):
     plt.show()
 
 
-def plot_trajectory(trajectory, hmm, y_values):
+def plot_trajectory(trajectory, hmm, y_values, fit_dict):
     import matplotlib.pyplot as plt
 
     fig, (xy_axes, q_axes, like_axes) = plt.subplots(nrows=3)
@@ -384,16 +455,19 @@ def plot_trajectory(trajectory, hmm, y_values):
             continue
         # Get a level set centered at new uv that goes through old uv
         q_value = q_sum(uv, new_hmm)
-        q_loop = level_set(q_sum, new_hmm, new_hmm.uv(), q_value)
+        q_loop = level_set(q_sum, (new_hmm,), new_hmm.uv(), q_value)
         xy_axes.plot(q_loop[:, 0], q_loop[:, 1], color='b')
-        l_value = likelihood(uv, hmm, y_values)
-        l_loop = level_set(likelihood,
-                           new_hmm,
+        l_value = likelihood(uv, y_values)
+        l_loop = level_set(likelihood, (y_values,),
                            hmm.uv(),
                            l_value,
-                           y_values,
                            n_angles=50)
         xy_axes.plot(l_loop[:, 0], l_loop[:, 1], color='r')
+        fit_loop = level_set(quadratic_function, (fit_dict,),
+                             hmm.uv(),
+                             l_value,
+                             n_angles=50)
+        xy_axes.plot(fit_loop[:, 0], fit_loop[:, 1], color='g')
     plt.show()
 
 
@@ -411,6 +485,11 @@ def main(argv=None):
     true_hmm = make_model(true_u, true_v, rng)
     n = 10000
     states, y_values = true_hmm.simulate(n)
+    true_hmm.train(y_values, 30, display=False)
+    mle_hmm = true_hmm
+    true_hmm = make_model(true_u, true_v, rng)
+
+    fit_dict = fit_quadratic(y_values, mle_hmm.uv())
     initial_u = .001
     initial_v = .01
     hmm = make_model(initial_u, initial_v, rng)
@@ -419,9 +498,11 @@ def main(argv=None):
     for iteration in range(n_train):
         trajectory[iteration, :] = hmm.uv()
         hmm.train(y_values, 1, display=False)
-    print(f'{hmm.__str__()}')
+    print(f'''
+    train_11
+    {hmm.__str__()}''')
     #do_surveys_plot(hmm, y_values, trajectory)
-    plot_trajectory(trajectory, hmm, y_values)
+    plot_trajectory(trajectory, hmm, y_values, fit_dict)
 
     return 0
 

@@ -13,7 +13,6 @@ import PyQt5.QtWidgets
 import pyqtgraph
 
 import numpy
-import numpy.linalg
 
 import hmmds.applications.laser.utilities
 
