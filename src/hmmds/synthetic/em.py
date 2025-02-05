@@ -40,9 +40,9 @@ def logit(p):
 
 
 def logistic_space(low, high, n):
-    '''Calculate array of n values uniformly spaced between logit(low)
-    and logit(high).  Return that array and an array of corresponding
-    points between low and high.
+    '''Calculate an array of n values uniformly spaced between
+    logit(low) and logit(high).  Return that array and an array of
+    corresponding points between low and high.
 
     '''
     assert 0 < low < high < 1
@@ -51,7 +51,7 @@ def logistic_space(low, high, n):
     return values, logit_values
 
 
-def fit_quadratic(y_values, max_uv, delta=1.0e-4):
+def fit_quadratic(y_values, max_uv, delta=2.0e-5):
     '''Fit a quadratic to the maximum of the log likelihood
 
     Args:
@@ -62,37 +62,51 @@ def fit_quadratic(y_values, max_uv, delta=1.0e-4):
     '''
 
     function_max = likelihood(max_uv, y_values)
-    # Create 3x3 grids of function values and arguments
-    uv_values = numpy.empty((9, 2))
-    function_values = numpy.empty(9)
+    # Create nxm grids of function values and arguments
+    n = 4
+    m = 3
+    uv_values = numpy.empty((n * m, 2))
+    function_values = numpy.empty(n * m)
     uv = numpy.empty(2)
-    for i in range(3):
+    for i in range(n):
         uv[0] = max_uv[0] + (i - 1) * delta
-        for j in range(3):
+        for j in range(m):
             uv[1] = max_uv[1] + (j - 1) * delta
-            uv_values[3 * i + j, :] = uv
-            function_values[3 * i + j] = likelihood(uv, y_values)
+            uv_values[m * i + j, :] = uv
+            function_values[m * i + j] = likelihood(uv, y_values)
 
-    def objective(abc):
-        ''''''
+    def objective(abcdef):
+        '''
+        value - [ f + (x-de)^T [a c] (x-de) ]
+                               [c b]/2
+        '''
         result = 0
-        (a, b, c) = abc
+        (a, b, c, d, e, f) = abcdef
         A = numpy.array([[a, c], [c, b]])
-        for i in range(9):
-            delta = uv_values[i] - max_uv
-            df = function_values[i] - (function_max +
-                                       float(delta @ A @ delta) / 2)
+        mean = numpy.array([d, e])
+        for i in range(n * m):
+            delta = uv_values[i] - mean
+            df = function_values[i] - (f + float(delta @ A @ delta) / 2)
             result += df * df
         return result
 
-    result = scipy.optimize.minimize(objective,
-                                     numpy.array([-17.0, -7.0, -5.0]) * 2e3,
-                                     method='powell')
+    result = scipy.optimize.minimize(
+        objective,
+        numpy.array([-34.0e3, -14.0e3, -10.0e3, *max_uv, function_max]),
+        method='powell')
     if not result.success:
         print(f'{result=}')
         raise RuntimeError
-    (a, b, c) = result.x
+    (a, b, c, d, e, f) = result.x
+    fit_uv = numpy.array([d, e])
+    fit_max = f
     A = numpy.array([[a, c], [c, b]])
+    assert abs(
+        (fit_max - function_max) / function_max
+    ) < 1.e-8, f'{fit_max=} {function_max=} {(fit_max-function_max)/function_max=}'
+    assert abs((fit_uv - max_uv) / max_uv).max() < 1e-4, f'''{max_uv=}
+    {max_uv=}
+    {(fit_uv-max_uv)/max_uv=}'''
     (values, vectors) = numpy.linalg.eigh(A)
     return {
         'max_uv': max_uv,
@@ -104,13 +118,16 @@ def fit_quadratic(y_values, max_uv, delta=1.0e-4):
 
 
 def quadratic_function(uv, fit_dict):
-    '''Evaluate the result of fit_quadratic at a point
+    '''Evaluate the result of fit_quadratic at a point.  I used this
+    code to make a visual check of the match between my quadratic fit
+    to the log-likelihood and the log-likelihood itself.
 
     Args:
         uv: A 2-d vector
         fig_dict: Dictionary of parameters describing quadratic fit
+
     '''
-    
+
     max_uv = fit_dict['max_uv']
     function_max = fit_dict['function_max']
     A = fit_dict['hessian']
@@ -160,10 +177,12 @@ def level_set(f, args, center, value, n_angles=100, initial_r=0.1):
 
 
 class Observation(hmm.simple.Observation):
+    '''Differences from parent: 1. Supports untrainable values.
+    2. Stores self.wsy for calculating Q'''
 
     def __init__(self: Observation, py_state: numpy.ndarray, rng, untrainable):
         hmm.simple.Observation.__init__(self, py_state, rng)
-        self.untrainable = set([x for x, y in untrainable])
+        self.untrainable = set(x for x, y in untrainable)
 
     def reestimate(self: Observation, weight: numpy.ndarray):
         """Estimate new _py_state.  Differences from parent: 1) Hold
@@ -183,8 +202,6 @@ class Observation(hmm.simple.Observation):
                 y_i,
                 weight.take(numpy.where(self._y == y_i)[0], axis=0).sum(axis=0))
         self.wsy = self._py_state.copy()
-        self._py_state.normalize()
-        self._cummulative_y = numpy.cumsum(self._py_state, axis=1)
         for state in self.untrainable:
             self._py_state[state, :] = old_py_state[state, :]
         self._py_state.normalize()
@@ -192,7 +209,7 @@ class Observation(hmm.simple.Observation):
 
 
 class HMM(hmm.simple.HMM):
-    """Has untrainable transitions
+    """Has untrainable transitions and saves self.wss for calculating Q.
 
     Args:
         p_state_initial : Initial distribution of states
@@ -265,10 +282,10 @@ class HMM(hmm.simple.HMM):
         assert u_sum.shape == self.p_state2state.shape
         self.p_state2state *= u_sum  # Now self.p_state2state[a,b] = sum_t w[t,a,b]
         self.wss = self.p_state2state.copy()
-        self.p_state2state.normalize()
         self.y_mod.reestimate(alpha_beta)
         if self.untrainable_indices is None or len(
                 self.untrainable_indices) == 0:
+            self.p_state2state.normalize()
             return
         self.p_state2state[self.untrainable_indices] = self.untrainable_values
         self.p_state2state.normalize()
@@ -319,7 +336,7 @@ def make_model(u, v, rng):
                untrainable_indices, untrainable_values)
 
 
-LOW = 0.05
+LOW = 0.05  # Lower bound of logistic_space
 
 
 def survey_like(n_u, n_v, y_values, rng):
@@ -362,6 +379,29 @@ def q_v(v, hmm):
 def q_sum(uv, hmm):
     u, v = uv
     return q_u(u, hmm) + q_v(v, hmm)
+
+
+def i_sy(uv, hmm, j_y):
+    '''Calculate the Fisher information of the unobserved data
+    '''
+    u, v = uv
+    duu = -hmm.wss[1, 0] / u**2 - hmm.wss[1, 1] / (1 - u)**2
+    dvv = -hmm.y_mod.wsy[1, 0] / v**2 - hmm.y_mod.wsy[1, 1] / (1 - v)**2
+    return -numpy.array([[duu, 0], [0, dvv]]) - j_y
+
+
+def d_em(uv, hmm, j_y):
+    '''Calculate the derivative of one step of the EM algorithm
+
+    Args:
+        uv: Values at fixed point
+        hmm: Model
+        j_y: Observed information provided by y_values
+    '''
+    i_sy_ = i_sy(uv, hmm, j_y)
+    sum_ = i_sy_ + j_y
+    solution = numpy.linalg.solve((sum_), i_sy_)
+    return solution
 
 
 def likelihood(uv, y_values):
@@ -463,11 +503,6 @@ def plot_trajectory(trajectory, hmm, y_values, fit_dict):
                            l_value,
                            n_angles=50)
         xy_axes.plot(l_loop[:, 0], l_loop[:, 1], color='r')
-        fit_loop = level_set(quadratic_function, (fit_dict,),
-                             hmm.uv(),
-                             l_value,
-                             n_angles=50)
-        xy_axes.plot(fit_loop[:, 0], fit_loop[:, 1], color='g')
     plt.show()
 
 
@@ -490,19 +525,28 @@ def main(argv=None):
     true_hmm = make_model(true_u, true_v, rng)
 
     fit_dict = fit_quadratic(y_values, mle_hmm.uv())
+    d_phi = d_em(fit_dict['max_uv'], mle_hmm, -fit_dict['hessian'])
+
     initial_u = .001
     initial_v = .01
     hmm = make_model(initial_u, initial_v, rng)
-    n_train = 11
+    n_train = 20
     trajectory = numpy.empty((n_train, 2))
     for iteration in range(n_train):
         trajectory[iteration, :] = hmm.uv()
         hmm.train(y_values, 1, display=False)
-    print(f'''
-    train_11
-    {hmm.__str__()}''')
+
+    delta_a = trajectory[-2] - mle_hmm.uv()
+    delta_b = trajectory[-1] - mle_hmm.uv()
+    delta_c = d_phi @ delta_a
+    print(f'''With the definition delta_n \equiv (uv_n - \hat uv) and letting
+D denote our calculated d Phi / d uv, after {n_train} training iterations we want
+delta_{n_train-1} = D * delta_{n_train-2}.  In fact, delta_{n_train-1} = {delta_b},
+and we are pleased that (delta_{n_train-1} - D * delta_{n_train-2})/delta_{n_train-1} =
+{(delta_b-delta_c)/delta_b}.
+    ''')
     #do_surveys_plot(hmm, y_values, trajectory)
-    plot_trajectory(trajectory, hmm, y_values, fit_dict)
+    #plot_trajectory(trajectory[:11], hmm, y_values, fit_dict)
 
     return 0
 
