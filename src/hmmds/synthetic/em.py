@@ -336,23 +336,6 @@ def make_model(u, v, rng):
                untrainable_indices, untrainable_values)
 
 
-LOW = 0.05  # Lower bound of logistic_space
-
-
-def survey_like(n_u, n_v, y_values, rng):
-    """Calculate LogLikelihood per time sample at a grid of u,v values
-    """
-    u_values, u_logistic = logistic_space(LOW, .3, n_u)
-    v_values, v_logistic = logistic_space(LOW, .3, n_v)
-    like_array = numpy.empty((n_u, n_v))
-    for i_u, u in enumerate(u_values):
-        for i_v, v in enumerate(v_values):
-            hmm_uv = make_model(u, v, rng)
-            like_array[i_u, i_v] = numpy.log(
-                hmm_uv.likelihood(y_values)).sum() / len(y_values)
-    return {'u_s': u_logistic, 'v_s': v_logistic, 'like_array': like_array}
-
-
 def q_u(u, hmm):
     '''Return Q_transition for u using last iteration of training
 
@@ -416,94 +399,81 @@ def likelihood(uv, y_values):
     return numpy.log(hmm_uv.likelihood(y_values)).sum()
 
 
-def survey_q(hmm, n_u, n_v):
-    """Calculate Q_u and Q_v for hmm at a grid of u,v values
-
-    Args:
-        hmm: After training step so that hmm.p_state2state and
-            hmm.y_mod._py_state reflect sums of weights
-
-    """
-    u_values, u_logistic = logistic_space(LOW, .3, n_u)
-    v_values, v_logistic = logistic_space(LOW, .3, n_v)
-    q_array = numpy.empty((n_u, n_v))
-    for i_u, u in enumerate(u_values):
-        for i_v, v in enumerate(v_values):
-            q_array[i_u, i_v] = q_u(u, hmm) + q_v(v, hmm)
-    return {'u_s': u_logistic, 'v_s': v_logistic, 'q_array': q_array}
-
-
-def view_survey(ax, survey_dict, trajectory, key='like_array'):
-
-    X, Y = numpy.meshgrid(survey_dict['u_s'], survey_dict['v_s'])
-    CS = ax.contour(X, Y, survey_dict[key].T, levels=200)
-    ax.plot(logit(trajectory[:, 0]), logit(trajectory[:, 1]), color='blue')
-    ax.plot(logit(trajectory[:, 0]),
-            logit(trajectory[:, 1]),
-            marker='.',
-            color='black',
-            linestyle='',
-            markersize=8)
-    tick_values = numpy.array([.05, .1, .15, .2, .25])
-    logit_values = logit(tick_values)
-    tick_labels = [f'{x}' for x in tick_values]
-    ax.set_xticks(logit_values, tick_labels)
-    ax.set_yticks(logit_values, tick_labels)
-
-
-def do_surveys_plot(trained_hmm, y_values, trajectory):
-    '''Do surveys of log likelihood and q
-    '''
-    import matplotlib.pyplot as plt
-    fig, (upper, lower) = plt.subplots(nrows=2)
-
-    #l_dict = survey_u_v(60,25, y_values, rng)
-    l_dict = survey_like(20, 10, y_values, trained_hmm.rng)
-    q_dict = survey_q(trained_hmm, 100, 100)
-
-    view_survey(upper, l_dict, trajectory, 'like_array')
-    view_survey(lower, q_dict, trajectory, 'q_array')
-    plt.show()
-
-
-def plot_trajectory(trajectory, hmm, y_values, fit_dict):
+def plot_trajectory(trajectory, mle_hmm, y_values, fit_dict):
     import matplotlib.pyplot as plt
 
-    fig, (xy_axes, q_axes, like_axes) = plt.subplots(nrows=3)
-    q_axes.set_ylabel('Q')
-    like_axes.set_ylabel('Log Likelihood')
-    xy_axes.plot(trajectory[:, 0], trajectory[:, 1], color='blue')
-    xy_axes.plot(trajectory[:, 0],
-                 trajectory[:, 1],
-                 marker='.',
-                 color='black',
-                 linestyle='',
-                 markersize=8)
-    like_trajectory = []
-    q_trajectory = []
-    for (u, v) in trajectory:
-        q_trajectory.append(q_sum((u, v), hmm))
-        hmm_uv = make_model(u, v, hmm.rng)
-        like_trajectory.append(
-            numpy.log(hmm_uv.likelihood(y_values)).sum() / len(y_values))
-    like_axes.plot(like_trajectory)
-    q_axes.plot(q_trajectory)
+    fig, (level_axes, eig_axes) = plt.subplots(nrows=2,
+                                               sharex=True,
+                                               sharey=True)
+
+    level_axes.plot(trajectory[:, 0],
+                    trajectory[:, 1],
+                    color='blue',
+                    label='EM iterates')
+    level_axes.plot(trajectory[:, 0],
+                    trajectory[:, 1],
+                    marker='.',
+                    color='black',
+                    linestyle='',
+                    markersize=6)
     for iteration, uv in enumerate(trajectory):
-        new_hmm = make_model(uv[0], uv[1], hmm.rng)
+        new_hmm = make_model(uv[0], uv[1], mle_hmm.rng)
         new_hmm.train(y_values, 1, display=False)
         if iteration % 3 != 1:
             continue
         # Get a level set centered at new uv that goes through old uv
         q_value = q_sum(uv, new_hmm)
         q_loop = level_set(q_sum, (new_hmm,), new_hmm.uv(), q_value)
-        xy_axes.plot(q_loop[:, 0], q_loop[:, 1], color='b')
+        if iteration == 1:
+            label = r'$Q$ Level Set'
+        else:
+            label = ''
+        level_axes.plot(q_loop[:, 0], q_loop[:, 1], color='green', label=label)
         l_value = likelihood(uv, y_values)
         l_loop = level_set(likelihood, (y_values,),
-                           hmm.uv(),
+                           mle_hmm.uv(),
                            l_value,
                            n_angles=50)
-        xy_axes.plot(l_loop[:, 0], l_loop[:, 1], color='r')
+        if iteration == 1:
+            label = 'Likelihood Level Set'
+        else:
+            label = ''
+        level_axes.plot(l_loop[:, 0], l_loop[:, 1], color='red', label=label)
+    level_axes.set_ylabel('$v$')
+    level_axes.legend()
+
+    eig_axes.plot(trajectory[:, 0],
+                  trajectory[:, 1],
+                  color='blue',
+                  label='EM iterates')
+    eig_axes.plot(trajectory[:, 0],
+                  trajectory[:, 1],
+                  marker='.',
+                  color='black',
+                  linestyle='',
+                  markersize=6)
+
+    max_uv = fit_dict['max_uv']
+    d_phi = d_em(max_uv, mle_hmm, -fit_dict['hessian'])
+    values, vectors = numpy.linalg.eig(d_phi)
+    for (value, vector, color) in zip(values, vectors.T, ('red', 'green')):
+        assert value > 0, f'{value=} {vector=}'
+        delta = vector * numpy.log(value) / 50
+        for start, label in ((max_uv + delta,
+                              rf'eigenvector $\lambda \approx${value:.2f}'),
+                             (max_uv - delta, '')):
+            eig_axes.plot([start[0], max_uv[0]], [start[1], max_uv[1]],
+                          label=label,
+                          color=color,
+                          alpha=1.0,
+                          linewidth=2)
+
+    eig_axes.set_xlabel('$u$')
+    eig_axes.set_ylabel('$v$')
+    eig_axes.legend()
+
     plt.show()
+    return
 
 
 def main(argv=None):
@@ -520,7 +490,7 @@ def main(argv=None):
     true_hmm = make_model(true_u, true_v, rng)
     n = 10000
     states, y_values = true_hmm.simulate(n)
-    true_hmm.train(y_values, 30, display=False)
+    true_hmm.train(y_values, 50, display=False)
     mle_hmm = true_hmm
     true_hmm = make_model(true_u, true_v, rng)
 
@@ -530,7 +500,7 @@ def main(argv=None):
     initial_u = .001
     initial_v = .01
     hmm = make_model(initial_u, initial_v, rng)
-    n_train = 20
+    n_train = 11
     trajectory = numpy.empty((n_train, 2))
     for iteration in range(n_train):
         trajectory[iteration, :] = hmm.uv()
@@ -545,8 +515,7 @@ delta_{n_train-1} = D * delta_{n_train-2}.  In fact, delta_{n_train-1} = {delta_
 and we are pleased that (delta_{n_train-1} - D * delta_{n_train-2})/delta_{n_train-1} =
 {(delta_b-delta_c)/delta_b}.
     ''')
-    #do_surveys_plot(hmm, y_values, trajectory)
-    #plot_trajectory(trajectory[:11], hmm, y_values, fit_dict)
+    plot_trajectory(trajectory[:], mle_hmm, y_values, fit_dict)
 
     return 0
 
