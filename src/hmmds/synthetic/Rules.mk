@@ -45,6 +45,10 @@ $(SYNTHETIC_DATA)/gauss_mix.pkl: $(SYNTHETIC_CODE)/gauss_mix.py
 	mkdir -p $(@D)
 	python $< --random_seed 10 $(@D)
 
+$(SYNTHETIC_DATA)/em.pkl: $(SYNTHETIC_CODE)/em.py
+	mkdir -p $(@D)
+	python $< $@
+
 # Sentinel for SGO_sim and SGO_train
 $(SYNTHETIC_DATA)/SGO: $(SYNTHETIC_CODE)/scalar_gaussian.py
 	mkdir -p $(@D)

@@ -15,7 +15,7 @@ $(FIGS_Basic)/GaussMix.pdf: $(BasicPlotScripts)/gauss_mix.py $(GaussMixData)
 	mkdir -p $(FIGS_Basic)
 	python $^ $@
 
-$(FIGS_Basic)/EM.pdf: $(BasicPlotScripts)/em.py
+$(FIGS_Basic)/EM.pdf: $(BasicPlotScripts)/em.py $(SYNTHETIC_DATA)/em.pkl
 	mkdir -p $(FIGS_Basic)
 	python $^ $@
 

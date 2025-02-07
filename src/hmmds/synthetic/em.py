@@ -1,4 +1,4 @@
-"""em.py Illustrate EM algorithm difference between Log likelihood and Q
+"""em.py Make data too illustrate EM algorithm convergence rate
 
 """
 
@@ -27,7 +27,7 @@ def parse_args(argv):
 
 
 def logistic(x):
-    '''The standard logistic function.
+    r'''The standard logistic function.
     Maps (-\infty,infty) to (0,1)
     '''
     return 1 / (1 + numpy.exp(-x))
@@ -399,23 +399,10 @@ def likelihood(uv, y_values):
     return numpy.log(hmm_uv.likelihood(y_values)).sum()
 
 
-def plot_trajectory(trajectory, mle_hmm, y_values, fit_dict):
-    import matplotlib.pyplot as plt
+def plot_trajectory(trajectory, mle_hmm, y_values, result_dict):
+    q_loops = {}
+    l_loops = {}
 
-    fig, (level_axes, eig_axes) = plt.subplots(nrows=2,
-                                               sharex=True,
-                                               sharey=True)
-
-    level_axes.plot(trajectory[:, 0],
-                    trajectory[:, 1],
-                    color='blue',
-                    label='EM iterates')
-    level_axes.plot(trajectory[:, 0],
-                    trajectory[:, 1],
-                    marker='.',
-                    color='black',
-                    linestyle='',
-                    markersize=6)
     for iteration, uv in enumerate(trajectory):
         new_hmm = make_model(uv[0], uv[1], mle_hmm.rng)
         new_hmm.train(y_values, 1, display=False)
@@ -423,57 +410,14 @@ def plot_trajectory(trajectory, mle_hmm, y_values, fit_dict):
             continue
         # Get a level set centered at new uv that goes through old uv
         q_value = q_sum(uv, new_hmm)
-        q_loop = level_set(q_sum, (new_hmm,), new_hmm.uv(), q_value)
-        if iteration == 1:
-            label = r'$Q$ Level Set'
-        else:
-            label = ''
-        level_axes.plot(q_loop[:, 0], q_loop[:, 1], color='green', label=label)
+        q_loops[iteration] = level_set(q_sum, (new_hmm,), new_hmm.uv(), q_value)
         l_value = likelihood(uv, y_values)
-        l_loop = level_set(likelihood, (y_values,),
-                           mle_hmm.uv(),
-                           l_value,
-                           n_angles=50)
-        if iteration == 1:
-            label = 'Likelihood Level Set'
-        else:
-            label = ''
-        level_axes.plot(l_loop[:, 0], l_loop[:, 1], color='red', label=label)
-    level_axes.set_ylabel('$v$')
-    level_axes.legend()
-
-    eig_axes.plot(trajectory[:, 0],
-                  trajectory[:, 1],
-                  color='blue',
-                  label='EM iterates')
-    eig_axes.plot(trajectory[:, 0],
-                  trajectory[:, 1],
-                  marker='.',
-                  color='black',
-                  linestyle='',
-                  markersize=6)
-
-    max_uv = fit_dict['max_uv']
-    d_phi = d_em(max_uv, mle_hmm, -fit_dict['hessian'])
-    values, vectors = numpy.linalg.eig(d_phi)
-    for (value, vector, color) in zip(values, vectors.T, ('red', 'green')):
-        assert value > 0, f'{value=} {vector=}'
-        delta = vector * numpy.log(value) / 50
-        for start, label in ((max_uv + delta,
-                              rf'eigenvector $\lambda \approx${value:.2f}'),
-                             (max_uv - delta, '')):
-            eig_axes.plot([start[0], max_uv[0]], [start[1], max_uv[1]],
-                          label=label,
-                          color=color,
-                          alpha=1.0,
-                          linewidth=2)
-
-    eig_axes.set_xlabel('$u$')
-    eig_axes.set_ylabel('$v$')
-    eig_axes.legend()
-
-    plt.show()
-    return
+        l_loops[iteration] = level_set(likelihood, (y_values,),
+                                       mle_hmm.uv(),
+                                       l_value,
+                                       n_angles=50)
+        result_dict['q_loops'] = q_loops
+        result_dict['l_loops'] = l_loops
 
 
 def main(argv=None):
@@ -494,8 +438,9 @@ def main(argv=None):
     mle_hmm = true_hmm
     true_hmm = make_model(true_u, true_v, rng)
 
-    fit_dict = fit_quadratic(y_values, mle_hmm.uv())
-    d_phi = d_em(fit_dict['max_uv'], mle_hmm, -fit_dict['hessian'])
+    result_dict = fit_quadratic(y_values, mle_hmm.uv())
+    result_dict['d_phi'] = d_em(result_dict['max_uv'], mle_hmm,
+                                -result_dict['hessian'])
 
     initial_u = .001
     initial_v = .01
@@ -508,15 +453,18 @@ def main(argv=None):
 
     delta_a = trajectory[-2] - mle_hmm.uv()
     delta_b = trajectory[-1] - mle_hmm.uv()
-    delta_c = d_phi @ delta_a
+    delta_c = result_dict['d_phi'] @ delta_a
     print(f'''With the definition delta_n \equiv (uv_n - \hat uv) and letting
 D denote our calculated d Phi / d uv, after {n_train} training iterations we want
 delta_{n_train-1} = D * delta_{n_train-2}.  In fact, delta_{n_train-1} = {delta_b},
 and we are pleased that (delta_{n_train-1} - D * delta_{n_train-2})/delta_{n_train-1} =
 {(delta_b-delta_c)/delta_b}.
     ''')
-    plot_trajectory(trajectory[:], mle_hmm, y_values, fit_dict)
+    plot_trajectory(trajectory[:], mle_hmm, y_values, result_dict)
+    result_dict['trajectory'] = trajectory
 
+    with open(args.write_path, 'wb') as _file:
+        pickle.dump(result_dict, _file)
     return 0
 
 

@@ -1,99 +1,123 @@
-""" EM.py: Creates Fig. 2.8 of the book
+"""em.py Illustrate EM algorithm convergence and difference between Log likelihood and Q
 
-python EM.py outfile.pdf
 """
 import sys
+import pickle
 import argparse
 
 import numpy
-#from mpl_toolkits.mplot3d import Axes3D  # for  "projection='3d'".
+import numpy.linalg
 
 import plotscripts.utilities
 
 
 def parse_args(argv):
-    """ Convert command line arguments into a namespace
+    """ Combine command line arguments with defaults from utilities
     """
 
-    parser = argparse.ArgumentParser(description='Make GaussMix.pdf')
+    parser = argparse.ArgumentParser("Illustrate convergence of EM")
     parser.add_argument('--show',
                         action='store_true',
                         help="display figure using Qt5")
-    parser.add_argument('fig_path', type=str, help="path to figure")
-    return parser.parse_args(argv)
+    parser.add_argument('data_path', type=str, help="path to calculated data")
+    parser.add_argument('fig_path', type=str, help='path of file to write')
+    args = parser.parse_args(argv)
+    return args
+
+
+def plot_trajectory(axeses, data_dict):
+    level_axes, eig_axes = axeses
+    trajectory = data_dict['trajectory']
+    q_loops = data_dict['q_loops']
+    l_loops = data_dict['l_loops']
+    max_uv = data_dict['max_uv']
+    d_phi = data_dict['d_phi']
+
+    level_axes.plot(trajectory[:, 0],
+                    trajectory[:, 1],
+                    color='blue',
+                    label='EM iterates')
+    level_axes.plot(trajectory[:, 0],
+                    trajectory[:, 1],
+                    marker='.',
+                    color='black',
+                    linestyle='',
+                    markersize=6)
+
+    for iteration, uv in enumerate(trajectory):
+        if iteration % 3 != 1:
+            continue
+        q_loop = q_loops[iteration]
+        l_loop = l_loops[iteration]
+        if iteration == 1:
+            q_label = r'$Q$ Level Set'
+            l_label = r'Likelihood Level Set'
+        else:
+            q_label = ''
+            l_label = ''
+        level_axes.plot(q_loop[:, 0],
+                        q_loop[:, 1],
+                        color='green',
+                        label=q_label)
+        level_axes.plot(l_loop[:, 0], l_loop[:, 1], color='red', label=l_label)
+    level_axes.set_ylabel('$v$')
+    level_axes.legend()
+
+    eig_axes.plot(trajectory[:, 0],
+                  trajectory[:, 1],
+                  color='blue',
+                  label='EM iterates')
+    eig_axes.plot(trajectory[:, 0],
+                  trajectory[:, 1],
+                  marker='.',
+                  color='black',
+                  linestyle='',
+                  markersize=6)
+
+    values, vectors = numpy.linalg.eig(d_phi)
+    for (value, vector, color) in zip(values, vectors.T, ('red', 'green')):
+        assert value > 0, f'{value=} {vector=}'
+        delta = vector * numpy.log(value) / 50
+        for start, label in ((max_uv + delta,
+                              rf'eigenvector $\lambda \approx${value:.2f}'),
+                             (max_uv - delta, '')):
+            eig_axes.plot([start[0], max_uv[0]], [start[1], max_uv[1]],
+                          label=label,
+                          color=color,
+                          alpha=1.0,
+                          linewidth=2)
+
+    eig_axes.set_xlabel('$u$')
+    eig_axes.set_ylabel('$v$')
+    eig_axes.legend()
+
+    return
 
 
 def main(argv=None):
-    """Make plots of auxiliary function Q and consequent 1-d map for EM
-    algorithm.
-
+    """
     """
 
-    args, matplotlib, pyplot = plotscripts.utilities.import_and_parse(
-        parse_args, argv)
+    args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
-    fig = pyplot.figure(figsize=(9, 5))
-    axis_0 = fig.add_subplot(1, 2, 1, projection='3d', azim=-72, elev=30)
-    axis_0.set_xlabel(r'$\theta$')
-    axis_0.set_ylabel(r"$\theta'$")
-    axis_0.set_zlabel(r"$Q(\theta',\theta)$")
-    x_s = numpy.arange(0.0, 0.9, 0.05)
-    y_s = numpy.arange(0.2, 0.8, 0.05)
-    n_x = len(x_s)
-    n_y = len(y_s)
-    z_s = numpy.empty((n_x, n_y)).T
-    for i in range(n_x):
-        x = x_s[i]
-        for j in range(n_y):
-            y = y_s[j]
-            z_s[j,
-                i] = (1 + 2 * x) * numpy.log(y) + (1 + 2 *
-                                                   (1 - x)) * numpy.log(1 - y)
-    axis_0.set_xticks(numpy.arange(0.2, 0.8, .2))
-    axis_0.set_yticks(numpy.arange(0.3, 0.8, .2))
-    axis_0.set_zlim(-5.0, -2.5)
-    x_grid, y_grid = numpy.meshgrid(x_s, y_s)
-    axis_0.plot_surface(
-        x_grid,
-        y_grid,
-        z_s,
-        rstride=1,
-        cstride=1,
-        cmap=matplotlib.cm.hsv,  # pylint: disable=no-member
-        linewidth=1)
-    levels = numpy.linspace(-3.0 - 2.5, 6, endpoint=True)
-    levels = [-2.85, -2.75, -2.65, -2.55, -2.45, -2.35]
-    axis_0.contour(x_grid,
-                   y_grid,
-                   z_s,
-                   levels,
-                   zdir='z',
-                   offset=-5.0,
-                   colors="black",
-                   linestyles='solid')
+    with open(args.data_path, 'rb') as _file:
+        data_dict = pickle.load(_file)
 
-    axis_1 = fig.add_subplot(1, 2, 2)
-    x = numpy.arange(0.0, 1.1, 1)
-    y = 0.25 + x / 2.0
-    axis_1.plot(x, x, label='slope 1 referece')
-    axis_1.plot(x, y, label=r'$\cal{T}(\theta)$')
-    axis_1.set_xlabel(r'$\theta$')
-    axis_1.set_ylabel(r"$\cal{T}(\theta)$")
-    axis_1.legend(loc='lower right')
-    ticks = numpy.arange(0, 1.1, 0.25)
-    axis_1.set_xticks(ticks)
-    axis_1.set_yticks(ticks)
-    #fig.tight_layout()
-    fig.subplots_adjust(wspace=.35)
-    if args.show:
-        pyplot.show()
-    else:
-        fig.savefig(args.fig_path)
+    fig, axeses = pyplot.subplots(2,
+                                  1,
+                                  figsize=(4, 8),
+                                  sharex=True,
+                                  sharey=True)
+    plot_trajectory(axeses, data_dict)
+
+    fig.tight_layout()
+    fig.savefig(args.fig_path)
     return 0
 
 
 if __name__ == "__main__":
     sys.exit(main())
-# Local Variables:
-# mode: python
-# End:
+
+#Local Variables:
+#mode:python
+#End:
