@@ -369,6 +369,7 @@
 
 \newcommand{\parameters}{\theta}
 \newcommand{\parametersPrime}{\theta'}% for EM1.gpt
+\newcommand{\EMmap}{{\cal T}}
 
 \renewcommand{\=}{\text{=}}
 

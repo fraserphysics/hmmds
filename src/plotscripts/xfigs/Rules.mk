@@ -28,7 +28,7 @@ INTRODUCTION_XFIGS = $(call ADD_PDF_PDF_T, $(INTRODUCTION), Markov_mm Markov_dhm
 
 BASIC_ALGORITHMS_XFIGS = $(call ADD_PDF_PDF_T, $(BASIC_ALGORITHMS), forward viterbiB sequenceMAP)
 
-VARIANTS_XFIGS = $(call ADD_PDF_PDF_T, $(VARIANTS), ScalarGaussian)
+VARIANTS_XFIGS = $(call ADD_PDF_PDF_T, $(VARIANTS), ScalarGaussian EMxfig)
 
 BOUNDS_XFIGS = $(call ADD_PDF_PDF_T, $(BOUNDS), QR)
 
@@ -105,6 +105,13 @@ $(VARIANTS)/ScalarGaussian.pdf_t: $(XFIGS)/ScalarGaussian.fig
 	mkdir -p $(@D)
 	fig2dev -L pdftex_t -s 9 -p $(abspath $(@D)/ScalarGaussian.pdf) $< $@
 $(VARIANTS)/ScalarGaussian.pdf: $(XFIGS)/ScalarGaussian.fig
+	mkdir -p $(@D)
+	fig2dev -L pdftex -F $< $@
+
+$(VARIANTS)/EMxfig.pdf_t: $(XFIGS)/EM.fig
+	mkdir -p $(@D)
+	fig2dev -L pdftex_t -s 9 -p $(abspath $(@D)/EMxfig.pdf) $< $@
+$(VARIANTS)/EMxfig.pdf: $(XFIGS)/EM.fig
 	mkdir -p $(@D)
 	fig2dev -L pdftex -F $< $@
 
