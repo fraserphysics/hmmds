@@ -299,6 +299,8 @@ the average of the factor means weighted by the inverse covariances.
 \chapter{EM Convergence Rate}
 \label{chap:em_appendix}
 
+\newcommand{\OldParameters}{\parameters}
+\newcommand{\NewParameters}{\parameters'}
 Now we calculate a linear approximation of the behavior of the EM
 algorithm in the neighborhood of a fixed point.  The manipulations
 here require that the probability and likelihood functions have
@@ -306,99 +308,100 @@ continuous first and second derivatives which we implicitly assume.
 We let $\EMmap$ denote the action of one iteration of the algorithm and
 let $\EMfixedPoint$ denote a fixed point with
 \begin{align}
-  \ti{\theta}{n+1} &= \EMmap\left( \ti{\theta}{n} \right) \\
+  \ti{\parameters}{n+1} &= \EMmap\left( \ti{\parameters}{n} \right) \\
   \EMmap(\EMfixedPoint) &= \EMfixedPoint && \text{with Taylor series} \\
-  \EMmap(\theta) &= \EMfixedPoint + \left[ \frac{\partial
-                 \EMmap(\theta')}{\partial \theta'} \right]_{\EMfixedPoint} (\theta - \EMfixedPoint) + \text{Remainder} \\
-  Q(\theta, \theta') &\equiv \EV_{S|y,\theta'} \log\left(P(y,S \given
-  \theta \right) \\
-  \EMmap(\theta') &= \argmax_\theta Q(\theta, \theta'). 
+  \EMmap(\parameters) &= \EMfixedPoint + \left[ \frac{\partial
+                 \EMmap(\parameters)}{\partial \parameters} \right]_{\EMfixedPoint} (\parameters - \EMfixedPoint) + \text{Remainder} \\
+  Q(\NewParameters, \OldParameters) &\equiv \EV_{S|y,\OldParameters} \log\left(P(y,S \given
+  \NewParameters \right) \\
+  \EMmap(\OldParameters) &= \argmax_{\NewParameters} Q(\NewParameters, \OldParameters). 
 \end{align}
-For a given value of $\theta'$, the derivative of $\EMmap(\theta,
-\theta')$ at a maximum is zero, and we write
+For a given value of $\OldParameters$, the derivative of $Q(\NewParameters,
+\OldParameters)$ at a maximum is zero, and we write
 \begin{align}
-  \Psi(\theta,\theta')
-  &\equiv \frac{\partial Q(\theta,
-    \theta')}{\partial \theta} \\
-  \Psi(\EMmap(\theta'), \theta')
+  \Psi(\NewParameters,\OldParameters)
+  &\equiv \frac{\partial Q(\NewParameters,
+    \OldParameters)}{\partial \NewParameters} \\
+  \Psi(\EMmap(\OldParameters), \OldParameters)
   &= 0 \\
-  \frac{d\Psi(\EMmap(\theta'), \theta')}{d \theta'}
+  \frac{d\Psi(\EMmap(\OldParameters), \OldParameters)}{d \OldParameters}
   &= 0 \\
-  \frac{d\Psi(\EMmap(\theta'), \theta')}{d \theta'}
-  &= \left. \frac{\partial \Psi(\theta, \theta')}{\partial \theta}
-    \right|_{\EMmap(\theta'), \theta'} \left.\frac{\partial
-    \EMmap(\theta)}{\partial \theta} \right|_{\theta'} +
-    \left. \frac{\partial \Psi(\theta, \theta')}{\partial \theta'}
-    \right|_{\EMmap(\theta'), \theta'} \\
-  &= \left. \frac{\partial^2 Q(\theta, \theta')}{\partial \theta^2}
-    \right|_{\EMmap(\theta'), \theta'} \left.\frac{\partial
-    \EMmap(\theta)}{\partial \theta} \right|_{\theta'} +
-    \left. \frac{\partial^2 Q(\theta, \theta')}{\partial \theta'
-    \partial \theta} \right|_{\EMmap(\theta'), \theta'} =0 \\
+  \frac{d\Psi(\EMmap(\OldParameters), \OldParameters)}{d \OldParameters}
+  &= \left. \frac{\partial \Psi(\NewParameters, \OldParameters)}{\partial \NewParameters}
+    \right|_{\EMmap(\OldParameters), \OldParameters} \left.\frac{\partial
+    \EMmap(\theta)}{\partial \theta} \right|_{\OldParameters} +
+    \left. \frac{\partial \Psi(\NewParameters, \OldParameters)}{\partial \OldParameters}
+    \right|_{\EMmap(\OldParameters), \OldParameters} \\
+  &= \left. \frac{\partial^2 Q(\NewParameters, \OldParameters)}{\partial \NewParameters^2}
+    \right|_{\EMmap(\OldParameters), \OldParameters} \left.\frac{\partial
+    \EMmap(\theta)}{\partial \theta} \right|_{\OldParameters} +
+    \left. \frac{\partial^2 Q(\NewParameters, \OldParameters)}{\partial \OldParameters
+    \partial \NewParameters} \right|_{\EMmap(\OldParameters), \OldParameters} =0 \\
   \label{eq:two_second_derivatives}
   \left.\frac{\partial \EMmap(\theta)}{\partial \theta}
-  \right|_{\theta'}
-  &= - \left[ \left. \frac{\partial^2 Q(\theta,  \theta')}{\partial
-    \theta^2} \right|_{\EMmap(\theta'), \theta'} \right]^{-1} \left[
-    \left. \frac{\partial^2 Q(\theta, \theta')}{\partial \theta'
-    \partial \theta} \right|_{\EMmap(\theta'), \theta'} \right].
+  \right|_{\OldParameters}
+  &= - \left[ \left. \frac{\partial^2 Q(\NewParameters,  \OldParameters)}{\partial
+    \NewParameters^2} \right|_{\EMmap(\OldParameters), \OldParameters} \right]^{-1} \left[
+    \left. \frac{\partial^2 Q(\NewParameters, \OldParameters)}{\partial \OldParameters
+    \partial \NewParameters} \right|_{\EMmap(\OldParameters), \OldParameters} \right].
 \end{align}
 Manipulating the first of the two second derivatives in
 \eqref{eq:two_second_derivatives} we find
 \begin{align}
-  \frac{\partial^2 Q(\theta,  \theta')}{\partial \theta^2}
-  &= \frac{\partial^2}{\partial \theta^2} \EV_{S \given y, \theta'}
-    \log \left( P(y, S \given \theta \right) \\
-  &= \frac{\partial^2}{\partial \theta^2} \EV_{S \given y, \theta'}
-    \left( \log \left( P(y \given \theta \right) + \log \left( P(S
-    \given y, \theta \right) \right)\\
-  &=  \frac{\partial^2}{\partial \theta^2} \log \left( P(y \given
-    \theta \right) + \EV_{S \given y, \theta'} \left(
-    \frac{\partial^2}{\partial \theta^2} \log \left( P(S \given y,
-    \theta \right) \right) \\
+  \frac{\partial^2 Q(\NewParameters,  \OldParameters)}{\partial \NewParameters^2}
+  &= \frac{\partial^2}{\partial \NewParameters^2} \EV_{S \given y, \OldParameters}
+    \log \left( P(y, S \given \NewParameters \right) \\
+  &= \frac{\partial^2}{\partial \NewParameters^2} \EV_{S \given y, \OldParameters}
+    \left( \log \left( P(y \given \NewParameters \right) + \log \left( P(S
+    \given y, \NewParameters \right) \right)\\
+  &=  \frac{\partial^2}{\partial \NewParameters^2} \log \left( P(y \given
+    \NewParameters \right) + \EV_{S \given y, \OldParameters} \left(
+    \frac{\partial^2}{\partial \NewParameters^2} \log \left( P(S \given y,
+    \NewParameters \right) \right) \\
   \label{eq:second_partial_information}
   &= -J_y - I_{S|y},
 \end{align}
 where
 $J_y\equiv-\frac{\partial^2}{\partial \theta^2} \log \left( P(y \given
   \theta \right)$ is called the \emph{observed information}
-that $y$ provides about $\theta$, and $I_{S|y}$ is the \emph{Fisher
+that $y$ provides about $\NewParameters$, and $I_{S|y}$ is the \emph{Fisher
   information} of the unobserved data.  Now manipulating the second of
 the two second derivatives in \eqref{eq:two_second_derivatives} we
 find
 \begin{align}
-  \frac{\partial^2 Q(\theta,  \theta')}{\partial \theta \partial
-  \theta'}
-  &= \frac{\partial^2}{\partial \theta \partial \theta'} \EV_{S \given y, \theta'}
-    \log \left( P(y, S \given \theta \right) \\
-  &= \frac{\partial^2}{\partial \theta \partial \theta'} \EV_{S \given y, \theta'}
-    \left( \log \left( P(y \given \theta \right) + \log \left( P(S
-    \given y, \theta \right) \right)\\
-  &=  \frac{\partial^2}{\partial \theta \partial \theta'} \log \left( P(y \given
-    \theta \right) + \frac{\partial}{\partial \theta'} \EV_{S \given y, \theta'} \left(
-    \frac{\partial}{\partial \theta} \log \left( P(S \given y,
-    \theta \right) \right) \\
-  &=  \frac{\partial}{\partial \theta'} \EV_{S \given y, \theta'} \left(
-    \frac{\partial}{\partial \theta} \log \left( P(S \given y,
-    \theta \right) \right) \\
-  &= \frac{\partial}{\partial \theta'} \sum_s P(s \given y, \theta') %
+  \frac{\partial^2 Q(\NewParameters,  \OldParameters)}{\partial \NewParameters \partial
+  \OldParameters}
+  &= \frac{\partial^2}{\partial \NewParameters \partial \OldParameters} \EV_{S \given y, \OldParameters}
+    \log \left( P(y, S \given \NewParameters \right) \\
+  &= \frac{\partial^2}{\partial \NewParameters \partial \OldParameters} \EV_{S \given y, \OldParameters}
+    \left( \log \left( P(y \given \NewParameters \right) + \log \left( P(S
+    \given y, \NewParameters \right) \right)\\
+  &= \frac{\partial^2}{\partial \NewParameters \partial \OldParameters} \log \left( P(y \given
+    \NewParameters \right) + \frac{\partial}{\partial \OldParameters} \EV_{S \given y, \OldParameters} \left(
+    \frac{\partial}{\partial \NewParameters} \log \left( P(S \given y,
+    \NewParameters \right) \right) \\
+  &=  \frac{\partial}{\partial \OldParameters} \EV_{S \given y, \OldParameters} \left(
+    \frac{\partial}{\partial \NewParameters} \log \left( P(S \given y,
+    \NewParameters \right) \right) \\
+  &= \frac{\partial}{\partial \OldParameters} \sum_s P(s \given y, \OldParameters) %
     \frac{ %
-    \frac{\partial P(s \given y,\theta )}{\partial \theta}
-    }{P(s \given y,\theta )}  \\
-  &= \sum_s P(s \given y, \theta') %
+    \frac{\partial P(s \given y,\NewParameters )}{\partial \NewParameters}
+    }{P(s \given y,\NewParameters )}  \\
+  &= \sum_s P(s \given y, \OldParameters) %
     \frac{ %
-    \frac{\partial P(s \given y,\theta' )}{\partial \theta'}
-    }{P(s \given y,\theta' )}
+    \frac{\partial P(s \given y,\OldParameters )}{\partial \OldParameters}
+    }{P(s \given y,\OldParameters )}
     \frac{ %
-    \frac{\partial P(s \given y,\theta )}{\partial \theta}
-    }{P(s \given y,\theta )}
+    \frac{\partial P(s \given y,\NewParameters )}{\partial \NewParameters}
+    }{P(s \given y,\NewParameters )}
 \end{align}
-At the fixed point $\EMfixedPoint = \theta = \theta'$ and
+At the fixed point $\EMfixedPoint = \NewParameters = \OldParameters$
+and\footnote{This is an alternative calculation of Fisher information.}
 \begin{align}
-  \left. \frac{\partial^2 Q(\theta,  \theta')}{\partial \theta
-  \partial \theta'} \right|_{\EMfixedPoint, \EMfixedPoint}
+  \left. \frac{\partial^2 Q(\NewParameters,  \OldParameters)}{\partial \NewParameters
+  \partial \OldParameters} \right|_{\EMfixedPoint, \EMfixedPoint}
   &= \EV_{S \given y, \EMfixedPoint} \left( \frac{\partial}{\partial
-    \theta} \log \left( P(S \given y, \theta )\right) \right)^2\\
+    \NewParameters} \log \left( P(S \given y, \NewParameters )\right) \right)^2\\
   \label{eq:mixed_partial_information}
   &\equiv I_{S|y}.
 \end{align}
@@ -408,7 +411,7 @@ Combining \eqref{eq:mixed_partial_information} and
 \begin{equation}
   \label{eq:information_em_derivative}
   \left.\frac{\partial \EMmap(\theta)}{\partial \theta}
-  \right|_{\theta'} = \left[J_y + I_{S|y}  \right]^{-1} I_{S|y}.
+  \right|_{\EMfixedPoint} = \left[J_y + I_{S|y}  \right]^{-1} I_{S|y}.
 \end{equation}
 Equation~\eqref{eq:information_em_derivative} appeals to our
 intuition.  If the observed information is much larger than the

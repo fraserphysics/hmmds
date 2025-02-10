@@ -34,7 +34,7 @@ establishing our notation for the model parameters.
   P\left(\ts{y}{0}{T}\given \ti{\parameters}{n}\right)\, : 1 < n < N$.
   Instead of $\parameters$, Ferguson used $\lambda$ to denote the
   entire collection of parameters.
-  \nomenclature[gh]{$\bm{\theta}$}{The entire collection of
+  \nomenclature[gh]{$\bm{\parameters}$}{The entire collection of
     parameters that defines a model.}
 \end{symbdescription}
 
@@ -1495,7 +1495,7 @@ $Q(\parameters',\parameters)$.  Consequently he considered $\EMmap$ to
 be a point to set map.  However, there are many model classes
 --including all of the models that we describe in this book-- for
 which one can write algorithms that calculate a unique
-$\EMmap(\theta)$.
+$\EMmap(\parameters)$.
 
 If there is a bound\footnote{See Section~\ref{sec:regularization} for
   an example involving probability densities with no such bound.  For
@@ -1553,14 +1553,14 @@ and the observation probability
 A schematic of the model appears in Figure~\ref{fig:EMxfig}.  We set
 \begin{equation}
   \label{eq:theta_true}
-  \theta_{\text{true}} \equiv \left(u_{\text{true}}, v_{\text{true}}
+  \parameters_{\text{true}} \equiv \left(u_{\text{true}}, v_{\text{true}}
   \right) = \left(0.1, 0.2 \right)
 \end{equation}
 and simulated the model for 10,000 time steps to produce
 $\ts{y}{0}{10,000}$.  Then starting with
 \begin{equation}
   \label{eq:theta_initial}
-  \theta_{\text{initial}} \equiv \left(u_{\text{initial}}, v_{\text{initial}}
+  \parameters_{\text{initial}} \equiv \left(u_{\text{initial}}, v_{\text{initial}}
   \right) = \left(0.001, 0.01 \right)
 \end{equation}
 we ran fifty iterations of the Baum-Welch algorithm to calculate an
@@ -1598,21 +1598,21 @@ eigenvectors and eigenvalues that appear in the lower plot of that
 figure are from a spectral decomposition of the second term in the
 Taylor series expansion $\EMmap$ near $\EMfixedPoint$, ie,
 \begin{equation*}
-  \EMmap(\theta) = \EMfixedPoint + D  (\theta - \EMfixedPoint) +
+  \EMmap(\parameters) = \EMfixedPoint + D  (\parameters - \EMfixedPoint) +
              \text{Remainder.}
 \end{equation*}
 In Appendix \ref{chap:em_appendix} on page
 \pageref{eq:information_em_derivative} we derive
 \begin{equation*}
-  D \equiv \left.\frac{\partial \EMmap(\theta)}{\partial \theta}
+  D \equiv \left.\frac{\partial \EMmap(\parameters)}{\partial \parameters}
   \right|_\EMfixedPoint = \left[J_y + I_{S|y}  \right]^{-1} I_{S|y}.
 \end{equation*}
 To evaluate $D$ one can obtain the term $I_{S\given y}$ from
-$P(s\given y, \theta)$ which comes from the forward and backwards
+$P(s\given y, \parameters)$ which comes from the forward and backwards
 algorithms.  On the other hand, we find
 \begin{equation*}
-  J_y \equiv -\frac{\partial^2}{\partial \theta^2} \log \left( P(y \given
-    \theta \right),
+  J_y \equiv -\frac{\partial^2}{\partial \parameters^2} \log \left( P(y \given
+    \parameters \right),
 \end{equation*}
 which is called the \emph{observed information}, more difficult to
 calculate.  For the figure, we approximated $J_y$ with numerically
@@ -1636,18 +1636,18 @@ the convergence of HMM training.
     likelihood estimate $\EMfixedPoint$.  The data $\ts{y}{0}{10,000}$ come
     from simulating the HMM described in
     \eqref{eq:EM_convergence_example} and Figure~\ref{fig:EMxfig}.
-    The first eleven estimates of $\theta\equiv(u,v)$ in the training
+    The first eleven estimates of $\parameters\equiv(u,v)$ in the training
     sequence appear as a blue trajectory in both plots.  In the upper
     plot level sets of the log-likelihood,
-    $L(\theta') = \log \left( P(\ts{y}{0}{10,000} \given
-      \theta')\right)$, and auxiliary function,
-    $Q(\theta',\ti{\theta}{n})$ appear for every third value of $n$.
-    Notice that every value of $\theta'$ except $\ti{\theta}{n}$ on
-    the level set of $Q(\theta',\ti{\theta}{n})$ is inside of (and
+    $L(\parameters') = \log \left( P(\ts{y}{0}{10,000} \given
+      \parameters')\right)$, and auxiliary function,
+    $Q(\parameters',\ti{\parameters}{n})$ appear for every third value of $n$.
+    Notice that every value of $\parameters'$ except $\ti{\parameters}{n}$ on
+    the level set of $Q(\parameters',\ti{\parameters}{n})$ is inside of (and
     therefore has higher likelihood) the level set of $L$.  The
     eigenvectors depicted in the lower plot are from a spectral
     decomposition of the derivative
-    $\left.  \frac{\partial \EMmap(\theta)}{\partial\theta}
+    $\left.  \frac{\partial \EMmap(\parameters)}{\partial\parameters}
     \right|_{\EMfixedPoint}$ given by
     Equation~\eqref{eq:information_em_derivative} on page
     \pageref{eq:information_em_derivative} of the appendix.  The
