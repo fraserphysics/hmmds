@@ -303,46 +303,45 @@ Now we calculate a linear approximation of the behavior of the EM
 algorithm in the neighborhood of a fixed point.  The manipulations
 here require that the probability and likelihood functions have
 continuous first and second derivatives which we implicitly assume.
-We let $\Phi$ denote the action of one iteration of the algorithm and
-let $\hat \theta$ denote a fixed point with
+We let $\EMmap$ denote the action of one iteration of the algorithm and
+let $\EMfixedPoint$ denote a fixed point with
 \begin{align}
-  \ti{\theta}{n+1} &= \Phi\left( \ti{\theta}{n} \right) \\
-  \Phi(\hat \theta) &= \hat \theta && \text{with Taylor series} \\
-  \Phi(\theta) &= \hat \theta + \left[ \frac{\partial
-                 \Phi(\theta')}{\partial \theta'} \right]_{\hat
-                 \theta} (\theta - \hat \theta) + \text{Remainder} \\
+  \ti{\theta}{n+1} &= \EMmap\left( \ti{\theta}{n} \right) \\
+  \EMmap(\EMfixedPoint) &= \EMfixedPoint && \text{with Taylor series} \\
+  \EMmap(\theta) &= \EMfixedPoint + \left[ \frac{\partial
+                 \EMmap(\theta')}{\partial \theta'} \right]_{\EMfixedPoint} (\theta - \EMfixedPoint) + \text{Remainder} \\
   Q(\theta, \theta') &\equiv \EV_{S|y,\theta'} \log\left(P(y,S \given
   \theta \right) \\
-  \Phi(\theta') &= \argmax_\theta Q(\theta, \theta'). 
+  \EMmap(\theta') &= \argmax_\theta Q(\theta, \theta'). 
 \end{align}
-For a given value of $\theta'$, the derivative of $\Phi(\theta,
+For a given value of $\theta'$, the derivative of $\EMmap(\theta,
 \theta')$ at a maximum is zero, and we write
 \begin{align}
   \Psi(\theta,\theta')
   &\equiv \frac{\partial Q(\theta,
     \theta')}{\partial \theta} \\
-  \Psi(\Phi(\theta'), \theta')
+  \Psi(\EMmap(\theta'), \theta')
   &= 0 \\
-  \frac{d\Psi(\Phi(\theta'), \theta')}{d \theta'}
+  \frac{d\Psi(\EMmap(\theta'), \theta')}{d \theta'}
   &= 0 \\
-  \frac{d\Psi(\Phi(\theta'), \theta')}{d \theta'}
+  \frac{d\Psi(\EMmap(\theta'), \theta')}{d \theta'}
   &= \left. \frac{\partial \Psi(\theta, \theta')}{\partial \theta}
-    \right|_{\Phi(\theta'), \theta'} \left.\frac{\partial
-    \Phi(\theta)}{\partial \theta} \right|_{\theta'} +
+    \right|_{\EMmap(\theta'), \theta'} \left.\frac{\partial
+    \EMmap(\theta)}{\partial \theta} \right|_{\theta'} +
     \left. \frac{\partial \Psi(\theta, \theta')}{\partial \theta'}
-    \right|_{\Phi(\theta'), \theta'} \\
+    \right|_{\EMmap(\theta'), \theta'} \\
   &= \left. \frac{\partial^2 Q(\theta, \theta')}{\partial \theta^2}
-    \right|_{\Phi(\theta'), \theta'} \left.\frac{\partial
-    \Phi(\theta)}{\partial \theta} \right|_{\theta'} +
+    \right|_{\EMmap(\theta'), \theta'} \left.\frac{\partial
+    \EMmap(\theta)}{\partial \theta} \right|_{\theta'} +
     \left. \frac{\partial^2 Q(\theta, \theta')}{\partial \theta'
-    \partial \theta} \right|_{\Phi(\theta'), \theta'} =0 \\
+    \partial \theta} \right|_{\EMmap(\theta'), \theta'} =0 \\
   \label{eq:two_second_derivatives}
-  \left.\frac{\partial \Phi(\theta)}{\partial \theta}
+  \left.\frac{\partial \EMmap(\theta)}{\partial \theta}
   \right|_{\theta'}
   &= - \left[ \left. \frac{\partial^2 Q(\theta,  \theta')}{\partial
-    \theta^2} \right|_{\Phi(\theta'), \theta'} \right]^{-1} \left[
+    \theta^2} \right|_{\EMmap(\theta'), \theta'} \right]^{-1} \left[
     \left. \frac{\partial^2 Q(\theta, \theta')}{\partial \theta'
-    \partial \theta} \right|_{\Phi(\theta'), \theta'} \right].
+    \partial \theta} \right|_{\EMmap(\theta'), \theta'} \right].
 \end{align}
 Manipulating the first of the two second derivatives in
 \eqref{eq:two_second_derivatives} we find
@@ -360,10 +359,13 @@ Manipulating the first of the two second derivatives in
   \label{eq:second_partial_information}
   &= -J_y - I_{S|y},
 \end{align}
-where $J_y$ is called the \emph{observed information} that $y$
-provides about $\theta$, and $I_{S|y}$ is the \emph{Fisher information}
-of the unobserved data.  Now manipulating the second of the two second
-derivatives in \eqref{eq:two_second_derivatives} we find
+where
+$J_y\equiv-\frac{\partial^2}{\partial \theta^2} \log \left( P(y \given
+  \theta \right)$ is called the \emph{observed information}
+that $y$ provides about $\theta$, and $I_{S|y}$ is the \emph{Fisher
+  information} of the unobserved data.  Now manipulating the second of
+the two second derivatives in \eqref{eq:two_second_derivatives} we
+find
 \begin{align}
   \frac{\partial^2 Q(\theta,  \theta')}{\partial \theta \partial
   \theta'}
@@ -391,11 +393,11 @@ derivatives in \eqref{eq:two_second_derivatives} we find
     \frac{\partial P(s \given y,\theta )}{\partial \theta}
     }{P(s \given y,\theta )}
 \end{align}
-At the fixed point $\hat \theta = \theta = \theta'$ and
+At the fixed point $\EMfixedPoint = \theta = \theta'$ and
 \begin{align}
   \left. \frac{\partial^2 Q(\theta,  \theta')}{\partial \theta
-  \partial \theta'} \right|_{\hat \theta, \hat \theta}
-  &= \EV_{S \given y, \hat \theta} \left( \frac{\partial}{\partial
+  \partial \theta'} \right|_{\EMfixedPoint, \EMfixedPoint}
+  &= \EV_{S \given y, \EMfixedPoint} \left( \frac{\partial}{\partial
     \theta} \log \left( P(S \given y, \theta )\right) \right)^2\\
   \label{eq:mixed_partial_information}
   &\equiv I_{S|y}.
@@ -405,7 +407,7 @@ Combining \eqref{eq:mixed_partial_information} and
 \eqref{eq:two_second_derivatives} we write
 \begin{equation}
   \label{eq:information_em_derivative}
-  \left.\frac{\partial \Phi(\theta)}{\partial \theta}
+  \left.\frac{\partial \EMmap(\theta)}{\partial \theta}
   \right|_{\theta'} = \left[J_y + I_{S|y}  \right]^{-1} I_{S|y}.
 \end{equation}
 Equation~\eqref{eq:information_em_derivative} appeals to our
@@ -413,6 +415,69 @@ intuition.  If the observed information is much larger than the
 unobserved information, the derivative is small and the convergence is
 fast and if the unobserved information dominates the derivative is
 close to one and the convergence is slow.
+
+\subsection*{Linear Stability of EM}
+\label{em_stabiltiy}
+
+Here we use an idea inspired by Sylvester's law of
+inertia\footnote{Sylvester's law of inertia is: If $B$ is a symmetric
+  matrix, then for any invertible matrix $A$, the number of positive,
+  negative and zero eigenvalues (called the inertia of the matrix) of
+  $C = A B A\transpose$ is constant.} to show that if $J_y$ is positive definite
+then $\EMmap$ is linearly stable at $\EMfixedPoint$.
+
+We need the following lemma: If $A$ is positive definite and symmetric
+and $B$ is positive definite and symmetric then the eigenvalues of
+their product $C = AB$ are positive.  Because $A$ is positive
+definite and symmetric, there is an $X$ with
+\begin{align*}
+  A &= X X\transpose  &&\text{and we can define}\\
+  \Gamma &\equiv X^{-1} C X = X^{-1} X X\transpose B X \\
+  \Gamma &= X\transpose B X \\
+\end{align*}
+By assumption $B$ is positive definite so
+$y\transpose B y > 0 ~ \forall y \neq 0$.  Now
+$\forall z \neq 0, ~ z\transpose X\transpose B X z > 0$ because $Xz$ is
+a $y$.  So $\Gamma$ is positive definite.  The symmetry of $B$ implies
+that $\Gamma$ is also symmetric.  Thus $\Gamma$ is positive definite
+and symmetric, and all of its eigenvalues are positive.  Because they are related by a
+similarity transformation, $\Gamma$ and $C$ have the same eigenvalues,
+and we know that all of the eigenvalues of $AB = C$ are positive.
+
+At a fixed point $\EMfixedPoint$, $\EMmap$ is linearly stable if and
+only if $\left| \lambda \right| < 1$ for all eigenvalues $\lambda$ of
+its derivative $D$.  From \eqref{eq:information_em_derivative} we find
+\begin{align}
+  \nonumber
+  D &= \left[I_{S|y}^{-1} J_y + 1 \right]^{-1} \\
+  \nonumber
+  D^{-1} &= I_{S|y}^{-1} J_y + 1 \\
+  \label{eq:dIJY}
+  D^{-1} -1  &= I_{S|y}^{-1} J_y
+\end{align}
+Since the right hand side of \eqref{eq:dIJY} satisfies the premises of
+the lemma, each its eigenvalues $\lambda_R$ is positive.  Now for each
+eigenvalue of the right hand side there is an eigenvalue of $D$ with
+\begin{align}
+  \nonumber
+  \frac{1}{\lambda_D} - 1 &= \lambda_R  \\
+  \nonumber
+  \lambda_D &= \frac{1}{1+\lambda_R} &&\text{and since } \lambda_R >0 \\
+  \label{eq:D_is_stable}
+  0 &< \lambda_D < 1.
+\end{align}
+Thus if the eigenvalues of $J_y$ are positive (or equivalently $J_y$
+is positive definite) then $\EMmap$ is linearly stable.  A similar
+argument shows that if
+$J_y\equiv-\frac{\partial^2}{\partial \theta^2} \log \left( P(y \given
+  \theta \right)$ has negative eigenvalues then $\EMmap$ is linearly
+unstable.
+
+In summary: Qualitatively $\EMmap$ acts like a gradient flow on
+$L\equiv\log \left( P(S \given y, \theta \right)$;  convergence to
+fixed point of $\EMmap$ that is a local maximum of the likelihood is
+generic and convergence to a saddle point of the likelihood is not
+generic.
 
 \chapter{Notes on Software}
 \label{cha:Software}
