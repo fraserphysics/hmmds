@@ -91,14 +91,15 @@ basic algorithms and illustrates them with simple concrete examples.
 We hope our book is as simple, useful, and clear.
 
 In chapters \ref{chap:variants}, \ref{chap:continuous} and
-\ref{chap:particles} we extend ideas from HMMs with discrete states and
-observations to more general states and observations.  The relevant
-literature of those more general systems is called \emph{data
-  assimilation}.  Because the discrete character of the states and
-observations of basic HMMs makes the ideas and algorithms for them
-easier to explain and understand than more general data assimilation
-techniques, we recommend studying HMMs before working on applications
-that require more those general data assimilation tools.
+\ref{chap:particles} we extend ideas from HMMs with discrete states
+and observations to more general states and observations.  In
+literature about such more general systems and observations, the
+techniques are called \emph{data assimilation}.  Because the discrete
+character of the states and observations of basic HMMs makes the ideas
+and algorithms for them easier to explain and understand than more
+general data assimilation techniques, we recommend studying HMMs
+before working on applications that require more those general data
+assimilation tools.
 
 Although there are now other books and papers that are about HMMs
 exclusively or in part, we believe that the present volume is unique in
@@ -121,14 +122,14 @@ that:
   examine the source code to resolve questions about how figures were
   made, and you can build on the software to try out your own ideas
   for variations.
-\item[It uses analogies to dynamical systems] For example, I
+\item[It uses analogies to dynamical systems] For example, we
   demonstrate the HMM training algorithm by applying it to data
   derived from the Lorenz system.  The result, as
   Fig.~\ref{fig:Statesintro} illustrates, is that the algorithm
   estimates a discrete state generating mechanism that is an
   approximation to the state space of the original Lorenz system.
 \item[We illustrate with practical examples] In Chapter
-  \ref{chap:apnea} I present an application to experimental
+  \ref{chap:apnea} we present an application to experimental
   measurements of electrocardiograms (ECGs).  \ToDo{I want a practical
     application of particle filtering in Chapter \ref{chap:particles}}
 \end{description}
@@ -170,10 +171,17 @@ text.
 \label{preface_notation}
 
 In general we introduce notation as it gets used in the text and
-collect it in a section at the end of the book on page~\pageref{sec:notation}.  However to avoid confusion, we now note our
-use of Python notation for sequences, namely
+collect it in a section at the end of the book on
+page~\pageref{sec:notation}.  However to avoid confusion, we now note
+our use of Python notation for sequences\footnote{Thus we write the
+  probability of observation $y$ at time $t$ given previous
+  observations as $P\left( \ti{y}{t} \given \ts{y}{0}{t} \right)$
+  which at first is confusing because the sequence $\ts{y}{0}{t}$ does
+  not include $\ti{y}{t}$.  We've found using notation in the text
+  that is inconsistent with the notation in the code to be even more
+  confusing.}, namely
 \begin{equation*}
-  \ts{x}{0}{T} \equiv \left[ x[0], x[1], \ldots, x[T-1] \right].
+  \ts{y}{0}{T} \equiv \left[ y[0], y[1], \ldots, y[T-1] \right].
 \end{equation*}
 There are a few different notation conventions for probabilities and
 stochastic processes each of which has drawbacks.  We describe the
@@ -186,14 +194,15 @@ conventions we've chosen in the notation section starting on page
 \longpage%%% Maybe not required for MathTime... look for partial
          %%% paragraph on page by itself before TOC begins.
 
-In writing this book, we have used much that we learned from colleagues
-in Portland.  In particular, Todd Leen kept us informed about
-developments in the machine learning community.  We've relied on the
-review of the ergodic theory of dynamical systems in Kevin Vixie's
-dissertation\cite{vixie02} for Chapter~\ref{chap:toys} of this book.
-Shari Matzner and Gerardo Lafferriere helped us understand the
-convergence properties of the EM algorithm.  Also the following
-colleagues have given us constructive comments on drafts of the book:
+In writing the first edition of this book, we relied on much that we
+learned from colleagues in Portland.  In particular, Todd Leen kept us
+informed about developments in the machine learning community.  We've
+relied on the review of the ergodic theory of dynamical systems in
+Kevin Vixie's dissertation\cite{vixie02} for Chapter~\ref{chap:toys}
+of this book.  Shari Matzner and Gerardo Lafferriere helped us
+understand the convergence properties of the EM algorithm.  Also the
+following colleagues have gave us constructive comments on drafts of
+the book:
 % 
 Patrick Campbell, %
 Ralf Juengling, %
