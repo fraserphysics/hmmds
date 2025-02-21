@@ -178,9 +178,9 @@ and the conditional distributions are
 \begin{subequations}
   \label{eq:Gauss-Conditional}
   \begin{align}
-    P\left(u |v \right) &= \frac{ P\left(u,v \right)}{P\left(v \right)} \\
+    P\left(u \given v \right) &= \frac{ P\left(u,v \right)}{P\left(v \right)} \\
     &= \NormalE{\mu_U + CB^{-1}(v-\mu_v)}{D^{-1}}{u} \\
-    P\left(v |u \right) &= \frac{ P\left(v,u \right)}{P\left(u \right)} \\
+    P\left(v \given u \right) &= \frac{ P\left(v,u \right)}{P\left(u \right)} \\
     &= \NormalE{\mu_V + C\transpose A^{-1} (u - \mu_U)}{E^{-1}}{v}
   \end{align}
 \end{subequations}
@@ -189,10 +189,10 @@ is given by the $UU$ block of $\Sigma_W$, but that the inverse
 covariance of the \emph{conditional} distribution of $U$ is given by
 the $UU$ block of $\Sigma_W^{-1}$.
 
-As a check of these formulas, we examine $P\left(u |v \right) P\left(v
+As a check of these formulas, we examine $P\left(u \given v \right) P\left(v
 \right)$ and find
 \begin{align*}
-  P\left(u |v \right) P\left(v \right) &= \frac{\sqrt{\left| D
+  P\left(u \given v \right) P\left(v \right) &= \frac{\sqrt{\left| D
       \right|}} {\sqrt{(2\pi)^n}} e^{ -\frac{1}{2} \left(u - \mu_U -
       CB^{-1}(v - \mu_V) \right)\transpose D \left(u - \mu_U -
       CB^{-1}(v - \mu_V) \right)
@@ -312,7 +312,7 @@ let $\EMfixedPoint$ denote a fixed point with
   \EMmap(\EMfixedPoint) &= \EMfixedPoint && \text{with Taylor series} \\
   \EMmap(\parameters) &= \EMfixedPoint + \left[ \frac{\partial
                  \EMmap(\parameters)}{\partial \parameters} \right]_{\EMfixedPoint} (\parameters - \EMfixedPoint) + \text{Remainder} \\
-  Q(\NewParameters, \OldParameters) &\equiv \EV_{S|y,\OldParameters} \log\left(P(y,S \given
+  Q(\NewParameters, \OldParameters) &\equiv \EV_{S \given y,\OldParameters} \log\left(P(y,S \given
   \NewParameters \right) \\
   \EMmap(\OldParameters) &= \argmax_{\NewParameters} Q(\NewParameters, \OldParameters). 
 \end{align}
@@ -359,12 +359,12 @@ Manipulating the first of the two second derivatives in
     \frac{\partial^2}{\partial \NewParameters^2} \log \left( P(S \given y,
     \NewParameters \right) \right) \\
   \label{eq:second_partial_information}
-  &= -J_y - I_{S|y},
+  &= -J_y - I_{S \given y},
 \end{align}
 where
 $J_y\equiv-\frac{\partial^2}{\partial \theta^2} \log \left( P(y \given
   \theta \right)$ is called the \emph{observed information}
-that $y$ provides about $\NewParameters$, and $I_{S|y}$ is the \emph{Fisher
+that $y$ provides about $\NewParameters$, and $I_{S \given y}$ is the \emph{Fisher
   information} of the unobserved data.  Now manipulating the second of
 the two second derivatives in \eqref{eq:two_second_derivatives} we
 find
@@ -403,7 +403,7 @@ and\footnote{This is an alternative calculation of Fisher information.}
   &= \EV_{S \given y, \EMfixedPoint} \left( \frac{\partial}{\partial
     \NewParameters} \log \left( P(S \given y, \NewParameters )\right) \right)^2\\
   \label{eq:mixed_partial_information}
-  &\equiv I_{S|y}.
+  &\equiv I_{S \given y}.
 \end{align}
 Combining \eqref{eq:mixed_partial_information} and
 \eqref{eq:second_partial_information} with
@@ -411,13 +411,15 @@ Combining \eqref{eq:mixed_partial_information} and
 \begin{equation}
   \label{eq:information_em_derivative}
   \left.\frac{\partial \EMmap(\theta)}{\partial \theta}
-  \right|_{\EMfixedPoint} = \left[J_y + I_{S|y}  \right]^{-1} I_{S|y}.
+  \right|_{\EMfixedPoint} = \left[J_y + I_{S \given y}  \right]^{-1}
+  I_{S \given y}.
 \end{equation}
-Equation~\eqref{eq:information_em_derivative} appeals to our
-intuition.  If the observed information is much larger than the
-unobserved information, the derivative is small and the convergence is
-fast and if the unobserved information dominates the derivative is
-close to one and the convergence is slow.
+Equation~\eqref{eq:information_em_derivative} matches our intuition.
+If the observed information, $J_y$, is much larger than the unobserved
+information, $I_{S \given y}$, the derivative is small and the
+convergence is fast.  Alternatively, if the unobserved information
+dominates, then the derivative is close to one and the convergence is
+slow.
 
 \subsection*{Linear Stability of EM}
 \label{em_stabiltiy}
@@ -452,11 +454,11 @@ only if $\left| \lambda \right| < 1$ for all eigenvalues $\lambda$ of
 its derivative $D$.  From \eqref{eq:information_em_derivative} we find
 \begin{align}
   \nonumber
-  D &= \left[I_{S|y}^{-1} J_y + 1 \right]^{-1} \\
+  D &= \left[I_{S \given y}^{-1} J_y + 1 \right]^{-1} \\
   \nonumber
-  D^{-1} &= I_{S|y}^{-1} J_y + 1 \\
+  D^{-1} &= I_{S \given y}^{-1} J_y + 1 \\
   \label{eq:dIJY}
-  D^{-1} -1  &= I_{S|y}^{-1} J_y
+  D^{-1} -1  &= I_{S \given y}^{-1} J_y
 \end{align}
 Since the right hand side of \eqref{eq:dIJY} satisfies the premises of
 the lemma, each its eigenvalues $\lambda_R$ is positive.  Now for each
@@ -469,9 +471,9 @@ eigenvalue of the right hand side there is an eigenvalue of $D$ with
   \label{eq:D_is_stable}
   0 &< \lambda_D < 1.
 \end{align}
-Thus if the eigenvalues of $J_y$ are positive (or equivalently $J_y$
-is positive definite) then $\EMmap$ is linearly stable.  A similar
-argument shows that if
+Thus if the eigenvalues of $J_y$ are positive (because it is
+symmetric, this is equivalent to it being positive definite) then
+$\EMmap$ is linearly stable.  A similar argument shows that if
 $J_y\equiv-\frac{\partial^2}{\partial \theta^2} \log \left( P(y \given
   \theta \right)$ has negative eigenvalues then $\EMmap$ is linearly
 unstable.
@@ -485,59 +487,16 @@ generic.
 \chapter{Notes on Software}
 \label{cha:Software}
 
-All of the software we've used (both the code we've written and the
-software that code depends on) for this book is free software.  After
-fetching our code, typing ``make'' in the top level directory of the
-hmmds project will create a copy of the book in a file called
-\emph{main.pdf} after some hours of computation.
+We found that writing the text for this book took less time than
+writing the supporting software.  All of the software we've used (both
+the code we've written and the software that that code depends on) for
+this book is free software.  After fetching our code, typing ``make
+book'' in the top level directory of the hmmds project will create a
+copy of the book in a file called \emph{main.pdf} after some hours of
+computation.  \ToDo{Where can one get the software?  On what systems
+  does the code run?}
 
-\section{Dependencies}
-\label{sec:SWdep}
-
-Our code relies on many free software packages.  Although we developed
-the code on NixOS systems, the code will run on any of the many other
-platforms for which the dependencies are available.  In addition to
-the standard gnu development tools, we require at least the following
-and their dependencies:
-  \begin{description}
-  \item[Python] The interpreted, interactive programming language, and
-    the following Python packages
-    \begin{description}
-    \item[numpy] 
-    \item[scipy] 
-    \item[matplotlib]
-    \item[cython] 
-    \item[pint] 
-    \item[pathlib2] For py-ecg-detectors
-    \item[pywavelets] For py-ecg-detectors
-    \item[pygraphviz] For making pdf graph of HMM
-    \item[pandas] For wfdb package from PhysioNet
-    \item[pyqtgraph] For GUIs
-    \item[pyqt5] GUIs import PyQt5
-    \end{description}
-  \item[bash] 
-  \item[gnumake] 
-  \item[xfig]
-  \item[fig2dev] 
-  \item[wget]
-  \item[graphviz] 
-  \item[texlive] TeX, LaTeX and much supporting software.  We use the
-    following packages:
-    \begin{description}
-    \item[tcolorbox] 
-    \item[environ] 
-    \item[trimspaces] 
-    \item[listingssutf8] 
-    \item[latexmk]
-    \item[type1cm] 
-    \item[showlabels] 
-    \item[xstring] 
-    \item[framed] 
-    \end{description}
-  \end{description}
-
-\section{Data}
-\label{sec:SWdata}
+\section*{Data}
 
 We used the following sets of data for examples:
 \begin{description}
@@ -560,21 +519,19 @@ We used the following sets of data for examples:
   the timing of heart beats in \emph{hmmdsbook}.
 \end{description}
 
-\section{Clarity and Efficiency}
-\label{sec:Clarity}
+\section*{Clarity and Efficiency}
 
-We wrote earlier versions of the code for this book in C to make it
-run faster than Python.  In particular the C code exploited sparsity
-in the probability arrays in models.  Since we wrote those early
-versions, SciPy has provided support for sparse matrices making our C
-code obsolete.  Now we have Python code for all of the algorithms
-described in the book.
+Before the SciPy or NumPy packages existed, we wrote early versions of
+the code for this book in C to make it run fast.  Since we wrote those
+early versions, SciPy and NumPy have made most of that old C code
+obsolete.  Now we have Python code for all of the algorithms described
+in the book.
 
 We also provide Cython code for a few of the algorithms.  While the
 Cython code is faster, it is harder to read and debug.  The interfaces
 to call Cython code match the interfaces to the Python code.  We
 recommend developing with the Python code and after that if you need
-to run faster, try the Cython versions.
+the speed, try the Cython versions.
 
 Here is the heart of our simple Python implementation of the forward
 algorithm described in about 4 pages in Section~\ref{sec:forward}.  It
@@ -592,10 +549,8 @@ looks pretty simple here.
             self.alpha[t, :] = last
             last[:] = numpy.dot(last, self.p_state2state)
 \end{verbatim}
-
-
-Here is the heart of our simple implementation of the backward
-algorithm in Python.  It is even simpler.
+And here is the heart of the corresponding implementation of the
+backward algorithm.  It is even simpler.
 \label{code:backward}
 \begin{verbatim}
         # last and beta are analogous to last and alpha in forward(),

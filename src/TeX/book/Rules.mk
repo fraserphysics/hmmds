@@ -61,18 +61,35 @@ apnea_values decoded_menken toy_values synthetic_values text_values))
 
 BOOK_SENTINELS = $(SYNTHETIC_DATA)/SGO
 
+# The book should have the following parts in this order: Chapters;
+# Appendices; Notation/nomenclature; Bibliography; Index.
+# The following produced those sections on 2025-02-20.
+
 $(BOOK_OUT)/main.pdf: $(TEX_BOOK)/main.tex $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_INCLUDES) $(VALUE_FILES) $(BOOK_SENTINELS)
 	mkdir -p $(@D)
 	export TEXINPUTS=$(TEX_BOOK)//:$(abspath $(BUILD))//:; \
 export BIBINPUTS=$(TEX_BOOK)//:; export BSTINPUTS=$(TEX_BOOK)//:; \
-pdflatex --output-directory=$(@D) $< ; makeindex $(@D)/main.nlo -s nomencl.ist -o $(@D)/main.nls; pdflatex --output-directory=$(@D) $<
-# I replaced the line below with the pdflatex stuff above because I was having trouble with nomencl
-#latexmk --outdir=$(@D) -pdflatex main.tex;
+cd $(@D) ; \
+pdflatex --output-directory=$(@D) $< ; \
+# The next line builds main.nls.  I needed to call makeindex from the \
+# build dir \
+makeindex main.nlo -s nomencl.ist -o main.nls; \
+# The next line makes main.idx \
+makeindex main.idx ; \
+bibtex main.aux ; \
+pdflatex --output-directory=$(@D) $< ; \
+# The next pdflatex gets "Notation" into the table of contents \
+pdflatex --output-directory=$(@D) $<
 
 # Note that latexmk seems to detect changes in dependencies without
 # using file change times.  Thus deleting and regenerating a figure
 # will not cause the document to be rebuilt if the regenerated figure
-# is the same as the old one.
+# is the same as the old one.  I've set up emacs to call latexmk from
+# auctex.  So that works as long as the index, notation and bib files
+# have already been built using make and this file.
+
+# I replaced the line below with the pdflatex stuff above because I was having trouble with nomencl
+#latexmk --outdir=$(@D) -pdflatex main.tex;
 
 
 # Local Variables:

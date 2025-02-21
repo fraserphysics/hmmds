@@ -280,12 +280,12 @@ One can use a parameterized class of state space models $\left\{
   the long term behavior of our estimated model is very different from
   the actual laser system.
 \item[Classification] Given sample signals like $\ts{y}{0}{T}$ and two
-  possible signal sources, $\alpha$ and $\beta$ where $P_{*\given \alpha}$
-  characterizes healthy units and $P_{*\given \beta}$ characterizes defective
+  possible signal sources, $h$ and $d$ where $P_{*\given h}$
+  characterizes healthy units and $P_{*\given d}$ characterizes defective
   units, one can can classify a unit on the basis of the
   \emph{likelihood ratio}
   \begin{equation*}
-    R(\ts{y}{0}{T}) = \frac{P(\ts{y}{0}{T}\given \beta)}{P(\ts{y}{0}{T}\given \alpha)}.
+    R(\ts{y}{0}{T}) = \frac{P(\ts{y}{0}{T}\given d)}{P(\ts{y}{0}{T}\given h)}.
   \end{equation*}
   If $R(\ts{y}{0}{T})$ is above some threshold, it is classified as defective.
 \end{description}
@@ -777,6 +777,7 @@ the Viterbi algorithm to find the most likely state sequence
      program.}
    \label{fig:GraphStates}
  \end{figure}
+ \ToDo{Improve Fig.~\ref{fig:GraphStates}}
 
 
 \subsection{Example: Hidden States as Parts of Speech}

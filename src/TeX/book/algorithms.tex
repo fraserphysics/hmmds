@@ -167,12 +167,11 @@ avoids underflow:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 For each time step we do the four calculations specified in the
-equations below\footnote{In \eqref{code:forward} on
-  page~\pageref{code:forward} in Section~\ref{sec:Clarity} we present
-  four lines of python code that implement these four calculations.}.
-In these equations we use color highlighting to emphasize repeated
-instances of the same quantity.  The algorithm saves the following
-intermediate results
+equations below\footnote{On page~\pageref{code:forward} in
+  Appendix~\ref{cha:Software} we present four lines of python code
+  that implement these four calculations.}.  In these equations we use
+color highlighting to emphasize repeated instances of the same
+quantity.  The algorithm saves the following intermediate results
 %
 \nomenclature[ga]{$\alpha(t,s)$}{The conditional probability that at time
   $t$ the system is in state $s$ given the observations up to the
@@ -268,8 +267,9 @@ a loop doing the following four calculations:
         \ti{S}{t},\ts{Y}{0}{t}}\left(\ti{y}{t} \given s, \ts{y}{0}{t}
       \right) \nonumber \\& \times \StateForecast{S}{s}{t}\\
       \mlabel{eq:forwardB2}
-      &= P_{\ti{Y}{t} \given  \ti{S}{t}}\left(\ti{y}{t} \given s \right) \cdot
-      \StateForecast{S}{s}{t} .
+      &= P_{\ti{Y}{t} \given  \ti{S}{t}}\left(\ti{y}{t} \given s
+        \right) \nonumber \\
+      & \times \StateForecast{S}{s}{t} .
     \end{align}
   \end{subequations}
 We justify the equations as follows:

@@ -9,8 +9,8 @@
 %%%
 
 %\documentclass[]{hmmdsbook} % For old siam style
-\documentclass[ltxbook,showlabels, commentsvisible]{hmmdsbook}
-%\documentclass[ltxbook, commentsvisible]{hmmdsbook}
+%\documentclass[ltxbook,showlabels, commentsvisible]{hmmdsbook}
+\documentclass[ltxbook, commentsvisible]{hmmdsbook}
 %\documentclass[ltxbook]{hmmdsbook}
 
 %%% Note: The following settings will cause many overfull hbox false alarms:
@@ -121,7 +121,8 @@ that:
   can fetch the code and data and build the book yourself.  You can
   examine the source code to resolve questions about how figures were
   made, and you can build on the software to try out your own ideas
-  for variations.
+  for variations.  (See \emph{Notes on Software} on
+  page~\pageref{cha:Software} of the appendix.)
 \item[It uses analogies to dynamical systems] For example, we
   demonstrate the HMM training algorithm by applying it to data
   derived from the Lorenz system.  The result, as
@@ -146,27 +147,6 @@ that:
   \end{itemize}
 }
 
-\subsection*{Source Software, Data and Text}
-\label{preface_software}
-
-The software, data and text files we used to build the book are freely
-available.  We've written a Python package named \emph{hmm} that
-provides implementations of the general algorithms described in the
-book.  It is available from https://gitlab.com/fraserphysics1/hmm.  At
-https://gitlab.com/fraserphysics/hmmds we provide additional code,
-text and data for building the book.  After fetching and installing
-both packages one can issue ``make book'' from a command line to
-compile the software, run the numerical experiments, make the figures
-and format the entire book.  \ToDo{Once I get that fixed, give
-  detailed instructions for different environments.}
-
-Since our fortunate decision to use Python for the first edition of
-this book the continuing evolution of Python language and ecosystem
-has made writing code easier and the resulting code is easier to read.
-Although algorithms are given in pseudo code in the text, we provide a
-working implementation of each of the algorithms described in the
-text.
-
 \subsection*{Notation}
 \label{preface_notation}
 
@@ -185,8 +165,7 @@ our use of Python notation for sequences\footnote{Thus we write the
 \end{equation*}
 There are a few different notation conventions for probabilities and
 stochastic processes each of which has drawbacks.  We describe the
-conventions we've chosen in the notation section starting on page
-\pageref{sec:notation}.
+conventions we've chosen in the notation section.
 
 \section*{Acknowledgments}
 \addcontentsline{toc}{section}{Acknowledgments}%
