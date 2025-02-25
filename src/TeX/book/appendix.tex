@@ -232,18 +232,18 @@ $\Normal\left(\mu_2,\Sigma_2\right)$, \ie
   e^{-\frac{1}{2} ( u - \mu_1)\transpose \Sigma_1^{-1} ( u - \mu_1)}
   \frac{1} {\sqrt{(2\pi)^n \left| \Sigma_2 \right| }}
   e^{-\frac{1}{2} ( u - \mu_2)\transpose \Sigma_2^{-1} ( u - \mu_2)}\\
-  \label{eq:Qu.b}
-  &= \frac{1} {\sqrt{(2\pi)^{2n} \left| \Sigma_1 \right| \left|
+  \nonumber
+       &= \frac{1} {\sqrt{(2\pi)^{2n} \left| \Sigma_1 \right| \left|
         \Sigma_2 \right| }} e^{-\frac{1}{2}\big[ ( u -
     \mu_1)\transpose \Sigma_1^{-1} ( u - \mu_1) + ( u -
     \mu_2)\transpose \Sigma_2^{-1} ( u - \mu_2)\big]}\\
-  \label{eq:Qu.c}
+  \nonumber
   &\equiv \frac{1} {\sqrt{(2\pi)^{2n} \left| \Sigma_1 \right| \left|
         \Sigma_2 \right| }} e^{-\frac{1}{2}\big[Q(u)\big]}.
 \end{align}
 By expanding the function $Q(u)$ in the exponent, we find:
 \begin{align}
-  \label{eq:Qu.d}
+  \nonumber
   Q(u) &= u\transpose \left( \Sigma_1^{-1} + \Sigma_2^{-1} \right) u -
   2 u\transpose  \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2
   \right) + \mu_1\transpose \Sigma_1^{-1} \mu_1 + \mu_2\transpose
@@ -262,10 +262,9 @@ respectively.
 
 \emph{Completing the square} means finding values $\mu$, $\Sigma$, and
 $R$ for which Eqn.~\eqref{eq:Qu.e} takes the form
-\begin{equation}
-  \label{eq:Qu.f}
+\begin{equation*}
   Q(u) = (u - \mu)\transpose \Sigma^{-1} (u - \mu) + R,
-\end{equation}
+\end{equation*}
 where $R$ is not a function of $u$.  One can verify by substitution
 that the solution is
 \begin{align*}
@@ -307,7 +306,7 @@ here require that the probability and likelihood functions have
 continuous first and second derivatives which we implicitly assume.
 We let $\EMmap$ denote the action of one iteration of the algorithm and
 let $\EMfixedPoint$ denote a fixed point with
-\begin{align}
+\begin{align*}
   \ti{\parameters}{n+1} &= \EMmap\left( \ti{\parameters}{n} \right) \\
   \EMmap(\EMfixedPoint) &= \EMfixedPoint && \text{with Taylor series} \\
   \EMmap(\parameters) &= \EMfixedPoint + \left[ \frac{\partial
@@ -315,23 +314,28 @@ let $\EMfixedPoint$ denote a fixed point with
   Q(\NewParameters, \OldParameters) &\equiv \EV_{S \given y,\OldParameters} \log\left(P(y,S \given
   \NewParameters \right) \\
   \EMmap(\OldParameters) &= \argmax_{\NewParameters} Q(\NewParameters, \OldParameters). 
-\end{align}
+\end{align*}
 For a given value of $\OldParameters$, the derivative of $Q(\NewParameters,
 \OldParameters)$ at a maximum is zero, and we write
 \begin{align}
+  \nonumber
   \Psi(\NewParameters,\OldParameters)
   &\equiv \frac{\partial Q(\NewParameters,
     \OldParameters)}{\partial \NewParameters} \\
+  \nonumber
   \Psi(\EMmap(\OldParameters), \OldParameters)
   &= 0 \\
+  \nonumber
   \frac{d\Psi(\EMmap(\OldParameters), \OldParameters)}{d \OldParameters}
   &= 0 \\
+  \nonumber
   \frac{d\Psi(\EMmap(\OldParameters), \OldParameters)}{d \OldParameters}
   &= \left. \frac{\partial \Psi(\NewParameters, \OldParameters)}{\partial \NewParameters}
     \right|_{\EMmap(\OldParameters), \OldParameters} \left.\frac{\partial
     \EMmap(\theta)}{\partial \theta} \right|_{\OldParameters} +
     \left. \frac{\partial \Psi(\NewParameters, \OldParameters)}{\partial \OldParameters}
     \right|_{\EMmap(\OldParameters), \OldParameters} \\
+  \nonumber
   &= \left. \frac{\partial^2 Q(\NewParameters, \OldParameters)}{\partial \NewParameters^2}
     \right|_{\EMmap(\OldParameters), \OldParameters} \left.\frac{\partial
     \EMmap(\theta)}{\partial \theta} \right|_{\OldParameters} +
@@ -348,12 +352,15 @@ For a given value of $\OldParameters$, the derivative of $Q(\NewParameters,
 Manipulating the first of the two second derivatives in
 \eqref{eq:two_second_derivatives} we find
 \begin{align}
+  \nonumber
   \frac{\partial^2 Q(\NewParameters,  \OldParameters)}{\partial \NewParameters^2}
   &= \frac{\partial^2}{\partial \NewParameters^2} \EV_{S \given y, \OldParameters}
     \log \left( P(y, S \given \NewParameters \right) \\
+  \nonumber
   &= \frac{\partial^2}{\partial \NewParameters^2} \EV_{S \given y, \OldParameters}
     \left( \log \left( P(y \given \NewParameters \right) + \log \left( P(S
     \given y, \NewParameters \right) \right)\\
+  \nonumber
   &=  \frac{\partial^2}{\partial \NewParameters^2} \log \left( P(y \given
     \NewParameters \right) + \EV_{S \given y, \OldParameters} \left(
     \frac{\partial^2}{\partial \NewParameters^2} \log \left( P(S \given y,
@@ -362,31 +369,50 @@ Manipulating the first of the two second derivatives in
   &= -J_y - I_{S \given y},
 \end{align}
 where
-$J_y\equiv-\frac{\partial^2}{\partial \theta^2} \log \left( P(y \given
-  \theta \right)$ is called the \emph{observed information}
-that $y$ provides about $\NewParameters$, and $I_{S \given y}$ is the \emph{Fisher
-  information} of the unobserved data.  Now manipulating the second of
-the two second derivatives in \eqref{eq:two_second_derivatives} we
-find
+\begin{equation*}
+  J_y\equiv-\frac{\partial^2}{\partial \theta^2} \log \left( P(y \given
+  \theta \right)
+\end{equation*}
+is called the \emph{observed information} that $y$ provides about
+$\NewParameters$, and
+\begin{equation}
+  \label{eq:second_partial_fisher}
+  I_{S \given y} = -\EV_{S \given y, \OldParameters} \left(
+    \frac{\partial^2}{\partial \NewParameters^2} \log \left( P(S \given y,
+    \NewParameters \right) \right)
+\end{equation}
+is the \emph{Fisher information}\footnote{Fisher Information is
+  defined in terms of the squared first derivative, see
+  \eqref{eq:score_fisher}.  In many cases a calculation in terms of
+  the second derivative like \eqref{eq:second_partial_fisher} is
+  equivalent.}  of the
+  unobserved data.  Now manipulating the second of the two second
+  derivatives in \eqref{eq:two_second_derivatives} we find
 \begin{align}
+  \nonumber
   \frac{\partial^2 Q(\NewParameters,  \OldParameters)}{\partial \NewParameters \partial
   \OldParameters}
   &= \frac{\partial^2}{\partial \NewParameters \partial \OldParameters} \EV_{S \given y, \OldParameters}
     \log \left( P(y, S \given \NewParameters \right) \\
+  \nonumber
   &= \frac{\partial^2}{\partial \NewParameters \partial \OldParameters} \EV_{S \given y, \OldParameters}
     \left( \log \left( P(y \given \NewParameters \right) + \log \left( P(S
     \given y, \NewParameters \right) \right)\\
+  \nonumber
   &= \frac{\partial^2}{\partial \NewParameters \partial \OldParameters} \log \left( P(y \given
     \NewParameters \right) + \frac{\partial}{\partial \OldParameters} \EV_{S \given y, \OldParameters} \left(
     \frac{\partial}{\partial \NewParameters} \log \left( P(S \given y,
     \NewParameters \right) \right) \\
+  \nonumber
   &=  \frac{\partial}{\partial \OldParameters} \EV_{S \given y, \OldParameters} \left(
     \frac{\partial}{\partial \NewParameters} \log \left( P(S \given y,
     \NewParameters \right) \right) \\
+  \nonumber
   &= \frac{\partial}{\partial \OldParameters} \sum_s P(s \given y, \OldParameters) %
     \frac{ %
     \frac{\partial P(s \given y,\NewParameters )}{\partial \NewParameters}
     }{P(s \given y,\NewParameters )}  \\
+  \nonumber
   &= \sum_s P(s \given y, \OldParameters) %
     \frac{ %
     \frac{\partial P(s \given y,\OldParameters )}{\partial \OldParameters}
@@ -396,8 +422,9 @@ find
     }{P(s \given y,\NewParameters )}
 \end{align}
 At the fixed point $\EMfixedPoint = \NewParameters = \OldParameters$
-and\footnote{This is an alternative calculation of Fisher information.}
+and
 \begin{align}
+  \label{eq:score_fisher}
   \left. \frac{\partial^2 Q(\NewParameters,  \OldParameters)}{\partial \NewParameters
   \partial \OldParameters} \right|_{\EMfixedPoint, \EMfixedPoint}
   &= \EV_{S \given y, \EMfixedPoint} \left( \frac{\partial}{\partial
@@ -428,8 +455,9 @@ Here we use an idea inspired by Sylvester's law of
 inertia\footnote{Sylvester's law of inertia is: If $B$ is a symmetric
   matrix, then for any invertible matrix $A$, the number of positive,
   negative and zero eigenvalues (called the inertia of the matrix) of
-  $C = A B A\transpose$ is constant.} to show that if $J_y$ is positive definite
-then $\EMmap$ is linearly stable at $\EMfixedPoint$.
+  $C = A B A\transpose$ is constant.} to show that if at
+$\EMfixedPoint$ $J_y$ is positive definite then $\EMmap$ is linearly
+stable.
 
 We need the following lemma: If $A$ is positive definite and symmetric
 and $B$ is positive definite and symmetric then the eigenvalues of
@@ -442,12 +470,14 @@ definite and symmetric, there is an $X$ with
 \end{align*}
 By assumption $B$ is positive definite so
 $y\transpose B y > 0 ~ \forall y \neq 0$.  Now
-$\forall z \neq 0, ~ z\transpose X\transpose B X z > 0$ because $Xz$ is
-a $y$.  So $\Gamma$ is positive definite.  The symmetry of $B$ implies
-that $\Gamma$ is also symmetric.  Thus $\Gamma$ is positive definite
-and symmetric, and all of its eigenvalues are positive.  Because they are related by a
-similarity transformation, $\Gamma$ and $C$ have the same eigenvalues,
-and we know that all of the eigenvalues of $AB = C$ are positive.
+$\forall z \neq 0, ~ z\transpose X\transpose B X z > 0$ because $Xz$
+is a $y$.  So $\Gamma$ is positive definite.  The symmetry of $B$
+implies that $\Gamma$ is also symmetric.  Thus $\Gamma$ is positive
+definite and symmetric\footnote{The symmetry of $\Gamma$ ensures that
+  its eigenvalues are real.}, and all of its eigenvalues are positive.
+Because they are related by a similarity transformation, $\Gamma$ and
+$C$ have the same eigenvalues, and we know that all of the eigenvalues
+of $AB = C$ are positive.
 
 At a fixed point $\EMfixedPoint$, $\EMmap$ is linearly stable if and
 only if $\left| \lambda \right| < 1$ for all eigenvalues $\lambda$ of
@@ -461,8 +491,9 @@ its derivative $D$.  From \eqref{eq:information_em_derivative} we find
   D^{-1} -1  &= I_{S \given y}^{-1} J_y
 \end{align}
 Since the right hand side of \eqref{eq:dIJY} satisfies the premises of
-the lemma, each its eigenvalues $\lambda_R$ is positive.  Now for each
-eigenvalue of the right hand side there is an eigenvalue of $D$ with
+the lemma, each of its eigenvalues $\lambda_R$ is positive.  Now for
+each eigenvalue of the right hand side there is an eigenvalue of $D$
+with
 \begin{align}
   \nonumber
   \frac{1}{\lambda_D} - 1 &= \lambda_R  \\
@@ -484,7 +515,7 @@ fixed point of $\EMmap$ that is a local maximum of the likelihood is
 generic and convergence to a saddle point of the likelihood is not
 generic.
 
-\chapter{Notes on Software}
+\chapter{Notes on Data and Software}
 \label{cha:Software}
 
 We found that writing the text for this book took less time than
@@ -493,8 +524,11 @@ the code we've written and the software that that code depends on) for
 this book is free software.  After fetching our code, typing ``make
 book'' in the top level directory of the hmmds project will create a
 copy of the book in a file called \emph{main.pdf} after some hours of
-computation.  \ToDo{Where can one get the software?  On what systems
-  does the code run?}
+computation.  \ToDo{For now (2025-02-23) the code specifically for the
+  book is at gitlab.com:fraserphysics/hmmds.git, and the more general
+  code which that relies on is at gitlab.com:fraserphysics1/hmm.git.
+  I develop on NixOS systems.  I intend to repackage the code to make
+  it easy for others to use.}
 
 \section*{Data}
 
