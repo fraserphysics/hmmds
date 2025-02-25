@@ -72,7 +72,7 @@ def LaserLogLike(data, matplotlib, pyplot):
     ax = fig.add_subplot(1, 1, 1, projection='3d', azim=-13, elev=20)
     ax.set_xlabel('$b$')
     ax.set_ylabel('$s$')
-    ax.set_zlabel(r'$\log(P(y_1^{250}|\theta))$')
+    ax.set_zlabel(r'$\log(P(y[0:250]|\theta))$')
     X, Y = numpy.meshgrid(b, s)
     ax.contour(X, Y, log_like, zdir='z', offset=log_like.min())
     surf = ax.plot_surface(X,
