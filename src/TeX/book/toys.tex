@@ -117,8 +117,7 @@ that dynamical noise and measurement quantization are negligible
 compared to the effects of measurement noise and dynamical stretching.
 In the middle plot of Fig.~\ref{fig:ToyTS1} notice that while for most
 times the forecast deviation of the prediction $\ti{\sigma_\gamma}{t}$
-is very close to the size of the state noise \ToDo{or close to the
-measurement noise?}
+is close to the size of the state noise
 $\sigma_\eta = \toyHviewStateNoise$, occasionally the forecast
 deviations are many times larger.  The log likelihood per time step
 which appears in the bottom plot of the figure is low when either the
@@ -248,7 +247,6 @@ using the Benettin procedure described in Section~\ref{sec:Benettin}.
   \caption[\comment{fig:ToyH }Average log likelihood of one step forecasts.]%
   {Average log likelihood of one step forecasts as a function of time
     step $\tau_s$ and filter parameter $\tilde \sigma_\epsilon$.  To
-    \ToDo{Check code that produces these values}
     simulate measurements for this figure, we used the parameters:\\
     \begin{tabular}[c]{ll}
      $\sigma_\eta = \toyToyhdevstategenerate$ & Standard deviation of state noise \\
@@ -356,18 +354,17 @@ Now, to solidify the discussion, we make some formal definitions.
 \index{stochastic process}
 We are interested in sequences of states $\ts{X}{0}{T}$ and
 measurements  $\ts{Y}{0}{T}$ each of which can be thought of as a
-\emph{random function} on the domain $\left\{ 1,2,\ldots,T \right\}$,
+\emph{random function} on the domain $\left\{ 0,1,2,\ldots,T-1 \right\}$,
 \ie, a \emph{stochastic process}.
 
 \subsubsection{Entropy of a discrete random variable}
-\index{entropy}
-If a discrete random variable $U$ takes on the values
+\index{entropy} If a discrete random variable $U$ takes on the values
 $u_0,u_1,\ldots,u_n$ with probabilities $P(u_0),P(u_1),\ldots,P(u_n)$,
-then the \emph{entropy} of $U$ is \ToDo{should sum be from 0?}
-\nomenclature[rHU]{$H(U)$}{The entropy of a discrete random variable $U$.}
+then the \emph{entropy} of $U$ is \nomenclature[rHU]{$H(U)$}{The
+  entropy of a discrete random variable $U$.}
 \begin{equation}
   \label{eq:HDef}
-  H(U) \equiv - \EV \log \left( P(U) \right) = -\sum_{k=1}^n P(u_k)
+  H(U) \equiv - \EV \log \left( P(U) \right) = -\sum_{k=0}^n P(u_k)
   \log \left( P(u_k) \right).
 \end{equation}
 Entropy quantifies the the uncertainty in $U$ before its value is
@@ -1161,18 +1158,20 @@ and thus the bound is tight.
 In this class of models, the probability measure for the generating
 process is not necessarily ergodic or even stationary; it is derived
 from a uniform density over a box that covers possible starting
-conditions, and it includes a little bit of noise \ToDo{I don't like
-\emph{a little bit of noise}.} in the dynamics so that even in the %
-long time limit it does not become fractal.  Because the probability
-is smooth, the models cannot exploit fractal
+conditions, and it includes a little bit of noise in the dynamics so
+that even in the long time limit it does not become fractal.  Because
+the probability is smooth, the models cannot exploit fractal
 properties that might exist in the modeled system and consequently
 $\gamma$, the Ledrappier and Young correction to the Pesin formula, is
 irrelevant.  More specifically we consider a model class with the
 following properties: \newcommand{\Lic}{L_{\text{i.c.}}}
 \begin{description}
 \item[Probability density] The probability density for the initial
-  state $P(\ti{x}{1}\given \theta)$ is a uniform distribution on a cube in
-  $X$ that has length $\Lic$ on each side.
+  state $P(\ti{x}{0}\given \theta)$ is a uniform distribution on a cube in
+  $X$ that has length $\Lic$ on each side. %
+\nomenclature[rLic]{$\Lic$}{The length of cube edges with uniform
+  probability density at the initial time.}
+%
 \item[State noise] The model has noise in the state dynamics,
   \begin{equation}
     \label{eq:PracticalStateMap}
@@ -1231,9 +1230,6 @@ Rather than going backwards in time to analyze the pre-image of
 $\ts{y}{0}{T}$, we can think about the forward image of the volume of
 initial conditions under the map $\Phi(T)$.  To first order, the
 distribution is a uniform probability density over a parallelepiped
-%
-\ToDo{What is $\Lic$?}
-%
 that extends a distance $\Lic \ti{s}{T}$ in the direction of the first
 column of the orthogonal matrix $\ti{Q}{t}$ in Eqn.~\eqref{eq:QR1}.
 The measurement partition divides the image into elements that have a

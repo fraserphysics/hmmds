@@ -1057,6 +1057,9 @@ Optimization yields
         parameters, after $n$ iterations of the Baum-Welch algorithm.
       \end{minipage}\\ \\%
       %%
+      \nomenclature[galphan]{$\bm{\alpha}_n$}{The set of conditional state
+        probabilities based on the $n^{\text{th}}$ iteration of the
+        Baum-Welch algorithm.}
       \begin{minipage}[b]{1.0\textwidth}
         $\bm{\alpha}_n$ is the set of conditional state probabilities
         calculated on the basis of the $n^{\text{th}}$ model and the
@@ -1070,9 +1073,14 @@ Optimization yields
       \end{minipage}\\ \\%
       %%
       \begin{minipage}[b]{1.0\textwidth}
-         $\bm{\beta}_n$ is a set of values calculated on the basis of the
-         $n^{\text{th}}$ model $\oldmodel$ and the data $\ts{y}{0}{T}$.  See
-         Eqns.~\eqref{eq:bw4} and \eqref{eq:backformula}.
+        \nomenclature[gbetan]{$\bm{\beta}_n$}{The set of values based
+          on the $n^{\text{th}}$ iteration of the Baum-Welch
+          algorithm.}
+        %
+        $\bm{\beta}_n$ is a set of values calculated on the basis of
+        the $n^{\text{th}}$ model $\oldmodel$ and the data
+        $\ts{y}{0}{T}$.  See Eqns.~\eqref{eq:bw4} and
+        \eqref{eq:backformula}.
          \begin{equation*}
          \bm{\beta}_n \equiv \left\{ \frac{P_{\ts{Y}{t+1}{T}\given \ti{S}{t}}
          \left(\ts{y}{t+1}{T} \given  s \right)} {P
@@ -1082,6 +1090,10 @@ Optimization yields
       \end{minipage}\\ \\%
       %%
       \begin{minipage}[b]{1.0\textwidth}
+        \nomenclature[ggamman]{$\bm{\gamma}_n$}{The set of conditional
+          observation probabilities calculated based on the
+          $n^{\text{th}}$ iteration of the Baum-Welch algorithm.}
+        %
          $\bm{\gamma}_n$ is the set of conditional observation probabilities
          calculated on the basis of the $n^{\text{th}}$ model $\oldmodel$ and
          the data $\ts{y}{0}{T}$.  See Eqns.~\eqref{eq:gamma} and

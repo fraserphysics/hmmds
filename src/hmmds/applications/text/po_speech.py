@@ -133,7 +133,8 @@ def random_hmm(cardinality_Y, n_states, seed):
 
 def write_latex(args, cardinality_Y: int, token_list: list,
                 y_sequence: numpy.ndarray, state_sequence: numpy.ndarray):
-    '''Print the most frequent 10 tokens associated with each state
+    '''Print the most frequent 10 tokens (excluding punctuation)
+    associated with each state
 
     Args:
         args: Command line arguments
@@ -141,6 +142,7 @@ def write_latex(args, cardinality_Y: int, token_list: list,
         token_list: List of pairs (token, max(frequency,2)) sorted by frequency
         y: Sequence of integer observations
         state_sequence: Sequence of integer indices of states
+
     '''
     file_ = open(args.table_path, 'w', encoding='utf-8')
 
@@ -160,11 +162,15 @@ def write_latex(args, cardinality_Y: int, token_list: list,
             token_counter[int(y_sequence[t])][1] += 1
         token_counter.sort(key=lambda x: -x[1])
         print(f'{n_state+1:2d}', end=' ', file=file_)
-        for i in range(10):
+        print_counter = 0
+        for i in range(100):
             token = token_list[token_counter[i][0]][0]
-            if token == '&':
-                token = '\&'
+            if len(token) == 1 and token not in 'I a A'.split():
+                continue
             print(f'& {token} ', end=' ', file=file_)
+            print_counter += 1
+            if print_counter > 9:
+                break
         print(r'\\', file=file_)
     print(r"""\hline
 \end{tabular}""", file=file_)

@@ -9,7 +9,7 @@ TEXT_CODE = $(HMMDS)/applications/text
 # Also makes $(BUILD)/TeX/book/text_values.tex
 $(BUILD)/TeX/book/decoded_menken.tex: $(TEXT_CODE)/po_speech.py $(ROOT)/raw_data/menken.txt
 	mkdir -p $(@D)
-	python $^ --random_seed 10 --n_iterations 100 $(BUILD)/TeX/book/text_values.tex $@
+	python $^ --random_seed 10 --n_states 15 --n_iterations 100 $(BUILD)/TeX/book/text_values.tex $@
 
 # Hack to circumvent gnu-make inability to make two targets with one rule
 $(BUILD)/TeX/book/text_values.tex: $(BUILD)/TeX/book/decoded_menken.tex
