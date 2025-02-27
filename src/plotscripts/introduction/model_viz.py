@@ -1,12 +1,13 @@
 """model_viz.py Read a model file and write a graphviz representation
 
-Method HMM.viz does the work
 """
 
 import argparse
 import pickle
 import sys
 import os
+
+import numpy
 
 # https://graphviz.readthedocs.io/en/stable/manual.html
 import graphviz
@@ -17,7 +18,11 @@ def parse_args(argv):
     """
 
     parser = argparse.ArgumentParser("Create and write a vizualization")
-    parser.add_argument('--threshold', type=float, default=5e-3)
+    parser.add_argument('--base_name', type=str, default="state")
+    parser.add_argument('--data_dir',
+                        type=str,
+                        default="derived_data/synthetic")
+    parser.add_argument('--threshold', type=float, default=1e-2)
     parser.add_argument('--image_path', type=str, default='./')
     parser.add_argument(
         '--layout',
@@ -46,12 +51,25 @@ def viz(hmm, args, graph):
             for successor, probability in enumerate(p_successor):
                 if probability > threshold:
                     state.successors.append(successor)
+            # Calculate average position of state
+            name = f'{args.data_dir}/{args.base_name}{index}'
+            xz_list = []
+            with open(name, 'r', encoding='utf-8') as data_file:
+                for line in data_file.readlines():
+                    x, _, z = [float(w) for w in line.split()]
+                    xz_list.append((x, z))
+            state.xz = numpy.array(xz_list).mean(axis=0) * 1.19
+            assert state.xz.shape == (2,)
 
     state_dict = {}
     for index in range(n_states):
         state_dict[index] = state = State(index, hmm.p_state2state[index],
                                           args.threshold)
-        graph.node(f'{index}', label='', shape='rectangle', image=state.image)
+        graph.node(f'{index}',
+                   label='',
+                   shape='rectangle',
+                   image=state.image,
+                   pos=f'{state.xz[0]},{state.xz[1]}!')
     for state in state_dict.values():
         for state_f in state.successors:
             graph.edge(f'{state.index}',
@@ -73,8 +91,6 @@ def main(argv=None):
 
     graph = graphviz.Digraph(format='pdf', strict=True, engine=args.layout)
     graph.graph_attr['nodesep'] = '1.0'
-    graph.graph_attr['sep'] = '1.0'
-    print(f'{graph.__dict__["graph_attr"]=}')
     viz(model, args, graph)
     graph.render(args.write_path, view=False)
     return 0

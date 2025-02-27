@@ -6,7 +6,7 @@ FIGS_INTRO = $(BUILD)/figs/introduction
 PLOTSCRIPTS = $(ROOT)/src/plotscripts
 
 ## ALL           : All of the targets that Rules.mk is responsible for
-ALL = $(FIGS_INTRO)/TSintro.pdf $(FIGS_INTRO)/Statesintro.pdf $(FIGS_INTRO)/STSintro.pdf
+ALL = $(FIGS_INTRO)/TSintro.pdf $(FIGS_INTRO)/Statesintro.pdf $(FIGS_INTRO)/STSintro.pdf $(FIGS_INTRO)/GraphStates.pdf
 
 $(FIGS_INTRO)/STSintro.pdf:
 ## test          : Build all targets; the default target.
