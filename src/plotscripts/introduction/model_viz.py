@@ -22,7 +22,7 @@ def parse_args(argv):
     parser.add_argument('--data_dir',
                         type=str,
                         default="derived_data/synthetic")
-    parser.add_argument('--threshold', type=float, default=1e-2)
+    parser.add_argument('--threshold', type=float, default=5e-3)
     parser.add_argument('--image_path', type=str, default='./')
     parser.add_argument(
         '--layout',

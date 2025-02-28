@@ -34,7 +34,7 @@ establishing our notation for the model parameters.
   P\left(\ts{y}{0}{T}\given \ti{\parameters}{n}\right)\, : 1 < n < N$.
   Instead of $\parameters$, Ferguson used $\lambda$ to denote the
   entire collection of parameters.
-  \nomenclature[gh]{$\bm{\parameters}$}{The entire collection of
+  \nomenclature[gtheta]{$\bm{\parameters}$}{The entire collection of
     parameters that defines a model.}
 \end{symbdescription}
 
@@ -137,15 +137,15 @@ avoids underflow:
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%
-%%% #1 = time #2 = state
+%%% #1 = time #2 = STATE #3 = time + 1 #4 = state
 \newcommand{\alphax}[4]{% updated state distribution
   \colorbox{yellow}{%
     $P_{\ti{#1}{#2}\given \ts{Y}{0}{#3}}\left(#4 \given \ts{y}{0}{#3} \right)$%
   }%
 }%
 %%%
-%%%
-\newcommand{\StateForecast}[3]{% state forecast
+%%% #1 = STATE #2 = state #3 = time
+\newcommand{\StateForecast}[3]{% state forecast P(S[t]|y[0:t])
   \colorbox{green}{%
     $P_{\ti{#1}{#3}\given \ts{Y}{0}{#3}} \left(#2 \given  \ts{y}{0}{#3} \right)$%
   }%
@@ -173,17 +173,17 @@ equations below\footnote{On page~\pageref{code:forward} in
 color highlighting to emphasize repeated instances of the same
 quantity.  The algorithm saves the following intermediate results
 %
-\nomenclature[ga]{$\alpha(t,s)$}{The conditional probability that at time
+\nomenclature[galpha]{$\alpha(t,s)$}{The conditional probability that at time
   $t$ the system is in state $s$ given the observations up to the
   present,
   \begin{equation*}
-    \alpha(t,s) \equiv  P_{S(t) \given \ts{Y}{0}{t}}\left(s \given \ts{y}{0}{t}
+    \alpha(t,s) \equiv  P_{S(t) \given \ts{Y}{0}{t+1}}\left(s \given \ts{y}{0}{t+1}
     \right).
   \end{equation*}
   Also called the forward updated distribution in the Kalman filter
   literature.}
 %
-\nomenclature[gc]{$\gamma(t)$}{The probability of the present observation
+\nomenclature[ggamma]{$\gamma(t)$}{The probability of the present observation
   given the history.}%, $P(y(t)\given y_1^{t-1}$.}
 \begin{subequations}
   \label{eq:ForwardDefinitions}
@@ -373,7 +373,7 @@ to describe and justify the algorithm.
   \end{equation*}
 \item[$\bm{\nu(t,s)}$ The \emph{utility} of the best
   $\bm{\ts{s}{0}{t+1}}$ ending in $\bm{s}$] %
-  \nomenclature[gn]{$\nu(t,s)$}{Used in discussing the Viterbi
+  \nomenclature[gnu]{$\nu(t,s)$}{Used in discussing the Viterbi
     algorithm to denote the \emph{utility} of the best sequence ending
     in state $s$.
     \begin{equation*}
@@ -621,6 +621,27 @@ Eqn.~\eqref{eq:EMmax} in Section~\ref{sec:reestimation}.
 \subsection{The Backward Algorithm}
 \label{sec:backward}
 
+%%%
+%%% #1 = t #2 = t-1 #3 = OldState
+\newcommand{\Backcast}[3]{% P(S[t] | \tilde S[t-1])
+  \colorbox{pink}{%
+    $P_{\ti{S}{#1}\given \ti{S}{#2}} \left(s \given #3 \right)$%
+  }%
+}%
+%%%
+%%% #1 = t
+\newcommand{\BackUpdate}[1]{%
+  \colorbox{green}{% P(Y[t] | \tilde S[t])
+    $P_{\ti{Y}{#1}\given \ti{S}{#1}} \left(\ti{y}{t} \given s \right)$%
+  }%
+}%
+%%%
+%%% #1 = t
+\newcommand{\FuturePast}{%
+  \colorbox{orange}{% P(y[t+1:T] |  y[0:t+1])
+    $P\left( \ts{y}{t+1}{T}\given  \ts{y}{0}{t+1} \right)$%
+  }%
+}%
 The \index{backward algorithm} backward algorithm is similar to the
 forward algorithm in structure and complexity, but the terms are
 neither as easy to interpret nor as clearly useful.  After running
@@ -637,20 +658,20 @@ them $\beta(t,s)$, with the values
   \frac{P_{\ti{S}{t}\given \ts{Y}{0}{T}} \left(s\given \ts{y}{0}{T} \right)}
   {\alpha(t,s)} = \frac{P_{\ti{S}{t}\given \ts{Y}{0}{T}}
     \left(s\given \ts{y}{0}{T} \right)}
-  {P_{\ti{S}{t}\given \ts{Y}{0}{t}} \left(s\given \ts{y}{0}{t} \right)}.
+  {\alphax{t}{S}{t+1}{s}}.
 \end{equation}
-\nomenclature[gb]{$\beta(t,s)$}{An intermediate quantity calculated in the
+\nomenclature[gbeta]{$\beta(t,s)$}{An intermediate quantity calculated in the
   backwards algorithm which is used somewhat like $\alpha$ in the
   forward algorithm.  One may use either of the following two
   equations to define $\beta$
   \begin{align*}
     \beta(t,s) &= \frac{P_{\ts{Y}{t+1}{T} \given \ti{S}{t}}
       \left(\ts{y}{t+1}{T} \given s
-      \right)} {P \left(\ts{y}{t+1}{T} \given \ts{y}{0}{t} \right)}\\
+      \right)} {P \left(\ts{y}{t+1}{T} \given \ts{y}{0}{t+1} \right)}\\
     &= \frac{P_{\ti{S}{t} \given \ts{Y}{0}{T}} \left(s \given \ts{y}{0}{T} \right)}
     {\alpha(t,s)} = \frac{P_{\ti{S}{t} \given \ts{Y}{0}{T}}
-      \left(s \given \ts{y}{0}{T} \right)} {P_{\ti{S}{t} \given \ts{Y}{0}{t}}
-      \left(s \given \ts{y}{0}{t} \right)}.
+      \left(s \given \ts{y}{0}{T} \right)} {P_{\ti{S}{t} \given \ts{Y}{0}{t+1}}
+      \left(s \given \ts{y}{0}{t+1} \right)}.
   \end{align*}
   The interpretation of $\beta$ is less intuitive than the
   interpretation of $\alpha$.  It is also called the backward forecast
@@ -658,38 +679,35 @@ them $\beta(t,s)$, with the values
 Invoking Bayes rule and the model assumptions we find
 \begin{align}
   \mlabel{eq:bw2} \beta(t,s) &= \frac{P_{\ts{Y}{0}{T},\ti{S}{t}}
-    \left(\ts{y}{0}{T},s \right)\cdot P \left(\ts{y}{0}{t} \right)}
-  {P_{\ts{Y}{0}{t},\ti{S}{t}}
-    \left(\ts{y}{0}{t},s \right)\cdot P \left(\ts{y}{0}{T} \right)}\\
-  \mlabel{eq:bw3} &= \frac{P_{\ts{Y}{t+1}{T}\given \ts{Y}{0}{t},\ti{S}{t}}
-    \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t},s \right)} {P
-    \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t} \right)}\\
+    \left(\ts{y}{0}{T},s \right)\cdot P \left(\ts{y}{0}{t+1} \right)}
+  {P_{\ts{Y}{0}{t+1},\ti{S}{t}}
+    \left(\ts{y}{0}{t+1},s \right)\cdot P \left(\ts{y}{0}{T} \right)}\\
+  \mlabel{eq:bw3} &= \frac{P_{\ts{Y}{t+1}{T}\given \ts{Y}{0}{t+1},\ti{S}{t}}
+    \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t+1},s \right)} {\FuturePast}\\
   \label{eq:bw4}
   & = \frac{P_{\ts{Y}{t+1}{T}\given \ti{S}{t}} \left(\ts{y}{t+1}{T}\given s
-    \right)} {P \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t} \right)}.
+    \right)} {\FuturePast}.
 \end{align}
-(Note that if $\alpha(t,s)=0$, Eqn.~\eqref{eq:bw1} is undefined, but
-we can nonetheless implement Eqn.~\eqref{eq:bw4}.)
+Note that if $\alpha(t,s)=0$, Eqn.~\eqref{eq:bw1} is undefined, but
+we can nonetheless implement Eqn.~\eqref{eq:bw4}.
 
-The algorithm starts at the final time $T$ with $\beta$ set to
+The algorithm starts at the final time $T-1$ with $\beta$ set to
 one\footnote{From the premises that $\alpha(t,s) \beta(t,s) =
   P_{\ti{S}{t}\given \ts{Y}{0}{T}} \left(s\given \ts{y}{0}{T} \right)$ and
-  $\alpha(t,s) \equiv P_{S(T)\given \ts{Y}{0}{T}}\left(s \given \ts{y}{0}{T}
-  \right)$, we conclude that $\beta(t,s) = 1 ~\forall s$.} %
-for each state, $\beta(t,s) = 1,~\forall s \in \states$, and solves
+  $\alpha(T-1,s) \equiv P_{S(T-1)\given \ts{Y}{0}{T}}\left(s \given \ts{y}{0}{T}
+  \right)$, we conclude that $\beta(T-1,s) = 1 ~\forall s$.} %
+for each state, $\beta(T-1,s) = 1,~\forall s \in \states$, and solves
 for $\beta$ at earlier times with the following recursion that goes
 \emph{backwards} through time:
 \begin{equation}
   \label{eq:backformula}
   \beta(t-1,{\tilde s}) = \sum_{s\in\states} \beta(t,s)
-  \frac{ P_{\ti{Y}{t}\given \ti{S}{t}}
-    \left(\ti{y}{t}\given s \right) \cdot P_{\ti{S}{t}\given \ti{S}{t-1}}
-    \left(s\given {\tilde s} \right)} {\ti{\gamma}{t}}
+  \frac{ \BackUpdate{t} \cdot \Backcast{t}{t-1}{\tilde s}} {\ti{\gamma}{t}}
 \end{equation}
 Note that ${\ti{\gamma}{t} \equiv P \left( \ti{y}{t} \given 
     \ts{y}{0}{t}\right)}$ is calculated by the forward algorithm and
 that the terms in the numerator are model parameters.  We justify
-Eqn.~\eqref{eq:backformula} by using Eqn.~\eqref{eq:bw4}
+Eqn.~\eqref{eq:backformula} starting with Eqn.~\eqref{eq:bw4}
 \begin{align}
   \beta(t-1,{\tilde s}) & \equiv \frac{P_{\ts{Y}{t}{T}\given \ti{S}{t-1}}
     \left(\ts{y}{t}{T}\given {\tilde s} \right)}
@@ -707,46 +725,41 @@ for $\beta(t,s)$ from Eqn.~\eqref{eq:bw4}:
   \begin{split}
     &\quad= P_{\ts{Y}{t+1}{T}\given \ti{Y}{t},\ti{S}{t},\ti{S}{t-1}}
        \left(\ts{y}{t+1}{T}\given \ti{y}{t},s,{\tilde s} \right)\\
-    &\quad\qquad \cdot P_{\ti{Y}{t}\given \ti{S}{t},\ti{S}{t-1}} \left(\ti{y}{t}\given s,{\tilde s}
-       \right)\cdot P_{\ti{S}{t}\given \ti{S}{t-1}} \left(s\given {\tilde s} \right)
+    &\quad\qquad \times P_{\ti{Y}{t}\given \ti{S}{t},\ti{S}{t-1}} \left(\ti{y}{t}\given s,{\tilde s}
+       \right)\cdot \Backcast{t}{t-1}{\tilde s}
   \end{split}\\
   &\quad= P_{\ts{Y}{t+1}{T}\given \ti{S}{t}} \left(\ts{y}{t+1}{T}\given s\right)
-           \cdot P_{\ti{Y}{t}\given \ti{S}{t}} \left(\ti{y}{t}\given s \right) \cdot
-            P_{\ti{S}{t}\given \ti{S}{t-1}} \left(s\given {\tilde s} \right) \\
-  &\quad= \beta(t,s) \cdot P \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t} \right)
-           \cdot P_{\ti{Y}{t}\given \ti{S}{t}} \left(\ti{y}{t}\given s \right) \cdot
-            P_{\ti{S}{t}\given \ti{S}{t-1}} \left(s\given {\tilde s} \right)
+           \cdot \BackUpdate{t} \cdot \Backcast{t}{t-1}{\tilde s} \\
+  &\quad= \beta(t,s) \cdot \FuturePast \cdot \BackUpdate{t} \cdot
+    \Backcast{t}{t-1}{\tilde s}
 \end{align*}
-Similarly, simplify the denominator of Eqn.~\eqref{eq:back2} using
+Similarly, rewrite the denominator of Eqn.~\eqref{eq:back2} using
 Bayes rule:
 \begin{equation*}
-  P \left(\ts{y}{t}{T}\given \ts{y}{0}{t} \right) = P
-  \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t}  \right) \cdot {P \left(
-  \ti{y}{t}\given \ts{y}{0}{t}\right)}
+  P \left(\ts{y}{t}{T}\given \ts{y}{0}{t} \right) = \FuturePast \cdot {
+  \gammax}
 \end{equation*}
 Finally by substituting these values into the fraction of
-\eqref{eq:back2}, we verify the recursion \eqref{eq:backformula}
-\begin{align}
-  \mlabel{eq:back3} \beta(t-1,{\tilde s}) &= \frac{\sum_{s\in\states}
-    \beta(t,s) \cdot P \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t} \right)
-    \cdot P_{\ti{Y}{t}\given \ti{S}{t}} \left(\ti{y}{t}\given s \right) \cdot
-    P_{\ti{S}{t}\given \ti{S}{t-1}} \left(s\given {\tilde s} \right)} {P
-    \left(\ts{y}{t+1}{T}\given \ts{y}{0}{t} \right) \cdot {P \left(
-        \ti{y}{t}\given \ts{y}{0}{t}\right)}} \\
-  \mlabel{eq:back4} &= \sum_{s\in\states} \beta(t,s) \frac{
-    P_{\ti{Y}{t}\given \ti{S}{t}} \left(\ti{y}{t}\given s \right) \cdot
-    P_{\ti{S}{t}\given \ti{S}{t-1}} \left(s\given {\tilde s} \right)} {\ti{\gamma}{t}}.
-\end{align}
+\eqref{eq:back2}, and noting that the term $\FuturePast$ in the
+numerator and denominator cancel, we verify the recursion
+\eqref{eq:backformula}
+\begin{align*}
+  \beta(t-1,{\tilde s})
+  &= \frac{\sum_{s\in\states}\beta(t,s) \cdot \BackUpdate{t} \cdot
+    \Backcast{t}{t-1}{\tilde s}} { \gammax} \\
+  &= \sum_{s\in\states} \beta(t,s) \frac{ \BackUpdate{t} \cdot
+    \Backcast{t}{t-1}{\tilde s}} {\ti{\gamma}{t}}.
+\end{align*}
 By introducing the intermediate quantity $b(t,s)$ we can break
-\eqref{eq:back4} into the two steps
+\eqref{eq:backformula} into the two steps
 \begin{subequations}
   \label{eq:2LineBackward}
   \begin{align}
     \mlabel{eq:back5}
-    b(s,t) &= \frac{\beta(t,s) \ti{y}{t}}{\ti{\gamma}{t}} \\
+    b(s,t) &= \frac{\beta(t,s) \BackUpdate{t}}{\ti{\gamma}{t}} \\
     \mlabel{eq:back6}
-    \beta(t-1,\tilde s) &= \sum_{s\in\states} b(s,t) P_{\ti{S}{1}\given
-                          \ti{S}{0}} \left(s\given {\tilde s} \right),
+    \beta(t-1,\tilde s) &= \sum_{s\in\states} b(s,t)
+                          \Backcast{1}{0}{\tilde s},
   \end{align}
 \end{subequations}
 which clarifies that, aside from normalization, the backward algorithm
@@ -1057,9 +1070,10 @@ Optimization yields
         parameters, after $n$ iterations of the Baum-Welch algorithm.
       \end{minipage}\\ \\%
       %%
-      \nomenclature[galphan]{$\bm{\alpha}_n$}{The set of conditional state
-        probabilities based on the $n^{\text{th}}$ iteration of the
-        Baum-Welch algorithm.}
+      \nomenclature[ggamman]{$\bm{\alpha}_n,\bm{\beta}_n,\bm{\gamma}_n$}{The
+        sets of values of $\alpha(t,s), \beta(t,s)$ and $\gamma(t)$
+        based on the $n^{\text{th}}$ iteration of the Baum-Welch
+        algorithm.}
       \begin{minipage}[b]{1.0\textwidth}
         $\bm{\alpha}_n$ is the set of conditional state probabilities
         calculated on the basis of the $n^{\text{th}}$ model and the
@@ -1073,9 +1087,6 @@ Optimization yields
       \end{minipage}\\ \\%
       %%
       \begin{minipage}[b]{1.0\textwidth}
-        \nomenclature[gbetan]{$\bm{\beta}_n$}{The set of values based
-          on the $n^{\text{th}}$ iteration of the Baum-Welch
-          algorithm.}
         %
         $\bm{\beta}_n$ is a set of values calculated on the basis of
         the $n^{\text{th}}$ model $\oldmodel$ and the data
@@ -1090,9 +1101,6 @@ Optimization yields
       \end{minipage}\\ \\%
       %%
       \begin{minipage}[b]{1.0\textwidth}
-        \nomenclature[ggamman]{$\bm{\gamma}_n$}{The set of conditional
-          observation probabilities calculated based on the
-          $n^{\text{th}}$ iteration of the Baum-Welch algorithm.}
         %
          $\bm{\gamma}_n$ is the set of conditional observation probabilities
          calculated on the basis of the $n^{\text{th}}$ model $\oldmodel$ and
