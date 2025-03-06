@@ -21,6 +21,14 @@ $(FIGS_FILTER)/log_likelihood.pdf: $(FilterPlotscripts)/log_likelihood_fig.py $(
 	mkdir -p $(@D)
 	python $^ $@
 
+$(FIGS_FILTER)/filter_b.pdf: $(FilterPlotscripts)/ddays_plot_b.py $(BOUNDS_DATA)/ddays
+	mkdir -p $(@D)
+	python $^ --start 72 $@
+
+$(FIGS_FILTER)/entropy_filter.pdf: $(FilterPlotscripts)/entropy_particle.py $(BOUNDS_DATA)/particle_1k
+	mkdir -p $(@D)
+	python $^ $@
+
 # Local Variables:
 # mode: makefile
 # End:
