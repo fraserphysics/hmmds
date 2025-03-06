@@ -2,6 +2,7 @@
 
 python entropy_particle.py input_path
 
+This is for the dynamics days 2025 poster.
 """
 
 import sys
@@ -38,7 +39,8 @@ def main(argv=None):
     with open(args.input, 'rb') as file_:
         dict_in = pickle.load(file_)
     gamma = dict_in['gamma']
-    log_gamma = numpy.log(gamma)[14:]
+    offset = 14
+    log_gamma = numpy.log(gamma)[offset:]
     cum_sum = numpy.cumsum(log_gamma)
     entropy = -cum_sum / numpy.arange(1, len(cum_sum) + 1)
 
@@ -46,7 +48,7 @@ def main(argv=None):
     figure, axes = pyplot.subplots(figsize=(6, 4))
 
     y_values = entropy / 0.15
-    axes.plot(y_values, label=r'$\hat h$')
+    axes.plot(numpy.arange(offset, offset+len(y_values)), y_values, label=r'$\hat h$')
     x_max = len(y_values)
     y_level = 0.906
     axes.plot([0, x_max], [y_level, y_level], label=r'$\lambda$')

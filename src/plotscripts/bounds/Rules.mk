@@ -36,3 +36,7 @@ $(FIGS_BOUNDS)/particles_b.pdf: $(BoundsPlotscripts)/ddays_plot_b.py $(BOUNDS_DA
 $(FIGS_BOUNDS)/entropy_particle.pdf: $(BoundsPlotscripts)/entropy_particle.py $(BOUNDS_DATA)/particle_1k
 	mkdir -p $(@D)
 	python $^ $@
+
+# Local Variables:
+# mode: makefile
+# End:
