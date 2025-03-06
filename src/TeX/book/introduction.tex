@@ -29,7 +29,7 @@ and one could say that $\ti{x}{t}$ is \emph{hidden}.  That is the
 sense of \emph{hidden} in the term ``hidden Markov model''.
 
 Given a short sequence of observations, say
-$\ts{y}{0}{3} = \left[ \ti{y}{0},\ti{y}{1}, \ti{y}{2}\right)$, one
+$\ts{y}{0}{3} = \left[ \ti{y}{0},\ti{y}{1}, \ti{y}{2}\right]$, one
 might hope to \emph{reveal} the state $\ti{x}{2}$ by looking for all
 initial states that are consistent with the observations.  The
 strategy will only work if the images of all initial states that are
@@ -45,11 +45,11 @@ forecasting of both states and observations.
 For most of the state space models that we consider, the function that
 governs the state dynamics and the observation function both have
 random elements.  Only imagination limits what constitutes the set of
-states in a state space model.  We will consider discrete state spaces
-that are sets with a finite number of elements and state spaces that
-are real vector spaces.  The sets of observations are similarly
-varied.  As a prelude, we look at some measurements of a laser system
-that is ``Lorenz like''.
+states in a state space model.  The kinds of observations are
+similarly varied.  We will consider discrete state spaces that are
+sets with a finite number of elements and state spaces that are real
+vector spaces.  As a prelude, we look at some measurements of a laser
+system that is ``Lorenz like''.
 
 \section{Laser Example}
 \label{sec:laser}
@@ -123,7 +123,7 @@ $\id\sigma_\eta^2$ to implement the state noise $\ti{\eta}{t}$.
 offset parameters, and the measurement noise $\ti{\epsilon}{t}$ is
 independently identically distributed Gaussian noise with mean zero
 and covariance $\id\sigma_\epsilon^2$.  The model has the following
-eleven free parameters:
+eleven free parameters: \label{page:eleven_parameters}
 \begin{description}
 \item[Lorenz system parameters] The values of $r$, $s$, and $b$ in
   \eqref{eq:Lorenz} constitute three free parameters.
@@ -149,23 +149,28 @@ parameter vector that satisfies
   \label{eq:theta-hat-laser}
   \hat \theta = \argmax_{\theta} ~ P(\ts{y}{0}{250}\given \theta),
 \end{equation}
-where $P(\ts{y}{0}{250}\given \theta)$ is the conditional probability that a
-sequence of 250 observations will have the values
+where $P(\ts{y}{0}{250}\given \theta)$, the \emph{likelihood} of
+$\theta$, is the conditional probability that a sequence of 250
+observations will have the values
 $\ti{y}{0},\ti{y}{1}, \ldots,\ti{y}{249}$ given the parameters
 $\theta$.  The parameter vector $\hat \theta$ is called the
 \emph{maximum likelihood estimate} %
 \index{maximum likelihood estimate (MLE)}%
 \index{MLE|see{maximum likelihood estimate}}%
 of the parameter vector.  Figure~\ref{fig:LaserLogLike} sketches a
-piece of the log-likelihood function.
+piece of the log of the likelihood function.
 
 \begin{figure}[htbp]
   \centering{
     \includegraphics[width=1.0\textwidth]{LaserLogLike.pdf}}
-  \caption[\comment{fig:LaserLogLike }Log likelihood as function of $s$ and $b$.]%
-  {Log likelihood as function of $s$ and $b$.  Other parameters were
-    taken from the vector $\hat \theta$ that maximizes the likelihood
-    $P(\ts{y}{0}{250}\given \theta)$ (see Eqn.~\eqref{eq:theta-hat-laser}).}
+  \caption[\comment{fig:LaserLogLike }Log likelihood as function of
+  $s$ and $b$.]%
+  {An illustration of how the log-likelihood,
+    $\log \left(P(\ts{y}{0}{250}\given \theta) \right)$, depends on
+    the components $s$ and $b$ of $\theta$.  The other nine
+    components of $\theta$ were held fixed at the values that maximize
+    the likelihood.  Descriptions of all eleven parameters appear on
+    page~\pageref{page:eleven_parameters}.}
   \label{fig:LaserLogLike}
 \end{figure}
 
@@ -191,8 +196,8 @@ highest probability given the first 250 observations, \ie,
     \includegraphics[width=1.0\textwidth]{LaserStates.pdf}}
   \caption[\comment{fig:LaserStates }State trajectory $\ts{\hat x}{0}{250}$.]%
   {State trajectory $\ts{\hat x}{0}{250}$ estimated from
-    observation sequence $\ts{y}{0}{250}$. (see
-    Eqn.~\eqref{eq:xhatSeq}.)  Components $x_1$ and $x_3$ of the
+    observation sequence $\ts{y}{0}{250}$ (see
+    Eqn.~\eqref{eq:xhatSeq}).  Components $x_1$ and $x_3$ of the
     Lorenz system (see Eqn.~\eqref{eq:Lorenz}) are plotted.}
   \label{fig:LaserStates}
 \end{figure}
@@ -270,15 +275,15 @@ One can use a parameterized class of state space models $\left\{
     \ts{\hat y}{250}{500} = \argmax_{\ts{y}{250}{500}}
     P(\ts{y}{250}{500}\given \ts{y}{0}{250},\theta).
   \end{equation*}
-\item[Simulation] Given a model $P_{*\given \theta}$, one can characterize its
-  long term behavior, answering questions like ``What is a hundred
-  year flood?''.  We often find that models that we fit are not good
-  for such long term extrapolation.  For example, the laser data that
-  we described in the previous section seems to come from a stable
-  period five orbit, but the periodic orbit that the trajectory in
-  Fig.~\ref{fig:LaserStates} approximates is linearly unstable.  Thus
-  the long term behavior of our estimated model is very different from
-  the actual laser system.
+\item[Simulation] Given a model $P_{*\given \theta}$, one can
+  characterize its long term behavior, answering questions like ``What
+  is a hundred year flood?''.  We often find that models that we fit
+  are not good for such long term extrapolation.  For example, the
+  laser data that we described in the previous section seems to come
+  from a stable period five orbit, but the periodic orbit that the
+  trajectory in Fig.~\ref{fig:LaserStates} approximates is unstable.
+  Thus the long term behavior of our estimated model is very different
+  from the actual laser system.
 \item[Classification] Given sample signals like $\ts{y}{0}{T}$ and two
   possible signal sources, $h$ and $d$ where $P_{*\given h}$
   characterizes healthy units and $P_{*\given d}$ characterizes defective
@@ -777,7 +782,6 @@ the Viterbi algorithm to find the most likely state sequence
      program.}
    \label{fig:GraphStates}
  \end{figure}
- \ToDo{Improve Fig.~\ref{fig:GraphStates}}
 
 
 \subsection{Example: Hidden States as Parts of Speech}

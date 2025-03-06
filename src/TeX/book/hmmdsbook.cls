@@ -142,20 +142,6 @@
 %%%
 \RequirePackage{graphicx}
 
-%%% Colored text may only be used during draft stages!
-%%% 
-%%% ToDo: Either remove color or implement a boolean option that
-%%% ToDo: enables it, with it off by default.
-%%%
-%%% ToDo: Q: Can we use greyscale in the main document for anything
-%%% ToDo:    useful?
-%%% 
-%%% Note: The colored illustrations will all be placed near one
-%%%       on a small set of colored pages, similar to what you find
-%%%       in "The LaTeX Graphics Companion".
-%%% 
-%%% ToDo: Ensure that all colored illustrations use CMYK color model.
-%%%
 \RequirePackage[usenames]{xcolor}
 
 % \definecolor{Red}{named}{Red}
@@ -175,7 +161,7 @@
 %%%
 \RequirePackage{multicol}
 
-%%% ToDo: Ensure that these is compatible with newsiambook
+%%% ToDo: Ensure that these are compatible with newsiambook
 %%%
 \RequirePackage{amsmath}% ToDo: compatible w/siammathtime.sty?
 \RequirePackage{amsfonts}% ToDo: compatible w/siammathtime.sty?
