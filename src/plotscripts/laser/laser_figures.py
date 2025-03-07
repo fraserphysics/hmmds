@@ -59,6 +59,8 @@ def LaserLP5(data, matplotlib, pyplot):
     ax.plot(data['training_simulated_observations'], label='Simulation')
     ax.plot(data['training_laser_data'], label='Laser Data')
     ax.legend()
+    ax.set_xlabel(r'$t$')
+    ax.set_ylabel(r'$y$')
     return fig
 
 
@@ -70,8 +72,8 @@ def LaserLogLike(data, matplotlib, pyplot):
     log_like = data['log_likelihood']
     fig = pyplot.figure(figsize=(6, 4))
     ax = fig.add_subplot(1, 1, 1, projection='3d', azim=-13, elev=20)
-    ax.set_xlabel('$b$')
-    ax.set_ylabel('$s$')
+    ax.set_xlabel(r'$b$')
+    ax.set_ylabel(r'$s$')
     ax.set_zlabel(r'$\log(P(y[0:250]|\theta))$')
     X, Y = numpy.meshgrid(b, s)
     ax.contour(X, Y, log_like, zdir='z', offset=log_like.min())
@@ -89,11 +91,13 @@ def LaserLogLike(data, matplotlib, pyplot):
 @register
 def LaserStates(data, matplotlib, pyplot):
     """forward_means"""
-    fig = pyplot.figure()
+    fig = pyplot.figure(figsize=(6, 4))
     ax = fig.add_subplot()
     x_t = data['forward_means']
     ax.plot(x_t[:, 0], x_t[:, 2])
     ax.plot(x_t[:, 0], x_t[:, 2], linestyle='', marker='.', color='black')
+    ax.set_xlabel(r'$x_1$')
+    ax.set_ylabel(r'$x_3$')
     return fig
 
 
@@ -108,6 +112,7 @@ def LaserForecast(data, matplotlib, pyplot):
     ax.plot(times, data['forecast_observations'], label='Forecast')
     ax.plot(times, data['next_data'], label='Laser Data')
     ax.set_xlabel(r'$t$')
+    ax.set_ylabel(r'$y$')
     ax.legend()
     return fig
 

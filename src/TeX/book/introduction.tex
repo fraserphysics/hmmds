@@ -674,12 +674,12 @@ likelihood.
   $s$, the \index*{forward algorithm} calculates the conditional
   probability of being in state $s$ at time $t$ given all of the
   observations up to that time, \ie,
-  $P_{\ti{S}{t}\given \ts{Y}{0}{t+1},\parameters} \left(s\given \ts{y}{0}{t+1},
-    \parameters \right)$. It also calculates
+  $P_{\ti{S}{t}\given \ts{Y}{0}{t+1},\parameters} \left(s\given
+    \ts{y}{0}{t+1}, \parameters \right)$. It also calculates
   $P\left(\ti{y}{t}\given \ts{y}{0}{t}, \parameters \right)$, the
   conditional probability of each observation given previous
-  observations.  Using these terms it calculates the probability of
-  the entire data sequence given the model,
+  observations.  One can write the probability of the entire data
+  sequence given the model in these terms, \ie,
   \begin{equation*}
     P \left(\ts{y}{0}{T}\given \parameters \right) =  P \left(\ti{y}{0}
       \given \parameters \right) \cdot  \prod_{t=1}^{T-1} P
