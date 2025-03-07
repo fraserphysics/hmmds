@@ -21,7 +21,7 @@ $(FIGS_FILTER)/log_likelihood.pdf: $(FilterPlotscripts)/log_likelihood_fig.py $(
 	mkdir -p $(@D)
 	python $^ $@
 
-$(FIGS_FILTER)/filter_b.pdf: $(FilterPlotscripts)/ddays_plot_b.py $(BOUNDS_DATA)/ddays
+$(FIGS_FILTER)/filter_b.pdf: $(FilterPlotscripts)/forecast_update.py $(BOUNDS_DATA)/ddays
 	mkdir -p $(@D)
 	python $^ --start 72 $@
 
