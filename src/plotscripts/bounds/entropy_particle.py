@@ -48,7 +48,9 @@ def main(argv=None):
     figure, axes = pyplot.subplots(figsize=(6, 4))
 
     y_values = entropy / 0.15
-    axes.plot(numpy.arange(offset, offset+len(y_values)), y_values, label=r'$\hat h$')
+    axes.plot(numpy.arange(offset, offset + len(y_values)),
+              y_values,
+              label=r'$\hat h$')
     x_max = len(y_values)
     y_level = 0.906
     axes.plot([0, x_max], [y_level, y_level], label=r'$\lambda$')

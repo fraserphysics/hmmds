@@ -32,6 +32,8 @@ def parse_args(argv):
 
 
 def plot_box(axes, particle):
+    """Plot the box for a particle
+    """
     colors = 'red green blue'.split()
     x = particle.x
 
@@ -118,11 +120,12 @@ def main(argv=None):
 
         close = Close(x_all[i], forecast)
         distance, closest = close.nth(0)
-        axes = axeses[i % 5, 2]
-        plot_box(axes, closest)
+        axes = axeses[i % 5, 2]  # Plot the box for the particle
+        plot_box(axes, closest)  # closest to the true trajectory
 
         # Plot points of forecast and update
         for j, cloud in enumerate((forecast, update)):
+            # j = 0 -> forecast, j = 1 -> update
             if len(cloud) == 0:
                 continue
             axes = axeses[i % 5, j]
@@ -146,7 +149,14 @@ def main(argv=None):
                    closest.x,
                    'red',
                    label=f'y[{i}]={y_q[i]} {distance=:.3f} n={len(forecast)} ')
-        axes.legend(loc='upper right')
+        axes.legend(loc='upper right')  # Faster than loc="best"
+        # Print p(y[t]|y[0:t]) in legend of center plot
+        axes = axeses[i % 5, 1]
+        plot_point(axes,
+                   closest.x,
+                   'red',
+                   label=f'p={len(update)/len(forecast):.3f} ')
+        axes.legend(loc='upper right')  # Faster than loc="best"
 
         _, ratio = closest.ratio()
         numpy.set_printoptions(precision=2)
