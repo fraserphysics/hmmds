@@ -25,9 +25,17 @@ $(FIGS_FILTER)/filter_b.pdf: $(FilterPlotscripts)/forecast_update.py $(BOUNDS_DA
 	mkdir -p $(@D)
 	python $^ --start 72 $@
 
-$(FIGS_FILTER)/entropy_filter.pdf: $(FilterPlotscripts)/entropy_particle.py $(BOUNDS_DATA)/particle_1k
+$(FIGS_FILTER)/no_divide.pdf: $(FilterPlotscripts)/forecast_update.py $(BOUNDS_DATA)/ddays
 	mkdir -p $(@D)
-	python $^ $@
+	python $^ --no_divide $@ --t_rows 0 10 31
+
+$(FIGS_FILTER)/with_divide.pdf: $(FilterPlotscripts)/forecast_update.py $(BOUNDS_DATA)/ddays
+	mkdir -p $(@D)
+	python $^ --with_divide $@ --t_rows 70 74 78
+
+$(FIGS_FILTER)/entropy_filter.pdf: $(FilterPlotscripts)/forecast_update.py $(BOUNDS_DATA)/particle_1k
+	mkdir -p $(@D)
+	python $^ --entropy $@
 
 # Local Variables:
 # mode: makefile

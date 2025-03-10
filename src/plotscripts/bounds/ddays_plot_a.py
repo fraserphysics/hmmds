@@ -25,7 +25,7 @@ def parse_args(argv):
     parser.add_argument('--start',
                         type=int,
                         default=10133,
-                        help='Plot particles at 2 times starting here')
+                        help='Use trajectory starting at "start" as truth')
     parser.add_argument('input', type=str, help='Path to data')
     parser.add_argument('fig_path', type=str, help='Path to figure file')
     args = parser.parse_args(argv)
@@ -41,7 +41,7 @@ def plot_selected(axes, x_all, bins, indices: set, shift, t_x):
         bins: For vertical lines
         indices: Unshifted times
         shift: Plots points at times = indices + shift
-        t_x: Mark point t_x + shift
+        t_x: Mark point t_x + shift with red X
     """
     index_array = numpy.asarray([index for index in indices])
     shifted_indices = (index_array + shift,)

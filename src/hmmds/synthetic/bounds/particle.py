@@ -2,13 +2,16 @@
 
 Call with: python particle.py result_file
 
-Writes a dict to a pickle file with the following keys:
+Create x_all, y_q and p_filter (initialized with x_all[0]).  Then run
+filter on y_q.
 
-gamma
-x_all
-y_q
-clouds
-bins
+Write a dict to a pickle file with the following keys:
+
+x_all  Long (args.n_initialize) Lorenz trajectory
+y_q    Quantized data derived from x_all[:args.n_y]
+gamma  Incremental likelihood from p_filter(y_q, ...)
+clouds Forecast and update particles at times args.clouds
+bins   Bin boundaries.
 
 """
 
@@ -201,13 +204,6 @@ def main(argv=None):
     initialize(p_filter, y_q, y_reference, x_all[args.n_y:], x_all[0])
     gamma = numpy.ones(len(y_q))
     clouds = {}  # keys are pairs (t,'forecast') or (t,'update')
-    result = {
-        'gamma': gamma,
-        'x_all': x_all,
-        'y_q': y_q,
-        'clouds': clouds,
-        'bins': bins
-    }
 
     debug_times = set()
     # Run filter on y_q
@@ -224,6 +220,13 @@ def main(argv=None):
             break
 
     # Write results
+    result = {
+        'gamma': gamma,  # (100,) From x_all[:100]
+        'y_q': y_q,  # (100,) From x_all[:100]
+        'bins': bins,  # (3,)  
+        'x_all': x_all,  # (15100, 3)
+        'clouds': clouds  # dict
+    }
 
     with open(args.result, 'wb') as _file:
         pickle.dump(result, _file)
