@@ -46,6 +46,10 @@ def parse_args(argv):
                         type=float,
                         default=0.2,
                         help='Divide edges bigger than this')
+    parser.add_argument('--margin',
+                        type=float,
+                        default=.5,
+                        help='Keep outside particles this close to boundaries')
     parser.add_argument('--s_augment',
                         type=float,
                         default=.0005,

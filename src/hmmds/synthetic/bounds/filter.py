@@ -150,6 +150,7 @@ class Filter:
         self.resample_pair = args.resample
         self.atol = args.atol
         self.s_augment = args.s_augment
+        self.margin = args.margin
         self.bins = bins
         self.rng = rng
         self.particles: list[Particle] = []
@@ -220,7 +221,6 @@ class Filter:
             y: A scalar integer observation
         """
         new_particles = []
-        margin = 0.5
 
         def zero():
             """Use if y==0.  Keep a particle if any part of the box is
@@ -232,7 +232,7 @@ class Filter:
                 # box_0 is the total length of the box in the 0
                 # direction
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
-                if particle.x[0] - margin * box_0 < upper:
+                if particle.x[0] - self.margin * box_0 < upper:
                     new_particles.append(particle)
 
         def top():
@@ -243,7 +243,7 @@ class Filter:
             lower = self.bins[-1]
             for particle in self.particles:
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
-                if particle.x[0] + margin * box_0 > lower:
+                if particle.x[0] + self.margin * box_0 > lower:
                     new_particles.append(particle)
 
         if y == 0:
@@ -255,8 +255,8 @@ class Filter:
             upper = self.bins[y]
             for particle in self.particles:
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
-                if lower - margin * box_0 < particle.x[
-                        0] < upper + margin * box_0:
+                if lower - self.margin * box_0 < particle.x[
+                        0] < upper + self.margin * box_0:
                     new_particles.append(particle)
         if len(self.particles) > 0 and len(new_particles) == 0:
             print(f'In update {len(self.particles)=} {len(new_particles)=}')
@@ -282,13 +282,16 @@ class Filter:
         assert 0.9999 < result.sum() < 1.00001
         return result
 
-    def forward(self: Filter, y_ts: numpy.ndarray, t_range, gamma, clouds=None):
+    def forward(self: Filter,
+                y_ts: numpy.ndarray,
+                t_range: tuple,
+                gamma: numpy.ndarray,
+                clouds=None):
         """Estimate and assign gamma[t] = p(y[t] | y[0:t]) for t from t_start to t_stop.
 
         Args:
             y_ts: A time series of observations
-            t_start:
-            t_stop:
+            t_range: (t_start, t_stop)
             gamma:
             clouds: Optional dict for saving particles
 

@@ -32,6 +32,11 @@ book: $(BUILD)/TeX/book/main.pdf
 # Rule in src/TeX/dynamics_days_25/Rules.mk
 ddays25: $(BUILD)/TeX/dynamics_days_25/poster.pdf
 
+## filter                         : Document about filtering
+.PHONY : filter
+# Rule in src/TeX/filter/Rules.mk
+filter: $(BUILD)/TeX/filter/filter.pdf
+
 ## skeleton                       : Explanation of how I make each figure for the book
 .PHONY : skeleton
 skeleton: $(BUILD)/TeX/skeleton/figures.pdf
