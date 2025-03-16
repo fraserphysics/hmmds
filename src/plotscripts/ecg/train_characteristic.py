@@ -12,7 +12,7 @@ import numpy
 import pint
 
 import plotscripts.utilities
-import utilities
+from hmmds.applications.apnea.ECG import utilities as ecg_utilities
 
 PINT = pint.UnitRegistry()
 
@@ -38,7 +38,7 @@ def main(argv=None):
     ecg_length = 2957000
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
-    column_dict = utilities.read_train_log(args.log_file)
+    column_dict = ecg_utilities.read_train_log(args.log_file)
     # keys are L0 -- L32, prior, U/n
     n_steps = len(column_dict['L0'])
     likelihood = numpy.zeros(n_steps)

@@ -55,7 +55,7 @@ $(ECG_DERIVED)/a01_trained_AR3/states/%: $(ECGCode)/ecg_decode.py $(ECG_DERIVED)
 	python $^ --ecg_dir $(PICKLED_ECG) $* $@
 $(ECG_DERIVED)/a01_trained_AR3/likelihood/%: $(ECGCode)/ecg_likelihood.py $(ECG_DERIVED)/a01_trained_AR3/unmasked_trained
 	mkdir -p  $(@D)
-	python $^ $* $@
+	python $^ $* --ecg_dir $(PICKLED_ECG) $@
 $(ECG_DERIVED)/a01_trained_AR3/heart_rate/%: $(ECGCode)/states2hr.py $(ECG_DERIVED)/a01_trained_AR3/states/%
 	mkdir -p  $(@D)
 	python $<  $(ECG_DERIVED)/a01_trained_AR3/states/$* $@
@@ -87,7 +87,7 @@ $(ECG_DERIVED)/%_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG_DERIVED)/a
 $(ECG_DERIVED)/%_self_AR3/states: $(ECGCode)/ecg_decode.py $(ECG_DERIVED)/%_self_AR3/unmasked_trained
 	python $^ --root $(ROOT) $* $@
 $(ECG_DERIVED)/%_self_AR3/likelihood: $(ECGCode)/ecg_likelihood.py $(ECG_DERIVED)/%_self_AR3/unmasked_trained
-	python $^ --root $(ROOT) $* $@
+	python $^ --root $(ROOT) --ecg_dir $(PICKLED_ECG) $* $@
 $(ECG_DERIVED)/%_self_AR3/heart_rate: $(ECGCode)/states2hr.py $(ECG_DERIVED)/%_self_AR3/states $(ECG_DERIVED)/%_self_AR3/likelihood
 	python $< --root $(ROOT) --r_state 35 --likelihood $(ECG_DERIVED)/$*_self_AR3/likelihood 0.02 $(ECG_DERIVED)/$*_self_AR3/states $@
 
@@ -170,10 +170,10 @@ $(ECG_DERIVED)/c07_self_AR3/unmasked_trained: $(ECGCode)/train.py $(ECG_DERIVED)
 	mkdir -p $(@D)
 	python $< --records c07 --type segmented --iterations 20 $(ECG_DERIVED)/c10_self_AR3/unmasked_trained $@ >  $@.log
 
-$(ECG_DERIVED)/table.tex: table.py $(ECG_DERIVED)/a01_trained_AR3/all_states_likelihood_heart_rate
+$(ECG_DERIVED)/table.tex: $(ECGCode)/table.py $(ECG_DERIVED)/a01_trained_AR3/all_states_likelihood_heart_rate
 	python $< $(ECG_DERIVED)/a01_trained_AR3/ $@
 
-$(ECG_DERIVED)/self_table.tex: self_table.py $(ECG_DERIVED)/all_selves
+$(ECG_DERIVED)/self_table.tex: $(ECGCode)/self_table.py $(ECG_DERIVED)/all_selves
 	python $< $(ECG_DERIVED) $@
 
 ################################################################################

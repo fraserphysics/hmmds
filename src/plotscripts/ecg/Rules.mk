@@ -60,6 +60,11 @@ $(ECG_FIG_DIR)/a01c02_states.pdf:  $(ECG_PLOTSCRIPTS)/a01c02_states.py $(ECG_DER
 	mkdir -p $(@D)
 	python $< $(PICKLED_ECG)  $(ECG_DERIVED)/a01_trained_AR3/states/a01 $(ECG_DERIVED)/a01_trained_AR3/states/c02 300.0 300.05 $@
 
+$(ECG_FIG_DIR)/all_ecgs:  $(ECG_PLOTSCRIPTS)/all_ecgs.py $(PICKLED_ECG)/flag
+	mkdir -p $(@D)
+	python $< --y_range -3 4 --time_interval 210 210.05 $(PICKLED_ECG) $(@D)
+	touch $@
+
 # Local Variables:
 # mode: makefile
 # End:
