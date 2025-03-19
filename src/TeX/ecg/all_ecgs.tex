@@ -53,22 +53,53 @@ record.
 \label{sec:strange_records}
 
 \begin{description}
-\item[a02] Small R wave.  Looking at other times, I see that the wave
-  forms are different.  There are changes at 129.2, 175.8, 188.1,
-  206.8, etc.  Maybe the patient is moving?
-\item[a10] Inverted signal?
-\item[a12] Small inverted signal?
+\item[a02] Small R wave.  See Figure~\ref{fig:ecgs_a01}.  There are
+  changes at minutes 129.2, 175.8, 188.1, 206.8, etc.  Maybe the
+  patient is moving?
+\item[a10] Inverted signal?  See Figure~\ref{fig:ecgs_a07}.
+\item[a12] Small inverted signal?  See Figure~\ref{fig:ecgs_a07}.
 \item[a20] Double R wave.  Same double pattern throughout the record.
-  I think it's a characteristic of the patient.
-\item[c02] Negative R wave?
-\item[x05] S bigger than R
-\item[x06] S bigger than R
+  I think it's a characteristic of the patient.  See
+  Figure~\ref{fig:ecgs_a19}.
+\item[c02] Negative R wave?  See Figure~\ref{fig:ecgs_c01}.
+\item[c05] I think this is the same as c06.  Peak at minute 9.235 in
+  c05 is the same as peak at 10.569 in c06.
+\item[x05] S bigger than R.  See Figure~\ref{fig:ecgs_x03}.
+\item[x06] S bigger than R.  See Figure~\ref{fig:ecgs_x03}.
+\item[x11] Atypical beats.  See Figure~\ref{fig:x11_332.83}.  See
+  Figure~\ref{fig:ecgs_x09}.
+\item[x13] Occasional big negative spikes.  See Figure~\ref{fig:x13_165.5}
 \item[x17] Strange waveform.  I think T is the biggest feature.  Bad
-  lead placement?
-\item[x24] S bigger than R ?
-\item[x33] Small inverted signal
+  lead placement?  See Figure~\ref{fig:ecgs_x15}.
+\item[x24] S bigger than R ?  See Figure~\ref{fig:ecgs_x21}.
+\item[x26] What's happening at minutes 65.8 and 65.95 (1:05:47.5,
+  1:05:55 and 1:05:57 in Figure~\ref{fig:x26_65.78})?
+\item[x29] Frequent short inter-beat intervals.  See
+  Figure~\ref{fig:x29_328.95}.  Except minutes 296 to 317 are normal.
+\item[x33] Small inverted signal.  See Figure~\ref{fig:ecgs_x33}.
 \item[x34] Same as x33
 \end{description}
+
+% x11_332.83 x13_165.5 x26_65.78 x29_328.95
+\newcommand{\StrangePlot}[2]{
+  \begin{figure}
+    \centering
+    \resizebox{1,0\textwidth}{!}{\includegraphics{#1.pdf}}
+    \caption{#2}
+    \label{fig:#1}
+  \end{figure}
+}
+
+\StrangePlot{x11_332.83}{In record x11 the beat at 5:32:51 is strange.}
+\StrangePlot{x13_165.5}{In record x13 there are occasional negative
+  waves instead of R waves.}
+\StrangePlot{x26_65.78}{In record x26 there's something
+  different at 1:05:47.5, 1:05:55 and 1:05:57.}
+\StrangePlot{x29_328.95}{In record x29 there are frequent short
+  inter-beat intervals.  Here at 5:25:00.8 and 5:25:09.8}
+
+\clearpage
+
 \section{All Records}
 \label{sec:all_records}
 

@@ -7,12 +7,12 @@ import sys
 import argparse
 import pickle
 import os
-import math
 
 import numpy
 import pint
 
 import plotscripts.utilities
+import ecg_grid
 
 PINT = pint.UnitRegistry()
 
@@ -35,21 +35,6 @@ def parse_args(argv):
     return parser.parse_args(argv)
 
 
-def get_samples(a_in, space):
-    '''Sample the interval spanned by a_in at integer spacings of
-    space
-
-    Args:
-        a_in: Sorted sequence of numbers
-        space: Distance between samples
-
-    '''
-    bottom = space * math.ceil(a_in[0] / space)
-    top = space * round(a_in[-1] / space)
-    result = numpy.linspace(bottom, top, round((top-bottom)/space)+1)
-    return result
-
-
 def main(argv=None):
     """Make 6 time ecg series pictures
 
@@ -58,32 +43,7 @@ def main(argv=None):
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
     t_start, t_stop = (t * PINT('minutes') for t in args.time_interval)
     y_min, y_max = args.y_range
-
-    # Set tick locations
-    y_minor_ticks = numpy.arange(y_min, y_max + 0.05, 0.1)
-    y_major_ticks = get_samples(y_minor_ticks, 0.5)
-    y_label_values = get_samples(y_minor_ticks, 2.0)
-    y_label_indices = numpy.array(
-        numpy.searchsorted(y_major_ticks, y_label_values))
-    y_labels_text = [f'{y:.0f}' for y in y_label_values]
-    y_labels = [''] * len(y_major_ticks)
-    for label, index in zip(y_labels_text, y_label_indices):
-        y_labels[index] = label
-
     s_start, s_stop = (t.to('seconds').magnitude for t in (t_start, t_stop))
-    x_minor_ticks = numpy.arange(s_start, s_stop + .01, 0.04)
-    x_major_ticks = get_samples(x_minor_ticks, .2)
-    x_labels = [''] * len(x_major_ticks)
-
-    x_label_values = get_samples(x_major_ticks, 1.0)
-    x_label_indices = numpy.array(
-        numpy.searchsorted(x_major_ticks, x_label_values))
-    formatted = [
-        plotscripts.utilities.format_time(t * PINT('seconds'))
-        for t in x_label_values
-    ]
-    for label, index in zip(formatted, x_label_indices):
-        x_labels[index] = label
 
     def plot_six(records):
 
@@ -106,25 +66,8 @@ def main(argv=None):
                 [t.to('seconds').magnitude for t in (t_start, t_stop)])
             times = ecg_times[n_start:n_stop].to('seconds').magnitude
             axes.plot(times, ecg[n_start:n_stop], label=name)
-            axes.set_ylim(y_min, y_max)
-            axes.set_xlim(s_start, s_stop)
             axes.legend()
-            # From Google AI "matplotlib EKG grid"
-            # Customize the grid
-            axes.grid(which='major',
-                      linestyle='-',
-                      linewidth='0.5',
-                      color='red')
-            axes.grid(which='minor',
-                      linestyle='-',
-                      linewidth='0.5',
-                      alpha=.1,
-                      color='red')
-
-            axes.set_xticks(x_major_ticks, x_labels)
-            axes.set_xticks(x_minor_ticks, minor=True)
-            axes.set_yticks(y_major_ticks, y_labels)
-            axes.set_yticks(y_minor_ticks, minor=True)
+            ecg_grid.decorate(axes, s_start, s_stop, y_min, y_max)
 
         fig.tight_layout()
         return fig

@@ -15,6 +15,7 @@ import numpy
 import pint
 
 import plotscripts.utilities
+import ecg_grid
 
 PINT = pint.UnitRegistry()
 
@@ -25,7 +26,7 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser(description='Plot segments of ECG file')
     parser.add_argument('--show',
-                        action='store_false',
+                        action='store_true',
                         help="display figure using Qt5")
     parser.add_argument('ecg_file', type=str, help='Path to data')
     parser.add_argument('t_window', type=float, help="Time in minutes")
@@ -33,6 +34,7 @@ def parse_args(argv):
                         nargs="+",
                         type=float,
                         help="Time in minutes")
+    parser.add_argument('fig_path', type=str, help="path to figure")
     return parser.parse_args(argv)
 
 
@@ -43,7 +45,6 @@ def main(argv=None):
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
-    print(f"{type(args.t_starts)}")
     with open(args.ecg_file, 'rb') as _file:
         _dict = pickle.load(_file)
         ecg = _dict['ecg']
@@ -51,19 +52,26 @@ def main(argv=None):
 
     n_segments = len(args.t_starts)
 
-    fig, axeses = pyplot.subplots(nrows=n_segments, figsize=(6, 8), sharex=True)
+    y_min = -3
+    y_max = 4
+    fig, axeses = pyplot.subplots(nrows=n_segments, figsize=(6, 3.1 * n_segments))
     if n_segments == 1:
         axeses = [axeses]
 
     for n, axes in enumerate(axeses):
+        axes.set_xlabel('time H:M:S')
+        axes.set_ylabel('ECG/mV')
         n_start, n_stop = numpy.searchsorted(
             ecg_times.to('minutes').magnitude,
             (args.t_starts[n], args.t_starts[n] + args.t_window))
-        #times = ecg_times[n_start:n_stop].to('minutes').magnitude
-        times = numpy.arange(n_start, n_stop)
+        times = ecg_times[n_start:n_stop].to('seconds').magnitude
         axes.plot(times, ecg[n_start:n_stop])
+        ecg_grid.decorate(axes, times[0], times[-1], y_min, y_max)
 
-    pyplot.show()
+    fig.tight_layout()
+    if args.show:
+        pyplot.show()
+    fig.savefig(args.fig_path)
 
     return 0
 

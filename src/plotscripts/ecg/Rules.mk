@@ -65,6 +65,22 @@ $(ECG_FIG_DIR)/all_ecgs:  $(ECG_PLOTSCRIPTS)/all_ecgs.py $(PICKLED_ECG)/flag
 	python $< --y_range -3 4 --time_interval 210 210.05 $(PICKLED_ECG) $(@D)
 	touch $@
 
+$(ECG_FIG_DIR)/x11_332.83.pdf:  $(ECG_PLOTSCRIPTS)/plot_ecg.py $(PICKLED_ECG)/flag
+	mkdir -p $(@D)
+	python $< $(PICKLED_ECG)/x11 0.1 332.83 -- $@
+
+$(ECG_FIG_DIR)/x13_165.5.pdf:  $(ECG_PLOTSCRIPTS)/plot_ecg.py $(PICKLED_ECG)/flag
+	mkdir -p $(@D)
+	python $< $(PICKLED_ECG)/x13 0.1 165.5 -- $@
+
+$(ECG_FIG_DIR)/x26_65.78.pdf:  $(ECG_PLOTSCRIPTS)/plot_ecg.py $(PICKLED_ECG)/flag
+	mkdir -p $(@D)
+	python $< $(PICKLED_ECG)/x26 0.1 65.78 65.88 -- $@
+
+$(ECG_FIG_DIR)/x29_328.95.pdf:  $(ECG_PLOTSCRIPTS)/plot_ecg.py $(PICKLED_ECG)/flag
+	mkdir -p $(@D)
+	python $< $(PICKLED_ECG)/x29 0.1 324.95 325.15 -- $@
+
 # Local Variables:
 # mode: makefile
 # End:
