@@ -29,7 +29,8 @@ $(BUILD_ECG_TeX)/ds23.pdf: $(ECG_TeX)/ds23.tex $(DS23FIGS)
 	mkdir -p $(@D)
 	export TEXINPUTS=$(abspath $(ROOT))//:; pdflatex --output-directory=$(@D) $<; pdflatex --output-directory=$(@D) $<
 
-$(BUILD_ECG_TeX)/all_ecgs.pdf: $(ECG_TeX)/all_ecgs.tex $(ECG_FIG_DIR)/all_ecgs
+AllEcgFigs = $(addprefix $(ECG_FIG_DIR)/, $(addsuffix .pdf, x11_332.83 x13_165.5 x26_65.78 x29_328.95 ) all_ecgs)
+$(BUILD_ECG_TeX)/all_ecgs.pdf: $(ECG_TeX)/all_ecgs.tex $(AllEcgFigs)
 	mkdir -p $(@D)
 	export TEXINPUTS=$(abspath $(ROOT))//:; pdflatex --output-directory=$(@D) $<; pdflatex --output-directory=$(@D) $<
 
