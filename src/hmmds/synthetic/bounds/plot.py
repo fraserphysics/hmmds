@@ -106,6 +106,12 @@ def main(argv=None):
     y_q = dict_in['y_q']
     x_all = dict_in['x_all']
     clouds = dict_in['clouds']
+    gamma = dict_in['gamma']
+    offset = 14
+    log_gamma = numpy.log(gamma)[offset:]
+    cum_sum = numpy.cumsum(log_gamma)
+    y_values = -cum_sum / numpy.arange(1, len(cum_sum) + 1) / 0.15
+    print(f'{y_values[-10:]=}')
 
     figure, axeses = pyplot.subplots(nrows=5, ncols=3, figsize=(8, 9))
 

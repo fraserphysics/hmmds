@@ -25,7 +25,7 @@ $(BOUNDS_DATA)/like_lor: $(BOUNDS_CODE)/like_lor.py
 
 $(BOUNDS_DATA)/particle_1k: $(BOUNDS_CODE)/particle.py $(BOUNDS_CODE)/filter.py
 	mkdir -p $(@D)
-	python $< $@
+	python $< --margin 0.01 --s_augment 5e-4 --resample 1000000 10000 --r_threshold 1e-5 $@
 
 $(BOUNDS_DATA)/ddays: $(BOUNDS_CODE)/particle.py $(BOUNDS_CODE)/filter.py
 	mkdir -p $(@D)

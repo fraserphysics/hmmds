@@ -30,6 +30,17 @@ BenettinData: benettin_data.py
 like_lor_data: like_lor.py
 	python $< $@
 
+study10k%: particle.py filter.py
+	python $< --margin 0.01 --s_augment $* --resample 10000 4000 --r_threshold 1e-5 --clouds 0 25 --n_y 25 $@
+
+study100k%: particle.py filter.py
+	python $< --margin 0.01 --s_augment $* --resample 100000 4000 --r_threshold 1e-5 --clouds 0 25 --n_y 25 $@
+
+study1M%: particle.py filter.py
+	python $< --margin 0.01 --s_augment $* --resample 1000000 4000 --r_threshold 1e-5 --clouds 0 25 --n_y 25 $@
+
+study_long1M10k%: particle.py filter.py
+	python $< --margin 0.01 --s_augment $* --resample 1000000 10000 --r_threshold 1e-5 --clouds 110 140 --n_y 140 $@
 
 ## list                 : List all files built by this makefile
 .PHONY : list

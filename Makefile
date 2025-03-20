@@ -148,8 +148,8 @@ test :
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo DS23FIGS: $(DS23FIGS)
-	@echo ECG_FIGS: $(ECG_FIGS)
+	@echo ECG_TeX: $(BUILD_ECG_TeX)
+	@echo PICKLED_ECG: $(PICKLED_ECG)
 	@echo In root Makefile, ROOT: $(ROOT)
 ## help                           : Print comments on targets from makefile
 .PHONY : help
