@@ -32,10 +32,13 @@
 \label{sec:introduction}
 
 The data for the \emph{Computers in Cardiology Challenge} in 2000,
-CINC2000, consists of ECG recordings of 69 patients in sleep studies.
-The challenge (see https://archive.physionet.org/challenge/2000/) was
-to ``demonstrate the efficacy of ECG-based methods for apnea detection
-using a large, well-characterized, and representative set of data.''
+CINC2000, consists of ECG recordings of 69 patients in sleep
+studies\footnote{The description of the challenge and the data are
+available at https://archive.physionet.org/challenge/2000/.  PhysioNet
+has records for 70 patients, but the record named b05 is not
+usable.}.  The challenge was to ``demonstrate the efficacy of
+ECG-based methods for apnea detection using a large,
+well-characterized, and representative set of data.''
 
 I am reworking an approach to the challenge, and I don't understand
 why the ECG waveforms in some of the records are so different from the
@@ -53,31 +56,34 @@ record.
 \label{sec:strange_records}
 
 \begin{description}
-\item[a02] Small R wave.  See Figure~\ref{fig:ecgs_a01}.  There are
-  changes at minutes 129.2, 175.8, 188.1, 206.8, etc.  Maybe the
-  patient is moving?
+\item[a02] Small R wave.  See Figure~\ref{fig:ecgs_a01}.
+  % There are changes at minutes 129.2, 175.8, 188.1, 206.8, etc.
+  % Maybe the patient is moving?
 \item[a10] Inverted signal?  See Figure~\ref{fig:ecgs_a07}.
 \item[a12] Small inverted signal?  See Figure~\ref{fig:ecgs_a07}.
-\item[a20] Double R wave.  Same double pattern throughout the record.
-  I think it's a characteristic of the patient.  See
+\item[a20] Double R wave.  The same double pattern appears throughout
+  the record.  I think it's a characteristic of the patient.  See
   Figure~\ref{fig:ecgs_a19}.
 \item[c02] Negative R wave?  See Figure~\ref{fig:ecgs_c01}.
-\item[c05] I think this is the same as c06.  Peak at minute 9.235 in
-  c05 is the same as peak at 10.569 in c06.
+\item[c05] I think this is the same as c06.
+  %Peak at minute 9.235 in c05 is the same as peak at 10.569 in c06.
 \item[x05] S bigger than R.  See Figure~\ref{fig:ecgs_x03}.
 \item[x06] S bigger than R.  See Figure~\ref{fig:ecgs_x03}.
-\item[x11] Atypical beats.  See Figure~\ref{fig:x11_332.83}.  See
-  Figure~\ref{fig:ecgs_x09}.
-\item[x13] Occasional big negative spikes.  See Figure~\ref{fig:x13_165.5}
+\item[x11] Atypical beats.  See Figure~\ref{fig:x11_332.83}.
+\item[x13] Occasional big negative spikes.  See
+  Figure~\ref{fig:x13_165.5}.
 \item[x17] Strange waveform.  I think T is the biggest feature.  Bad
   lead placement?  See Figure~\ref{fig:ecgs_x15}.
-\item[x24] S bigger than R ?  See Figure~\ref{fig:ecgs_x21}.
-\item[x26] What's happening at minutes 65.8 and 65.95 (1:05:47.5,
-  1:05:55 and 1:05:57 in Figure~\ref{fig:x26_65.78})?
+\item[x24] S bigger than R?  See Figure~\ref{fig:ecgs_x21}.
+\item[x26] What's happening at times 1:05:47.5,
+  1:05:55 and 1:05:57 in Figure~\ref{fig:x26_65.78}?
+  % minutes 65.8 and 65.95
 \item[x29] Frequent short inter-beat intervals.  See
-  Figure~\ref{fig:x29_328.95}.  Except minutes 296 to 317 are normal.
+  Figure~\ref{fig:x29_328.95}.
+  % Except minutes 296 to 317 are normal.
 \item[x33] Small inverted signal.  See Figure~\ref{fig:ecgs_x33}.
-\item[x34] Same as x33
+\item[x34] Same as x33.
+  % -2mV peak at 7.55234 in record x33 appears in record x34 at 8.7190
 \end{description}
 
 % x11_332.83 x13_165.5 x26_65.78 x29_328.95
@@ -96,7 +102,7 @@ record.
 \StrangePlot{x26_65.78}{In record x26 there's something
   different at 1:05:47.5, 1:05:55 and 1:05:57.}
 \StrangePlot{x29_328.95}{In record x29 there are frequent short
-  inter-beat intervals.  Here at 5:25:00.8 and 5:25:09.8}
+  inter-beat intervals.  Here at 5:25:00.8 and 5:25:09.8}.
 
 \clearpage
 
@@ -104,7 +110,7 @@ record.
 \label{sec:all_records}
 
 Here I plot a sample of each of the 69 records provided by PhysioNet
-for CINC2000
+for CINC2000.
 
 \SixPlots{a01}
 \SixPlots{a07}
