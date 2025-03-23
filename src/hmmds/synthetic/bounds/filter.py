@@ -9,6 +9,7 @@ import copy
 import numpy
 import numpy.linalg
 import numpy.random
+import scipy.integrate
 
 import hmmds.synthetic.bounds.lorenz
 
@@ -37,23 +38,10 @@ class Particle:
     """
 
     # pylint: disable=invalid-name
-    def __init__(self: Particle, x, box, weight):
-        assert x.shape == (3,)
-        assert box.shape == (3, 3)
-        self.x = x
-        self.box = box
+    def __init__(self: Particle, index, states_boxes, weight):
+        self.x = states_boxes[index, :3]
+        self.box = states_boxes[index, 3:].reshape((3, 3))
         self.weight = weight
-
-    def step(self: Particle, time, atol):
-        """Map the box forward by the interval "time"
-
-        Args:
-            time: The amount of time
-            atol: Integration absolute error tolerance
-        """
-        self.x, self.box = hmmds.synthetic.bounds.lorenz.integrate_tangent(
-            time, self.x, self.box.T, atol=atol)
-        assert self.box.shape == (3, 3)
 
     def ratio(self: Particle):
         """Calculate a ratio of quadratic to linear velocity
@@ -90,6 +78,8 @@ class Particle:
         Args:
             n_divide: number of new particles
             edge_index: Specifies edge along which to divide
+
+        Return: list of tuples (x, box, weight)
         """
         assert n_divide > 0
         x_step = self.box[edge_index] / n_divide
@@ -102,17 +92,12 @@ class Particle:
 
         back_up = int(n_divide / 2)
         new_weight = self.weight / n_divide
-        result = [
-            Particle(
-                self.x + i * x_step,  #
-                new_box.copy(),  #
-                new_weight,  #
-            ) for i in range(-back_up, n_divide - back_up)
-        ]
+        result = [(self.x + i * x_step, new_box, new_weight)
+                  for i in range(-back_up, n_divide - back_up)]
         return result
 
     def resample(self: Particle, rng, weight=1.0):
-        """Return a new box sampled from self
+        """Return a sample from self
 
         Args:
             rng: numpy.random.Generator
@@ -121,7 +106,7 @@ class Particle:
         new_x = self.x.copy()
         for edge in self.box:
             new_x += rng.uniform(-.5, .5) * edge
-        return Particle(new_x, self.box, weight)
+        return (new_x, self.box, weight)
 
 
 class Filter:
@@ -164,10 +149,30 @@ class Filter:
 
         
         """
+        self.states_boxes = numpy.empty((1, 12))
+        self.states_boxes[0, :3] = initial_x
+        self.states_boxes[0, 3:] = (numpy.eye(3) * delta).flatten()
         weight = 1.0
-        self.particles = [Particle(initial_x, numpy.eye(3) * delta, weight)]
+        self.particles = [Particle(0, self.states_boxes, weight)]
         self.normalize()
         assert len(self.particles) > 0
+
+    def step(self: Filter, time, atol=1e-7):
+        """Integrate self.states_boxes forward by time
+        """
+        s = 10.0
+        r = 28.0
+        b = 8.0 / 3
+        method = 'RK45'
+        for index in range(len(self.particles)):
+            bunch = scipy.integrate.solve_ivp(
+                hmmds.synthetic.bounds.lorenz.tangent, (0.0, time),
+                self.states_boxes[index],
+                args=(s, r, b),
+                atol=atol,
+                method=method)
+            assert bunch.success, f'{bunch}'
+            self.states_boxes[index] = bunch.y[:, -1]
 
     def forecast_x(self: Filter, time: float):
         """Map each particle forward by time.  If the quadratic term
@@ -177,9 +182,9 @@ class Filter:
             time: Map via integrating Lorenz for this time step.
 
         """
-        new_particles = []
+        self.step(time)
+        x_box_weights = []
         for particle in self.particles:
-            particle.step(time, self.atol)
             U, S, VT = numpy.linalg.svd(particle.box)
             # Augment S to spread cloud and prevent particle
             # exhaustion.
@@ -190,14 +195,13 @@ class Filter:
             max_edge = edge_lengths.max()
             if ratio > self.r_threshold:
                 n_new = int(ratio * self.r_extra / self.r_threshold)
-                new_particles.extend(particle.divide(n_new, argmax))
             elif max_edge > self.edge_max:
                 argmax = numpy.argmax(edge_lengths)
                 n_new = int(max_edge * self.r_extra / self.edge_max)
-                new_particles.extend(particle.divide(n_new, argmax))
             else:
-                new_particles.append(particle)
-        self.particles = new_particles
+                n_new = 1
+            x_box_weights.extend(particle.divide(n_new, argmax))
+        self.list_to_particles(x_box_weights)
 
     def resample(self: Filter, n: int):
         """Draw n new particles from distribution implied by self.particles
@@ -209,10 +213,20 @@ class Filter:
         cdf = numpy.cumsum(
             numpy.asarray([particle.weight for particle in self.particles]))
         cdf /= cdf[-1]
-        new_particles = []
+        x_box_weights = []
         for index in numpy.searchsorted(cdf, self.rng.uniform(size=n)):
-            new_particles.append(self.particles[index].resample(self.rng))
-        self.particles = new_particles
+            x_box_weights.append(self.particles[index].resample(self.rng))
+        self.list_to_particles(x_box_weights)
+
+    def list_to_particles(self, x_box_weights):
+        """Create new self.states_boxes and self.particles
+        """
+        self.states_boxes = numpy.empty((len(x_box_weights), 12))
+        self.particles = []
+        for index, (x, box, weight) in enumerate(x_box_weights):
+            self.states_boxes[index, :3] = x
+            self.states_boxes[index, 3:] = box.flatten()
+            self.particles.append(Particle(index, self.states_boxes, weight))
 
     def update(self: Filter, y: int):
         """Delete particles that don't match y.
