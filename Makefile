@@ -41,6 +41,14 @@ filter: $(BUILD)/TeX/filter/filter.pdf
 .PHONY : skeleton
 skeleton: $(BUILD)/TeX/skeleton/figures.pdf
 
+## ecg                            : Documents my derivation ECG -> HR
+.PHONY : ecg
+ecg: $(BUILD)/TeX/ecg/ecg.pdf
+
+## all_ecgs                       : Standard grids on ECG plots for MDs
+.PHONY : all_ecgs
+all_ecgs: $(BUILD)/TeX/ecg/all_ecgs.pdf
+
 ## respiration                    : A short explanation of how I derive the respiration signal
 .PHONY : respiration
 respiration: $(BUILD)/TeX/apnea/respiration.pdf
