@@ -81,7 +81,7 @@ class LocalNonStationary(hmm.state_space.NonStationary):
         y_probabilities = numpy.empty(len(y_array))
 
         forecast_distribution = initial_dist
-        for t, y in enumerate(y_array):
+        for t, y in enumerate(y_array[:,0]):
             forecast_means[t] = forecast_distribution.mean
             forecast_covariances[t] = forecast_distribution.covariance
 
@@ -192,7 +192,7 @@ def tangent(t, x_dx, s, r, b):
     ])
 
     # Assign the tangent part of the return value.
-    result[3:] = numpy.dot(dF, dx_dx0).reshape(-1)
+    result[3:] = (dF@dx_dx0).reshape(-1)
 
     return result
 

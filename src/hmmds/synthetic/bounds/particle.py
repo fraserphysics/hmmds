@@ -211,8 +211,9 @@ def main(argv=None):
 
     debug_times = set()
     # Run filter on y_q
-    for t_start in range(0, len(y_q), 5):
-        p_filter.forward(y_q, (t_start, t_start + 5), gamma, clouds)
+    n_block = 5
+    for t_start in range(0, len(y_q), n_block):
+        p_filter.forward(y_q, (t_start, t_start + n_block), gamma, clouds)
         if not cloud_marks[t_start]:
             debug_times.add(t_start)
         if t_start - 25 in debug_times:

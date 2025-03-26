@@ -9,7 +9,6 @@ import copy
 import numpy
 import numpy.linalg
 import numpy.random
-import scipy.integrate
 
 import hmmds.synthetic.bounds.lorenz
 
@@ -38,20 +37,23 @@ class Particle:
     """
 
     # pylint: disable=invalid-name
-    def __init__(self: Particle, index, states_boxes, weight):
-        self.index = index
-        self.states_boxes = states_boxes
-        self.x = states_boxes[index, :3]
-        self.box = states_boxes[index, 3:].reshape((3, 3))
+    def __init__(self: Particle, x, box, weight):
+        assert x.shape == (3,)
+        assert box.shape == (3, 3)
+        self.x = x
+        self.box = box
         self.weight = weight
 
-    def set_x(self:Particle, x:numpy.ndarray):
-        assert x.shape == (3,)
-        self.states_boxes[self.index, :3] = x
+    def step(self: Particle, time, atol):
+        """Map the box forward by the interval "time"
 
-    def set_box(self:Particle, box:numpy.ndarray):
-        assert box.shape == (3,3)
-        self.states_boxes[self.index, 3:] = box.reshape(-1)
+        Args:
+            time: The amount of time
+            atol: Integration absolute error tolerance
+        """
+        self.x, self.box = hmmds.synthetic.bounds.lorenz.integrate_tangent(
+            time, self.x, self.box, atol=atol)
+        assert self.box.shape == (3, 3)
 
     def ratio(self: Particle):
         """Calculate a ratio of quadratic to linear velocity
@@ -88,12 +90,8 @@ class Particle:
         Args:
             n_divide: number of new particles
             edge_index: Specifies edge along which to divide
-
-        Return: list of tuples (x, box, weight)
         """
         assert n_divide > 0
-        if n_divide == 1:
-            return [(self.x, self.box, self.weight)]
         x_step = self.box[edge_index] / n_divide
         new_box = numpy.empty((3, 3))
         for i, edge in enumerate(self.box):
@@ -104,13 +102,17 @@ class Particle:
 
         back_up = int(n_divide / 2)
         new_weight = self.weight / n_divide
-        result = [(self.x + i * x_step, new_box, new_weight)
-                  for i in range(-back_up, n_divide - back_up)]
-        assert len(result) == n_divide
+        result = [
+            Particle(
+                self.x + i * x_step,  #
+                new_box.copy(),  #
+                new_weight,  #
+            ) for i in range(-back_up, n_divide - back_up)
+        ]
         return result
 
     def resample(self: Particle, rng, weight=1.0):
-        """Return a sample from self
+        """Return a new box sampled from self
 
         Args:
             rng: numpy.random.Generator
@@ -119,7 +121,7 @@ class Particle:
         new_x = self.x.copy()
         for edge in self.box:
             new_x += rng.uniform(-.5, .5) * edge
-        return (new_x, self.box, weight)
+        return Particle(new_x, self.box, weight)
 
 
 class Filter:
@@ -162,23 +164,10 @@ class Filter:
 
         
         """
-        self.states_boxes = numpy.empty((1, 12))
-        self.states_boxes[0, :3] = initial_x
-        self.states_boxes[0, 3:] = (numpy.eye(3) * delta).flatten()
         weight = 1.0
-        self.particles = [Particle(0, self.states_boxes, weight)]
+        self.particles = [Particle(initial_x, numpy.eye(3) * delta, weight)]
         self.normalize()
         assert len(self.particles) > 0
-
-    def step(self: Filter, time, atol=1e-7):
-        """Integrate self.states_boxes forward by time
-        """
-        for index in range(len(self.particles)):
-            x = self.states_boxes[index, :3]
-            box = self.states_boxes[index, 3:]
-            new_x, new_box = hmmds.synthetic.bounds.lorenz.integrate_tangent(time, x, box, atol=self.atol)
-            self.states_boxes[index,:3] = new_x
-            self.states_boxes[index,3:] = new_box.reshape(-1)
 
     def forecast_x(self: Filter, time: float):
         """Map each particle forward by time.  If the quadratic term
@@ -188,26 +177,27 @@ class Filter:
             time: Map via integrating Lorenz for this time step.
 
         """
-        self.step(time)
-        x_box_weights = []
+        new_particles = []
         for particle in self.particles:
+            particle.step(time, self.atol)
             U, S, VT = numpy.linalg.svd(particle.box)
             # Augment S to spread cloud and prevent particle
             # exhaustion.
             S += self.s_augment
-            particle.set_box(numpy.dot(U * S, VT))
+            particle.box = numpy.dot(U * S, VT)
             argmax, ratio = particle.ratio()
             edge_lengths = numpy.linalg.norm(particle.box, axis=1)
             max_edge = edge_lengths.max()
             if ratio > self.r_threshold:
                 n_new = int(ratio * self.r_extra / self.r_threshold)
+                new_particles.extend(particle.divide(n_new, argmax))
             elif max_edge > self.edge_max:
                 argmax = numpy.argmax(edge_lengths)
                 n_new = int(max_edge * self.r_extra / self.edge_max)
+                new_particles.extend(particle.divide(n_new, argmax))
             else:
-                n_new = 1
-            x_box_weights.extend(particle.divide(n_new, argmax))
-        self.list_to_particles(x_box_weights)
+                new_particles.append(particle)
+        self.particles = new_particles
 
     def resample(self: Filter, n: int):
         """Draw n new particles from distribution implied by self.particles
@@ -219,20 +209,10 @@ class Filter:
         cdf = numpy.cumsum(
             numpy.asarray([particle.weight for particle in self.particles]))
         cdf /= cdf[-1]
-        x_box_weights = []
+        new_particles = []
         for index in numpy.searchsorted(cdf, self.rng.uniform(size=n)):
-            x_box_weights.append(self.particles[index].resample(self.rng))
-        self.list_to_particles(x_box_weights)
-
-    def list_to_particles(self, x_box_weights):
-        """Create new self.states_boxes and self.particles
-        """
-        self.states_boxes = numpy.empty((len(x_box_weights), 12))
-        self.particles = []
-        for index, (x, box, weight) in enumerate(x_box_weights):
-            self.states_boxes[index, :3] = x
-            self.states_boxes[index, 3:] = box.flatten()
-            self.particles.append(Particle(index, self.states_boxes, weight))
+            new_particles.append(self.particles[index].resample(self.rng))
+        self.particles = new_particles
 
     def update(self: Filter, y: int):
         """Delete particles that don't match y.
@@ -240,7 +220,7 @@ class Filter:
         Args:
             y: A scalar integer observation
         """
-        x_box_weights = []
+        new_particles = []
 
         def zero():
             """Use if y==0.  Keep a particle if any part of the box is
@@ -253,7 +233,7 @@ class Filter:
                 # direction
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
                 if particle.x[0] - self.margin * box_0 < upper:
-                    x_box_weights.append((particle.x, particle.box, particle.weight))
+                    new_particles.append(particle)
 
         def top():
             """Use if y==top bin.  Keep a particle if any part of the
@@ -264,7 +244,7 @@ class Filter:
             for particle in self.particles:
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
                 if particle.x[0] + self.margin * box_0 > lower:
-                    x_box_weights.append((particle.x, particle.box, particle.weight))
+                    new_particles.append(particle)
 
         if y == 0:
             zero()
@@ -277,13 +257,10 @@ class Filter:
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
                 if lower - self.margin * box_0 < particle.x[
                         0] < upper + self.margin * box_0:
-                    x_box_weights.append((particle.x, particle.box, particle.weight))
-
-        if len(self.particles) == len(x_box_weights):
-            return
-        if len(self.particles) > 0 and len(x_box_weights) == 0:
-            print(f'In update {len(self.particles)=} zero new particles')
-        self.list_to_particles(x_box_weights)
+                    new_particles.append(particle)
+        if len(self.particles) > 0 and len(new_particles) == 0:
+            print(f'In update {len(self.particles)=} {len(new_particles)=}')
+        self.particles = new_particles
 
     def normalize(self: Filter):
         """Scale weights so that total is 1

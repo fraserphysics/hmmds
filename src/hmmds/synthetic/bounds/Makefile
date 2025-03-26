@@ -42,6 +42,20 @@ study1M%: particle.py filter.py
 study_long1M10k%: particle.py filter.py
 	python $< --margin 0.01 --s_augment $* --resample 1000000 10000 --r_threshold 1e-5 --clouds 110 140 --n_y 140 $@
 
+
+# Next block is for comparing results of code change.
+TestArgs = --r_extra 2.0 --edge_max 0.2 --margin 0.01 --s_augment 5e-4 --n_y 20 --clouds 0 20 --resample 10000 4000 --r_threshold 1e-3
+
+trial_test: trial_filter.py particle.py
+	cp $< filter.py
+	python particle.py $(TestArgs) $@
+
+main_test: main_filter.py particle.py
+	cp $< filter.py
+	python particle.py $(TestArgs) $@
+
+
+
 ## list                 : List all files built by this makefile
 .PHONY : list
 list:

@@ -38,12 +38,14 @@ class Particle:
     """
 
     # pylint: disable=invalid-name
-    def __init__(self: Particle, index, states_boxes, weight):
+    def __init__(self: Particle, index, states_boxes, weight, argmax=-1, ratio_=-1):
         self.index = index
         self.states_boxes = states_boxes
         self.x = states_boxes[index, :3]
         self.box = states_boxes[index, 3:].reshape((3, 3))
         self.weight = weight
+        self.argmax = argmax
+        self.ratio_ = ratio_
 
     def set_x(self:Particle, x:numpy.ndarray):
         assert x.shape == (3,)
@@ -80,6 +82,8 @@ class Particle:
         ])
         l = dF @ self.box[argmax]
         ratio = numpy.sqrt(q_squared / (l @ l))
+        self.argmax = argmax
+        self.ratio_ = ratio
         return argmax, ratio
 
     def divide(self: Particle, n_divide: int, edge_index):
@@ -206,7 +210,7 @@ class Filter:
                 n_new = int(max_edge * self.r_extra / self.edge_max)
             else:
                 n_new = 1
-            x_box_weights.extend(particle.divide(n_new, argmax))
+            x_box_weights.extend((x, box, weight, argmax, ratio) for x,box,weight in particle.divide(n_new, argmax))
         self.list_to_particles(x_box_weights)
 
     def resample(self: Filter, n: int):
@@ -221,18 +225,18 @@ class Filter:
         cdf /= cdf[-1]
         x_box_weights = []
         for index in numpy.searchsorted(cdf, self.rng.uniform(size=n)):
-            x_box_weights.append(self.particles[index].resample(self.rng))
+            x_box_weights.append((*self.particles[index].resample(self.rng), -1, -1))
         self.list_to_particles(x_box_weights)
 
-    def list_to_particles(self, x_box_weights):
+    def list_to_particles(self: Filter, x_box_weights):
         """Create new self.states_boxes and self.particles
         """
         self.states_boxes = numpy.empty((len(x_box_weights), 12))
         self.particles = []
-        for index, (x, box, weight) in enumerate(x_box_weights):
+        for index, (x, box, weight, argmax, ratio_) in enumerate(x_box_weights):
             self.states_boxes[index, :3] = x
             self.states_boxes[index, 3:] = box.flatten()
-            self.particles.append(Particle(index, self.states_boxes, weight))
+            self.particles.append(Particle(index, self.states_boxes, weight, argmax, ratio_))
 
     def update(self: Filter, y: int):
         """Delete particles that don't match y.
@@ -253,7 +257,7 @@ class Filter:
                 # direction
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
                 if particle.x[0] - self.margin * box_0 < upper:
-                    x_box_weights.append((particle.x, particle.box, particle.weight))
+                    x_box_weights.append((particle.x, particle.box, particle.weight, particle.argmax, particle.ratio_))
 
         def top():
             """Use if y==top bin.  Keep a particle if any part of the
@@ -264,7 +268,7 @@ class Filter:
             for particle in self.particles:
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
                 if particle.x[0] + self.margin * box_0 > lower:
-                    x_box_weights.append((particle.x, particle.box, particle.weight))
+                    x_box_weights.append((particle.x, particle.box, particle.weight, particle.argmax, particle.ratio_))
 
         if y == 0:
             zero()
@@ -277,7 +281,7 @@ class Filter:
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
                 if lower - self.margin * box_0 < particle.x[
                         0] < upper + self.margin * box_0:
-                    x_box_weights.append((particle.x, particle.box, particle.weight))
+                    x_box_weights.append((particle.x, particle.box, particle.weight, particle.argmax, particle.ratio_))
 
         if len(self.particles) == len(x_box_weights):
             return
