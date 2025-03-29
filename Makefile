@@ -140,6 +140,31 @@ lint :
 	pylint --rcfile pylintrc src/hmmds/
 	mypy --no-strict-optional src/hmmds/
 
+####################################################
+
+## export                         : Collect files for making book on overleaf
+# Create a flat directory in which issuing "make" builds the book
+.PHONY : export_book
+export_book : $(BUILD)/TeX/book/main.pdf
+	rm -rf $@
+	mkdir $@
+	cp build/TeX/book/*.tex $@
+	cp -R src/TeX/book/* $@
+	cp -R build/figs $@
+	find $@/figs -type f -exec sed  -i s\:/home/andy/hmmds/build/figs/.*/\:: '{}' \;
+	find $@/figs -name "*.pdf" -exec sed  -i s\:/home/andy/hmmds/src/plotscripts/xfigs/\:: '{}' \;
+	find $@/figs -type f -exec mv '{}' $@ \;
+	rm -r $@/figs $@/SiamTeX
+	for file in build/derived_data/apnea/*.tex; do \
+cp $$file $@; \
+done
+	cp export_makefile $@/Makefile
+
+## book.tar                       : Tar file for overleaf
+.PHONY : book.tar
+book.tar : export_book
+	tar -cjf book.tar export_book
+
 ## test                           : Run pytest on tests/
 .PHONY : test
 test :
