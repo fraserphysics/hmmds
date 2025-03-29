@@ -52,7 +52,7 @@ class Particle:
             atol: Integration absolute error tolerance
         """
         self.x, self.box = hmmds.synthetic.bounds.lorenz.integrate_tangent(
-            time, self.x, self.box.T, atol=atol)
+            time, self.x, self.box, atol=atol)
         assert self.box.shape == (3, 3)
 
     def ratio(self: Particle):
