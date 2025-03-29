@@ -45,12 +45,12 @@ class Particle:
         self.box = states_boxes[index, 3:].reshape((3, 3))
         self.weight = weight
 
-    def set_x(self:Particle, x:numpy.ndarray):
+    def set_x(self: Particle, x: numpy.ndarray):
         assert x.shape == (3,)
         self.states_boxes[self.index, :3] = x
 
-    def set_box(self:Particle, box:numpy.ndarray):
-        assert box.shape == (3,3)
+    def set_box(self: Particle, box: numpy.ndarray):
+        assert box.shape == (3, 3)
         self.states_boxes[self.index, 3:] = box.reshape(-1)
 
     def ratio(self: Particle):
@@ -177,9 +177,8 @@ class Filter:
         r = 28.0
         b = 8.0 / 3
         h_max = 1e-5
-        for index in range(len(self.particles)):
-            x_box = self.states_boxes[index,:]
-            self.states_boxes[index,:] = hmmds.synthetic.filter.lorenz_sde.tangent_integrate(x_box, 0.0, time, s, r, b, h_max)
+        hmmds.synthetic.filter.lorenz_sde.integrate_particles(
+            self.states_boxes, 0.0, time, s, r, b, h_max)
 
     def forecast_x(self: Filter, time: float):
         """Map each particle forward by time.  If the quadratic term
@@ -254,7 +253,8 @@ class Filter:
                 # direction
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
                 if particle.x[0] - self.margin * box_0 < upper:
-                    x_box_weights.append((particle.x, particle.box, particle.weight))
+                    x_box_weights.append(
+                        (particle.x, particle.box, particle.weight))
 
         def top():
             """Use if y==top bin.  Keep a particle if any part of the
@@ -265,7 +265,8 @@ class Filter:
             for particle in self.particles:
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
                 if particle.x[0] + self.margin * box_0 > lower:
-                    x_box_weights.append((particle.x, particle.box, particle.weight))
+                    x_box_weights.append(
+                        (particle.x, particle.box, particle.weight))
 
         if y == 0:
             zero()
@@ -278,7 +279,8 @@ class Filter:
                 box_0 = numpy.abs(particle.box[:, 0]).sum()
                 if lower - self.margin * box_0 < particle.x[
                         0] < upper + self.margin * box_0:
-                    x_box_weights.append((particle.x, particle.box, particle.weight))
+                    x_box_weights.append(
+                        (particle.x, particle.box, particle.weight))
 
         if len(self.particles) == len(x_box_weights):
             return
