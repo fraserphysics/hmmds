@@ -55,6 +55,10 @@ main_test: main_filter.py particle.py
 	python particle.py $(TestArgs) $@
 
 
+C_test: C_particle_filter.py particle.py
+	cp $< filter.py
+	python particle.py $(TestArgs) $@
+
 
 ## list                 : List all files built by this makefile
 .PHONY : list
