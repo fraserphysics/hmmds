@@ -110,7 +110,8 @@ def main(argv=None):
     x_all = dict_in['x_all']
     clouds = dict_in['clouds']
     gamma = dict_in['gamma']
-    offset = 14
+    offset = 50  # First resample from 200,000 to 20,000 with some
+    # nice parameters
     log_gamma = numpy.log(gamma)[offset:]
     cum_sum = numpy.cumsum(log_gamma)
     h_hat = -cum_sum / numpy.arange(1, len(cum_sum) + 1) / 0.15

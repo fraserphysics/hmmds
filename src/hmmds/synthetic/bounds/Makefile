@@ -46,7 +46,7 @@ study_long1M10k%: particle.py filter.py
 # Next block is for comparing results of code change.
 TestArgs = --r_extra 2.0 --edge_max 0.2 --margin 0.01 --s_augment 5e-4 --n_y 1000 --resample 200000 20000 --r_threshold 1e-3
 
-test_args: trial_filter.py particle.py
+test_args: filter.py particle.py
 	python particle.py $(TestArgs) $@
 
 
