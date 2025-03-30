@@ -214,6 +214,8 @@ def main(argv=None):
     n_block = 5
     for t_start in range(0, len(y_q), n_block):
         p_filter.forward(y_q, (t_start, t_start + n_block), gamma, clouds)
+        # Clouds are kept for the last 25 times and for intervals in
+        # pairs specified by args.clouds.  Other clouds are deleted.
         if not cloud_marks[t_start]:
             debug_times.add(t_start)
         if t_start - 25 in debug_times:
@@ -222,10 +224,12 @@ def main(argv=None):
                 del clouds[(t, 'forecast')]
                 del clouds[(t, 'update')]
         if len(p_filter.particles) == 0:
-            break
+            break  # For debugging, the last 25 clouds will be
+            # available in the result.
 
     # Write results
     result = {
+        'args': args,
         'gamma': gamma,  # (100,) From x_all[:100]
         'y_q': y_q,  # (100,) From x_all[:100]
         'bins': bins,  # (3,)  

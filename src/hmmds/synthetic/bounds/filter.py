@@ -4,8 +4,6 @@
 
 from __future__ import annotations  # Enables, eg, (self: Particle
 
-import copy
-
 import numpy
 import numpy.linalg
 import numpy.random
@@ -330,12 +328,12 @@ class Filter:
             self.normalize()
             gamma[t] = self.p_y()[y]
             if clouds is not None:
-                clouds[(t, 'forecast')] = copy.deepcopy(self.particles)
+                clouds[(t, 'forecast')] = self.particles[0].states_boxes.copy()
             self.update(y)
             if len(self.particles) == 0:
                 return
             if clouds is not None:
-                clouds[(t, 'update')] = copy.deepcopy(self.particles)
+                clouds[(t, 'update')] = self.particles[0].states_boxes.copy()
             self.forecast_x(self.time_step)  # Calls divide
             length = len(self.particles)
             if length > self.resample_pair[0]:
