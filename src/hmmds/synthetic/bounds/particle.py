@@ -1,17 +1,24 @@
-"""particle.py Apply variant of particle filter to quantized Lorenz data
+"""particle.py Apply particle filter to quantized Lorenz data and
+write two files to a directory
 
-Call with: python particle.py result_file
+EG: python particle.py result_dir
 
-Create x_all, y_q and p_filter (initialized with x_all[0]).  Then run
-filter on y_q.
+or
 
-Write a dict to a pickle file with the following keys:
+python wrapper_particle.py $(Args) study_dir
 
+Called as wrapper_particle.py, this code would a subdirectory in
+study_dir with a complex name that reflects the arguments.
+
+In result_dir, write states_boxes and weights at each time to one file
+and a dict to a pickle file with the following keys:
+
+args   Parsed command line arguments and defaults
 x_all  Long (args.n_initialize) Lorenz trajectory
 y_q    Quantized data derived from x_all[:args.n_y]
 gamma  Incremental likelihood from p_filter(y_q, ...)
-clouds Forecast and update particles at times args.clouds
-bins   Bin boundaries.
+bins   Bin boundaries
+log_dict Record of progress of function named forward
 
 """
 
@@ -19,6 +26,7 @@ from __future__ import annotations
 import sys
 import argparse
 import pickle
+import os
 
 import numpy
 import numpy.linalg
@@ -76,11 +84,6 @@ def parse_args(argv):
                         default=1e-8,
                         help='Absolute error tolerance for integrator')
     parser.add_argument(
-        '--clouds',
-        type=int,
-        nargs='*',
-        help='each pair defines an interval in which to record the particles')
-    parser.add_argument(
         '--resample',
         type=int,
         nargs=2,
@@ -90,26 +93,10 @@ def parse_args(argv):
                         type=int,
                         default=7,
                         help='For random number generator')
-    parser.add_argument('result', type=str, help='write result to this path')
+    parser.add_argument('result_dir',
+                        type=str,
+                        help='write results to this path')
     return parser.parse_args(argv)
-
-
-def make_marks(intervals: list, n_y: int) -> numpy.ndarray:
-    """Create an array to determine which time steps are stored as clouds
-
-    Args:
-        intervals: From args.clouds
-        n_y: Length of observation sequence
-
-    """
-
-    cloud_marks = numpy.zeros(n_y, dtype=bool)
-    if intervals is None:
-        return cloud_marks
-    assert len(intervals) % 2 == 0
-    for start, stop in zip(intervals, intervals[1:]):
-        cloud_marks[start:stop] = True
-    return cloud_marks
 
 
 def make_data(args):
@@ -189,16 +176,13 @@ def initialize(p_filter: Filter,
     p_filter.initialize(x_0, delta)
 
 
-def main(argv=None):
-    """Run particle filter on Lorenz data
+def particle(args):
+    """Run particle filter on quantized Lorenz data, and write
+    results to two files in the directory _args.result_dir_.
 
     """
-    if argv is None:
-        argv = sys.argv[1:]
-    args = parse_args(argv)
-
+    npy_file = open(os.path.join(args.result_dir, 'states_boxes.npy'), 'wb')
     assert args.n_y % 5 == 0
-    cloud_marks = make_marks(args.clouds, args.n_y)
 
     y_all, x_all, bins = make_data(args)
     y_q = y_all[:args.n_y]
@@ -207,39 +191,51 @@ def main(argv=None):
     p_filter = Filter(args, bins, rng)
     initialize(p_filter, y_q, y_reference, x_all[args.n_y:], x_all[0])
     gamma = numpy.ones(len(y_q))
-    clouds = {}  # keys are pairs (t,'forecast') or (t,'update')
 
-    debug_times = set()
-    # Run filter on y_q
-    n_block = 5
-    for t_start in range(0, len(y_q), n_block):
-        p_filter.forward(y_q, (t_start, t_start + n_block), gamma, clouds)
-        # Clouds are kept for the last 25 times and for intervals in
-        # pairs specified by args.clouds.  Other clouds are deleted.
-        if not cloud_marks[t_start]:
-            debug_times.add(t_start)
-        if t_start - 25 in debug_times:
-            debug_times.discard(t_start - 25)
-            for t in range(t_start - 25, t_start - 20):
-                del clouds[(t, 'forecast')]
-                del clouds[(t, 'update')]
-        if len(p_filter.particles) == 0:
-            break  # For debugging, the last 25 clouds will be
-            # available in the result.
+    log_dict = {}
+    p_filter.forward(y_q, (0, len(y_q)), gamma, npy_file=npy_file, log=log_dict)
 
     # Write results
-    result = {
+    result_dict = {
         'args': args,
         'gamma': gamma,  # (100,) From x_all[:100]
         'y_q': y_q,  # (100,) From x_all[:100]
         'bins': bins,  # (3,)  
         'x_all': x_all,  # (15100, 3)
-        'clouds': clouds  # dict
+        'log_dict': log_dict,
     }
 
-    with open(args.result, 'wb') as _file:
-        pickle.dump(result, _file)
+    with open(os.path.join(args.result_dir, 'dict.pkl'), 'wb') as _file:
+        pickle.dump(result_dict, _file)
     return 0
+
+
+def wrapper(args):
+    """Create directory with name derived from args and write results there
+    """
+    # Create directory name
+    args_dict = vars(args).copy()
+    del args_dict['result_dir']
+    keys = list(args_dict.keys())
+    keys.sort()
+    name_list = []
+    for key in keys:
+        name_list.append(f'{key}..{args_dict[key]}..')
+    name = ''.join(name_list).replace(', ', '..').replace(']',
+                                                          '').replace('[', '')
+    os.makedirs(args.result_dir)
+    return particle(args)
+
+
+def main():
+    """Run particle filter on Lorenz data
+
+    """
+    args = parse_args(sys.argv[1:])
+    if sys.argv[0] == 'particle.py':
+        return particle(args)
+    if sys.argv[0] == 'wrapper_particle.py':
+        return wrapper(args)
 
 
 if __name__ == "__main__":

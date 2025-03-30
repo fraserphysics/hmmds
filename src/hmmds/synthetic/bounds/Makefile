@@ -43,10 +43,25 @@ study_long1M10k%: particle.py filter.py
 	python $< --margin 0.01 --s_augment $* --resample 1000000 10000 --r_threshold 1e-5 --clouds 110 140 --n_y 140 $@
 
 
-# Next block is for comparing results of code change.
-TestArgs = --r_extra 2.0 --edge_max 0.2 --margin 0.01 --s_augment 5e-4 --n_y 1000 --resample 200000 20000 --r_threshold 1e-3
+# Next block is for comparing results of parameter variations
+NAME = atol..1e-08..edge_max..0.2..margin..0.01..n_initialize..15000..n_quantized..4..n_y..10..r_extra..2.0..r_threshold..THRESHOLD..random_seed..7..resample..20000..2000..s_augment..0.0005..t_relax..50.0..time_step..0.15..
+
+Args = --r_extra 2.0 --edge_max 0.2 --margin 0.01 --s_augment 5e-4 --n_y 1000 --resample 20000 2000
+
+study_threshold/%: wrapper_particle.py filter.py
+	python $< $(Args) --r_threshold $* $(@D)/$(subst THRESHOLD,$*,$(NAME))
+	ln -s $(*D)/$(subst THRESHOLD,$*,$(NAME)) $@
+
+.PHONY: threshold_study
+threshold_study: $(addprefix study_threshold/, 1e-2 3e-3 1e-3 3e-4 1e-4)
+
+# python entropy_particle.py --dict_template study_threshold/{0}/dict.pkl 1e-2 1e-3 1e-4
+
+TestArgs = --r_extra 2.0 --edge_max 0.2 --margin 0.01 --s_augment 5e-4 --n_y 10 --resample 20000 2000 --r_threshold 1e-3
 
 test_args: filter.py particle.py
+	rm -rf $@
+	mkdir $@
 	python particle.py $(TestArgs) $@
 
 

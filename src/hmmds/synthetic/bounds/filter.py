@@ -310,34 +310,38 @@ class Filter:
                 y_ts: numpy.ndarray,
                 t_range: tuple,
                 gamma: numpy.ndarray,
-                clouds=None):
+                npy_file=None,
+                log={}):
         """Estimate and assign gamma[t] = p(y[t] | y[0:t]) for t from t_start to t_stop.
 
         Args:
             y_ts: A time series of observations
             t_range: (t_start, t_stop)
             gamma:
-            clouds: Optional dict for saving particles
+            npy_file: Optional open file for saving particles
+            log: Dict for saving notes on progress of this function
 
         """
         for t in range(*t_range):
             y = y_ts[t]
+            log[f'length{t}'] = len(self.particles)
             print(f'y[{t}]={y} {len(self.particles)=}')
             assert len(self.particles) < 1e6
 
             self.normalize()
             gamma[t] = self.p_y()[y]
-            if clouds is not None:
-                clouds[(t, 'forecast')] = self.particles[0].states_boxes.copy()
+            if npy_file is not None:
+                numpy.save(npy_file, self.particles[0].states_boxes)
             self.update(y)
             if len(self.particles) == 0:
                 return
-            if clouds is not None:
-                clouds[(t, 'update')] = self.particles[0].states_boxes.copy()
+            if npy_file is not None:
+                numpy.save(npy_file, self.particles[0].states_boxes)
             self.forecast_x(self.time_step)  # Calls divide
             length = len(self.particles)
             if length > self.resample_pair[0]:
                 self.resample(self.resample_pair[1])
+                log[f'resample{t}'] = (length, len(self.particles))
                 print(
                     f'resampled from {length} particles to {len(self.particles)=}'
                 )
