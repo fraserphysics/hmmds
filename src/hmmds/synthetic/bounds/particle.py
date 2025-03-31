@@ -181,6 +181,11 @@ def particle(args):
     results to two files in the directory _args.result_dir_.
 
     """
+    # Numpy arrays of states_boxes for all particles get written to
+    # np_file as filter.Filter.forward steps through the sequence of
+    # observations rather than caching such arrays in memory and
+    # writing them as this program finishes.  That incremental saving
+    # to a file curcumvents exhausting memory.
     npy_file = open(os.path.join(args.result_dir, 'states_boxes.npy'), 'wb')
     assert args.n_y % 5 == 0
 
@@ -207,6 +212,14 @@ def particle(args):
 
     with open(os.path.join(args.result_dir, 'dict.pkl'), 'wb') as _file:
         pickle.dump(result_dict, _file)
+    with open(os.path.join(args.result_dir, 'log.txt'), 'w',
+              encoding='utf-8') as _file:
+        args_dict = vars(args).copy()
+        for _dict in (args_dict, log_dict):
+            keys = list(_dict.keys())
+            keys.sort()
+            for key in keys:
+                print(f'{key}: {_dict[key]}', file=_file)
     return 0
 
 

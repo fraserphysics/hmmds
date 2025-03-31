@@ -1,12 +1,13 @@
 """plot.py: Plots for debugging.
 
-python plot.py --start 50 input_path
+python plot.py --start 50 study_threshold5k/1e-3
 
 """
 
 import sys
 import argparse
 import pickle
+import os
 
 import numpy
 import numpy.linalg
@@ -22,11 +23,14 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser(description='Debugging plot')
     parser.add_argument('--print_box', action='store_true', help="Print boxes")
+    parser.add_argument('--plot_lims',
+                        action='store_true',
+                        help="Plot clouds in standard frames")
     parser.add_argument('--start',
                         type=int,
                         default=0,
                         help='Plot particles at 5 times starting here')
-    parser.add_argument('input', type=str, help='Path to data')
+    parser.add_argument('input', type=str, help='Path to data directory')
     args = parser.parse_args(argv)
     return args
 
@@ -97,6 +101,20 @@ class Close:
         return numpy.dot((U / S).T, delta)
 
 
+def read_particles(path, n_start, length):
+    """Read states_boxes arrays for forcast and update clouds of particles
+    """
+    result = {}
+
+    with open(path, 'rb') as file_:
+        for n in range(n_start * 2):
+            numpy.load(file_)
+        for n in range(n_start, n_start + length):
+            result[(n, 'forecast')] = numpy.load(file_)
+            result[(n, 'update')] = numpy.load(file_)
+    return result
+
+
 def main(argv=None):
     """Plot some stuff
     """
@@ -104,11 +122,12 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
-    with open(args.input, 'rb') as file_:
+    npy_path = os.path.join(args.input, 'states_boxes.npy')
+    dict_path = os.path.join(args.input, 'dict.pkl')
+    with open(dict_path, 'rb') as file_:
         dict_in = pickle.load(file_)
     y_q = dict_in['y_q']
     x_all = dict_in['x_all']
-    clouds = dict_in['clouds']
     gamma = dict_in['gamma']
     offset = 50  # First resample from 200,000 to 20,000 with some
     # nice parameters
@@ -121,14 +140,10 @@ def main(argv=None):
 
     figure, axeses = pyplot.subplots(nrows=5, ncols=3, figsize=(8, 9))
 
+    clouds = read_particles(npy_path, args.start, 5)
     for i in range(args.start, args.start + 5):
-        if (i, 'forecast') not in clouds:
-            continue
         forecast = clouds[(i, 'forecast')]
-        if (i, 'update') in dict_in['clouds']:
-            update = dict_in['clouds'][(i, 'update')]
-        else:
-            update = []
+        update = clouds[(i, 'update')]
 
         close = Close(x_all[i], forecast)
         distance, closest = close.nth(0)
@@ -159,8 +174,9 @@ def main(argv=None):
             distance, closest = close.nth(0)
             plot_box(axes, closest)
 
-            #axes.set_xlim(-22, 22)
-            #axes.set_ylim(0, 50)
+            if args.plot_lims:
+                axes.set_xlim(-22, 22)
+                axes.set_ylim(0, 50)
         # Print information in legend of leftmost plot
         axes = axeses[i % 5, 0]
         plot_point(axes,

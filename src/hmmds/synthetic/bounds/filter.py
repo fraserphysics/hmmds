@@ -324,27 +324,34 @@ class Filter:
         """
         for t in range(*t_range):
             y = y_ts[t]
-            log[f'length{t}'] = len(self.particles)
-            print(f'y[{t}]={y} {len(self.particles)=}')
             assert len(self.particles) < 1e6
 
             self.normalize()
             gamma[t] = self.p_y()[y]
             if npy_file is not None:
                 numpy.save(npy_file, self.particles[0].states_boxes)
+            forecast_length = len(self.particles)
             self.update(y)
+            update_length = len(self.particles)
+            print(f'y[{t}]={y} {forecast_length:8d} {update_length:8d}')
+            log[t] = (forecast_length, update_length)
+
             if len(self.particles) == 0:
                 return
             if npy_file is not None:
                 numpy.save(npy_file, self.particles[0].states_boxes)
-            self.forecast_x(self.time_step)  # Calls divide
-            length = len(self.particles)
-            if length > self.resample_pair[0]:
+
+            self.forecast_x(
+                self.time_step)  # May divide to create new particles
+            new_length = len(self.particles)
+            if new_length > self.resample_pair[0]:
                 self.resample(self.resample_pair[1])
-                log[f'resample{t}'] = (length, len(self.particles))
+                resampled_length = len(self.particles)
                 print(
-                    f'resampled from {length} particles to {len(self.particles)=}'
+                    f'resampled from {new_length} particles to {resampled_length}'
                 )
+                log[t] = (forecast_length, update_length, new_length,
+                          resampled_length)
         return
 
 
