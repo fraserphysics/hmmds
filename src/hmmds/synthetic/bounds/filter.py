@@ -324,7 +324,7 @@ class Filter:
         """
         for t in range(*t_range):
             y = y_ts[t]
-            assert len(self.particles) < 1e6
+            assert len(self.particles) < 10e6,f'{t=} {len(self.particles)=}'
 
             self.normalize()
             gamma[t] = self.p_y()[y]

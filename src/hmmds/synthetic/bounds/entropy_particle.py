@@ -24,7 +24,10 @@ def parse_args(argv):
                         type=str,
                         default='study_threshold/{0}/dict.pkl',
                         help='map from key to path')
-    parser.add_argument('keys', type=str, nargs='+', help='variable part of path')
+    parser.add_argument('keys',
+                        type=str,
+                        nargs='+',
+                        help='variable part of path')
     args = parser.parse_args(argv)
     return args
 
