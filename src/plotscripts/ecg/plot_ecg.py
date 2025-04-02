@@ -54,7 +54,8 @@ def main(argv=None):
 
     y_min = -3
     y_max = 4
-    fig, axeses = pyplot.subplots(nrows=n_segments, figsize=(6, 3.1 * n_segments))
+    fig, axeses = pyplot.subplots(nrows=n_segments,
+                                  figsize=(6, 3.1 * n_segments))
     if n_segments == 1:
         axeses = [axeses]
 

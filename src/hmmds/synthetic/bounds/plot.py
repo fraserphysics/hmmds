@@ -1,12 +1,13 @@
 """plot.py: Plots for debugging.
 
-python plot.py --start 50 input_path
+python plot.py --start 50 study_threshold5k/1e-3
 
 """
 
 import sys
 import argparse
 import pickle
+import os
 
 import numpy
 import numpy.linalg
@@ -22,23 +23,27 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser(description='Debugging plot')
     parser.add_argument('--print_box', action='store_true', help="Print boxes")
+    parser.add_argument('--plot_lims',
+                        action='store_true',
+                        help="Plot clouds in standard frames")
     parser.add_argument('--start',
                         type=int,
                         default=0,
                         help='Plot particles at 5 times starting here')
-    parser.add_argument('input', type=str, help='Path to data')
+    parser.add_argument('input', type=str, help='Path to data directory')
     args = parser.parse_args(argv)
     return args
 
 
-def plot_box(axes, particle):
+def plot_box(axes, x_box):
     """Plot the box for a particle
     """
     colors = 'red green blue'.split()
-    x = particle.x
+    x = x_box[:3]
+    box = x_box[3:].reshape((3, 3))
 
     def plot_line(i):
-        end = x + particle.box[i]
+        end = x + box[i]
         axes.plot((x[0], end[0]), (x[2], end[2]), color=colors[i])
 
     for i in range(3):
@@ -65,33 +70,49 @@ def plot_point(axes, x, color, label=None):
 
 class Close:
 
-    def __init__(self, true_x, particles):
+    def __init__(self, true_x, states_boxes):
+        assert true_x.shape == (3,)
+        assert states_boxes.shape[1] == 12
+        n_particles = states_boxes.shape[0]
+
         self.true_x = true_x
-        self.particles = particles
-        self.distances = numpy.asarray(
-            [self.distance(particle) for particle in particles])
+        self.states_boxes = states_boxes
+        self.distances = numpy.asarray([
+            lengths.max() for lengths in numpy.abs(states_boxes[:, :3] - true_x)
+        ])
         self.indices = numpy.argsort(self.distances)
 
-    def distance(self, particle):
-        """Max norm
-        """
-        delta = particle.x - self.true_x
-        return numpy.abs(delta).max()
+        assert self.distances.shape == (n_particles,)
+        assert self.indices.shape == (n_particles,)
 
     def nth(self, n):
         """Return the distance and particle that are nth closest
 
         """
         index = self.indices[n]
-        return self.distances[index], self.particles[index]
+        return self.distances[index], self.states_boxes[index]
 
     def delta_svd(self, n):
         """Calculate (true_x - nth closest) in svd coordinates
         """
-        particle = self.particles[self.indices[n]]
-        U, S, VT = numpy.linalg.svd(particle.box)
-        delta = self.true_x - particle.x
+        x_box = self.states_boxes[self.indices[n]]
+        U, S, VT = numpy.linalg.svd(x_box[3:].reshape((3, 3)))
+        delta = self.true_x - x_box[:3]
         return numpy.dot((U / S).T, delta)
+
+
+def read_particles(path, n_start, length):
+    """Read states_boxes arrays for forcast and update clouds of particles
+    """
+    result = {}
+
+    with open(path, 'rb') as file_:
+        for n in range(n_start * 2):
+            numpy.load(file_)
+        for n in range(n_start, n_start + length):
+            result[(n, 'forecast')] = numpy.load(file_)
+            result[(n, 'update')] = numpy.load(file_)
+    return result
 
 
 def main(argv=None):
@@ -101,28 +122,28 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
-    with open(args.input, 'rb') as file_:
+    npy_path = os.path.join(args.input, 'states_boxes.npy')
+    dict_path = os.path.join(args.input, 'dict.pkl')
+    with open(dict_path, 'rb') as file_:
         dict_in = pickle.load(file_)
     y_q = dict_in['y_q']
     x_all = dict_in['x_all']
-    clouds = dict_in['clouds']
     gamma = dict_in['gamma']
-    offset = 14
+    offset = 50  # First resample from 200,000 to 20,000 with some
+    # nice parameters
     log_gamma = numpy.log(gamma)[offset:]
     cum_sum = numpy.cumsum(log_gamma)
-    y_values = -cum_sum / numpy.arange(1, len(cum_sum) + 1) / 0.15
-    print(f'{y_values[-10:]=}')
+    h_hat = -cum_sum / numpy.arange(1, len(cum_sum) + 1) / 0.15
+    print(f'{h_hat[-10:]=}\n args:')
+    for key, value in dict_in['args'].__dict__.items():
+        print(f'    {key}: {value}')
 
     figure, axeses = pyplot.subplots(nrows=5, ncols=3, figsize=(8, 9))
 
+    clouds = read_particles(npy_path, args.start, 5)
     for i in range(args.start, args.start + 5):
-        if (i, 'forecast') not in clouds:
-            continue
         forecast = clouds[(i, 'forecast')]
-        if (i, 'update') in dict_in['clouds']:
-            update = dict_in['clouds'][(i, 'update')]
-        else:
-            update = []
+        update = clouds[(i, 'update')]
 
         close = Close(x_all[i], forecast)
         distance, closest = close.nth(0)
@@ -130,45 +151,49 @@ def main(argv=None):
         plot_box(axes, closest)  # closest to the true trajectory
 
         # Plot points of forecast and update
-        for j, cloud in enumerate((forecast, update)):
+        for j, states_boxes in enumerate((forecast, update)):
             # j = 0 -> forecast, j = 1 -> update
-            if len(cloud) == 0:
+            if len(states_boxes) == 0:
                 continue
             axes = axeses[i % 5, j]
             # Mark the "true" state with an x
             axes.plot(x_all[i, 0], x_all[i, 2], marker='x')
-            for particle in cloud:
-                plot_point(axes, particle.x, 'blue')
+            x_0s = states_boxes[:, 0]
+            x_2s = states_boxes[:, 2]
+            axes.plot(x_0s,
+                      x_2s,
+                      markeredgecolor='none',
+                      marker='.',
+                      markersize=5,
+                      linestyle='None',
+                      color='blue')
+            # Plot boxes
+            if len(states_boxes) > 1:
+                _, next_closest = close.nth(1)
+                plot_box(axes, next_closest)
+            distance, closest = close.nth(0)
+            plot_box(axes, closest)
 
-                # Plot boxes
-                if len(cloud) > 1:
-                    _, next_closest = close.nth(1)
-                    plot_box(axes, next_closest)
-                distance, closest = close.nth(0)
-                plot_box(axes, closest)
-
-            axes.set_xlim(-22, 22)
-            axes.set_ylim(0, 50)
+            if args.plot_lims:
+                axes.set_xlim(-22, 22)
+                axes.set_ylim(0, 50)
         # Print information in legend of leftmost plot
         axes = axeses[i % 5, 0]
         plot_point(axes,
-                   closest.x,
+                   closest,
                    'red',
                    label=f'y[{i}]={y_q[i]} {distance=:.3f} n={len(forecast)} ')
         axes.legend(loc='upper right')  # Faster than loc="best"
         # Print p(y[t]|y[0:t]) in legend of center plot
         axes = axeses[i % 5, 1]
         plot_point(axes,
-                   closest.x,
+                   closest,
                    'red',
                    label=f'p={len(update)/len(forecast):.3f} ')
         axes.legend(loc='upper right')  # Faster than loc="best"
 
-        _, ratio = closest.ratio()
         numpy.set_printoptions(precision=2)
-        print(
-            f'n[{i}]={len(forecast)} {distance=:.2f} true x = {x_all[i]} {ratio=:.2g}'
-        )
+        print(f'n[{i}]={len(forecast)} {distance=:.2f} true x = {x_all[i]}')
         numpy.set_printoptions(precision=8)
 
     # Print box for closest
