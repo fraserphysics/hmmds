@@ -90,10 +90,9 @@ def tangent_integrate(
     """
     
     assert h_min < 0 < h_max
-    x_final = numpy.empty(12)
+    x_final = x_initial.copy()
 
     # Get "memoryviews".  These enable calling functions with c style arguments
-    cdef double[::1] initial_view = x_initial
     cdef double[::1] final_view = x_final
 
     # Calculate number of Runge-Kutta steps
@@ -107,7 +106,7 @@ def tangent_integrate(
     assert n_steps > 0
     
     # Call multi-step integrate function
-    tangent_n_steps(&initial_view[0], delta_t/n_steps, s, b, r, n_steps)
+    tangent_n_steps(&final_view[0], delta_t/n_steps, s, b, r, n_steps)
     return x_final
 
 def integrate_particles(
