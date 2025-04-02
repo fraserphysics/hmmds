@@ -46,12 +46,13 @@ study_long1M10k%: particle.py filter.py
 # Next block is for comparing results of parameter variations
 RESAMPLE_A = 2000000
 RESAMPLE_B = 200000
+
 NAME = atol..1e-08..edge_max..0.2..margin..0.01..n_initialize..15000..n_quantized..4..n_y..10..r_extra..2.0..r_threshold..THRESHOLD..random_seed..7..resample..$(RESAMPLE_A)..$(RESAMPLE_B)..s_augment..0.0005..t_relax..50.0..time_step..0.15..
 
 Args = --r_extra 2.0 --edge_max 0.2 --margin 0.01 --s_augment 5e-4 --n_y 1000 --resample $(RESAMPLE_A) $(RESAMPLE_B)
 
 study_threshold/%: wrapper_particle.py filter.py
-	python $< $(Args) --r_threshold $* $(@D)/$(subst THRESHOLD,$*,$(NAME))
+	python $< $(Args) --r_threshold $* $(@D)
 	ln -s $(*D)/$(subst THRESHOLD,$*,$(NAME)) $@
 
 .PHONY: threshold_study

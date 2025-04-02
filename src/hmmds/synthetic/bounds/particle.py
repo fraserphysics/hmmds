@@ -1,5 +1,5 @@
 """particle.py Apply particle filter to quantized Lorenz data and
-write two files to a directory
+write three files to a directory
 
 EG: python particle.py result_dir
 
@@ -7,11 +7,11 @@ or
 
 python wrapper_particle.py $(Args) study_dir
 
-Called as wrapper_particle.py, this code would a subdirectory in
-study_dir with a complex name that reflects the arguments.
+Called as wrapper_particle.py, this code would create a subdirectory
+in study_dir with a complex name that reflects the arguments.
 
 In result_dir, write states_boxes and weights at each time to one file
-and a dict to a pickle file with the following keys:
+a log file with, and a dict to a pickle file with the following keys:
 
 args   Parsed command line arguments and defaults
 x_all  Long (args.n_initialize) Lorenz trajectory
@@ -224,7 +224,9 @@ def particle(args):
 
 
 def wrapper(args):
-    """Create directory with name derived from args and write results there
+    """Create directory with name derived from args and have
+    particle() write results there
+
     """
     # Create directory name
     args_dict = vars(args).copy()
@@ -236,6 +238,7 @@ def wrapper(args):
         name_list.append(f'{key}..{args_dict[key]}..')
     name = ''.join(name_list).replace(', ', '..').replace(']',
                                                           '').replace('[', '')
+    args.result_dir = os.path.join(args.result_dir, name)
     os.makedirs(args.result_dir)
     return particle(args)
 
