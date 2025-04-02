@@ -299,13 +299,14 @@ the average of the factor means weighted by the inverse covariances.
 \label{chap:em_appendix}
 
 \newcommand{\OldParameters}{\parameters}
-\newcommand{\NewParameters}{\parameters'} Here we calculate the linear
-approximation of the behavior of $\EMmap$, the map implemented by EM
-algorithm, in the neighborhood of a fixed point, $\EMfixedPoint$.  We
-show that the linear stability properties of $\EMmap$ are the same as
-the linear stability properties of the flow of solutions to the
-ordinary differential equation \eqref{eq:GradientDynamics} on page
-\pageref{eq:GradientDynamics}.  That is,
+\newcommand{\NewParameters}{\parameters'} %
+Here we calculate the linear approximation of the behavior of
+$\EMmap$, the map implemented by EM algorithm, in the neighborhood of
+a fixed point, $\EMfixedPoint$.  We show that the linear stability
+properties of $\EMmap$ are the same as the linear stability properties
+of the flow of solutions to the ordinary differential equation
+\eqref{eq:GradientDynamics} on page \pageref{eq:GradientDynamics}.
+That is,
 \begin{equation*}
   \dot \parameters = \frac{d}{d \parameters} \log \left(
     \LogLikelihood(\parameters) \right),

@@ -3,8 +3,8 @@
 \chapter{Introduction}
 \label{chap:introduction}
 
-In a dynamical system, a rule maps states $x\in\cal X$ forward in
-time.  Familiar examples include discrete time maps
+A dynamical system model uses a rule, $F$, to map states $x\in\cal X$
+forward in time.  Familiar examples include discrete time maps
 %% \begin{equation*}
 %%   \ti{x}{t+1} = F(\ti{x}{t}) ~~ t \in \INTEGER
 %% \end{equation*}
@@ -18,15 +18,16 @@ information necessary to calculate future states and information about
 past states is redundant.  Thus the sequence of states in a dynamical
 system satisfies the \emph{Markov property}, which we will more
 formally define in Eqn.~\eqref{eq:MarkovChain}.  In applications, we
-often think of measured data as being a function of states of a
-dynamical system with $ \ti{y}{t} = G(\ti{x}{t})$.  The function $F$
-that maps states forward in time and the function $G$ that maps states
-to observations make up a \emph{\index*{state space model}} for
-sequences of observations.  If the observation function is not
-invertible, then knowledge of the measurement $\ti{y}{t}$ at a single
-time $t$ is not sufficient to specify the state $\ti{x}{t}$ uniquely,
-and one could say that $\ti{x}{t}$ is \emph{hidden}.  That is the
-sense of \emph{hidden} in the term ``hidden Markov model''.
+often think of sequences of observations as arising from applying a
+measurement function, $G$, to sequences of states of a dynamical system with
+$ \ti{y}{t} = G(\ti{x}{t})$.  The function $F$ that maps states
+forward in time and the function $G$ that maps states to observations
+make up a \emph{\index*{state space model}} for sequences of
+observations.  If the observation function is not invertible, then
+knowledge of the observation $\ti{y}{t}$ at a single time $t$ is not
+sufficient to specify the state $\ti{x}{t}$ uniquely, and one could
+say that $\ti{x}{t}$ is \emph{hidden}.  That is the sense of
+\emph{hidden} in the term ``hidden Markov model''.
 
 Given a short sequence of observations, say
 $\ts{y}{0}{3} = \left[ \ti{y}{0},\ti{y}{1}, \ti{y}{2}\right]$, one
@@ -36,22 +37,20 @@ strategy will only work if the images of all initial states that are
 consistent with the observations all fall on the same state, \ie, if
 for all $x$ such that $ G(x) = \ti{y}{0}, G\circ F(x) = \ti{y}{1},$
 and $G\circ F\circ F(x) = \ti{y}{2}$, we find that
-$F\circ F(x) = \hat x$, then the measurements are sufficient to
+$F\circ F(x) = \hat x$, then the observations are sufficient to
 identify $\ti{x}{2} = \hat x$ uniquely.  If such a revelation
 procedure works, then one can use it to map long sequences of
 observations to long sequences of states and from there to do
 forecasting of both states and observations.
 
 For most of the state space models that we consider, the function,
-$F$, that
-governs the state dynamics and the observation function, $G$, both have
-random elements.  Only imagination limits what constitutes the set of
-states in a state space model.  The kinds of observations are
-similarly varied.  We will consider discrete state spaces that are
-sets with a finite number of elements and state spaces that are real
-vector spaces.  As a prelude, we look at some measurements of a laser
-system that is ``Lorenz like''.
-\ToDo{Reword}
+$F$, that governs the state dynamics and the measurement function,
+$G$, both have random elements.  Only imagination limits what
+constitutes the set of states in a state space model.  The kinds of
+observations are similarly varied.  We will consider discrete state
+spaces that are sets with a finite number of elements and state spaces
+that are real vector spaces.  As a prelude, we look at a sequence of
+observations of a laser system that is ``Lorenz like''.
 
 \section{Laser Example}
 \label{sec:laser}
@@ -63,13 +62,13 @@ equations
 \begin{subequations}
   \label{eq:Lorenz}
   \begin{align}
-    \dot x_1 &= s x_2 -s x_1\\
-    \dot x_2 &= -x_1 x_3 + r x_1 - x_2 \\
-    \dot x_3 &= x_1 x_2 - b x_3
+    \dot x_0 &= s x_1 -s x_0\\
+    \dot x_1 &= -x_0 x_2 + r x_0 - x_1 \\
+    \dot x_2 &= x_0 x_1 - b x_2
   \end{align}
 \end{subequations}
 which he had proposed as an approximation for fluid convection.  In
-Eqn.~\eqref{eq:Lorenz}, $x = (x_1,x_2,x_3)$ is a vector of mode
+Eqn.~\eqref{eq:Lorenz}, $x = (x_0,x_1,x_2)$ is a vector of mode
 amplitudes, and the parameters $s$, $r$, and $b$ describe properties
 of the fluid.  The paper is widely cited, not because it is a good
 model for convection, but because the interesting behavior of the
@@ -86,9 +85,10 @@ interprets the components of the state $x$ as the electric field, the
 polarization, and the population inversion in the laser medium.  In
 1992 %
 \index{Tang, D.\ Y.}%
-Tang \etal\cite{Tang92,Tang94}\ reported measurements of the time %
-dependent intensity of the electric field for such a laser.  The
-measured quantity corresponds to $(\ti{x_1}{t})^2$. \ToDo{This is G above}
+Tang \etal\cite{Tang92,Tang94}\ reported observations of the time %
+dependent intensity of the electric field for such a laser.  In their
+model the observations are measurements of a component of the state,
+\ie, $\ti{y}{t} = G(\ti{x}{t}) = (\ti{x_0}{t})^2$.
 Figure~\ref{fig:LaserLP5} shows a sequence of Tang's measurements.  We
 produced the second trace in the figure by numerically integrating
 Eqn.~\eqref{eq:Lorenz} with initial conditions and parameters selected
@@ -121,7 +121,7 @@ distributed Gaussian noise with mean zero and covariance
 $\id\sigma_\eta^2$ to implement the state noise $\ti{\eta}{t}$.
 \nomenclature[rid]{$\id$}{The \emph{identity} operator; a diagonal
   matrix of ones.}  Our measurement model is $G(\ti{x}{t}) = S_g \cdot
-(\ti{x_1}{t})^2 + O_g$ where $S_g$ and $O_g$ are fixed scale and
+(\ti{x_0}{t})^2 + O_g$ where $S_g$ and $O_g$ are fixed scale and
 offset parameters, and the measurement noise $\ti{\epsilon}{t}$ is
 independently identically distributed Gaussian noise with mean zero
 and covariance $\id\sigma_\epsilon^2$.  The model has the following
@@ -143,21 +143,20 @@ Using this parameterization, we wrote a routine based on the
 \index{Kalman filter|see{extended Kalman filter}}%
 \index{extended Kalman filter}%
 techniques described in Chapter~\ref{chap:continuous} to calculate
-approximate probabilities which we write as $P_{*\given \theta}$ where
-$\theta$ denotes the collection of parameters.  \ToDo{Diane confused
-  about theta.  Maybe say 11 dim.  Make clear that this theta is not
-  an HMM theta.} By passing that
-routine and Tang's data to the SciPy optimization package, we found a
-parameter vector that satisfies
+approximate probabilities which we write as
+$P_{*\given \theta_{\text{EKF}}}$ where $\theta_{\text{EKF}}$ denotes
+the collection of parameters.  By passing that routine and Tang's data
+to the SciPy optimization package, we found a parameter vector that
+satisfies
 \begin{equation}
   \label{eq:theta-hat-laser}
-  \hat \theta = \argmax_{\theta} ~ P(\ts{y}{0}{250}\given \theta),
+  \hat \theta_{\text{EKF}} = \argmax_{\theta_{\text{EKF}}} ~ P(\ts{y}{0}{250}\given \theta_{\text{EKF}}),
 \end{equation}
-where $P(\ts{y}{0}{250}\given \theta)$, the \emph{likelihood} of
-$\theta$, is the conditional probability that a sequence of 250
+where $P(\ts{y}{0}{250}\given \theta_{\text{EKF}})$, the \emph{likelihood} of
+$\theta_{\text{EKF}}$, is the conditional probability that a sequence of 250
 observations will have the values
 $\ti{y}{0},\ti{y}{1}, \ldots,\ti{y}{249}$ given the parameters
-$\theta$.  The parameter vector $\hat \theta$ is called the
+$\theta_{\text{EKF}}$.  The parameter vector $\hat \theta_{\text{EKF}}$ is called the
 \emph{maximum likelihood estimate} %
 \index{maximum likelihood estimate (MLE)}%
 \index{MLE|see{maximum likelihood estimate}}%
@@ -170,29 +169,29 @@ piece of the log of the likelihood function.
   \caption[\comment{fig:LaserLogLike }Log likelihood as function of
   $s$ and $b$.]%
   {An illustration of how the log-likelihood,
-    $\log \left(P(\ts{y}{0}{250}\given \theta) \right)$, depends on
-    the components $s$ and $b$ of $\theta$.  The other nine
-    components of $\theta$ were held fixed at the values that maximize
+    $\log \left(P(\ts{y}{0}{250}\given \theta_{\text{EKF}}) \right)$, depends on
+    the components $s$ and $b$ of $\theta_{\text{EKF}}$.  The other nine
+    components of $\theta_{\text{EKF}}$ were held fixed at the values that maximize
     the likelihood.  Descriptions of all eleven parameters appear on
     page~\pageref{page:eleven_parameters}.}
   \label{fig:LaserLogLike}
 \end{figure}
 
-Given $\hat \theta$, the maximum likelihood parameters, and the
+Given $\hat \theta_{\text{EKF}}$, the maximum likelihood parameters, and the
 observations, we can calculate many interesting quantities.  For
 example, in Fig.~\ref{fig:LaserStates} we have plotted the sequence of
 states that has the highest probability, \ie,
 \begin{equation}
   \label{eq:xhatSeq}
   \ts{\hat x}{0}{250} = \argmax_{\ts{x}{0}{250}}
-  P(\ts{x}{0}{250}\given \ts{y}{0}{250},\hat \theta),
+  P(\ts{x}{0}{250}\given \ts{y}{0}{250},\hat \theta_{\text{EKF}}),
 \end{equation}
 and in Fig.~\ref{fig:LaserForecast} we have plotted a forecast that we
 made by iterating the function $F$ on the state $\hat x$ that has
 highest probability given the first 250 observations, \ie,
 \begin{equation}
   \label{eq:xhat250}
-  \hat x = \argmax_{\ti{x}{250}} P(\ti{x}{250}\given \ts{y}{0}{250},\hat \theta).
+  \hat x = \argmax_{\ti{x}{250}} P(\ti{x}{250}\given \ts{y}{0}{250},\hat \theta_{\text{EKF}}).
 \end{equation}
 
 \begin{figure}[htbp]
@@ -201,7 +200,7 @@ highest probability given the first 250 observations, \ie,
   \caption[\comment{fig:LaserStates }State trajectory $\ts{\hat x}{0}{250}$.]%
   {State trajectory $\ts{\hat x}{0}{250}$ estimated from
     observation sequence $\ts{y}{0}{250}$ (see
-    Eqn.~\eqref{eq:xhatSeq}).  Components $x_1$ and $x_3$ of the
+    Eqn.~\eqref{eq:xhatSeq}).  Components $x_0$ and $x_2$ of the
     Lorenz system (see Eqn.~\eqref{eq:Lorenz}) are plotted.}
   \label{fig:LaserStates}
 \end{figure}
@@ -229,23 +228,26 @@ highest probability given the first 250 observations, \ie,
 
 To get \index*{state space model}s that are more general than the form
 (Eqn.~\eqref{eq:FandG}) that we used to describe the laser data, we
-suppose only that a conditional probability distribution
-\ToDo{Footnote about notation for probability}
+suppose only that a conditional probability distribution\footnote{The
+  upper case subscript $X$ in $P_{\ti{X}{t+1}\given \ti{X}{t}}$
+  denotes a \emph{random variable}.  See the Notation section that
+  starts on page \pageref{sec:notation}.}
 $P_{\ti{X}{t+1}\given \ti{X}{t}}$ governs evolution in state space and
-another conditional distribution $P_{\ti{Y}{t}\given \ti{X}{t}}$ governs the
-observations $\ti{Y}{t}$.  Combining these two conditional
+another conditional distribution $P_{\ti{Y}{t}\given \ti{X}{t}}$
+governs the observations $\ti{Y}{t}$.  Combining these two conditional
 distribution functions with a distribution $P_{\ti{X}{0}}$ of initial
 states defines probabilities for any collection of states and
 observations.  In particular, it defines the joint probabilities of
-the \emph{stochastic process} or \emph{information source} consisting
-of sequences of observations.  We refer to such a combination as a
-\emph{model} and denote it as $P_{*\given \theta}$.  So defined, the class
-of state space models is so broad that to do anything useful, we must
-use smaller subclasses.  Typically, we assume that the conditional
-distributions are time invariant and that a finite set of parameters
-$\theta$ specifies the model.  Notice that we have not specified the
-sets from which we draw the states or observations; they could be
-discrete, real scalars, real vectors, or something else.
+the \emph{\index*{stochastic process}} or \emph{information source}
+\index{source!information} consisting of sequences of observations.
+We refer to such a combination as a \emph{model} and denote it as
+$P_{*\given \theta}$.  So defined, the class of state space models is
+so broad that to do anything useful, we must use smaller subclasses.
+Typically, we assume that the conditional distributions are time
+invariant and that a finite set of parameters $\theta$ specifies the
+model.  Notice that we have not specified the sets from which we draw
+the states or observations; they could be discrete, real scalars, real
+vectors, or something else.
 
 
 \subsection{Tasks}
@@ -261,7 +263,7 @@ One can use a parameterized class of state space models $\left\{
     \label{eq:IntroMLE}
     \hat \theta_{MLE} \equiv \argmax_{\theta} P(\ts{y}{0}{T}\given \theta)
   \end{equation}
-  to characterize the source \ToDo{Mistake to use word source?} $Y$.
+  to characterize the information source $Y$.
 \item[Trajectory Estimation] Given a particular model $P_{*\given \theta}$ and
   a sequence of observations $\ts{y}{0}{T}$, one can calculate the
   conditional distribution of states
@@ -282,8 +284,7 @@ One can use a parameterized class of state space models $\left\{
   \end{equation*}
 \item[Simulation] Given a model $P_{*\given \theta}$, one can
   characterize its long term behavior, answering questions like ``What
-  is a hundred year flood?''.  \ToDo{Diane didn't know what a 100
-    year flood is}  We often find that models that we fit
+  is a hundred year flood?''.  We often find that models that we fit
   are not good for such long term extrapolation.  For example, the
   laser data that we described in the previous section seems to come
   from a stable period five orbit, but the periodic orbit that the
@@ -306,8 +307,6 @@ One can use a parameterized class of state space models $\left\{
 \label{sec:intro_hmm}
 \index{discrete hidden Markov model}%
 
-\ToDo{? Attach footnote 1 when you first use big X?}
-
 In this section we describe the simplest state space models: those
 that are discrete in time, state, and observation.  We begin with a
 couple of definitions.  Three random variables $\ti{X}{0}$,
@@ -323,9 +322,9 @@ independent given $\ti{X}{1}$, \ie,
   P_{\ti{X}{2},\ti{X}{0}\given \ti{X}{1}} = P_{\ti{X}{2}\given \ti{X}{1}}   P_{\ti{X}{0}\given \ti{X}{1}}.
 \end{equation*}
 An indexed sequence of random variables $\ts{X}{0}{T}$ is a
-\emph{Markov process} \index{Markov process} if \ToDo{ t is integer}
-for any $t: 1 < t < T$ the variables before and after $t$ are
-conditionally independent given $\ti{X}{t}$, \ie,
+\emph{Markov process} \index{Markov process} if for any integer
+$t: 1 < t < T-1$ the variables before and after $t$ are conditionally
+independent given $\ti{X}{t}$, \ie,
 \begin{equation}
   \label{eq:MarkovProcess}
   P_{\ts{X}{0}{t},\ts{X}{t+1}{T}\given \ti{X}{t}} =
@@ -367,18 +366,22 @@ sequence of states $\ts{s}{0}{T}$, which we write\footnote{We use
   $P_X(x)$ is the probability that the random variable $X$ has the
   value $x$.  We usually drop subscripts on $P$ when the context or
   argument resolves ambiguity as to which probability function we
-  mean.} as $P_{\ts{S}{0}{T}}\left( \ts{s}{0}{T} \right)$.  For
-example we calculate the probability that a sequence of 4 states has
-the values $\ts{s}{0}{4} = (u,v,w,v)$, (\ie, $\ti{s}{0} = u$,
-$\ti{s}{1} = v$, $\ti{s}{2} = w$, and $\ti{s}{3} = v$) as follows:
+  mean.} as $P_{\ts{S}{0}{T}}\left( \ts{s}{0}{T} \right)$.
 
+For example we calculate the probability that a sequence of 4 states
+has the values $\ts{s}{0}{4} = (u,v,w,v)$, (\ie, $\ti{s}{0} = u$,
+$\ti{s}{1} = v$, $\ti{s}{2} = w$, and $\ti{s}{3} = v$) using the
+general formula
 \begin{align}
   \label{eq:intro_hmm1}
-  P(\ts{s}{0}{4}) &= P(\ti{s}{0}) \prod_{\tau=1}^3 %
-                     P(\ti{s}{\tau}\given \ts{s}{0}{\tau-1})\\
+  P(\ts{s}{0}{4}) &= P(\ti{s}{0}) \prod_{t=1}^3 %
+                     P(\ti{s}{t}\given \ts{s}{0}{t-1})\\
   \label{eq:intro_hmm2}
-                  &= P(\ti{s}{0}) \prod_{\tau=1}^3 %
-                     P(\ti{s}{\tau}\given \ti{s}{\tau-1}) \\
+                  &= P(\ti{s}{0}) \prod_{t=1}^3 %
+                    P(\ti{s}{t}\given \ti{s}{t-1}),
+\end{align}
+with the specified values to obtain
+\begin{align}
   \label{eq:intro_hmm3}
   P(u,v,w,v)      &= P(v\given u,v,w) \cdot P(w\given u,v) \cdot  P(v\given u) \cdot P(u)\\
   \label{eq:intro_hmm4}
@@ -387,8 +390,6 @@ $\ti{s}{1} = v$, $\ti{s}{2} = w$, and $\ti{s}{3} = v$) as follows:
         &= \frac{1}{2} \cdot \frac{1}{2} \cdot 1 %
                      \cdot \frac{1}{3} = \frac{1}{12}.
 \end{align}
-\ToDo{Space before switching to specific u, v, etc states?}
-
 Applying \index*{Bayes rule} $\left( P_{A\given B} P_B = P_{A,B} \right)$
 recursively, yields Eqn.~\eqref{eq:intro_hmm1} and the special case,
 Eqn.~\eqref{eq:intro_hmm3}.  Equations \eqref{eq:intro_hmm2} and
@@ -400,18 +401,16 @@ state given any sequence of previous states only the $(t-1)^\text{th}$
 state is relevant. %
 %%%
 
-\ToDo{T is both the map and the length?  Diane wants to say again
-  that t is an integer}
 A common exercise is to find a \emph{\index*{stationary}} probability
-distribution, \ie, given a transition matrix $T$ find the probability
+distribution, \ie, given a transition matrix $M$ find the probability
 vector $V$ (nonnegative entries that sum to one) that satisfies
 \begin{equation}
   \label{eq:statCond}
-  VT = V.  
+  VM = V.  
 \end{equation}
 If \eqref{eq:statCond} holds for $V = P_{\ti{S}{0}}$, then
 \begin{equation*}
-  P_{\ti{S}{1}}  = P_{\ti{S}{0}}T = P_{\ti{S}{0}} = P_{\ti{S}{t}}
+  P_{\ti{S}{1}}  = P_{\ti{S}{0}}M = P_{\ti{S}{0}} = P_{\ti{S}{t}}
   \forall t,
 \end{equation*}
 and in fact all probabilities are independent of shifts in time, \ie,
@@ -428,7 +427,7 @@ stochastic process, it relaxes towards such a process in the sense
 that
 \begin{equation*}
   \lim_{t \rightarrow \infty} P_{\ti{S}{t}} =  \lim_{t \rightarrow
-    \infty} P_{\ti{S}{0}} T^t = \begin{bmatrix} \frac{1}{7}, & \frac{4}{7}, & \frac{2}{7}
+    \infty} P_{\ti{S}{0}} M^t = \begin{bmatrix} \frac{1}{7}, & \frac{4}{7}, & \frac{2}{7}
 \end{bmatrix}.
 \end{equation*}
 
@@ -706,28 +705,28 @@ synthesized by numerically integrating the Lorenz system
 (Eqn.~\eqref{eq:Lorenz} with parameter values $r=28$, $s=10$, and
 $b=\frac{8}{3}$) and recording $\syntheticNLorenzBig$ vectors
 $x(\tau)$ with a sampling interval $\Delta \tau = 0.15$.  Then we
-produced a sequence of integer valued observations \ToDo{use python
-  sequence notation} $y_1^{\syntheticNLorenzBig}$ by binning $x_1$
-with boundaries at $\syntheticboundaryA,\syntheticboundaryB$ and
-$\syntheticboundaryC$.  The result is that for each integer
-$0\leq t < \syntheticNLorenzBig$, $\ti{x_0}{t\cdot0.15}$ yields
-$\ti{y}{t} \in \left\{0,1,2,3\right\}$.  Figure~\ref{fig:TSintro}
-depicts the first few observations.
+produced a sequence of integer valued observations
+$\ts{y}{0}{\syntheticNLorenzBig}$ $y_1^{\syntheticNLorenzBig}$ by
+binning $x_0$ with boundaries at
+$\syntheticboundaryA,\syntheticboundaryB$ and $\syntheticboundaryC$.
+The result is that for each integer $0\leq t < \syntheticNLorenzBig$,
+$\ti{x_0}{t\cdot0.15}$ yields $\ti{y}{t} \in \left\{0,1,2,3\right\}$.
+Figure~\ref{fig:TSintro} depicts the first few observations.
 
-\ToDo{Plot goes beyond 39, but text says y[0:40]}
 \begin{figure}[htbp]
   \centering{\plotsize%
     \includegraphics[width=1.0\textwidth]{TSintro.pdf}}
   \caption[\comment{fig:TSintro }Generating the observations
   $\ts{y}{0}{40}$.]%
   {Generating the observations $\ts{y}{0}{40}$.  The curve in the
-    upper plot depicts the first component $\ti{x_0}{\tau}$ of an
-    orbit of the Lorenz system (Eqn.~\ref{eq:Lorenz}), and the points
-    marked with red dots indicate the values sampled with an interval
+    upper plot depicts the first component $x_0(\tau)$ of an orbit of
+    the Lorenz system (Eqn.~\ref{eq:Lorenz}), and the points marked
+    with red dots indicate the values sampled with an interval
     $\Delta \tau = 0.15$.  The points in the lower plot are the
-    \ToDo{The ys are quantized xs}
-    $\ti{y}{t}$ values quantized with boundaries
-    $\left\{\syntheticboundaryA, \syntheticboundaryB, \syntheticboundaryC\right\}$.  }
+    $\ti{y}{t}$ values which are $\ti{x_0}{t}$ values quantized with
+    boundaries
+    $\left\{\syntheticboundaryA, \syntheticboundaryB,
+      \syntheticboundaryC\right\}$.}
   \label{fig:TSintro} 
 \end{figure}
  
