@@ -354,8 +354,13 @@
 \newcommand{\Output}{Y}
 
 \newcommand{\parameters}{\theta}
+\newcommand{\ParameterDomain}{\Theta}
 \newcommand{\parametersPrime}{\theta'}% for EM1.gpt
 \newcommand{\EMmap}{{\cal T}}
+\newcommand{\LikelihoodFunction}{{\cal L}}
+
+\newcommand{\LogLikelihood}{{\bf L}}
+%\newcommand{\LogLikelihood}{{\field L}}
 \newcommand{\EMfixedPoint}{{\theta^*}}
 
 \renewcommand{\=}{\text{=}}

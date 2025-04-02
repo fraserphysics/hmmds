@@ -1383,7 +1383,7 @@ discussion of Eqn.~\ref{eq:EMmax} should skip this section.  Dempster
 Laird and Rubin\cite{Dempster77} coined the term \emph{EM algorithm}
 in 1977.  More recent treatments include Redner and
 Walker\cite{Redner84}, McLachlan and Krishnan\cite{McLachlan96} and
-Watanabe and Yamaguchi\cite{Watanabe04}.  \marginpar{Want 2024 recent}
+Watanabe and Yamaguchi\cite{Watanabe04}.  \marginpar{Want 2025 recent}
 %
 Recall that the algorithm operates on models $P_{\Y,\bS,\parameters} $
 with parameters $\parameters$ for a mix of data that is observed
@@ -1501,48 +1501,68 @@ monotonically increases the likelihood.
 
 \subsection{Convergence}
 %
-Here we analyze how the Baum-Welch algorithm converges in a simple
-example.  Some of the analysis applies to EM algorithms in general.
-An EM algorithm operates on $\Theta$, a set of allowed parameter
-vectors with a map $\EMmap:\Theta \mapsto \Theta$ that implements an
+The EM algorithm operates on $\ParameterDomain$, a set of allowed parameter
+vectors with a map $\EMmap:\ParameterDomain \mapsto \ParameterDomain$ that implements an
 iteration of the algorithm, \ie,
 \begin{equation*}
   \ti{\parameters}{n+1} = \EMmap (\ti{\parameters}{n}).
 \end{equation*}
-Wu\cite{Wu83} has considered convergence of EM algorithms generally
-and observed that more than one value of $\parameters'$ may maximize
-$Q(\parameters',\parameters)$.  Consequently he considered $\EMmap$ to
-be a point to set map.  However, there are many model classes
---including all of the models that we describe in this book-- for
-which one can write algorithms that calculate a unique
-$\EMmap(\parameters)$.
 
 If there is a bound\footnote{See Section~\ref{sec:regularization} for
   an example involving probability densities with no such bound.  For
   discrete $\y$, however the bound
-  $ P \left(\y\given \parameters \right) \leq 1$ holds.}  $\bar P$ on
-$ P \left(\y\given \parameters \right) $ with
+  $ P \left(\y\given \parameters \right) \leq 1$ holds.}
+$\bar \LikelihoodFunction$ on the likelihood,
+$ \LikelihoodFunction(\parameters) \equiv P \left(\y\given \parameters
+\right) $, with
 \begin{equation*}
-   P \left(\y\given \parameters \right) \leq \bar P ~ \forall \parameters \in \Theta
+  \LikelihoodFunction(\parameters) \leq \bar \LikelihoodFunction ~ \forall \parameters \in \ParameterDomain,
 \end{equation*}
 then the monotonicity of the sequence
-$\left( P(\y\given \ti{\parameters}{1}), P(\y\given
-  \ti{\parameters}{2}), P(\y\given \ti{\parameters}{3}), \ldots
-\right)$ and the bounded convergence theorem ensures that the limit
-$ P^* \equiv \lim_{n\rightarrow \infty} P \left(\y \given
-  \ti{\parameters}{n} \right) $ exists.  The bounded convergence
-theorem does not promise that
-$P^* = \sup_{\parameters \in \Theta} P \left(\y \given \parameters
-\right)$ or that it is even a local maximum, nor does it promise that
+$\left( \LikelihoodFunction( \ti{\parameters}{1}),
+  \LikelihoodFunction( \ti{\parameters}{2}), \LikelihoodFunction(
+  \ti{\parameters}{3}), \ldots \right)$ and the bounded convergence
+theorem ensures that the limit
+$ \LikelihoodFunction^* \equiv \lim_{n\rightarrow \infty}
+\LikelihoodFunction \left(\ti{\parameters}{n} \right) $ exists.  The
+bounded convergence theorem does not promise that
+$\LikelihoodFunction^* = \sup_{\parameters \in \ParameterDomain}
+\LikelihoodFunction \left( \parameters \right)$ or that it is even a
+local maximum, nor does it promise that
 $\EMfixedPoint \equiv \lim_{n \rightarrow \infty} \ti{\parameters}{n}$
-exists.  However, in the following example, iterations of $\EMmap$
-converge to a local maximum\footnote{While Wu\cite{Wu83} provides an
-  example of a trajectory that converges to a saddle point of the
-  likelihood, we argue in the appendix that such trajectories are not
-  generic.} of the likelihood, and we believe it provides good
-intuition for behavior of the Baum-Welch algorithm.
+exists.  However, in this section and in the associated appendix, we
+argue that if the algorithm converges to a fixed point
+$\parameters^*$, then generically $\parameters^*$ is a local maximum
+of $\LikelihoodFunction$.
 
-Consider the model defined by the initial state probability
+It seems plausible that a trajectory of $\EMmap$ would converge to a
+point that is not a local maximum of the likelihood function.  In
+fact, in his analysis of the convergence properties of the EM
+algorithm, Wu\cite{Wu83} provides an example of such a trajectory that
+converges to a saddle point of the likelihood, $\LikelihoodFunction$.
+Here and in the appendix we argue that typically that won't happen
+because in a neighborhood of a fixed point the EM algorithm acts sort
+of like a continuous time gradient dynamical system.  In a gradient
+system, the trajectories, $\Phi(\parameters_0, t)$, are determined by
+the differential equation
+\begin{equation}
+  \label{eq:GradientDynamics}
+  \dot \parameters \equiv \frac{d}{d t} \Phi(\parameters, t) =  \frac{d}{d \parameters} \LikelihoodFunction(\parameters).
+\end{equation}
+For such dynamics, if $\LikelihoodFunction$ has continuous first and
+second derivatives, solution trajectories can only converge to fixed
+points where
+\begin{equation*}
+  \left. \frac{d \LikelihoodFunction}{d \parameters} \right|_\EMfixedPoint = 0,
+\end{equation*}
+and unless $\parameters_0$ is precisely positioned on the stable
+manifold of a saddle point, a trajectory will converge to a local
+maximum of $\LikelihoodFunction$.  On page~\pageref{chap:em_appendix}
+of the appendix we make the analogy between a gradient system like
+\eqref{eq:GradientDynamics} the EM map, $\EMmap$ precise.
+
+Here we illustrate the convergence of Baum-Welch algorithm for the
+model defined as follows.  The initial state probability
 \begin{subequations}
   \label{eq:EM_convergence_example}
 \begin{equation}
@@ -1640,8 +1660,8 @@ expensive calculations.
 
 Notice that the trajectory quickly lines up with the eigenvector of
 $D$ whose eigenvalue is closest to 1 and then decays exponentially
-towards $\EMfixedPoint$.  We believe that behavior is typical.  In the
-appendix we also show that if all of the eigenvalues of $J_y$ are
+towards $\EMfixedPoint$.  Such behavior is typical.  In the appendix
+we also show that if all of the eigenvalues of $J_y$ are
 positive\footnote{Positive eigenvalues implies that $\EMfixedPoint$ is
   a local maximum.} then $\EMmap$ is linearly stable, \ie,
 $\left| \lambda \right| < 1$ for all eigenvalues of $D$.  If one could
