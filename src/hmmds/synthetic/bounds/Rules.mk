@@ -29,7 +29,7 @@ $(BOUNDS_DATA)/particle_1k: $(BOUNDS_CODE)/particle.py $(BOUNDS_CODE)/filter.py
 
 $(BOUNDS_DATA)/ddays: $(BOUNDS_CODE)/particle.py $(BOUNDS_CODE)/filter.py
 	mkdir -p $(@D)
-	python $< --clouds 70 75 --n_y 100 $@
+	python $< --n_y 100 $@
 
 $(BUILD)/TeX/book/toy_values.tex: $(BOUNDS_CODE)/toy_values.py $(addprefix $(BOUNDS_DATA)/, data_h_view toy_h benettin like_lor)
 	mkdir -p $(@D)

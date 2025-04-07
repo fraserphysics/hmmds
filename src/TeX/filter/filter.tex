@@ -408,7 +408,7 @@ which preserves the volume of the original box, and has the new
 undivided edges, $n_i$ perpendicular to the divided edges, $n_J$, ie,
 $n_J \cdot n_i = 0$.
 
-\subsection{Result}
+\subsection{Dynamics Days 2025}
 \label{sec:particle_result}
 
 Text copied from my poster for Dynamics Days 2025:
@@ -429,6 +429,147 @@ To find something better than an HMM with zillions of states:
   \resizebox{0.9\textwidth}{!}{\includegraphics{entropy_filter.pdf}}
 \end{center}
 
+\subsection{Shrinking the Gap}
+\label{sec:particle_search}
+
+In March of 2025 I improved on the particle filtering code that I had
+used for my poster at Dynamics Days in January.  I wrote Cython code
+for integrating the tangent equations in parallel.  The new code is
+much faster than the old code.
+
+While I wrote the Cython code for speed so that I could more quickly
+invetigate the effects of different parameter setting, I found an
+error in the old code as I worked on the Cython code.  I believe that
+I had an error in that code.  In particular I was transposing the
+arrays that define the boxes at every time step.
+
+This section is a log of my exploration of parameters I use for
+particle filtering using the parallel code.
+
+First, I varied the the parameter r\_threshold against which the ratio
+of the quadratic and linear terms of a Taylor series of the Lorenz
+vector field is compared.  I did that comparison for several values of
+the resample parameters.  Here are the parameters values that I didn't
+vary:
+\begin{verbatim}
+atol: 1e-08
+edge_max: 0.2
+margin: 0.01
+n_initialize: 15000
+n_quantized: 4
+n_y: 1000
+r_extra: 2.0
+random_seed: 7
+s_augment: 0.0005
+t_relax: 50.0
+time_step: 0.15
+\end{verbatim}
+
+\begin{tabular*}{1.0\linewidth}{rrrrr}
+  r\_threshold& Resample$_{\text{max}}$ & Resample$_{\text{target}}$ &min\_time:N\_min &
+                                                                    $\hat
+                                                                    h$ \\
+                                                                    \hline
+  *  & 10,000 & 1,000 & \multicolumn{2}{c}{Particle exhaustion} \\
+                        \hline
+  1e-2  & 20,000 & 2,000 & 584: & 0.950 \\
+  others  & 20,000 & 2,000 & \multicolumn{2}{c}{Particle exhaustion} \\
+                        \hline 
+  1e-2 & 20,000 & 5,000 & 584:96 & 0.942   \\
+  3e-3 & 20,000 & 5,000 & 584:51 & 0.952   \\
+  1e-3 & 20,000 & 5,000 & 396:0 &   \\
+  3e-4 & 20,000 & 5,000 & 570:0 &   \\
+  1e-4 & 20,000 & 5,000 & 584:41 & 0.946  \\ \hline
+                        \hline 
+  1e-2 & 50,000 & 5,000 & 584:5 & 0.962 \\
+  3e-3 & 50,000 & 5,000 & 584:169 & 0.953 \\
+  1e-3 & 50,000 & 5,000 & 584:63 & 0.949  \\
+  3e-4 & 50,000 & 5,000 & 584:212 & \textbf{0.925}  \\
+  1e-4 & 50,000 & 5,000 & 584:45 & 0.953  \\ \hline
+                        \hline
+  1e-2 & 50,000 & 10,000 & 584:17  & 0.958  \\
+  3e-3 & 50,000 & 10,000 & 584:392 & 0.940  \\
+  1e-3 & 50,000 & 10,000 & 584:176 & \textbf{0.932}  \\
+  3e-4 & 50,000 & 10,000 & 396:0   &        \\
+  1e-4 & 50,000 & 10,000 & 584:31  & 0.952  \\ \hline
+  %
+  1e-2 & 100,000 & 10,000 & 584:62  & 0.954          \\
+  3e-3 & 100,000 & 10,000 & 584:373 & 0.948          \\
+  1e-3 & 100,000 & 10,000 & 584:101 & \textbf{0.939} \\
+  3e-4 & 100,000 & 10,000 & 147:118 & 0.945          \\
+  1e-4 & 100,000 & 10,000 & 584:152 & 0.948          \\ \hline
+  %
+  1e-2 & 200,000 & 20,000 && 0.943          \\
+  3e-3 & 200,000 & 20,000 && 0.943          \\
+  1e-3 & 200,000 & 20,000 & 584:1349& \textbf{0.929} \\
+  3e-4 & 200,000 & 20,000 && 0.931          \\
+  1e-4 & 200,000 & 20,000 && 0.940          \\ \hline
+  %
+  1e-2 & 2,000,000 & 200,000 && 0.942          \\
+  3e-3 & 2,000,000 & 200,000 && 0.944          \\
+  1e-3 & 2,000,000 & 200,000 && 0.936          \\
+  3e-4 & 2,000,000 & 200,000 & 584:994 & \textbf{0.927} \\
+  1e-4 & 2,000,000 & 200,000 && 0.942          \\ \hline
+\end{tabular*}
+Cython RK4 parameter h\_max set to $1e-5$ for table above.
+
+2025-04-04 Found that decreasing atol from 1e-8 to 1e-10 caused
+more particle exhaustion.  I was using scipy integrate to make the
+data and my own Cython RK4 method for filtering.  I switched to using
+Cython RK4 for both the data and filtering.
+
+The runtime for filtering depends on where the data starts, which
+depends on the details of how the code relaxes to the attractor.  The
+time varies by more than a factor of 2.  Simply changing the RK4
+parameter h\_max for relaxing to the attractor (and leaving
+h\_max=1.0e-5 for making the data and filtering) yields:\\
+\begin{tabular*}{1.0\linewidth}{rrrrr}
+  h\_max & $\hat h_{500}$ & real      & user        & minimum N\\ \hline
+  1.5e-5 & 0.944         & 3m30.034s & 63m52.943s  & [102]=566 \\
+  1.0e-5 & 0.911         & 7m16.065s & 125m19.944s & [109]=242
+\end{tabular*}
+
+For studying other parameters, I'll fix use h\_max=1.5e-5 to relax,
+$r_{\text{threshold}} = 3e-4$, resample $50,000 \rightarrow 5,000$ and
+$n_y = 500$.  Thoughts about other parameters:
+\begin{description}
+\item[h\_max] Cython Runge-Kutta parameter used to generate data and
+  for filtering.  The effect on execution time only starts being
+  significant at 3e-05, and it's at small values that the parallel
+  code is most effective.  that Choose 0.0001 because coarser values
+  don't save time and I believe that finer values are more accurate.\\
+  \begin{tabular*}{1.0\linewidth}{rrrrr} \\
+    h\_max &$t_{\text{min}}$&$n_{\text{min}}$&$\hat h$ & time \\ \hline
+    0.003  & 466 & 436 & 0.933 & 2:41\\
+    0.001  & 298 & 498 & 0.900 & 2:37 \\
+    0.0003 & 461 & 160 & 0.922 & 2:27 \\
+    0.0001 & 109 & 583 & 0.970 & 2:44 \\
+    3e-05  & 109 & 563 & 0.862 & 3:46 \\
+    1e-05  & 340 &  72 & 0.970 & 5:44
+  \end{tabular*}
+\item[edge\_max] Divide edges bigger than this.  I don't have a theory
+  why some values lead to particle exhaustion.  Picking 0.2 seems safe.\\
+  \begin{tabular*}{1.0\linewidth}{rrrr} \\
+    s\_aug &$t_{\text{min}}$&$n_{\text{min}}$&$\hat h$ \\ \hline
+    1.0  & 211         &0 \\
+    0.5  & 218         & 105         & 0.957 \\ 
+    0.2  & 109         & 583         & 0.970 \\
+    0.1  & 374         & 466         & 0.937 \\
+    0.05 & 264         & 0           & 
+  \end{tabular*}
+\item[margin] Keep particles this close to boundaries
+\item[r\_extra] When dividing boxes multiply the number required by
+  the ratio of quadratic/linear by r\_extra.
+\item[s\_augment] With h\_max = 0.0003\\
+  \begin{tabular*}{1.0\linewidth}{rrrr} \\
+    s\_aug &$t_{\text{min}}$&$n_{\text{min}}$&$\hat h$ \\ \hline
+    0.01   &187           &602           & 1.008 \\ 
+    0.003  &355           &217           & 0.975 \\
+    0.001  &109           &242           & 0.911 \\
+    0.0003 &400           &229           & 0.900 \\
+    0.0001 &461           &199           & 0.943
+  \end{tabular*}
+\end{description}
 \end{document}
 
 %%% Local Variables:

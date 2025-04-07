@@ -31,9 +31,9 @@ import os
 import numpy
 import numpy.linalg
 
-from hmmds.synthetic.bounds import lorenz
 from hmmds.synthetic.bounds import benettin
 from hmmds.synthetic.bounds.filter import Filter
+import hmmds.synthetic.filter.lorenz_sde
 
 
 def parse_args(argv):
@@ -79,10 +79,13 @@ def parse_args(argv):
                         type=float,
                         default=50.0,
                         help='Time to move to attractor')
-    parser.add_argument('--atol',
+    parser.add_argument('--h_max',
                         type=float,
-                        default=1e-8,
-                        help='Absolute error tolerance for integrator')
+                        default=1.5e-5,
+                        help='Runge Kutta step size')
+    parser.add_argument('--verbose',
+                        action='store_true',
+                        help='print filter steps')
     parser.add_argument(
         '--resample',
         type=int,
@@ -109,20 +112,28 @@ def make_data(args):
 
     """
 
-    # Relax to a point near the attractor
-    x_0 = benettin.relax(args, numpy.ones(3))[0]
+    s = 10.0
+    r = 28.0
+    b = 8.0 / 3
 
-    tangent = numpy.eye(3) * 0.1
     x_all = numpy.empty((args.n_y + args.n_initialize, 3))
-    x_all[0, :] = x_0
+    # Relax to a point near the attractor
+    x_all[0] = hmmds.synthetic.filter.lorenz_sde.lorenz_integrate(numpy.ones(3),
+                                                                  0,
+                                                                  args.t_relax,
+                                                                  s,
+                                                                  r,
+                                                                  b,
+                                                                  h_max=1.0e-5)
+
+    # Calculate the data
     for i in range(1, args.n_y + args.n_initialize):
-        x_all[i, :], _ = lorenz.integrate_tangent(args.time_step,
-                                                  x_all[i - 1, :],
-                                                  tangent,
-                                                  atol=args.atol)
+        x_all[i] = hmmds.synthetic.filter.lorenz_sde.lorenz_integrate(
+            x_all[i - 1], 0, args.time_step, s, r, b, h_max=args.h_max)
     assert x_all.shape == (args.n_y + args.n_initialize, 3)
     bins = numpy.linspace(-20, 20, args.n_quantized + 1)[1:-1]
     y_q = numpy.digitize(x_all[:, 0], bins)
+
     return y_q, x_all, bins
 
 
@@ -198,7 +209,11 @@ def particle(args):
     gamma = numpy.ones(len(y_q))
 
     log_dict = {}
-    p_filter.forward(y_q, (0, len(y_q)), gamma, npy_file=npy_file, log=log_dict)
+    p_filter.forward(y_q, (0, len(y_q)),
+                     gamma,
+                     npy_file=npy_file,
+                     log=log_dict,
+                     verbose=args.verbose)
 
     # Write results
     result_dict = {

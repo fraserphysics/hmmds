@@ -20,11 +20,13 @@ def parse_args(argv):
     """ Convert command line arguments into a namespace
     """
 
-    parser = argparse.ArgumentParser(description='Estimate entropy')
+    parser = argparse.ArgumentParser(description='''Estimate entropy, eg:
+python entropy_particle.py --dir_template study_threshold5k/{0} 1e-2 3e-3 1e-3'''
+                                    )
     parser.add_argument('--plot_counts', action='store_true')
     parser.add_argument('--dir_template',
                         type=str,
-                        default='study_threshold/{0}',
+                        default='study_threshold5k/{0}',
                         help='map from key to dir')
     parser.add_argument('keys',
                         type=str,
@@ -81,6 +83,9 @@ def plot_key(args, axeses, key):
                 break
     axeses[n_rows - 3].plot(n_forecast, label=f'n_forecast({key})')
     axeses[n_rows - 3].plot(n_update, label=f'n_update({key})')
+    argmin = n_update[100:].argmin() + 100
+    print(
+        f'Minimum of update for {key}: n_update[{argmin}]={n_update[argmin]}\n')
 
 
 def main(argv=None):

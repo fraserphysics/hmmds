@@ -139,12 +139,12 @@ class Filter:
     """
 
     def __init__(self: Filter, args, bins, rng):
+        self.h_max = args.h_max
         self.r_threshold = args.r_threshold
         self.r_extra = args.r_extra
         self.edge_max = args.edge_max
         self.time_step = args.time_step
         self.resample_pair = args.resample
-        self.atol = args.atol
         self.s_augment = args.s_augment
         self.margin = args.margin
         self.bins = bins
@@ -168,15 +168,14 @@ class Filter:
         self.normalize()
         assert len(self.particles) > 0
 
-    def step(self: Filter, time, atol=1e-7):
+    def step(self: Filter, time):
         """Integrate self.states_boxes forward by time
         """
         s = 10.0
         r = 28.0
         b = 8.0 / 3
-        h_max = 1e-5
         hmmds.synthetic.filter.lorenz_sde.integrate_particles(
-            self.states_boxes, 0.0, time, s, r, b, h_max)
+            self.states_boxes, 0.0, time, s, r, b, self.h_max)
 
     def forecast_x(self: Filter, time: float):
         """Map each particle forward by time.  If the quadratic term
@@ -198,10 +197,10 @@ class Filter:
             edge_lengths = numpy.linalg.norm(particle.box, axis=1)
             max_edge = edge_lengths.max()
             if ratio > self.r_threshold:
-                n_new = int(ratio * self.r_extra / self.r_threshold)
+                n_new = max(2, int(ratio * self.r_extra / self.r_threshold))
             elif max_edge > self.edge_max:
                 argmax = numpy.argmax(edge_lengths)
-                n_new = int(max_edge * self.r_extra / self.edge_max)
+                n_new = max(2, int(max_edge * self.r_extra / self.edge_max))
             else:
                 n_new = 1
             x_box_weights.extend(particle.divide(n_new, argmax))
@@ -311,7 +310,8 @@ class Filter:
                 t_range: tuple,
                 gamma: numpy.ndarray,
                 npy_file=None,
-                log={}):
+                log={},
+                verbose=False):
         """Estimate and assign gamma[t] = p(y[t] | y[0:t]) for t from t_start to t_stop.
 
         Args:
@@ -333,7 +333,8 @@ class Filter:
             forecast_length = len(self.particles)
             self.update(y)
             update_length = len(self.particles)
-            print(f'y[{t}]={y} {forecast_length:8d} {update_length:8d}')
+            if verbose:
+                print(f'y[{t}]={y} {forecast_length:8d} {update_length:8d}')
             log[t] = (forecast_length, update_length)
 
             if len(self.particles) == 0:
@@ -347,9 +348,10 @@ class Filter:
             if new_length > self.resample_pair[0]:
                 self.resample(self.resample_pair[1])
                 resampled_length = len(self.particles)
-                print(
-                    f'resampled from {new_length} particles to {resampled_length}'
-                )
+                if verbose:
+                    print(
+                        f'resampled from {new_length} particles to {resampled_length}'
+                    )
                 log[t] = (forecast_length, update_length, new_length,
                           resampled_length)
         return

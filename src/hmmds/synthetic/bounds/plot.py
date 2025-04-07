@@ -111,7 +111,11 @@ def read_particles(path, n_start, length):
             numpy.load(file_)
         for n in range(n_start, n_start + length):
             result[(n, 'forecast')] = numpy.load(file_)
-            result[(n, 'update')] = numpy.load(file_)
+            try:
+                result[(n, 'update')] = numpy.load(file_)
+            except EOFError:
+                result[(n, 'update')] = []
+                break
     return result
 
 
@@ -142,6 +146,8 @@ def main(argv=None):
 
     clouds = read_particles(npy_path, args.start, 5)
     for i in range(args.start, args.start + 5):
+        if (i, 'forecast') not in clouds:
+            break
         forecast = clouds[(i, 'forecast')]
         update = clouds[(i, 'update')]
 
