@@ -31,8 +31,7 @@ import os
 import numpy
 import numpy.linalg
 
-from hmmds.synthetic.bounds import benettin
-from hmmds.synthetic.bounds.filter import Filter
+from hmmds.synthetic.filter.filter import Filter
 import hmmds.synthetic.filter.lorenz_sde
 
 
@@ -197,6 +196,8 @@ def particle(args):
     # observations rather than caching such arrays in memory and
     # writing them as this program finishes.  That incremental saving
     # to a file curcumvents exhausting memory.
+    print(f'{args.result_dir=}')
+    raise RuntimeError
     npy_file = open(os.path.join(args.result_dir, 'states_boxes.npy'), 'wb')
     assert args.n_y % 5 == 0
 
@@ -255,6 +256,7 @@ def wrapper(args):
                                                           '').replace('[', '')
     args.result_dir = os.path.join(args.result_dir, name)
     os.makedirs(args.result_dir)
+    print('calling particle')
     return particle(args)
 
 
@@ -263,10 +265,17 @@ def main():
 
     """
     args = parse_args(sys.argv[1:])
-    if sys.argv[0] == 'particle.py':
-        return particle(args)
-    if sys.argv[0] == 'wrapper_particle.py':
+    if sys.argv[0].find('wrapper_particle.py')>0:
+        print(f'''
+{sys.argv[0]=} Calling wrapper
+''')
         return wrapper(args)
+    if sys.argv[0].find('particle.py') > 0:
+        print(f'''
+{sys.argv[0]=} Calling particle
+''')
+        return particle(args)
+    raise RuntimeError(f'particle.py called with {sys.argv[0]=}')
 
 
 if __name__ == "__main__":

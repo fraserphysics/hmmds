@@ -33,19 +33,26 @@ def entropy(dir_):
     with open(os.path.join(dir_, 'dict.pkl'), 'rb') as file_:
         dict_in = pickle.load(file_)
     gamma = dict_in['gamma']
-    offset = 50
-    log_gamma = numpy.log(gamma)[offset:].sum()
-    h_hat = log_gamma / ((len(gamma) - offset) * 0.15)
     n_update = numpy.zeros(len(gamma), dtype=int)
     with open(os.path.join(dir_, 'states_boxes.npy'), 'rb') as file_:
         for n in range(len(gamma)):
             try:
                 numpy.load(file_)
                 n_update[n] = len(numpy.load(file_))
-            except EOFerror:
+            except EOFError:
                 break
     argmin = n_update[100:].argmin() + 100
-    return h_hat, argmin, n_update[argmin]
+    n_min = n_update[argmin]
+
+    offset = 50
+    if n_min == 0:
+        log_gamma = numpy.log(gamma)[offset:argmin - 5].sum()
+        n_gamma = argmin - 5 - offset
+    else:
+        log_gamma = numpy.log(gamma)[offset:].sum()
+        n_gamma = len(gamma) - offset
+    h_hat = log_gamma / (n_gamma * 0.15)
+    return h_hat, argmin, n_min
 
 
 def time(dir_):
@@ -86,10 +93,8 @@ def main(argv=None):
     table[-1] = last
 
     table.append(r"""
-\end{tabular}
+\end{tabular*}
     """)
-    print(''.join(table))
-    return 0
     with open(tex_file, encoding='utf-8', mode='w') as _file:
         _file.write(''.join(table))
     return 0
