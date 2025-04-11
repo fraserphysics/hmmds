@@ -4,9 +4,11 @@ python ddays_plot_b.py input_path output_path
 
 """
 
+# FixMe: Perhaps replace with forecast_update.py
 import sys
 import argparse
 import pickle
+import os
 
 import numpy
 import numpy.linalg
@@ -50,11 +52,13 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
-    with open(args.input, 'rb') as file_:
+    with open(os.path.join(args.input, 'dict.pkl'), 'rb') as file_:
         dict_in = pickle.load(file_)
     bins = dict_in['bins']
     x_all = dict_in['x_all']
-    clouds = dict_in['clouds']
+
+    npy_path = os.path.join(args.input, 'states_boxes.npy')
+    clouds = plotscripts.utilities.read_particles(npy_path, args.start, 2)
 
     n_times = 2
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
@@ -66,19 +70,24 @@ def main(argv=None):
 
     for i in range(args.start, args.start + 2):
         forecast = clouds[(i, 'forecast')]
-        update = dict_in['clouds'][(i, 'update')]
+        update = clouds[(i, 'update')]
 
         # Plot points of forecast and update
         for j, cloud in enumerate((forecast, update)):
             axes = axeses[j, (i - args.start) % 2]
-            for particle in cloud:
-                plot_point(axes, particle.x, '#1f77b4')
+            axes.plot(cloud[:, 0],
+                      cloud[:, 2],
+                      markeredgecolor='none',
+                      marker='.',
+                      markersize=5,
+                      linestyle='None',
+                      color='blue')
             for boundary in bins:
                 axes.plot((boundary,) * 2, (0, 50), color='black', linewidth=.5)
             axes.set_xlim(-22, 22)
             axes.set_ylim(0, 50)
         axes = axeses[0, (i - args.start) % 2]
-        plot_point(axes, forecast[0].x, '#1f77b4', f'{i=}')
+        plot_point(axes, forecast[0], '#1f77b4', f'{i=}')
         axes.legend()
     axeses[0, 0].set_ylabel(r'$\rm{Forecast}$')
     axeses[1, 0].set_ylabel(r'$\rm{Update}$')

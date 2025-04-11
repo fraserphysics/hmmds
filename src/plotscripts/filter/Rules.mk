@@ -21,21 +21,34 @@ $(FIGS_FILTER)/log_likelihood.pdf: $(FilterPlotscripts)/log_likelihood_fig.py $(
 	mkdir -p $(@D)
 	python $^ $@
 
-$(FIGS_FILTER)/filter_b.pdf: $(FilterPlotscripts)/forecast_update.py $(BOUNDS_DATA)/ddays
+$(FIGS_FILTER)/filter_b.pdf: $(FilterPlotscripts)/forecast_update.py $(FILTER_DATA)/ddays
 	mkdir -p $(@D)
 	python $^ --start 72 $@
 
-$(FIGS_FILTER)/no_divide.pdf: $(FilterPlotscripts)/forecast_update.py $(BOUNDS_DATA)/ddays
+$(FIGS_FILTER)/no_divide.pdf: $(FilterPlotscripts)/forecast_update.py $(FILTER_DATA)/ddays
 	mkdir -p $(@D)
 	python $^ --no_divide $@ --t_rows 0 10 31
 
-$(FIGS_FILTER)/with_divide.pdf: $(FilterPlotscripts)/forecast_update.py $(BOUNDS_DATA)/ddays
+$(FIGS_FILTER)/with_divide.pdf: $(FilterPlotscripts)/forecast_update.py $(FILTER_DATA)/ddays
 	mkdir -p $(@D)
 	python $^ --with_divide $@ --t_rows 70 74 78
 
-$(FIGS_FILTER)/entropy_filter.pdf: $(FilterPlotscripts)/forecast_update.py $(BOUNDS_DATA)/particle_1k
+$(FIGS_FILTER)/entropy_filter.pdf: $(FilterPlotscripts)/forecast_update.py $(FILTER_DATA)/particle_1k
 	mkdir -p $(@D)
 	python $^ --entropy $@
+
+# FixMe: Call with dir not file
+$(FIGS_FILTER)/entropy_particle.pdf: $(FilterPlotscripts)/entropy_particle.py $(FILTER_DATA)/particle_1k
+	mkdir -p $(@D)
+	python $<  $(FILTER_DATA)/particle_1k/dict.pkl $@
+
+$(FIGS_FILTER)/particles_a.pdf: $(FilterPlotscripts)/ddays_plot_a.py $(FILTER_DATA)/ddays
+	mkdir -p $(@D)
+	python $^ $@
+
+$(FIGS_FILTER)/particles_b.pdf: $(FilterPlotscripts)/ddays_plot_b.py $(FILTER_DATA)/ddays
+	mkdir -p $(@D)
+	python $^ --start 72 $@
 
 # Local Variables:
 # mode: makefile

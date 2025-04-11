@@ -1,8 +1,8 @@
 """entropy_particle.py Estimate cross-entropy from run of particle filter.
 
-python entropy_particle.py --show ../../../build/derived_data/synthetic/bounds/particle_1k foo.pdf
+python entropy_particle.py input_path
 
-This is a minor variant of bounds/entropy_particle.py
+This is for the dynamics days 2025 poster.
 """
 
 import sys
@@ -56,17 +56,7 @@ def main(argv=None):
     axes.plot([0, x_max], [y_level, y_level], label=r'$\lambda$')
     axes.set_ylabel(r'$\hat h/\rm{nats}$')
     axes.set_xlabel(r'$n_{\rm{samples}}$')
-
-    axes.set_ylim(0, 2.0)
-    min_y, max_y = axes.get_ylim()
-    min_x, max_x = axes.get_xlim()
-    ax2 = axes.twinx()
-    ax2.set_xlim(min_x, max_x)
-    ax2.set_ylim(min_y, max_y)
-    ax2.set_yticks((
-        .906,
-        y_values[-1],
-    ))
+    axes.set_ylim(0, 5.99)
     axes.legend()
     if args.show:
         print(f'{y_values[-1]=}')

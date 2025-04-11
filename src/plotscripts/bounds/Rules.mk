@@ -25,17 +25,6 @@ $(FIGS_BOUNDS)/LikeLor.pdf: $(BoundsPlotscripts)/like_lor.py $(BOUNDS_DATA)/like
 	mkdir -p $(@D)
 	python $^ $@
 
-$(FIGS_BOUNDS)/particles_a.pdf: $(BoundsPlotscripts)/ddays_plot_a.py $(BOUNDS_DATA)/ddays
-	mkdir -p $(@D)
-	python $^ $@
-
-$(FIGS_BOUNDS)/particles_b.pdf: $(BoundsPlotscripts)/ddays_plot_b.py $(BOUNDS_DATA)/ddays
-	mkdir -p $(@D)
-	python $^ --start 72 $@
-
-$(FIGS_BOUNDS)/entropy_particle.pdf: $(BoundsPlotscripts)/entropy_particle.py $(BOUNDS_DATA)/particle_1k
-	mkdir -p $(@D)
-	python $^ $@
 
 # Local Variables:
 # mode: makefile
