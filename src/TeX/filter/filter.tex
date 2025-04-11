@@ -439,9 +439,8 @@ much faster than the old code.
 
 While I wrote the Cython code for speed so that I could more quickly
 invetigate the effects of different parameter setting, I found an
-error in the old code as I worked on the Cython code.  I believe that
-I had an error in that code.  In particular I was transposing the
-arrays that define the boxes at every time step.
+error in the old code as I worked on the Cython code.  In particular I
+was transposing the arrays that define the boxes at every time step.
 
 This section is a log of my exploration of parameters I use for
 particle filtering using the parallel code.
@@ -529,47 +528,33 @@ h\_max=1.0e-5 for making the data and filtering) yields:\\
   1.0e-5 & 0.911         & 7m16.065s & 125m19.944s & [109]=242
 \end{tabular*}
 
-For studying other parameters, I'll fix use h\_max=1.5e-5 to relax,
-$r_{\text{threshold}} = 3e-4$, resample $50,000 \rightarrow 5,000$ and
-$n_y = 500$.  Thoughts about other parameters:
+For studying other parameters, I'll use $h_{\text{max}}=1.5e-5$,
+$n_y=5,000$, $r_{\text{threshold}} = 3e-4$, resample
+$50,000 \rightarrow 5,000$ and $n_y = 500$.  Thoughts about other
+parameters:
 \begin{description}
 \item[h\_max] Cython Runge-Kutta parameter used to generate data and
   for filtering.  The effect on execution time only starts being
   significant at 3e-05, and it's at small values that the parallel
-  code is most effective.  that Choose 0.0001 because coarser values
+  code is most effective.  Choose 0.0001 because coarser values
   don't save time and I believe that finer values are more accurate.\\
-  \begin{tabular*}{1.0\linewidth}{rrrrr} \\
-    h\_max &$t_{\text{min}}$&$n_{\text{min}}$&$\hat h$ & time \\ \hline
-    0.003  & 466 & 436 & 0.933 & 2:41\\
-    0.001  & 298 & 498 & 0.900 & 2:37 \\
-    0.0003 & 461 & 160 & 0.922 & 2:27 \\
-    0.0001 & 109 & 583 & 0.970 & 2:44 \\
-    3e-05  & 109 & 563 & 0.862 & 3:46 \\
-    1e-05  & 340 &  72 & 0.970 & 5:44
-  \end{tabular*}
+  \input{h_max.tex}
 \item[edge\_max] Divide edges bigger than this.  I don't have a theory
   why some values lead to particle exhaustion.  Picking 0.2 seems safe.\\
-  \begin{tabular*}{1.0\linewidth}{rrrr} \\
-    s\_aug &$t_{\text{min}}$&$n_{\text{min}}$&$\hat h$ \\ \hline
-    1.0  & 211         &0 \\
-    0.5  & 218         & 105         & 0.957 \\ 
-    0.2  & 109         & 583         & 0.970 \\
-    0.1  & 374         & 466         & 0.937 \\
-    0.05 & 264         & 0           & 
-  \end{tabular*}
-\item[margin] Keep particles this close to boundaries
+  \input{edge_max.tex}
+\item[margin] Keep particles this close to boundaries\\
+  \input{margin.tex}  
 \item[r\_extra] When dividing boxes multiply the number required by
-  the ratio of quadratic/linear by r\_extra.
+  the ratio of quadratic/linear by r\_extra.\\
+  \input{r_extra.tex}
 \item[s\_augment] With h\_max = 0.0003\\
-  \begin{tabular*}{1.0\linewidth}{rrrr} \\
-    s\_aug &$t_{\text{min}}$&$n_{\text{min}}$&$\hat h$ \\ \hline
-    0.01   &187           &602           & 1.008 \\ 
-    0.003  &355           &217           & 0.975 \\
-    0.001  &109           &242           & 0.911 \\
-    0.0003 &400           &229           & 0.900 \\
-    0.0001 &461           &199           & 0.943
-  \end{tabular*}
+  \input{s_augment.tex}
 \end{description}
+
+April 10: redo study of $r_{\text{threshold}}$ with h\_max = 0.0001,
+edge\_max = 0.2, margin = 0.01, r\_extra = 3.0, s\_augment = 0.001, and
+resample = $50,000 \rightarrow 5,000$.\\
+  \input{r_threshold.tex}
 \end{document}
 
 %%% Local Variables:

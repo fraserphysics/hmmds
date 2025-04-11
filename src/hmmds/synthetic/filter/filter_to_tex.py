@@ -46,12 +46,12 @@ def entropy(dir_):
 
     offset = 50
     if n_min == 0:
-        log_gamma = numpy.log(gamma)[offset:argmin - 5].sum()
+        log_gamma = numpy.log(gamma[offset:argmin - 5]).sum()
         n_gamma = argmin - 5 - offset
     else:
-        log_gamma = numpy.log(gamma)[offset:].sum()
+        log_gamma = numpy.log(gamma[offset:]).sum()
         n_gamma = len(gamma) - offset
-    h_hat = log_gamma / (n_gamma * 0.15)
+    h_hat = -log_gamma / (n_gamma * 0.15)
     return h_hat, argmin, n_min
 
 
