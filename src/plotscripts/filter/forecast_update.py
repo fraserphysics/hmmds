@@ -36,7 +36,6 @@ def parse_args(argv):
     parser.add_argument('input', type=str, help='Path to data')
     parser.add_argument('--no_divide', type=str, help='Path to figure file')
     parser.add_argument('--with_divide', type=str, help='Path to figure file')
-    parser.add_argument('--entropy', type=str, help='Path to figure file')
     args = parser.parse_args(argv)
     return args
 
@@ -207,39 +206,6 @@ def with_divide_figure(t_rows, npy_path, x_all, bins, pyplot):
     return figure
 
 
-def entropy(gamma, pyplot):
-    """"""
-
-    offset = 14
-    log_gamma = numpy.log(gamma)[offset:]
-    cum_sum = numpy.cumsum(log_gamma)
-    y_values = -cum_sum / numpy.arange(1, len(cum_sum) + 1) / 0.15
-
-    figure, axes = pyplot.subplots(figsize=(6, 4))
-
-    axes.plot(numpy.arange(offset, offset + len(y_values)),
-              y_values,
-              label=r'$\hat h$')
-    x_max = len(y_values)
-    y_level = 0.906
-    axes.plot([0, x_max], [y_level, y_level], label=r'$\lambda$')
-    axes.set_ylabel(r'$\hat h/\rm{nats}$')
-    axes.set_xlabel(r'$n_{\rm{samples}}$')
-
-    axes.set_ylim(0, 2.0)
-    min_y, max_y = axes.get_ylim()
-    min_x, max_x = axes.get_xlim()
-    ax2 = axes.twinx()
-    ax2.set_xlim(min_x, max_x)
-    ax2.set_ylim(min_y, max_y)
-    ax2.set_yticks((
-        .906,
-        y_values[-1],
-    ))
-    axes.legend()
-    return figure
-
-
 def main(argv=None):
     """Plot some stuff
     """
@@ -269,14 +235,6 @@ def main(argv=None):
             pyplot.show()
         else:
             figure.savefig(args.with_divide)
-
-    if args.entropy:
-        figure = entropy(gamma, pyplot)
-        figure.tight_layout()
-        if args.show:
-            pyplot.show()
-        else:
-            figure.savefig(args.entropy)
 
     return 0
 

@@ -25,10 +25,17 @@ python entropy_particle.py --dir_template study_threshold5k/{0} 1e-2 3e-3 1e-3''
                                     )
     parser.add_argument('--plot_counts', action='store_true')
     parser.add_argument('--plot_likelihood', action='store_true')
+    parser.add_argument('--show_h_hat',
+                        action='store_true',
+                        help='put to labels on the right hand y axis')
+    parser.add_argument('--ylim', type=float, nargs=2, help='Set range of y')
     parser.add_argument('--dir_template',
                         type=str,
                         default='study_threshold5k/{0}',
                         help='map from key to dir')
+    parser.add_argument('--save',
+                        type=str,
+                        help='path to result.  Show if not set')
     parser.add_argument('keys',
                         type=str,
                         nargs='+',
@@ -58,12 +65,23 @@ def plot_key(args, axes_dict, key):
     reference = numpy.ones(len(entropy)) * 0.906
     x = numpy.arange(offset, len(gamma))
 
-    axes_dict['entropy'].plot(x, entropy, label=f'{key}')
-    axes_dict['entropy'].plot(x, reference)
-    axes_dict['entropy'].set_xlabel(r'$t$')
-    axes_dict['entropy'].set_ylabel(r'$\hat h$')
+    if len(args.keys) == 1:
+        axes_dict['entropy'].plot(x, entropy, label=r'$\hat h$')
+    else:
+        axes_dict['entropy'].plot(x, entropy, label=f'{key}')
+    axes_dict['entropy'].plot(x, reference, label=r'$\lambda$')
+    axes_dict['entropy'].set_xlabel(r'$n_{\text{samples}}$')
+    axes_dict['entropy'].set_ylabel(r'$\hat h/\text{nats}$')
     h_hat = entropy[-1]
-    print(f'h_hat({key})= {h_hat} {(h_hat/0.906-1)*100:4.2f}%')
+    if args.show_h_hat:
+        min_y, max_y = axes_dict['entropy'].get_ylim()
+        min_x, max_x = axes_dict['entropy'].get_xlim()
+        ax2 = axes_dict['entropy'].twinx()
+        ax2.set_xlim(min_x, max_x)
+        ax2.set_ylim(min_y, max_y)
+        ax2.yaxis.set_major_formatter(
+            matplotlib.ticker.StrMethodFormatter("{x:.3f}"))
+        ax2.set_yticks((.906, h_hat))
 
     if 'likelihood' in axes_dict:
         axes_dict['likelihood'].plot(numpy.log10(gamma), label=f'{key}')
@@ -115,9 +133,10 @@ def main(argv=None):
     for key in args.keys:
         plot_key(args, axes_dict, key)
 
-    axes_dict['entropy'].set_xlabel(r'$t$')
-    axes_dict['entropy'].set_ylabel(r'$\hat h$')
     axes_dict['entropy'].legend()
+    if args.ylim:
+        print(f'{args.ylim[0]=} {args.ylim[1]=}')
+        axes_dict['entropy'].set_ylim(args.ylim[0], args.ylim[1])
 
     if 'counts' in axes_dict:
         axes_dict['counts'].set_ylabel(r'N')
@@ -127,7 +146,10 @@ def main(argv=None):
         axes_dict['likelihood'].set_ylabel(r'log$_{10}(P(y[t]|y[0:t]))$')
         axes_dict['likelihood'].legend()
 
-    pyplot.show()
+    if args.save:
+        figure.savefig(args.save)
+    else:
+        pyplot.show()
     return 0
 
 

@@ -33,14 +33,15 @@ $(FIGS_FILTER)/with_divide.pdf: $(FilterPlotscripts)/forecast_update.py $(FILTER
 	mkdir -p $(@D)
 	python $^ --with_divide $@ --t_rows 70 74 78
 
-$(FIGS_FILTER)/entropy_filter.pdf: $(FilterPlotscripts)/forecast_update.py $(FILTER_DATA)/particle_1k
+# For filter.tex.  Has hat h on right
+$(FIGS_FILTER)/entropy_filter.pdf: $(FilterPlotscripts)/entropy_particle.py $(FILTER_DATA)/particle_1k
 	mkdir -p $(@D)
-	python $^ --entropy $@
+	python $< --show_h_hat --dir_template $(FILTER_DATA)/{} --save $@ particle_1k
 
-# FixMe: Call with dir not file
+# For ddays25.  Scale matches hmm figure with many states
 $(FIGS_FILTER)/entropy_particle.pdf: $(FilterPlotscripts)/entropy_particle.py $(FILTER_DATA)/particle_1k
 	mkdir -p $(@D)
-	python $<  $(FILTER_DATA)/particle_1k/dict.pkl $@
+	python $< --ylim 0 5.9 --dir_template $(FILTER_DATA)/{} --save $@ particle_1k
 
 $(FIGS_FILTER)/particles_a.pdf: $(FilterPlotscripts)/ddays_plot_a.py $(FILTER_DATA)/ddays
 	mkdir -p $(@D)
