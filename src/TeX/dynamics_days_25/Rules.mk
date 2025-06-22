@@ -14,12 +14,15 @@ DD25_FIGS = $(INTRODUCTION_FIGS) \
 $(LASER_FIGS) \
 $(INTRODUCTION_XFIGS) \
 $(addprefix $(BUILD)/figs/bounds/,  $(addsuffix .pdf, \
-ToyStretch LikeLor particles_a particles_b entropy_particle))
+ToyStretch LikeLor)) \
+$(addprefix $(BUILD)/figs/filter/,  $(addsuffix .pdf, \
+particles_a particles_b entropy_particle))
 
 $(BUILD)/TeX/dynamics_days_25/poster.pdf: $(DD25SRC)/poster.tex $(DD25_FIGS)
 	mkdir -p $(@D)
 	export TEXINPUTS=$(DD25SRC)//:$(abspath $(BUILD))//:; \
 latexmk --outdir=$(@D) -pdflatex poster.tex;
+	touch $@
 
 # Local Variables:
 # mode: makefile

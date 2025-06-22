@@ -1,0 +1,110 @@
+% Abstract for SIAM Dynamical Systems meeting May 2025 in Denver
+
+\documentclass{article}
+\usepackage{amsmath, amsfonts}
+\newcommand{\parameters}{\theta}
+\newcommand{\parametersPrime}{\theta'}
+\newcommand{\Normal}{{\mathcal{N}}}
+\newcommand{\qmle}{Q_{\mathtt{MLE}}(\parametersPrime, \parameters)}
+\newcommand{\qmap}{Q_{\mathtt{MAP}}(\parametersPrime, \parameters)}
+
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\INTEGER}{\field{Z}}
+\newcommand{\REAL}{\field{R}}
+\newcommand{\COMPLEX}{\field{C}}
+\newcommand{\EV}{\field{E}}
+
+\begin{document}
+
+\subsection*{Submission Format}
+\label{SIAM}
+From
+https://www.siam.org/conferences-events/siam-conferences/ds25/submissions/:
+
+It is recommended the first speaker provide an overview of the topic
+area. Each minisymposium speaker should submit an abstract no longer
+than 1,500 characters, including spaces. The organizing committee will
+referee minisymposium proposals. The number of minisymposia may be
+limited to retain an acceptable level of parallelism in sessions.
+
+\subsection*{Thoughts}
+\label{thoughts}
+
+Title of Minisymposium: Dynamical Systems Models of Health and
+Sickness
+
+Talks:
+
+Using Bayesian Data Augmentation for State Space Models to Make the
+"dark Matter” in Epidemics Visible Hengartner,
+
+Modeling Spatial Infectious Disease Dynamics: Why Ancestral Genomic
+Admixture Is Important Schiff,
+
+Estimating Dynamics and Data Assimilation to Detect Obstructive Sleep
+Apnea Fraser,
+
+Statistical Mechanics of Chemical Kinetics and the Chemical Master
+Equation Pearson,
+
+
+I will talk about scales from nanometers to continents.
+
+I'm going to talk about ECG -> Apnea detection.  My models work on
+three levels:
+
+1. The PQRST sequence in an individual ECG has a fairly constant form
+because it arises from wave propagation in cardiac tissue.  I ignore
+details of wave propagation.
+
+2. The effect of respiration on the timing of the P waves
+
+3. The effect of CO2 concentration on the timing of P waves
+
+I first spoke about ECG -> Apnea detection at SIAM DS 2001 in a
+minisymposium that Kevin Vixie organized.  I presented flawed ideas.
+Linda Theil suggested we write a book for SIAM.
+
+\subsection*{Overall Abstract}
+\label{overall}
+
+We argue that health and sickness are multi-scale phenomena ranging
+from the sub micron sub millisecond spatio-temporal chemical dynamics
+inside individual cells to the spatio-temporal dynamics of epidemics
+with scales of years and and continents.  Building complete models is
+hopeless and such models would be useless.  A key to usefulness is
+choosing what to ignore.
+
+
+\subsection*{Estimating Dynamics and Data Assimilation to Detect
+  Obstructive Sleep Apnea}
+\label{sec:estimating}
+
+Revisiting the challenge of using ECGs to detect obstructive sleep
+apnea which was posed by the Computers in Cardiology Meeting in 2000,
+I model dynamics at two levels.  First I fit the PQRST sequences in
+the ECG of each patient with a model that has rigid timing and use
+the delay between T waves and subsequent P waves to estimate heart
+rate.  The analysis relies on the idea that once a P wave is launched
+in the SA node, the rest of the pattern follows from wave propagation
+through the roughly fixed physiology of the patient's heart.  The
+model ignores the mechanisms of wave propagation in the heart and how
+that produces the ECG signal.
+
+The second model, of heart beat timing, accounts both for how CO2
+levels varying over time scales of tens of seconds affects heart rate
+and for how inhalation and exhalation advance and retard heart beat
+timing respectively.  The model ignores details of the PQRST pattern
+and any physiology.
+
+At the 2001 Snowbird meeting I presented an algorithm and nice results
+addressing the challenge based on the idea of finding a maximum
+probability sequence of classifications.  In any remaining time, I
+will talk about the exponential complexity of finding maximum
+probability sequences of classifications and how luck gave me nice
+results in 2001.
+
+\end{document}
+A Comparative Study of ECG-derived Respiration in Ambulatory
+Monitoring using the Single-lead ECG:
+https://www.nature.com/articles/s41598-020-62624-5

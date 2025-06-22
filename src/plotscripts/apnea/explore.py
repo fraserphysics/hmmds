@@ -15,7 +15,7 @@ import pint
 import numpy
 
 import plotscripts.utilities
-import hmmds.applications.apnea.utilities
+from hmmds.applications.apnea import utilities
 
 PINT = pint.get_application_registry()  # Makes objects from pickle.load
 
@@ -26,14 +26,20 @@ def parse_args(argv):
 
     parser = argparse.ArgumentParser(
         description='Make one of the figures illustrating apnea data')
-    hmmds.applications.apnea.utilities.common_arguments(parser)
+    utilities.common_arguments(parser)
 
+    parser.add_argument('--model_path',
+                        type=str,
+                        default='build/derived_data/apnea/models/default')
     parser.add_argument('--record_name', type=str, default='a03')
     parser.add_argument('--start_stop', type=int, nargs=2, default=(423, 429))
     parser.add_argument('--x_ticks',
                         type=int,
                         nargs='*',
                         default=(424, 426, 428))
+    parser.add_argument('--classify',
+                        action='store_true',
+                        help='Plot classification by expert and HMM')
     parser.add_argument(
         '--show',
         action='store_true',
@@ -43,7 +49,8 @@ def parse_args(argv):
                         type=str,
                         help='Path for storing the result, eg, explore.pdf')
     args = parser.parse_args(argv)
-    hmmds.applications.apnea.utilities.join_common(args)
+    utilities.join_common(args)
+    print(f'{args.root=}')
     return args
 
 
@@ -105,26 +112,17 @@ def interval2times(start, stop, frequency=100 * PINT('Hz')):
     return numpy.arange(n_start, n_stop) / frequency, n_start, n_stop
 
 
-def main(argv=None):
-    """Make first 4 plots of apnea chapter.  They are all time series.
+def plot_hr_resp_filters(args, pyplot, heart_rate, t_start, t_stop):
+    """Make the default figure with 4 plots:
+
+    Raw Heart Rate
+    Low Pass Heart Rate
+    Band Pass and Envelope (for respiration)
+    Respiration
 
     """
-
-    args, matplotlib, pyplot = plotscripts.utilities.import_and_parse(
-        parse_args, argv)
-
     fig, (ax_heart_rate, ax_low_pass, ax_band_pass,
           ax_respiration) = pyplot.subplots(nrows=4, ncols=1, sharex=True)
-
-    heart_rate = hmmds.applications.apnea.utilities.HeartRate(
-        args, args.record_name)
-    heart_rate.filter_hr()
-
-    assert heart_rate.hr_sample_frequency.to('Hz').magnitude == 2
-    assert heart_rate.model_sample_frequency.to('1/minute').magnitude == 4
-
-    t_start, t_stop = (x * PINT('minute') for x in args.start_stop)
-
     for signal, key, axes in (
         (heart_rate.raw_hr, f'{args.record_name} (Raw Heart Rate)/bpm',
          ax_heart_rate),
@@ -159,6 +157,84 @@ def main(argv=None):
                 t_start,
                 t_stop,
                 marker='.')
+    return fig
+
+
+def plot_hr_resp_apnea(args, pyplot, heart_rate, t_start, t_stop):
+    """Make a figure with 3 plots:
+
+    Low Pass Heart Rate
+    Respiration
+    Classification (Apnea or Normal)
+
+    """
+    model_record = utilities.ModelRecord(args.model_path, args.record_name)
+    model_record.classify(args.threshold)
+    expert_class = model_record.class_from_expert
+    hmm_class = model_record.class_from_model
+    fig, (ax_low_pass, ax_respiration, ax_class) = pyplot.subplots(nrows=3,
+                                                                   ncols=1,
+                                                                   sharex=True)
+    for signal, frequency, key, axes in ((heart_rate.slow,
+                                          heart_rate.hr_sample_frequency,
+                                          'Low PassHeart Rate', ax_low_pass),
+                                         (heart_rate.respiration,
+                                          heart_rate.hr_sample_frequency,
+                                          'Respiration', ax_respiration),
+                                         (expert_class, 1 / PINT('minutes'),
+                                          'Expert', ax_class),
+                                         (hmm_class, 1 / PINT('minutes'), 'HMM',
+                                          ax_class)):
+
+        axes.yaxis.set_major_locator(pyplot.MaxNLocator(3))
+        plot_signal(signal, frequency, key, axes, t_start, t_stop)
+
+    x_label_times = [time * PINT('minutes') for time in args.x_ticks]
+    ax_class.set_yticks([0, 1])
+    ax_class.set_yticklabels(['N', 'A'])
+    ax_class.set_xticks(
+        [time.to('minutes').magnitude for time in x_label_times])
+    ax_class.set_xticklabels(
+        [plotscripts.utilities.format_time(t) for t in x_label_times])
+    ax_class.set_xlabel(r'$t$')
+    plot_signal(heart_rate.get_slow(),
+                heart_rate.model_sample_frequency,
+                '',
+                ax_low_pass,
+                t_start,
+                t_stop,
+                marker='.')
+
+    plot_signal(heart_rate.get_respiration(),
+                heart_rate.model_sample_frequency,
+                '',
+                ax_respiration,
+                t_start,
+                t_stop,
+                marker='.')
+    return fig
+
+
+def main(argv=None):
+    """Make first 4 plots of apnea chapter.  They are all time series.
+
+    """
+
+    args, matplotlib, pyplot = plotscripts.utilities.import_and_parse(
+        parse_args, argv)
+
+    heart_rate = utilities.HeartRate(args, args.record_name)
+    heart_rate.filter_hr()
+
+    assert heart_rate.hr_sample_frequency.to('Hz').magnitude == 2
+    assert heart_rate.model_sample_frequency.to('1/minute').magnitude == 4
+
+    t_start, t_stop = (x * PINT('minute') for x in args.start_stop)
+
+    if args.classify:
+        fig = plot_hr_resp_apnea(args, pyplot, heart_rate, t_start, t_stop)
+    else:
+        fig = plot_hr_resp_filters(args, pyplot, heart_rate, t_start, t_stop)
 
     if not args.show:
         fig.savefig(args.fig_path)

@@ -408,7 +408,7 @@ which preserves the volume of the original box, and has the new
 undivided edges, $n_i$ perpendicular to the divided edges, $n_J$, ie,
 $n_J \cdot n_i = 0$.
 
-\subsection{Result}
+\subsection{Dynamics Days 2025}
 \label{sec:particle_result}
 
 Text copied from my poster for Dynamics Days 2025:
@@ -424,10 +424,130 @@ To find something better than an HMM with zillions of states:
   decimate
 \end{itemize}
 \begin{center}
-  \resizebox{0.9\textwidth}{!}{\includegraphics{no_divide.pdf}}\\
-  \resizebox{0.9\textwidth}{!}{\includegraphics{with_divide.pdf}}\\
+  \resizebox{0.9\textwidth}{!}{\includegraphics{no_divide.jpeg}}\\
+  \resizebox{0.9\textwidth}{!}{\includegraphics{with_divide.jpeg}}\\
   \resizebox{0.9\textwidth}{!}{\includegraphics{entropy_filter.pdf}}
 \end{center}
+
+\subsection{Shrinking the Gap}
+\label{sec:particle_search}
+
+In March of 2025 I improved on the particle filtering code that I had
+used for my poster at Dynamics Days in January.  I wrote Cython code
+for integrating the tangent equations in parallel.  The new code is
+much faster than the old code.
+
+While I wrote the Cython code for speed so that I could more quickly
+invetigate the effects of different parameter setting, I found an
+error in the old code as I worked on the Cython code.  In particular I
+was transposing the arrays that define the boxes at every time step.
+
+This section is a log of my exploration of parameters I use for
+particle filtering using the parallel code.
+
+First, I varied the the parameter r\_threshold against which the ratio
+of the quadratic and linear terms of a Taylor series of the Lorenz
+vector field is compared.  I did runs resampling from 2,000,000 to
+200,000 that took a long time.  With the following paramaters, I got
+$\hat h = 0.927$.
+\begin{verbatim}
+r_threshold: 3e-4
+resample 2000000, 200000
+atol: 1e-08
+edge_max: 0.2
+margin: 0.01
+n_initialize: 15000
+n_quantized: 4
+n_y: 1000
+r_extra: 2.0
+random_seed: 7
+s_augment: 0.0005
+t_relax: 50.0
+time_step: 0.15
+\end{verbatim}
+
+2025-04-04 Found that decreasing atol from 1e-8 to 1e-10 caused
+more particle exhaustion.  I was using scipy integrate to make the
+data and my own Cython RK4 method for filtering.  I switched to using
+Cython RK4 for both the data and filtering.
+
+The runtime for filtering depends on where the data starts, which
+depends on the details of how the code relaxes to the attractor.  The
+time varies by more than a factor of 2.  Simply changing the RK4
+parameter h\_max for relaxing to the attractor (and leaving
+h\_max=1.0e-5 for making the data and filtering) yields:\\
+\begin{tabular*}{1.0\linewidth}{rrrrr}
+  h\_max & $\hat h_{500}$ & real      & user        & minimum N\\ \hline
+  1.5e-5 & 0.944         & 3m30.034s & 63m52.943s  & [102]=566 \\
+  1.0e-5 & 0.911         & 7m16.065s & 125m19.944s & [109]=242
+\end{tabular*}
+
+For studying other parameters, I'll use $h_{\text{max}}=1.5e-5$,
+$n_y=5,000$, $r_{\text{threshold}} = 3e-4$, resample
+$50,000 \rightarrow 5,000$ and $n_y = 500$.  Thoughts about other
+parameters:
+\begin{description}
+\item[h\_max] Cython Runge-Kutta parameter used to generate data and
+  for filtering.  The effect on execution time only starts being
+  significant at 3e-05, and it's at small values that the parallel
+  code is most effective.  Choose 0.0001 because coarser values
+  don't save time and I believe that finer values are more accurate.\\
+  \input{h_max.tex}
+\item[edge\_max] Divide edges bigger than this.  I don't have a theory
+  why some values lead to particle exhaustion.  Picking 0.2 seems safe.\\
+  \input{edge_max.tex}
+\item[margin] Keep particles this close to boundaries.  Pick 0.01.\\
+  \input{margin.tex}  
+\item[r\_extra] When dividing boxes multiply the number required by
+  the ratio of quadratic/linear by r\_extra.  Pick 3.0. \\
+  \input{r_extra.tex}
+\item[s\_augment] At each sample time add this amount to each singular
+  value of each box.  (Is this the same as adding this amount to each
+  edge?)  Larger values increase the cross entropy, and smaller values
+  lead to particle exhaustion.  Choose 0.001.\\
+  \input{s_augment.tex}
+\end{description}
+
+April 14: redid study of $s_{\text{augment}}$ with h\_max = 0.0001,
+margin = 0.01, n\_y = 5,000, r\_extra = 3.0, r\_threshold=0.003, , and
+resample = $500,000 \rightarrow 50,000$.\\
+\input{s_augment10X.tex}
+
+The plot on the right in Figure~\ref{fig:clouds10X}, with
+s\_augment=0.0001, shows that the true trajectory has moved away from
+the cloud of particles.  The filter fails with particle exhaustion at
+$n=2638$.  On the other hand, in the plot on the left with
+s\_augment=0.0003 the cloud spreads fast enough to catch up.  At
+first, I suspected that the integration of the true trajectory is not
+exactly the same as integration, which includes integration of the
+tangent, for the particles in the cloud.  I wrote code to check for
+differences between trajectories generated using the 3-d Lorenz system
+and the 12-d system that includes the tangent and found the
+trajectories are identical.
+
+\begin{figure}
+  \centering
+  \resizebox{0.45\textwidth}{!}{\includegraphics{clouds10XOK.jpeg}}
+  \resizebox{0.45\textwidth}{!}{\includegraphics{clouds10Xbad.jpeg}}
+  \caption{Left plot with s\_augment=0.0003, and right plot with
+    s\_augment=0.0001.  The \emph{true} trajectory, marked with
+    $\times$, is moving away from the cloud faster than the cloud
+    expands with s\_augment=0.0001.}
+  \label{fig:clouds10X}
+\end{figure}
+
+\subsection{Modified Resampling}
+\label{sec:resample}
+
+The work at the end of the previous section shows that the cloud of
+particles gets separated from the true trajectory even after ensuring
+that the code for propagating the particles matches the code for
+propagating the true trajectory perform identically.  Perhaps the
+separation starts as part of the resample operation.  In particular,
+perhaps the new boxes are too small.  To address that possibility, I
+will expand each new box based on the distribution of its nearest
+neighbors.
+
 
 \end{document}
 

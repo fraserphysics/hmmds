@@ -34,6 +34,107 @@ $(FILTER_CODE)/lorenz_sde.flag: $(FILTER_CODE)/lorenz_sde.pyx $(FILTER_CODE)/bui
 	cd $(FILTER_CODE) ; python build.py build_ext --inplace
 	touch $@
 
+$(FILTER_DATA)/particle_100/dict.pkl: $(FILTER_CODE)/particle.py $(FILTER_CODE)/filter.py
+	mkdir -p $(dir $@)
+	python $< --n_overlap 8 --margin 0.01 --s_augment 5e-4 --resample 20000 4000 --r_threshold 6e-4 --n_y 1000 --verbose $(dir $@)
+
+$(FILTER_DATA)/particle_1k/dict.pkl: $(FILTER_CODE)/particle.py $(FILTER_CODE)/filter.py
+	mkdir -p $(dir $@)
+	python $< --margin 0.01 --s_augment 5e-4 --resample 10000 4000 --r_threshold 1e-3 $(dir $@)
+
+$(FILTER_DATA)/ddays/dict.pkl: $(FILTER_CODE)/particle.py $(FILTER_CODE)/filter.py
+	mkdir -p $(dir $@)
+	python $< --n_y 100 $(dir $@)
+
+####Structured Studies of  Effects of  Parameter on Particle Filter#############
+EdgeMax = --edge_max 0.2 # Divide boxes bigger than this
+HMax = --h_max 0.0001
+# Runge Kutta integration time step
+Margin = --margin 0.01 # Keep particles this close to boundary
+NInitialize = --n_initialize 15000
+NQuantized = --n_quantized 4 # Number of partition regions
+NY = --n_y 5000 # Number of test observations
+RExtra = --r_extra 3.0 # Extra factor for dividing boxes
+RandomSeed = --random_seed 7
+Resample = --resample 50000 5000 # When n particles > n_a resample to n_b
+RThreshold = --r_threshold 0.0003 # Divide box when ratio of quadratic to linear
+ # terms of Lorenz function this big
+SAugment = --s_augment 0.001 # Amount to grow boxes at each time step
+TRelax = --t_relax 50.0 # Lorenz time to relax to attractor
+TimeStep = --time_step 0.15 # Lorenz time between samples
+
+ARGS = $(EdgeMax) $(HMax) $(Margin) $(NInitialize) $(NY) $(RExtra) \
+$(RandomSeed) $(Resample) $(RThreshold) $(SAugment) $(TRelax) $(TimeStep)
+
+ARGS_10X = $(subst $(Resample),--resample 500000 50000,$(ARGS))
+
+# wrapper_particle.py is a symlink to particle.py.  When called as
+# wrapper_particle.py the code creates a subdirectory and puts result
+# files dict.pkl, log.txt and states_boxes.npy there.  The wrapper
+# code is for doing parameter studies.
+
+$(FILTER_DATA)/s_augment10X/%:
+	mkdir -p $(@D)
+	command time -o $(@D)/temp-time python $(FILTER_CODE)/wrapper_particle.py $(subst $(SAugment),--s_augment $*,$(ARGS_10X)) $(@D)
+	cd $(@D); ln -s *"s_augment..$*"* $*; cat temp-time >> $*/log.txt; rm temp-time
+
+# The following rule is for studying the effect of the parameter
+# s_augment.  It creates a directory named "s_augment", and a
+# subdiretory for the value of %.  The name of the subdirectory is a
+# long list of argument..value pairs.  The code in the rule makes a
+# symlink from the long name to %.  The subdirectory contains the
+# result files named "dict.pkl", "log.txt", and "states_boxes.npy"
+$(FILTER_DATA)/s_augment/%:
+	mkdir -p $(@D)
+	command time -o $(@D)/temp-time python $(FILTER_CODE)/wrapper_particle.py $(subst $(SAugment),--s_augment $*,$(ARGS)) $(@D)
+	cd $(@D); ln -s *"s_augment..$*"* $*; cat temp-time >> $*/log.txt; rm temp-time
+
+$(FILTER_DATA)/h_max/%:
+	mkdir -p $(@D)
+	command time -o $(@D)/temp-time python $(FILTER_CODE)/wrapper_particle.py $(subst $(HMax),--h_max $*,$(ARGS)) $(@D)
+	cd $(@D); ln -s *"h_max..$*"* $*; cat temp-time >> $*/log.txt; rm temp-time
+
+$(FILTER_DATA)/edge_max/%:
+	mkdir -p $(@D)
+	command time -o $(@D)/temp-time python $(FILTER_CODE)/wrapper_particle.py --verbose $(subst $(EdgeMax),--edge_max $*,$(ARGS)) $(@D)
+	cd $(@D); ln -s *"edge_max..$*.."* $*; cat temp-time >> $*/log.txt; rm temp-time
+
+$(FILTER_DATA)/margin/%:
+	mkdir -p $(@D)
+	command time -o $(@D)/temp-time python $(FILTER_CODE)/wrapper_particle.py --verbose $(subst $(Margin),--margin $*,$(ARGS)) $(@D)
+	cd $(@D); ln -s *"margin..$*.."* $*; cat temp-time >> $*/log.txt; rm temp-time
+
+$(FILTER_DATA)/r_extra/%:
+	mkdir -p $(@D)
+	command time -o $(@D)/temp-time python $(FILTER_CODE)/wrapper_particle.py --verbose $(subst $(RExtra),--r_extra $*,$(ARGS)) $(@D)
+	cd $(@D); ln -s *"r_extra..$*.."* $*; cat temp-time >> $*/log.txt; rm temp-time
+
+$(FILTER_DATA)/r_threshold/%:
+	mkdir -p $(@D)
+	command time -o $(@D)/temp-time python $(FILTER_CODE)/wrapper_particle.py --verbose $(subst $(RThreshold),--r_threshold $*,$(ARGS)) $(@D)
+	cd $(@D); ln -s *"r_threshold..$*.."* $*; cat temp-time >> $*/log.txt; rm temp-time
+
+$(FILTER_DATA)/edge_max.tex: $(FILTER_CODE)/filter_to_tex.py $(addprefix $(FILTER_DATA)/edge_max/, 1.0 0.5 0.2 0.1 0.05)
+	python $^ $@
+
+$(FILTER_DATA)/s_augment10X.tex: $(FILTER_CODE)/filter_to_tex.py $(addprefix $(FILTER_DATA)/s_augment10X/, 0.001 0.0003 0.0001)
+	python $^ $@
+
+$(FILTER_DATA)/s_augment.tex: $(FILTER_CODE)/filter_to_tex.py $(addprefix $(FILTER_DATA)/s_augment/, 0.01 0.003 0.001 0.0003 0.0001)
+	python $^ $@
+
+$(FILTER_DATA)/h_max.tex: $(FILTER_CODE)/filter_to_tex.py $(addprefix $(FILTER_DATA)/h_max/, 0.003 0.001 0.0003 0.0001 3e-05 1e-05)
+	python $^ $@
+
+$(FILTER_DATA)/r_extra.tex: $(FILTER_CODE)/filter_to_tex.py $(addprefix $(FILTER_DATA)/r_extra/, 0.8 1.0 1.2 1.5 1.7 2.0 3.0 4.0 5.0)
+	python $^ $@
+
+$(FILTER_DATA)/margin.tex: $(FILTER_CODE)/filter_to_tex.py $(addprefix $(FILTER_DATA)/margin/, 0.5 0.2 0.1 0.05 0.01 0.003 0.0)
+	python $^ $@
+
+$(FILTER_DATA)/r_threshold.tex: $(FILTER_CODE)/filter_to_tex.py $(addprefix $(FILTER_DATA)/r_threshold/, 0.01 0.003 0.001 0.0003 0.0001)
+	python $^ $@
+
 # Local Variables:
 # mode: makefile
 # End:

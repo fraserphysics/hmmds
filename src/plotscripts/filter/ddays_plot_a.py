@@ -7,6 +7,7 @@ python ddays_plot_a.py input_path output_path
 import sys
 import argparse
 import pickle
+import os
 
 import numpy
 import numpy.linalg
@@ -72,7 +73,7 @@ def main(argv=None):
         argv = sys.argv[1:]
     args = parse_args(argv)
 
-    with open(args.input, 'rb') as file_:
+    with open(os.path.join(args.input, 'dict.pkl'), 'rb') as file_:
         dict_in = pickle.load(file_)
     bins = dict_in['bins']
     x_all = dict_in['x_all']

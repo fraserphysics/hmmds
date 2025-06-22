@@ -12,6 +12,8 @@ ALL_SELVES = $(BUILD)/derived_data/ECG/all_selves
 
 APNEA_FIGS = $(addprefix $(ApneaFigDir)/, $(addsuffix .pdf, a03erA a03erN a03HR ApneaNLD sgram ))
 
+DS25_APNEA_FIGS = $(addprefix $(ApneaFigDir)/, $(addsuffix .pdf, a03erA a03erN a03HR explore hr_resp_class) sgram.jpg)
+
 APNEA_TS_PLOTS = $(APNEA_PLOTSCRIPTS)/apnea_ts_plots.py
 PLOT_COMMAND = 	mkdir -p $(@D); python $(APNEA_TS_PLOTS) --root $(ROOT) --heart_rate_path_format $(BUILD)/derived_data/ECG/{0}_self_AR3/heart_rate
 
@@ -40,6 +42,11 @@ $(APNEA_FIG_DIR)/explore.pdf: $(APNEA_PLOTSCRIPTS)/explore.py
 	mkdir -p $(@D)
 	python $< --heart_rate_path_format build/derived_data/ECG/{}_self_AR3/heart_rate \
   --root $(ROOT) --model_sample_frequency 4 $@
+
+$(APNEA_FIG_DIR)/hr_resp_class.pdf: $(APNEA_PLOTSCRIPTS)/explore.py
+	mkdir -p $(@D)
+	python $< --heart_rate_path_format build/derived_data/ECG/{}_self_AR3/heart_rate \
+  --root $(ROOT) --model_sample_frequency 4 --classify --model_path $(ROOT)/build/derived_data/apnea/models/default --start_stop 410 430 --x_ticks 410 420 430 --threshold 5.0 $@
 
 # Target for short document for Don Hush and David Izraelvitz on how I
 # derive the respiration signal

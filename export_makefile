@@ -1,0 +1,36 @@
+
+ROOT:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+
+BOOK_CHAPTERS = $(addsuffix .tex, \
+algorithms apnea particles appendix continuous introduction main toys variants)
+
+$(ROOT)/build/main.pdf: main.tex $(BOOK_CHAPTERS)
+	mkdir -p $(@D)
+	export TEXINPUTS=$(ROOT)//:; \
+export BIBINPUTS=$(ROOT)//:; export BSTINPUTS=$(ROOT)//:; \
+cd $(@D) ; \
+pdflatex --output-directory=$(@D) $< ; \
+# The next line builds main.nls.  I needed to call makeindex from the \
+# build dir \
+makeindex main.nlo -s nomencl.ist -o main.nls; \
+# The next line makes main.idx \
+makeindex main.idx ; \
+bibtex main.aux ; \
+pdflatex --output-directory=$(@D) $< ; \
+# The next pdflatex gets "Notation" into the table of contents \
+pdflatex --output-directory=$(@D) $<
+
+# Note that latexmk seems to detect changes in dependencies without
+# using file change times.  Thus deleting and regenerating a figure
+# will not cause the document to be rebuilt if the regenerated figure
+# is the same as the old one.  I've set up emacs to call latexmk from
+# auctex.  So that works as long as the index, notation and bib files
+# have already been built using make and this file.
+
+# I replaced the line below with the pdflatex stuff above because I was having trouble with nomencl
+#latexmk --outdir=$(@D) -pdflatex main.tex;
+
+
+# Local Variables:
+# mode: makefile
+# End:

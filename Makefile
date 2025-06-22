@@ -13,7 +13,9 @@ N_TRAIN = 50
 
 # Look at: https://makefiletutorial.com/
 
-ROOT:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+# ROOT:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+ROOT := .
+
 TEX = $(ROOT)/src/TeX
 PLOTSCRIPTS = $(ROOT)/src/plotscripts
 HMMDS = $(ROOT)/src/hmmds
@@ -26,11 +28,6 @@ book:
 ## book                           : Hidden Markov Models and Dynamical Systems
 .PHONY : book
 book: $(BUILD)/TeX/book/main.pdf
-
-## ddays25                        : Poster for Dynamics Days 2025 in Denver
-.PHONY : ddays25
-# Rule in src/TeX/dynamics_days_25/Rules.mk
-ddays25: $(BUILD)/TeX/dynamics_days_25/poster.pdf
 
 ## filter                         : Document about filtering
 .PHONY : filter
@@ -57,9 +54,28 @@ respiration: $(BUILD)/TeX/apnea/respiration.pdf
 .PHONY : hand_opt
 hand_opt: $(BUILD)/TeX/apnea/hand_opt.pdf
 
+## ddays25                        : Poster for Dynamics Days 2025 in Denver
+.PHONY : ddays25
+# Rule in src/TeX/dynamics_days_25/Rules.mk
+ddays25: $(BUILD)/TeX/dynamics_days_25/poster.pdf
+
+## ds25                           : Presentation for SIAM Dynamical Systems meeting
+.PHONY : ds25
+ds25: $(BUILD)/TeX/ds25/ds25.pdf
+
 ## ds23                           : Presentation for SIAM Dynamical Systems meeting
 .PHONY : ds23
 ds23: $(BUILD)/TeX/ecg/ds23.pdf
+
+## ds21                           : Slides for 2021 SIAM Dynamical Systems meeting
+.PHONY : ds21
+ds21 : $(TEX)/ds21/slides.pdf
+$(TEX)/ds21/slides.pdf:
+	cd $(TEX)/ds21 && $(MAKE) slides.pdf
+
+## pdfs                           : Target for all pdfs above
+.PHONY : pdfs
+pdfs: book filter skeleton ecg all_ecgs respiration hand_opt ddays25 ds25 ds23 ds21
 
 $(ROOT)/raw_data/menken.txt:
 	mkdir -p $(@D)
@@ -105,14 +121,9 @@ include $(TEX)/filter/Rules.mk
 include $(TEX)/laser/Rules.mk
 include $(TEX)/apnea/Rules.mk
 include $(TEX)/ecg/Rules.mk
+include $(TEX)/siamDS25/Rules.mk
 
 ######################Target Documents##########################################
-## ds21                           : Slides for 2021 SIAM Dynamical Systems meeting
-.PHONY : ds21
-ds21 : $(TEX)/ds21/slides.pdf
-
-$(TEX)/ds21/slides.pdf:
-	cd $(TEX)/ds21 && $(MAKE) slides.pdf
 
 $(TEX)/bundles.pdf: $(TEX)/bundles.tex  $(INTRODUCTION_FIGS) $(BASIC_ALGORITHMS_FIGS) $(APNEA_FIGS)
 	cd TeX && $(MAKE) bundles.pdf
@@ -148,6 +159,31 @@ lint :
 	pylint --rcfile pylintrc src/hmmds/
 	mypy --no-strict-optional src/hmmds/
 
+####################################################
+
+## export                         : Collect files for making book on overleaf
+# Create a flat directory in which issuing "make" builds the book
+.PHONY : export_book
+export_book : $(BUILD)/TeX/book/main.pdf
+	rm -rf $@
+	mkdir $@
+	cp build/TeX/book/*.tex $@
+	cp -R src/TeX/book/* $@
+	cp -R build/figs $@
+	find $@/figs -type f -exec sed  -i s\:/home/andy/hmmds/build/figs/.*/\:: '{}' \;
+	find $@/figs -name "*.pdf" -exec sed  -i s\:/home/andy/hmmds/src/plotscripts/xfigs/\:: '{}' \;
+	find $@/figs -type f -exec mv '{}' $@ \;
+	rm -r $@/figs $@/SiamTeX
+	for file in build/derived_data/apnea/*.tex; do \
+cp $$file $@; \
+done
+	cp export_makefile $@/Makefile
+
+## book.tar                       : Tar file for overleaf
+.PHONY : book.tar
+book.tar : export_book
+	tar -cjf book.tar export_book
+
 ## test                           : Run pytest on tests/
 .PHONY : test
 test :
@@ -156,7 +192,7 @@ test :
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo ECG_TeX: $(BUILD_ECG_TeX)
+	@echo BUILD_ECG_TeX: $(BUILD_ECG_TeX)
 	@echo PICKLED_ECG: $(PICKLED_ECG)
 	@echo In root Makefile, ROOT: $(ROOT)
 ## help                           : Print comments on targets from makefile

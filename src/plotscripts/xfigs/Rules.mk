@@ -36,6 +36,8 @@ APNEA_XFIGS =  $(call ADD_PDF_PDF_T, $(APNEA), class_net)
 
 ECG_XFIGS =  $(call ADD_PDF_PDF_T, $(ECG), ecg_hmm)
 
+DS25_XFIGS =  $(call ADD_PDF_PDF_T, $(ECG), ecg_hmm apnea_observation)
+
 define double_rule
 $(1)/%.pdf : $(XFIGS)/%.fig
 	mkdir -p $(1)

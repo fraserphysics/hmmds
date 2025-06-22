@@ -12,7 +12,7 @@ import os.path
 
 import numpy
 
-import utilities
+from hmmds.applications.apnea import utilities
 
 
 def parse_args(argv):

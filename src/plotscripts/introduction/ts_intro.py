@@ -52,13 +52,13 @@ def main(argv=None):
     fig, (upper, lower) = pyplot.subplots(nrows=2, figsize=(6, 4))
 
     upper.plot(fine[0], fine[1], color='b')
-    upper.plot(coarse[0], coarse[1], 'ro')
+    upper.plot(coarse[0, :40], coarse[1, :40], 'ro')
     upper.set_xlabel(r'$\tau$')
     upper.set_ylabel(r'$x_0(\tau)$')
     upper.set_ylim(-17, 17)
     upper.set_xlim(-.15, 6.15)
 
-    lower.plot(quantized[0], quantized[1], 'kd')
+    lower.plot(quantized[0, :40], quantized[1, :40], 'kd')
     lower.set_xlabel(r'$t$')
     lower.set_ylabel(r'$y(t)$')
     lower.set_ylim(-0.5, 3.5)

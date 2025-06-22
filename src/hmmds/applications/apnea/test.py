@@ -14,7 +14,7 @@ import scipy.linalg
 import hmm.base
 
 import observation
-import utilities
+from hmmds.applications.apnea import utilities
 
 
 class BaseClass(unittest.TestCase):

@@ -299,18 +299,41 @@ the average of the factor means weighted by the inverse covariances.
 \label{chap:em_appendix}
 
 \newcommand{\OldParameters}{\parameters}
-\newcommand{\NewParameters}{\parameters'}
-Now we calculate a linear approximation of the behavior of the EM
-algorithm in the neighborhood of a fixed point.  The manipulations
-here require that the probability and likelihood functions have
-continuous first and second derivatives which we implicitly assume.
-We let $\EMmap$ denote the action of one iteration of the algorithm and
-let $\EMfixedPoint$ denote a fixed point with
+\newcommand{\NewParameters}{\parameters'} %
+Here we calculate the linear approximation of the behavior of
+$\EMmap$, the map implemented by the EM algorithm, in the neighborhood
+of a fixed point, $\EMfixedPoint$.  We show that the linear stability
+properties of $\EMmap$ are the same as the linear stability properties
+of the flow of solutions of the ordinary differential
+equation\footnote{In \eqref{eq:LogDynamics} we use the log of the
+  likelihood as a potential function while in
+  \eqref{eq:GradientDynamics}, we simply used the likelihood.  The two
+  equations have the same fixed points, and the linear stability of
+  those fixed points are also the same.}
+\begin{equation}
+  \label{eq:LogDynamics}
+  \dot \parameters = \frac{d}{d \parameters} 
+  \LogLikelihood(\parameters) ,
+\end{equation}
+where $\LogLikelihood(\parameters) \equiv \log \left( P \left( y \given
+    \parameters \right) \right)$ is the log likelihood. Like trajectories
+defined by the differential equation, trajectories of $\EMmap$
+generically converge to local maxima of $\LogLikelihood$, and they
+avoid local minima and saddles.
+
+The manipulations here require that the probability and likelihood
+functions have continuous first and second derivatives and that some
+second derivatives have full rank which we implicitly assume.  We let
+$\EMmap$ denote the action of one iteration of the algorithm and let
+$\EMfixedPoint$ denote a fixed point with
 \begin{align*}
   \ti{\parameters}{n+1} &= \EMmap\left( \ti{\parameters}{n} \right) \\
   \EMmap(\EMfixedPoint) &= \EMfixedPoint && \text{with Taylor series} \\
   \EMmap(\parameters) &= \EMfixedPoint + \left[ \frac{\partial
-                 \EMmap(\parameters)}{\partial \parameters} \right]_{\EMfixedPoint} (\parameters - \EMfixedPoint) + \text{Remainder} \\
+                 \EMmap(\parameters)}{\partial \parameters} \right]_{\EMfixedPoint} (\parameters - \EMfixedPoint) + \text{Remainder}.
+\end{align*}
+Recall that the EM map depends on the auxiliary function, $Q$, with
+\begin{align*}
   Q(\NewParameters, \OldParameters) &\equiv \EV_{S \given y,\OldParameters} \log\left(P(y,S \given
   \NewParameters \right) \\
   \EMmap(\OldParameters) &= \argmax_{\NewParameters} Q(\NewParameters, \OldParameters). 
@@ -332,17 +355,17 @@ For a given value of $\OldParameters$, the derivative of $Q(\NewParameters,
   \frac{d\Psi(\EMmap(\OldParameters), \OldParameters)}{d \OldParameters}
   &= \left. \frac{\partial \Psi(\NewParameters, \OldParameters)}{\partial \NewParameters}
     \right|_{\EMmap(\OldParameters), \OldParameters} \left.\frac{\partial
-    \EMmap(\theta)}{\partial \theta} \right|_{\OldParameters} +
+    \EMmap(\parameters)}{\partial \parameters} \right|_{\OldParameters} +
     \left. \frac{\partial \Psi(\NewParameters, \OldParameters)}{\partial \OldParameters}
     \right|_{\EMmap(\OldParameters), \OldParameters} \\
   \nonumber
   &= \left. \frac{\partial^2 Q(\NewParameters, \OldParameters)}{\partial \NewParameters^2}
     \right|_{\EMmap(\OldParameters), \OldParameters} \left.\frac{\partial
-    \EMmap(\theta)}{\partial \theta} \right|_{\OldParameters} +
+    \EMmap(\parameters)}{\partial \parameters} \right|_{\OldParameters} +
     \left. \frac{\partial^2 Q(\NewParameters, \OldParameters)}{\partial \OldParameters
     \partial \NewParameters} \right|_{\EMmap(\OldParameters), \OldParameters} =0 \\
   \label{eq:two_second_derivatives}
-  \left.\frac{\partial \EMmap(\theta)}{\partial \theta}
+  \left.\frac{\partial \EMmap(\parameters)}{\partial \parameters}
   \right|_{\OldParameters}
   &= - \left[ \left. \frac{\partial^2 Q(\NewParameters,  \OldParameters)}{\partial
     \NewParameters^2} \right|_{\EMmap(\OldParameters), \OldParameters} \right]^{-1} \left[
@@ -370,8 +393,8 @@ Manipulating the first of the two second derivatives in
 \end{align}
 where
 \begin{equation*}
-  J_y\equiv-\frac{\partial^2}{\partial \theta^2} \log \left( P(y \given
-  \theta \right)
+  J_y\equiv-\frac{\partial^2}{\partial \parameters^2} \log \left( P(y \given
+  \parameters \right)
 \end{equation*}
 is called the \emph{observed information} that $y$ provides about
 $\NewParameters$, and
@@ -437,7 +460,7 @@ Combining \eqref{eq:mixed_partial_information} and
 \eqref{eq:two_second_derivatives} we write
 \begin{equation}
   \label{eq:information_em_derivative}
-  \left.\frac{\partial \EMmap(\theta)}{\partial \theta}
+  \left.\frac{\partial \EMmap(\parameters)}{\partial \parameters}
   \right|_{\EMfixedPoint} = \left[J_y + I_{S \given y}  \right]^{-1}
   I_{S \given y}.
 \end{equation}
@@ -446,7 +469,10 @@ If the observed information, $J_y$, is much larger than the unobserved
 information, $I_{S \given y}$, the derivative is small and the
 convergence is fast.  Alternatively, if the unobserved information
 dominates, then the derivative is close to one and the convergence is
-slow.
+slow\footnote{While Dempster Laird and Rubin\cite{Dempster77} make a
+  similar comment about their Theorem 4, Alexis Roche's unpublished
+  ``EM algorithm and variants: an informal tutorial'' inspired our
+  derivation.}.
 
 \subsection*{Linear Stability of EM}
 \label{em_stabiltiy}
@@ -481,7 +507,8 @@ of $AB = C$ are positive.
 
 At a fixed point $\EMfixedPoint$, $\EMmap$ is linearly stable if and
 only if $\left| \lambda \right| < 1$ for all eigenvalues $\lambda$ of
-its derivative $D$.  From \eqref{eq:information_em_derivative} we find
+its derivative $D$.  If $I_{S \given y}$ is full rank, we can rewrite
+\eqref{eq:information_em_derivative} as
 \begin{align}
   \nonumber
   D &= \left[I_{S \given y}^{-1} J_y + 1 \right]^{-1} \\
@@ -505,15 +532,53 @@ with
 Thus if the eigenvalues of $J_y$ are positive (because it is
 symmetric, this is equivalent to it being positive definite) then
 $\EMmap$ is linearly stable.  A similar argument shows that if
-$J_y\equiv-\frac{\partial^2}{\partial \theta^2} \log \left( P(y \given
-  \theta \right)$ has negative eigenvalues then $\EMmap$ is linearly
+$J_y\equiv-\frac{\partial^2}{\partial \parameters^2} \log \left( P(y \given
+  \parameters \right)$ has negative eigenvalues then $\EMmap$ is linearly
 unstable.
 
-In summary: Qualitatively $\EMmap$ acts like a gradient flow on
-$L\equiv\log \left( P(S \given y, \theta \right)$;  convergence to
-fixed point of $\EMmap$ that is a local maximum of the likelihood is
-generic and convergence to a saddle point of the likelihood is not
-generic.
+In summary: Qualitatively $\EMmap$ acts like a gradient flow on the
+log likelihood,
+$\LogLikelihood(\parameters) \equiv\log \left( P(y \given \parameters
+\right)$; convergence to fixed point of $\EMmap$ that is a local
+maximum of the likelihood is generic and convergence to a saddle point
+of the likelihood is not generic.
+
+\subsubsection{Comments}
+\label{sec:ConvergenceRate}
+
+The analysis of this appendix shows that in a neighborhood of a local
+maximum of the likelihood the largest eigenvalue,
+$\lambda_{\text{max}}$, of $D$ is between 0 and 1.  In the limit of
+large $n$ the convergence of the EM algorithm is linear, with an error
+$\ti{\epsilon}{n} \equiv \ti{\parameters}{n} - \EMfixedPoint$
+dominated by the largest eigenvalue, $\lambda_{\text{max}}$ of $D$,
+with
+\begin{align*}
+  \ti{\epsilon}{n+1} \approx \lambda_{\text{max}} \ti{\epsilon}{n}
+  &&\text{for large } n \text{ and }\\
+  \lim_{n \rightarrow \infty} \frac{1}{n}\log(\ti{\epsilon}{n}) &= \log(\lambda_{\text{max}}).
+\end{align*}
+
+One generally uses the EM algorithm when maximizing the auxiliary
+function $Q$ is much easier than estimating derivatives such as
+$\delta(\parameters) \equiv \frac{\partial}{\partial \parameters} \log
+\left( P(y \given \parameters )\right)$ or
+$H(\parameters) \equiv \frac{\partial^2}{\partial \parameters^2} \log
+\left( P(y \given \parameters \right)$.  If it is easy to estimate
+$\delta$ and $H$, one should use the Newton scheme
+\begin{equation*}
+  \ti{\parameters}{n+1} = \ti{\parameters}{n} - \left(H(\ti{\parameters}{n})\right)^{-1} \delta(\ti{\parameters}{n})
+\end{equation*}
+which converges quadratically.  In
+Equation~\eqref{eq:information_em_derivative} we have expressed $D$ in
+terms of the second derivative $J_y\equiv -H$ and the term $I_{S|y}$
+which would be even more difficult to calculate.  We do not suggest
+calculating $J_y$, $I_{S|y}$, or $D$, because if you could do that,
+you should use a Newton method.  The analysis here both assures that
+generic trajectories of the EM algorithm only converge to local maxima
+of the likelihood and in Equation~\eqref{eq:information_em_derivative}
+gives one a sense of how the convergence rate depends on
+characteristics of the likelihood and the unobserved data.
 
 \chapter{Notes on Data and Software}
 \label{cha:Software}

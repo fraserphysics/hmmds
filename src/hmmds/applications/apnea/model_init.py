@@ -15,8 +15,10 @@ import numpy
 import hmm.base
 import hmm.simple
 
-import utilities
-from utilities import State
+# Using "import utilities" makes pickled models harder to use.
+# utilities has to be in the directory where such pickles are loaded.
+from hmmds.applications.apnea import utilities
+from hmmds.applications.apnea.utilities import State
 import hmmds.applications.apnea.model_init
 
 

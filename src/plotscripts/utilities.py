@@ -162,6 +162,24 @@ def format_time(time: pint.Quantity) -> str:
     return f'${hours:2d}:{minutes:02d}:{seconds+fraction:05.2f}$'
 
 
+def read_particles(path, n_start, length):
+    """Return forcast and update clouds from particle filter
+    """
+    result = {}
+
+    with open(path, 'rb') as file_:
+        for n in range(n_start * 2):
+            np.load(file_)
+        for n in range(n_start, n_start + length):
+            result[(n, 'forecast')] = np.load(file_)
+            try:
+                result[(n, 'update')] = np.load(file_)
+            except EOFError:
+                result[(n, 'update')] = []
+                break
+    return result
+
+
 #---------------
 # Local Variables:
 # eval: (python-mode)

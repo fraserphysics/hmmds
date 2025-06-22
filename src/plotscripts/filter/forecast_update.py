@@ -1,14 +1,14 @@
-"""ddays_plot_b.py Makes figure for dynamics days 2025
+"""forecast_update.py Makes figures for filter.tex
 
-python ddays_plot_b.py input_path output_path
+python forecast_update.py data_dir --options
 
-input is made by hmmds/synthetic/bounds/particle.py
 
 """
 
 import sys
 import argparse
 import pickle
+import os
 
 import numpy
 import numpy.linalg
@@ -36,7 +36,6 @@ def parse_args(argv):
     parser.add_argument('input', type=str, help='Path to data')
     parser.add_argument('--no_divide', type=str, help='Path to figure file')
     parser.add_argument('--with_divide', type=str, help='Path to figure file')
-    parser.add_argument('--entropy', type=str, help='Path to figure file')
     args = parser.parse_args(argv)
     return args
 
@@ -85,7 +84,7 @@ def plot_selected(axes, x_all, bins, indices: set, shift, label=None):
     axes.set_xlim(-22, 22)
     axes.set_ylim(0, 50)
     if label:
-        axes.legend()
+        axes.legend(loc='upper left')
 
 
 def no_divide_figure(t_rows, x_all, bins, pyplot):
@@ -145,7 +144,7 @@ def no_divide_figure(t_rows, x_all, bins, pyplot):
     return figure
 
 
-def with_divide_figure(t_rows, clouds, x_all, bins, pyplot):
+def with_divide_figure(t_rows, npy_path, x_all, bins, pyplot):
     """Plots of clouds of particles
 
     """
@@ -153,6 +152,7 @@ def with_divide_figure(t_rows, clouds, x_all, bins, pyplot):
     n_cols = 4
     plotable = {}
     last_time = t_rows[-1] + n_cols
+    length = last_time - t_rows[0]
     for row, t_start in enumerate(t_rows):
         for column in range(n_cols):
             plotable[t_start + column] = (row, column)
@@ -162,6 +162,7 @@ def with_divide_figure(t_rows, clouds, x_all, bins, pyplot):
                                      figsize=(8, 12),
                                      sharex=True,
                                      sharey=True)
+    clouds = plotscripts.utilities.read_particles(npy_path, t_rows[0], length)
     for i in range(t_rows[0], last_time):
         if i not in plotable:
             continue
@@ -173,8 +174,13 @@ def with_divide_figure(t_rows, clouds, x_all, bins, pyplot):
 
         # Plot points of forecast and update
         for cloud, axes in ((forecast, forecast_axes), (update, update_axes)):
-            for particle in cloud:
-                plot_point(axes, particle.x, '#1f77b4')
+            axes.plot(cloud[:, 0],
+                      cloud[:, 2],
+                      markeredgecolor='none',
+                      marker='.',
+                      markersize=5,
+                      linestyle='None',
+                      color='blue')
             for boundary in bins:
                 axes.plot((boundary,) * 2, (0, 50), color='black', linewidth=.5)
             axes.plot(
@@ -187,49 +193,16 @@ def with_divide_figure(t_rows, clouds, x_all, bins, pyplot):
             )
             axes.set_xlim(-22, 22)
             axes.set_ylim(0, 50)
-        plot_point(forecast_axes, forecast[0].x, '#1f77b4',
+        plot_point(forecast_axes, forecast[0], '#1f77b4',
                    f'n[{i}]={len(forecast)}')
         p = len(update) / len(forecast)
-        plot_point(update_axes, update[0].x, '#1f77b4', f'p[{i}]={p:.2f}')
-        forecast_axes.legend()
-        update_axes.legend()
+        plot_point(update_axes, update[0], '#1f77b4', f'p[{i}]={p:.2f}')
+        forecast_axes.legend(loc='upper left')
+        update_axes.legend(loc='upper left')
         if column != 0:
             continue
         forecast_axes.set_ylabel(r'$\rm{Forecast}$')
         update_axes.set_ylabel(r'$\rm{Update}$')
-    return figure
-
-
-def entropy(gamma, pyplot):
-    """"""
-
-    offset = 14
-    log_gamma = numpy.log(gamma)[offset:]
-    cum_sum = numpy.cumsum(log_gamma)
-    y_values = -cum_sum / numpy.arange(1, len(cum_sum) + 1) / 0.15
-
-    figure, axes = pyplot.subplots(figsize=(6, 4))
-
-    axes.plot(numpy.arange(offset, offset + len(y_values)),
-              y_values,
-              label=r'$\hat h$')
-    x_max = len(y_values)
-    y_level = 0.906
-    axes.plot([0, x_max], [y_level, y_level], label=r'$\lambda$')
-    axes.set_ylabel(r'$\hat h/\rm{nats}$')
-    axes.set_xlabel(r'$n_{\rm{samples}}$')
-
-    axes.set_ylim(0, 2.0)
-    min_y, max_y = axes.get_ylim()
-    min_x, max_x = axes.get_xlim()
-    ax2 = axes.twinx()
-    ax2.set_xlim(min_x, max_x)
-    ax2.set_ylim(min_y, max_y)
-    ax2.set_yticks((
-        .906,
-        y_values[-1],
-    ))
-    axes.legend()
     return figure
 
 
@@ -239,13 +212,13 @@ def main(argv=None):
 
     args, _, pyplot = plotscripts.utilities.import_and_parse(parse_args, argv)
 
-    with open(args.input, 'rb') as file_:
+    with open(os.path.join(args.input, 'dict.pkl'), 'rb') as file_:
         dict_in = pickle.load(file_)
     gamma = dict_in['gamma']  # (100,)
     y_q = dict_in['y_q']  # (100,)  Starts at beginning of x_all
     bins = dict_in['bins']  # (3,)
     x_all = dict_in['x_all']  # (15100, 3)
-    clouds = dict_in['clouds']  # dict
+
     if args.no_divide:
         figure = no_divide_figure(args.t_rows, x_all, bins, pyplot)
         figure.tight_layout()
@@ -255,20 +228,13 @@ def main(argv=None):
             figure.savefig(args.no_divide)
 
     if args.with_divide:
-        figure = with_divide_figure(args.t_rows, clouds, x_all, bins, pyplot)
+        npy_path = os.path.join(args.input, 'states_boxes.npy')
+        figure = with_divide_figure(args.t_rows, npy_path, x_all, bins, pyplot)
         figure.tight_layout()
         if args.show:
             pyplot.show()
         else:
             figure.savefig(args.with_divide)
-
-    if args.entropy:
-        figure = entropy(gamma, pyplot)
-        figure.tight_layout()
-        if args.show:
-            pyplot.show()
-        else:
-            figure.savefig(args.entropy)
 
     return 0
 

@@ -1,4 +1,4 @@
-#cython: language_level=3
+#cython: language_level=3, boundscheck=False
 """lorenz_sde.pyx: cython code for speed up.
 
 See http://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
@@ -11,6 +11,7 @@ import numpy
 
 cimport cython  # For the boundscheck decorator
 cimport numpy
+import cython.parallel
 DTYPE = numpy.float64  # FixMe: delete this
 ctypedef numpy.float64_t DTYPE_t
 
@@ -53,13 +54,12 @@ def lorenz_integrate(
     # Calculate number of Runge-Kutta steps
     delta_t = t_final - t_initial
     if h_min < delta_t < h_max:
-        lorenz_step(&initial_view[0], &final_view[0], delta_t, s, b, r)
-        return x_final
-    if delta_t > 0:
+        n_steps = 1
+    elif delta_t > 0:
         n_steps = int(delta_t/h_max) + 1
     else:
         n_steps = int(delta_t/h_min) + 1
-    assert n_steps > 1
+    assert n_steps > 0
     
     # Call multi-step integrate function
     lorenz_n_steps(&initial_view[0], &final_view[0], delta_t/n_steps, s, b, r, n_steps)
@@ -73,7 +73,8 @@ def tangent_integrate(
         float r,
         float b,
         float h_max = 0.0025,
-        float h_min =-0.001):
+        float h_min = -0.001,
+):
     """Integrate tangent system from (x_initial, t_initial) to t_final.
 
     Args:
@@ -89,26 +90,74 @@ def tangent_integrate(
     """
     
     assert h_min < 0 < h_max
-    x_final = numpy.empty(12)
+    x_final = x_initial.copy()
 
     # Get "memoryviews".  These enable calling functions with c style arguments
-    cdef double[::1] initial_view = x_initial
     cdef double[::1] final_view = x_final
 
     # Calculate number of Runge-Kutta steps
     delta_t = t_final - t_initial
     if h_min < delta_t < h_max:
-        tangent_step(&initial_view[0], &final_view[0], delta_t, s, b, r)
-        return x_final
-    if delta_t > 0:
+        n_steps = 1
+    elif delta_t > 0:
         n_steps = int(delta_t/h_max) + 1
     else:
         n_steps = int(delta_t/h_min) + 1
-    assert n_steps > 1
+    assert n_steps > 0
     
     # Call multi-step integrate function
-    tangent_n_steps(&initial_view[0], &final_view[0], delta_t/n_steps, s, b, r, n_steps)
+    tangent_n_steps(&final_view[0], delta_t/n_steps, s, b, r, n_steps)
     return x_final
+
+def integrate_particles(
+        numpy.ndarray[DTYPE_t, ndim=2] particles,
+        float t_initial,
+        float t_final,
+        float s,
+        float r,
+        float b,
+        float h_max = 0.0025,
+        float h_min =-0.001):
+    """Integrate tangent system from (particles[i], t_initial) to t_final for all i.
+    i is an index for particles
+
+    Args:
+        particles: Initial vectors of states and tangents
+        t_initial: Initial time
+        t_final: Final time (Note t_final < t_initial is OK)
+        h_max: Largest size of Runge-Kutta step
+        h_min: Smallest size of Runge-Kutta step (Requre h_min < 0)
+
+    Returns:
+        None
+
+    particles gets overwritten with the results
+
+    """
+    cdef int n_particles, i, n_steps
+    cdef double t_step
+    n_particles = particles.shape[0]
+    assert particles.shape[1]  == 12
+    assert h_min < 0 < h_max
+
+    # Get "memoryviews".  These enable calling functions with c style arguments
+    cdef double[:,::1] particles_view = particles # ::1] signifies C contiguous
+
+
+    # Calculate number of Runge-Kutta steps
+    delta_t = t_final - t_initial
+    if h_min < delta_t < h_max:
+        n_steps = 1
+    elif delta_t > 0:
+        n_steps = int(delta_t/h_max) + 1
+    else:
+        n_steps = int(delta_t/h_min) + 1
+    assert n_steps > 0
+    t_step = delta_t/n_steps
+    
+    # Call multi-step integrate function
+    for i in cython.parallel.prange(n_particles, nogil=True):
+        tangent_n_steps(&particles_view[i,0], t_step, s, b, r, n_steps)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -200,8 +249,8 @@ cdef lorenz_n_steps(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef tangent_field(double *x, double s, double b, double r,
-             double *y_dot):
+cdef void tangent_field(double *x, double s, double b, double r,
+             double *y_dot) noexcept nogil:
     """This function acts as if it were pure C.  It calculates the tangent
     field (y_dot) at x,t for the Lorenz system with parmaters s, b, r.
 
@@ -236,12 +285,12 @@ cdef tangent_field(double *x, double s, double b, double r,
     
 
 @cython.boundscheck(False)
-cdef tangent_step(
+cdef void tangent_step(
     double *x_i,
     double *x_f,
     double h,
     double s, double b, double r
-):
+) noexcept nogil:
     """ Implements a fourth order Runge Kutta step using vector_field().
 
     Args:
@@ -279,13 +328,12 @@ cdef tangent_step(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef tangent_n_steps(
-    DTYPE_t *x_i,
-    DTYPE_t *x_f,
+cdef void tangent_n_steps(
+    double *x_i,
     double h,
     double s, double b, double r,
     int n,
-):
+) noexcept nogil:
 
     cdef double buffer[24]
     cdef double *p_initial = &buffer[0]
@@ -303,9 +351,9 @@ cdef tangent_n_steps(
         p_initial = p_final
         p_final = p_temp
 
-    # Copy result into numpy result
+    # Overwrite result onto input array
     for i in range(12):
-        x_f[i] = p_initial[i]
+        x_i[i] = p_initial[i]
     
 
 import hmm.state_space
