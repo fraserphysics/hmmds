@@ -1,3 +1,541 @@
+\appendix
+
+\chapter{Formulas for Matrices and Gaussians}
+\label{cha:MatrixFormulas}
+
+Here we review some material necessary for deriving
+Eqns.~\eqref{eq:KUpdate}-\eqref{eq:smoothing} on page
+\pageref{eq:KUpdate}.  Similar material appears in Appendix A of
+Kailath et al.\cite{KSH00}.
+
+\subsubsection{Block Matrix Inverse}
+\index{block matrix inverse}%
+\index{matrix inverse|see{block matrix inverse}}%
+
+If $G$ is an $n\times n$ invertible matrix, $K$ is an $m\times m$
+invertible matrix, and $H$ and $J$ are $n\times m$ and $m\times n$
+respectively, then direct matrix multiplication verifies that
+\begin{subequations}
+  \label{eq:MatrixInverse}
+  \begin{align}
+    \begin{bmatrix}
+      (G-HK^{-1}J)^{-1} & -(G-HK^{-1}J)^{-1}HK^{-1} \\
+      -(K-JG^{-1}H)^{-1}JG^{-1} & (K-JG^{-1}H)^{-1}
+    \end{bmatrix}
+    \begin{bmatrix}
+      G & H \\ J & K
+    \end{bmatrix}
+    &=
+    \begin{bmatrix}
+      \id & 0 \\ 0 & \id
+    \end{bmatrix}\\ \nonumber \\
+    \begin{bmatrix}
+      G & H \\ J & K
+    \end{bmatrix}
+    \begin{bmatrix}
+      (G-HK^{-1}J)^{-1} & -G^{-1}H(K-JG^{-1}H)^{-1} \\
+      -K^{-1}J(G-HK^{-1}J)^{-1} & (K-JG^{-1}H)^{-1}
+    \end{bmatrix}
+    &=
+    \begin{bmatrix}
+      \id & 0 \\ 0 & \id
+    \end{bmatrix},
+  \end{align}
+\end{subequations}
+assuming that $(G-HK^{-1}J)^{-1}$ and $(K-JG^{-1}H)^{-1}$ exist.
+One can derive other expressions for the inverse by using the Sherman
+Morrison Woodbury formula (Eqn.~\eqref{eq:SMW}) to expand terms in
+Eqn.~\eqref{eq:MatrixInverse}.
+
+By noting
+\begin{multline*}
+  \begin{bmatrix}
+    (G-HK^{-1}J)^{-1} & -(G-HK^{-1}J)^{-1}HK^{-1} \\
+    0 & (K-JG^{-1}H)^{-1}
+  \end{bmatrix}
+  \begin{bmatrix}
+    G & H \\ J & K
+  \end{bmatrix}\\
+  =
+  \begin{bmatrix}
+    \id & 0 \\
+     (K-JG^{-1}H)^{-1}J & (K-JG^{-1}H)^{-1} K
+  \end{bmatrix}
+\end{multline*}
+and taking the determinant of both sides
+\renewcommand{\det}[1]{\left| #1 \right|}
+\begin{equation*}
+  \det{(G-HK^{-1}J)^{-1}} \cdot \det{(K-JG^{-1}H)^{-1}} \cdot 
+  \det{\begin{bmatrix}
+    G & H \\ J & K
+  \end{bmatrix}} = \det{(K-JG^{-1}H)^{-1}} \cdot \det {K}
+\end{equation*}
+one finds the following formula for determinants
+\index{block matrix determinant}
+\index{determinant|see{block matrix determinant}}
+\begin{equation}
+  \label{eq:BlockDet}
+  \det{ \begin{bmatrix} G & H \\ J & K \end{bmatrix}} = \det{K}
+  \det{(G-HK^{-1}J)}
+\end{equation}
+\subsubsection{Sherman Morrison Woodbury Formula}
+\index{Sherman Morrison Woodbury formula}
+
+If $G$ and $ K $ are invertible matrices, $H$ and $ J $ have
+dimensions so that $\left( G + H K J \right)^{-1}$ makes sense and
+exists, and $\left( J G^{-1}H + K ^{-1} \right)^{-1}$ exists, then
+\begin{equation}
+  \label{eq:SMW}
+  \left( G + H K  J  \right)^{-1} = G^{-1} - G^{-1}H\left( J G^{-1}H +
+   K ^{-1}\right)^{-1} J G^{-1}.
+\end{equation}
+Multiplying both sides by $\left( G + H K  J  \right)$ verifies the
+formula.  Equation~\eqref{eq:SMW} is called the Sherman Morrison
+Woodbury formula.
+
+To invert $(A^{-1} + C\transpose B^{-1} C)$, when $A$ is an $n\times
+n$ matrix and $B$ is an $m \times m$ matrix, if $n > m$ one can use
+\eqref{eq:SMW} to write
+\begin{equation}
+  \label{eq:MatrixInversion}
+  \left(A^{-1} + C\transpose  B ^{-1}C \right)^{-1} = A - AC\transpose
+  \left( CAC\transpose +  B  \right)^{-1}CA.
+\end{equation}
+The right hand side requires inverting an $m \times m$ matrix while
+the left hand side requires inverting an $n \times n$ matrix.
+
+\subsubsection{Marginal and Conditional Distributions of a Gaussian}
+\index{marginal distribution, Gaussian}
+\index{conditional distribution, Gaussian}
+
+Suppose that $W = \begin{bmatrix} U \\ V \end{bmatrix}$ is a Gaussian
+random variable with an $n$ dimensional component $U$ and an $m$
+dimensional component $V$.  We write its distribution
+%
+\nomenclature[rNormal]{$\Normal \left( \mu,\Sigma \right)$}{A
+  \emph{normal} or Gaussian distribution function; $\mu$ is an $n$
+  dimensional vector and $\Sigma$ is an $n\times n$ matrix.  Writing
+  $X\sim \Normal \left( \mu,\Sigma \right)$ means $X$ is distributed
+  normally with mean $\mu$ and covariance $\Sigma$ and the
+  probability density at any particular vector $x$ is
+  $\NormalE{\mu}{\Sigma}{x}$.
+} % end \nomenclature
+%
+\nomenclature[rNormalE]{$\NormalE{\mu}{\Sigma}{x}$}{The value of a
+  Gaussian probability density function evaluated at the $n$
+  dimensional vector $x$, \ie
+  \begin{equation*}
+    \NormalE{\mu}{\Sigma}{x} \equiv \frac{1}
+    {\sqrt{(2\pi)^n\left"|\Sigma\right"|}} e^{ -\frac{1}{2}
+      (x-\mu)\transpose \Sigma^{-1} (x-\mu)}
+  \end{equation*}
+  where $\left"|\Sigma\right"|$ is the determinant of the covariance
+  matrix $\Sigma$.
+} % end \nomenclature
+\begin{equation*}
+  W \sim \Normal \left( \mu_W,\Sigma_W \right) \text{ or equivalently
+  } P(w) = \NormalE{\mu_W}{\Sigma_W}{w}
+\end{equation*}
+with
+\begin{equation*}
+  \mu_W = \begin{bmatrix} \mu_U\\\mu_V \end{bmatrix} \text{ and }
+  \Sigma_W =   \begin{bmatrix} \Sigma_{UU} & \Sigma_{UV}\\ \Sigma_{VU}
+  & \Sigma_{VV} \end{bmatrix} \equiv \begin{bmatrix} A & C \\
+  C\transpose & B \end{bmatrix},
+\end{equation*}
+where we have introduced $A \equiv \Sigma_{UU}$, $B \equiv
+\Sigma_{VV}$, and $C \equiv \Sigma_{UV}$ to shorten the notation.
+If we denote
+\begin{equation*}
+    \Sigma_W^{-1} =   \begin{bmatrix} D & F \\ F\transpose & E
+  \end{bmatrix},
+\end{equation*}
+then from Eqns.~\eqref{eq:MatrixInverse} and ~\eqref{eq:SMW}
+\begin{subequations}
+  \label{eq:MI:ABCDEF}
+  \begin{align}
+    \label{eq:MI:D}
+    D &= (A - CB^{-1}C\transpose)^{-1} & &= A^{-1} + A^{-1}C E
+    C\transpose A^{-1}\\
+    \label{eq:MI:E}
+    E &= (B - C\transpose A^{-1}C)^{-1} & &= B^{-1} + B^{-1}C\transpose
+    D C B^{-1} \\
+    \label{eq:MI:F}
+    F &= -A^{-1}C E & &= -DCB^{-1}.
+  \end{align}
+\end{subequations}
+In this notation, the marginal distributions are
+\begin{subequations}
+  \label{eq:Gauss-Marginal}
+  \begin{align}
+    P\left(u \right) &= \int P\left(u,v \right) dv \\
+    &= \NormalE{\mu_U}{A}{u} \\
+    P\left(v \right) &= \int P\left(u,v \right) du \\
+    &= \NormalE{\mu_V}{B}{v},
+  \end{align}
+\end{subequations}
+and the conditional distributions are
+\begin{subequations}
+  \label{eq:Gauss-Conditional}
+  \begin{align}
+    P\left(u \given v \right) &= \frac{ P\left(u,v \right)}{P\left(v \right)} \\
+    &= \NormalE{\mu_U + CB^{-1}(v-\mu_v)}{D^{-1}}{u} \\
+    P\left(v \given u \right) &= \frac{ P\left(v,u \right)}{P\left(u \right)} \\
+    &= \NormalE{\mu_V + C\transpose A^{-1} (u - \mu_U)}{E^{-1}}{v}
+  \end{align}
+\end{subequations}
+Notice that the covariance of the \emph{marginal} distribution of $U$
+is given by the $UU$ block of $\Sigma_W$, but that the inverse
+covariance of the \emph{conditional} distribution of $U$ is given by
+the $UU$ block of $\Sigma_W^{-1}$.
+
+As a check of these formulas, we examine $P\left(u \given v \right) P\left(v
+\right)$ and find
+\begin{align*}
+  P\left(u \given v \right) P\left(v \right) &= \frac{\sqrt{\left| D
+      \right|}} {\sqrt{(2\pi)^n}} e^{ -\frac{1}{2} \left(u - \mu_U -
+      CB^{-1}(v - \mu_V) \right)\transpose D \left(u - \mu_U -
+      CB^{-1}(v - \mu_V) \right)
+  } \\
+  &\quad \times \frac{1}{\sqrt{(2\pi)^m \left| B \right|}} e^{ -\frac{1}{2}
+    (v-\mu_V)\transpose B^{-1} (v-\mu_V)}\\
+                                %
+    &= \frac{1} {\sqrt{(2\pi)^{n+m} \left| \Sigma_W
+      \right| }} \exp \bigg( -\frac{1}{2} \Big[ \\
+  &\quad \left( u - \mu_U - CB^{-1}(v - \mu_V) \right)\transpose D
+       \left(u - \mu_U - CB^{-1}(v - \mu_V) \right)  \\
+     &\quad + (v-\mu_V)\transpose B^{-1} (v-\mu_V) \Big]\bigg)\\
+                                  %
+     &= \frac{1} {\sqrt{(2\pi)^{n+m} \left| \Sigma_W \right| }}\\
+     &\quad\times e^{ -\frac{1}{2} \left((u-\mu_U)\transpose D (u-\mu_U) +
+         2 (v-\mu_V)\transpose F\transpose (u-\mu_U) +
+         (v-\mu_V)\transpose E (v-\mu_V)\right)}\\
+     &= P \left(u,v \right)
+\end{align*}
+all is right with the world.  In the above, Eqn.~\eqref{eq:BlockDet}
+implies that $\frac{\sqrt{\det{D}}}{\sqrt{\det{B}}} =
+\frac{1}{\sqrt{\det{\Sigma_W}}}$.
+
+
+\subsubsection{Completing the Square}
+\index{completing the square}
+
+Some of the derivations in section~\ref{sec:KDerive} rely on a
+procedure called \emph{completing the square}, which we illustrate
+with the following example.  Suppose that the function $f(u)$ is the
+product of two $n$ dimensional Gaussians,
+$\Normal\left(\mu_1,\Sigma_1\right)$ and
+$\Normal\left(\mu_2,\Sigma_2\right)$, \ie
+\begin{align}
+  \label{eq:Qu.a}
+  f(u) &= \frac{1} {\sqrt{(2\pi)^n \left| \Sigma_1 \right| }}
+  e^{-\frac{1}{2} ( u - \mu_1)\transpose \Sigma_1^{-1} ( u - \mu_1)}
+  \frac{1} {\sqrt{(2\pi)^n \left| \Sigma_2 \right| }}
+  e^{-\frac{1}{2} ( u - \mu_2)\transpose \Sigma_2^{-1} ( u - \mu_2)}\\
+  \nonumber
+       &= \frac{1} {\sqrt{(2\pi)^{2n} \left| \Sigma_1 \right| \left|
+        \Sigma_2 \right| }} e^{-\frac{1}{2}\big[ ( u -
+    \mu_1)\transpose \Sigma_1^{-1} ( u - \mu_1) + ( u -
+    \mu_2)\transpose \Sigma_2^{-1} ( u - \mu_2)\big]}\\
+  \nonumber
+  &\equiv \frac{1} {\sqrt{(2\pi)^{2n} \left| \Sigma_1 \right| \left|
+        \Sigma_2 \right| }} e^{-\frac{1}{2}\big[Q(u)\big]}.
+\end{align}
+By expanding the function $Q(u)$ in the exponent, we find:
+\begin{align}
+  \nonumber
+  Q(u) &= u\transpose \left( \Sigma_1^{-1} + \Sigma_2^{-1} \right) u -
+  2 u\transpose  \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2
+  \right) + \mu_1\transpose \Sigma_1^{-1} \mu_1 + \mu_2\transpose
+  \Sigma_2^{-1} \mu_2 \\
+  \label{eq:Qu.e}
+  &= u\transpose q u - 2 u\transpose l + s
+\end{align}
+where the quadratic, linear, and scalar terms are
+\begin{align*}
+  q &= \left( \Sigma_1^{-1} + \Sigma_2^{-1} \right) \\
+  l &= \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2 \right) \\
+  s &= \mu_1\transpose \Sigma_1^{-1} \mu_1 + \mu_2\transpose
+  \Sigma_2^{-1} \mu_2
+\end{align*}
+respectively.
+
+\emph{Completing the square} means finding values $\mu$, $\Sigma$, and
+$R$ for which Eqn.~\eqref{eq:Qu.e} takes the form
+\begin{equation*}
+  Q(u) = (u - \mu)\transpose \Sigma^{-1} (u - \mu) + R,
+\end{equation*}
+where $R$ is not a function of $u$.  One can verify by substitution
+that the solution is
+\begin{align*}
+  \Sigma^{-1} &= q\\
+  \mu &= \Sigma l\\
+  R &= s -  \mu\transpose \Sigma^{-1} \mu.
+\end{align*}
+For the product of Gaussians example \eqref{eq:Qu.a},
+\begin{subequations}
+  \label{eq:GaussianProduct}
+  \begin{align}
+  \Sigma^{-1} &= \Sigma_1^{-1} + \Sigma_2^{-1} \\
+  \mu &= \Sigma \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2
+  \right) \\
+  &= \left( \Sigma_1^{-1} + \Sigma_2^{-1} \right)^{-1} \left(
+  \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2  \right) \\
+  R &= \mu_1\transpose \Sigma_1^{-1} \mu_1 + \mu_2\transpose
+  \Sigma_2^{-1} \mu_2 -  \mu\transpose \Sigma^{-1} \mu \\
+  &= \mu_1\transpose \Sigma_1^{-1} \mu_1 + \mu_2\transpose
+  \Sigma_2^{-1} \mu_2 - \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1}
+  \mu_2  \right) \transpose \left( \Sigma_1^{-1} + \Sigma_2^{-1}
+  \right)^{-1} \left( \Sigma_1^{-1} \mu_1 + \Sigma_2^{-1} \mu_2
+  \right).
+\end{align}
+\end{subequations}
+In words the product of two Gaussian density functions is an
+unnormalized Gaussian density function in which the inverse covariance
+is the sum of the inverse covariances of the factors and the mean is
+the average of the factor means weighted by the inverse covariances.
+
+\chapter{EM Convergence Rate}
+\label{chap:em_appendix}
+
+\newcommand{\OldParameters}{\parameters}
+\newcommand{\NewParameters}{\parameters'} %
+Here we calculate the linear approximation of the behavior of
+$\EMmap$, the map implemented by the EM algorithm, in the neighborhood
+of a fixed point, $\EMfixedPoint$.  We show that the linear stability
+properties of $\EMmap$ are the same as the linear stability properties
+of the flow of solutions of the ordinary differential
+equation\footnote{In \eqref{eq:LogDynamics} we use the log of the
+  likelihood as a potential function while in
+  \eqref{eq:GradientDynamics}, we simply used the likelihood.  The two
+  equations have the same fixed points, and the linear stability of
+  those fixed points are also the same.}
+\begin{equation}
+  \label{eq:LogDynamics}
+  \dot \parameters = \frac{d}{d \parameters} 
+  \LogLikelihood(\parameters) ,
+\end{equation}
+where $\LogLikelihood(\parameters) \equiv \log \left( P \left( y \given
+    \parameters \right) \right)$ is the log likelihood. Like trajectories
+defined by the differential equation, trajectories of $\EMmap$
+generically converge to local maxima of $\LogLikelihood$, and they
+avoid local minima and saddles.
+
+The manipulations here require that the probability and likelihood
+functions have continuous first and second derivatives and that some
+second derivatives have full rank which we implicitly assume.  We let
+$\EMmap$ denote the action of one iteration of the algorithm and let
+$\EMfixedPoint$ denote a fixed point with
+\begin{align*}
+  \ti{\parameters}{n+1} &= \EMmap\left( \ti{\parameters}{n} \right) \\
+  \EMmap(\EMfixedPoint) &= \EMfixedPoint && \text{with Taylor series} \\
+  \EMmap(\parameters) &= \EMfixedPoint + \left[ \frac{\partial
+                 \EMmap(\parameters)}{\partial \parameters} \right]_{\EMfixedPoint} (\parameters - \EMfixedPoint) + \text{Remainder}.
+\end{align*}
+Recall that the EM map depends on the auxiliary function, $Q$, with
+\begin{align*}
+  Q(\NewParameters, \OldParameters) &\equiv \EV_{S \given y,\OldParameters} \log\left(P(y,S \given
+  \NewParameters \right) \\
+  \EMmap(\OldParameters) &= \argmax_{\NewParameters} Q(\NewParameters, \OldParameters). 
+\end{align*}
+For a given value of $\OldParameters$, the derivative of $Q(\NewParameters,
+\OldParameters)$ at a maximum is zero, and we write
+\begin{align}
+  \nonumber
+  \Psi(\NewParameters,\OldParameters)
+  &\equiv \frac{\partial Q(\NewParameters,
+    \OldParameters)}{\partial \NewParameters} \\
+  \nonumber
+  \Psi(\EMmap(\OldParameters), \OldParameters)
+  &= 0 \\
+  \nonumber
+  \frac{d\Psi(\EMmap(\OldParameters), \OldParameters)}{d \OldParameters}
+  &= 0 \\
+  \nonumber
+  \frac{d\Psi(\EMmap(\OldParameters), \OldParameters)}{d \OldParameters}
+  &= \left. \frac{\partial \Psi(\NewParameters, \OldParameters)}{\partial \NewParameters}
+    \right|_{\EMmap(\OldParameters), \OldParameters} \left.\frac{\partial
+    \EMmap(\parameters)}{\partial \parameters} \right|_{\OldParameters} +
+    \left. \frac{\partial \Psi(\NewParameters, \OldParameters)}{\partial \OldParameters}
+    \right|_{\EMmap(\OldParameters), \OldParameters} \\
+  \nonumber
+  &= \left. \frac{\partial^2 Q(\NewParameters, \OldParameters)}{\partial \NewParameters^2}
+    \right|_{\EMmap(\OldParameters), \OldParameters} \left.\frac{\partial
+    \EMmap(\parameters)}{\partial \parameters} \right|_{\OldParameters} +
+    \left. \frac{\partial^2 Q(\NewParameters, \OldParameters)}{\partial \OldParameters
+    \partial \NewParameters} \right|_{\EMmap(\OldParameters), \OldParameters} =0 \\
+  \label{eq:two_second_derivatives}
+  \left.\frac{\partial \EMmap(\parameters)}{\partial \parameters}
+  \right|_{\OldParameters}
+  &= - \left[ \left. \frac{\partial^2 Q(\NewParameters,  \OldParameters)}{\partial
+    \NewParameters^2} \right|_{\EMmap(\OldParameters), \OldParameters} \right]^{-1} \left[
+    \left. \frac{\partial^2 Q(\NewParameters, \OldParameters)}{\partial \OldParameters
+    \partial \NewParameters} \right|_{\EMmap(\OldParameters), \OldParameters} \right].
+\end{align}
+Manipulating the first of the two second derivatives in
+\eqref{eq:two_second_derivatives} we find
+\begin{align}
+  \nonumber
+  \frac{\partial^2 Q(\NewParameters,  \OldParameters)}{\partial \NewParameters^2}
+  &= \frac{\partial^2}{\partial \NewParameters^2} \EV_{S \given y, \OldParameters}
+    \log \left( P(y, S \given \NewParameters \right) \\
+  \nonumber
+  &= \frac{\partial^2}{\partial \NewParameters^2} \EV_{S \given y, \OldParameters}
+    \left( \log \left( P(y \given \NewParameters \right) + \log \left( P(S
+    \given y, \NewParameters \right) \right)\\
+  \nonumber
+  &=  \frac{\partial^2}{\partial \NewParameters^2} \log \left( P(y \given
+    \NewParameters \right) + \EV_{S \given y, \OldParameters} \left(
+    \frac{\partial^2}{\partial \NewParameters^2} \log \left( P(S \given y,
+    \NewParameters \right) \right) \\
+  \label{eq:second_partial_information}
+  &= -J_y - I_{S \given y},
+\end{align}
+where
+\begin{equation*}
+  J_y\equiv-\frac{\partial^2}{\partial \parameters^2} \log \left( P(y \given
+  \parameters \right)
+\end{equation*}
+is called the \emph{observed information} that $y$ provides about
+$\NewParameters$, and
+\begin{equation}
+  \label{eq:second_partial_fisher}
+  I_{S \given y} = -\EV_{S \given y, \OldParameters} \left(
+    \frac{\partial^2}{\partial \NewParameters^2} \log \left( P(S \given y,
+    \NewParameters \right) \right)
+\end{equation}
+is the \emph{Fisher information}\footnote{Fisher Information is
+  defined in terms of the squared first derivative, see
+  \eqref{eq:score_fisher}.  In many cases a calculation in terms of
+  the second derivative like \eqref{eq:second_partial_fisher} is
+  equivalent.}  of the
+  unobserved data.  Now manipulating the second of the two second
+  derivatives in \eqref{eq:two_second_derivatives} we find
+\begin{align}
+  \nonumber
+  \frac{\partial^2 Q(\NewParameters,  \OldParameters)}{\partial \NewParameters \partial
+  \OldParameters}
+  &= \frac{\partial^2}{\partial \NewParameters \partial \OldParameters} \EV_{S \given y, \OldParameters}
+    \log \left( P(y, S \given \NewParameters \right) \\
+  \nonumber
+  &= \frac{\partial^2}{\partial \NewParameters \partial \OldParameters} \EV_{S \given y, \OldParameters}
+    \left( \log \left( P(y \given \NewParameters \right) + \log \left( P(S
+    \given y, \NewParameters \right) \right)\\
+  \nonumber
+  &= \frac{\partial^2}{\partial \NewParameters \partial \OldParameters} \log \left( P(y \given
+    \NewParameters \right) + \frac{\partial}{\partial \OldParameters} \EV_{S \given y, \OldParameters} \left(
+    \frac{\partial}{\partial \NewParameters} \log \left( P(S \given y,
+    \NewParameters \right) \right) \\
+  \nonumber
+  &=  \frac{\partial}{\partial \OldParameters} \EV_{S \given y, \OldParameters} \left(
+    \frac{\partial}{\partial \NewParameters} \log \left( P(S \given y,
+    \NewParameters \right) \right) \\
+  \nonumber
+  &= \frac{\partial}{\partial \OldParameters} \sum_s P(s \given y, \OldParameters) %
+    \frac{ %
+    \frac{\partial P(s \given y,\NewParameters )}{\partial \NewParameters}
+    }{P(s \given y,\NewParameters )}  \\
+  \nonumber
+  &= \sum_s P(s \given y, \OldParameters) %
+    \frac{ %
+    \frac{\partial P(s \given y,\OldParameters )}{\partial \OldParameters}
+    }{P(s \given y,\OldParameters )}
+    \frac{ %
+    \frac{\partial P(s \given y,\NewParameters )}{\partial \NewParameters}
+    }{P(s \given y,\NewParameters )}
+\end{align}
+At the fixed point $\EMfixedPoint = \NewParameters = \OldParameters$
+and
+\begin{align}
+  \label{eq:score_fisher}
+  \left. \frac{\partial^2 Q(\NewParameters,  \OldParameters)}{\partial \NewParameters
+  \partial \OldParameters} \right|_{\EMfixedPoint, \EMfixedPoint}
+  &= \EV_{S \given y, \EMfixedPoint} \left( \frac{\partial}{\partial
+    \NewParameters} \log \left( P(S \given y, \NewParameters )\right) \right)^2\\
+  \label{eq:mixed_partial_information}
+  &\equiv I_{S \given y}.
+\end{align}
+Combining \eqref{eq:mixed_partial_information} and
+\eqref{eq:second_partial_information} with
+\eqref{eq:two_second_derivatives} we write
+\begin{equation}
+  \label{eq:information_em_derivative}
+  \left.\frac{\partial \EMmap(\parameters)}{\partial \parameters}
+  \right|_{\EMfixedPoint} = \left[J_y + I_{S \given y}  \right]^{-1}
+  I_{S \given y}.
+\end{equation}
+Equation~\eqref{eq:information_em_derivative} matches our intuition.
+If the observed information, $J_y$, is much larger than the unobserved
+information, $I_{S \given y}$, the derivative is small and the
+convergence is fast.  Alternatively, if the unobserved information
+dominates, then the derivative is close to one and the convergence is
+slow\footnote{While Dempster Laird and Rubin\cite{Dempster77} make a
+  similar comment about their Theorem 4, Alexis Roche's unpublished
+  ``EM algorithm and variants: an informal tutorial'' inspired our
+  derivation.}.
+
+\subsection*{Linear Stability of EM}
+\label{em_stabiltiy}
+
+Here we use an idea inspired by Sylvester's law of
+inertia\footnote{Sylvester's law of inertia is: If $B$ is a symmetric
+  matrix, then for any invertible matrix $A$, the number of positive,
+  negative and zero eigenvalues (called the inertia of the matrix) of
+  $C = A B A\transpose$ is constant.} to show that if at
+$\EMfixedPoint$ $J_y$ is positive definite then $\EMmap$ is linearly
+stable.
+
+We need the following lemma: If $A$ is positive definite and symmetric
+and $B$ is positive definite and symmetric then the eigenvalues of
+their product $C = AB$ are positive.  Because $A$ is positive
+definite and symmetric, there is an $X$ with
+\begin{align*}
+  A &= X X\transpose  &&\text{and we can define}\\
+  \Gamma &\equiv X^{-1} C X = X^{-1} X X\transpose B X \\
+  \Gamma &= X\transpose B X \\
+\end{align*}
+By assumption $B$ is positive definite so
+$y\transpose B y > 0 ~ \forall y \neq 0$.  Now
+$\forall z \neq 0, ~ z\transpose X\transpose B X z > 0$ because $Xz$
+is a $y$.  So $\Gamma$ is positive definite.  The symmetry of $B$
+implies that $\Gamma$ is also symmetric.  Thus $\Gamma$ is positive
+definite and symmetric\footnote{The symmetry of $\Gamma$ ensures that
+  its eigenvalues are real.}, and all of its eigenvalues are positive.
+Because they are related by a similarity transformation, $\Gamma$ and
+$C$ have the same eigenvalues, and we know that all of the eigenvalues
+of $AB = C$ are positive.
+
+At a fixed point $\EMfixedPoint$, $\EMmap$ is linearly stable if and
+only if $\left| \lambda \right| < 1$ for all eigenvalues $\lambda$ of
+its derivative $D$.  If $I_{S \given y}$ is full rank, we can rewrite
+\eqref{eq:information_em_derivative} as
+\begin{align}
+  \nonumber
+  D &= \left[I_{S \given y}^{-1} J_y + 1 \right]^{-1} \\
+  \nonumber
+  D^{-1} &= I_{S \given y}^{-1} J_y + 1 \\
+  \label{eq:dIJY}
+  D^{-1} -1  &= I_{S \given y}^{-1} J_y
+\end{align}
+Since the right hand side of \eqref{eq:dIJY} satisfies the premises of
+the lemma, each of its eigenvalues $\lambda_R$ is positive.  Now for
+each eigenvalue of the right hand side there is an eigenvalue of $D$
+with
+\begin{align}
+  \nonumber
+  \frac{1}{\lambda_D} - 1 &= \lambda_R  \\
+  \nonumber
+  \lambda_D &= \frac{1}{1+\lambda_R} &&\text{and since } \lambda_R >0 \\
+  \label{eq:D_is_stable}
+  0 &< \lambda_D < 1.
+\end{align}
+Thus if the eigenvalues of $J_y$ are positive (because it is
+symmetric, this is equivalent to it being positive definite) then
+$\EMmap$ is linearly stable.  A similar argument shows that if
+$J_y\equiv-\frac{\partial^2}{\partial \parameters^2} \log \left( P(y \given
+  \parameters \right)$ has negative eigenvalues then $\EMmap$ is linearly
+unstable.
+
 In summary: Qualitatively $\EMmap$ acts like a gradient flow on the
 log likelihood,
 $\LogLikelihood(\parameters) \equiv\log \left( P(y \given \parameters
@@ -41,3 +579,92 @@ generic trajectories of the EM algorithm only converge to local maxima
 of the likelihood and in Equation~\eqref{eq:information_em_derivative}
 gives one a sense of how the convergence rate depends on
 characteristics of the likelihood and the unobserved data.
+
+\chapter{Notes on Data and Software}
+\label{cha:Software}
+
+We found that writing the text for this book took less time than
+writing the supporting software.  All of the software we've used (both
+the code we've written and the software that that code depends on) for
+this book is free software.  After fetching our code, typing ``make
+book'' in the top level directory of the hmmds project will create a
+copy of the book in a file called \emph{main.pdf} after some hours of
+computation.  \ToDo{For now (2025-02-23) the code specifically for the
+  book is at gitlab.com:fraserphysics/hmmds.git, and the more general
+  code which that relies on is at gitlab.com:fraserphysics1/hmm.git.
+  I develop on NixOS systems.  I intend to repackage the code to make
+  it easy for others to use.}
+
+\section*{Data}
+
+We used the following sets of data for examples:
+\begin{description}
+\item[Tang's laser data] Carl Otto Weiss \index{Weiss, C.\ O.} mailed
+  us a CD full of data from various experiments that he and Tang did
+  in the 1980s and 1990s.  Although we analyzed many of the files, we
+  finally used only a file called \emph{LP5.DAT} in the book (see
+  Section~\ref{sec:laser}).  The file \emph{LP5.DAT} is included in
+  \emph{hmmdsbook}.
+\item[H.~L.~Mencken's \emph{A Book of Prefaces}] We used Mencken's
+  book for the parts of speech example in Section~\ref{sec:POSpeech}.
+  Although the code fetches the book from www.gutenberg.org as of
+  April, 2007, we planned to include the parsed text in
+  \emph{hmmdsbook}.
+\item[CINC2000 ECG data] We used Dr. Thomas Penzel's ECG measurements
+  throughout Chapter~\ref{chap:apnea}.  Although the code fetches the
+  the data from\\
+  www.physionet.org/physiobank/database/apnea-ecg as of April, 2007,
+  we planned to include much smaller files that contain estimates of
+  the timing of heart beats in \emph{hmmdsbook}.
+\end{description}
+
+\section*{Clarity and Efficiency}
+
+Before the SciPy or NumPy packages existed, we wrote early versions of
+the code for this book in C to make it run fast.  Since we wrote those
+early versions, SciPy and NumPy have made most of that old C code
+obsolete.  Now we have Python code for all of the algorithms described
+in the book.
+
+We also provide Cython code for a few of the algorithms.  While the
+Cython code is faster, it is harder to read and debug.  The interfaces
+to call Cython code match the interfaces to the Python code.  We
+recommend developing with the Python code and after that if you need
+the speed, try the Cython versions.
+
+Here is the heart of our simple Python implementation of the forward
+algorithm described in about 4 pages in Section~\ref{sec:forward}.  It
+looks pretty simple here.
+\label{code:forward}
+\begin{verbatim}
+        # last is a conditional distribution of state probabilities.
+        # What it is conditioned on changes as the calculations
+        # progress.
+        last = numpy.copy(self.p_state_initial.reshape(-1))
+        for t, likelihood_t in enumerate(self.state_likelihood):
+            last *= likelihood_t  # Element-wise multiply
+            self.gamma_inv[t] = 1 / last.sum()
+            last *= self.gamma_inv[t]
+            self.alpha[t, :] = last
+            last[:] = numpy.dot(last, self.p_state2state)
+\end{verbatim}
+And here is the heart of the corresponding implementation of the
+backward algorithm.  It is even simpler.
+\label{code:backward}
+\begin{verbatim}
+        # last and beta are analogous to last and alpha in forward(),
+        # but the precise interpretations are more complicated.
+        last = numpy.ones(self.n_states)
+        for t in range(len(self.state_likelihood) - 1, -1, -1):
+            self.beta[t, :] = last
+            last *= self.state_likelihood[t] * self.gamma_inv[t]
+            last[:] = numpy.dot(self.p_state2state, last)
+\end{verbatim}
+
+%%% Local Variables:
+%%% TeX-master: "main"
+%%% eval: (load-file "hmmkeys")
+%%% mode: LaTeX
+%%% End:
+
+% LocalWords:  Welch Viterbi HMM
