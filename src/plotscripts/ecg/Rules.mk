@@ -11,6 +11,7 @@ ECG_FIG_DIR = $(BUILD)/figs/ecg
 ECG_PLOTSCRIPTS = $(ROOT)/src/plotscripts/ecg
 # This file is in the ECG_PLOTSCRIPTS directory
 
+DS25_ECG_FIGS = $(addprefix $(ECG_FIG_DIR)/, $(addsuffix .pdf, a03a10b03c02 constant_a03 ecg2hr))
 ################################################################################
 $(ECG_FIG_DIR)/ecg2hr.pdf: $(ECG_PLOTSCRIPTS)/ecg2hr.py $(PICKLED_ECG)/flag
 	mkdir -p $(@D)

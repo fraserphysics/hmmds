@@ -18,7 +18,7 @@ import scipy.signal
 import pint
 
 import hmm.C
-import utilities
+from hmmds.applications.apnea import utilities
 
 PINT = pint.UnitRegistry()
 

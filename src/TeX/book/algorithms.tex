@@ -1424,12 +1424,13 @@ and it monotonically increases the likelihood.  These often outweigh
 its slow convergence and the fact that it calculates neither the
 second derivative of the likelihood function nor any other indication
 of the reliability of the results it reports.  Proving monotonicity is
-simple.  If the likelihood is bounded, convergence follows directly
-from monotonicity, but convergence of the parameters does not follow.
-Also, the likelihood might converge to a local maximum.  Papers by
-Baum et al.\cite{Baum70}, Dempster, Laird, and Rubin\cite{Dempster77},
-and Wu\cite{Wu83} analyze the issues.  In the next two subsections we
-touch on some of the ideas and analyze an example.
+simple.  If the likelihood is bounded, convergence of the likelihood
+follows directly from monotonicity, but convergence of the parameters
+does not follow.  Also, the likelihood might converge to a local
+maximum.  Papers by Baum et al.\cite{Baum70}, Dempster, Laird, and
+Rubin\cite{Dempster77}, and Wu\cite{Wu83} analyze the issues.  In the
+next two subsections we touch on some of the ideas and analyze an
+example.
 
 \subsection{Monotonicity}
 
@@ -1559,9 +1560,9 @@ and unless $\parameters_0$ is precisely positioned on the stable
 manifold of a saddle point, a trajectory will converge to a local
 maximum of $\LikelihoodFunction$.  On page~\pageref{chap:em_appendix}
 of the appendix we make the analogy between a gradient system like
-\eqref{eq:GradientDynamics} the EM map, $\EMmap$ precise.
+\eqref{eq:GradientDynamics} and the EM map, $\EMmap$, precise.
 
-Here we illustrate the convergence of Baum-Welch algorithm for the
+Here we illustrate the convergence of the Baum-Welch algorithm for the
 model defined as follows.  The initial state probability
 \begin{subequations}
   \label{eq:EM_convergence_example}
@@ -1659,14 +1660,17 @@ calculate.  For the figure, we approximated $J_y$ with numerically
 expensive calculations.
 
 Notice that the trajectory quickly lines up with the eigenvector of
-$D$ whose eigenvalue is closest to 1 and then decays exponentially
-towards $\EMfixedPoint$.  Such behavior is typical.  In the appendix
-we also show that if all of the eigenvalues of $J_y$ are
-positive\footnote{Positive eigenvalues implies that $\EMfixedPoint$ is
-  a local maximum.} then $\EMmap$ is linearly stable, \ie,
-$\left| \lambda \right| < 1$ for all eigenvalues of $D$.  If one could
-cheaply estimate the spectral decomposition of $D$, one could speed up
-the convergence of HMM training.
+$D$ whose eigenvalue is closest to 1 and then decays
+exponentially\footnote{Such exponential decay is called \emph{linear}
+  convergence.}  towards $\EMfixedPoint$.  Such behavior is typical.
+In the appendix we also show that if all of the eigenvalues of $J_y$
+are positive\footnote{Positive eigenvalues implies that
+  $\EMfixedPoint$ is a local maximum.} then $\EMmap$ is linearly
+stable, \ie, $\left| \lambda \right| < 1$ for all eigenvalues of $D$.
+For this example, our computation of iterates of $\EMmap$ is much
+faster than our computation the derivative $D$.  If one could cheaply
+estimate the spectral decomposition of $D$, one could speed up the
+convergence of HMM training.
 
 \begin{figure}[htbp]
   \centering{\resizebox{0.7\textwidth}{!}{\includegraphics{EM.pdf}}

@@ -1,4 +1,7 @@
-""" smooth_fig.py <data> <plot_file>
+"""smooth_fig.py Six plots of forward backward smooth error.
+
+python smooth_fig.py data fig_path
+
 """
 import sys
 import argparse
@@ -80,12 +83,6 @@ def main(argv=None):
     # Add legends and remove some tick labels from the plots
     for axis in all_axes:
         axis.legend()
-
-    for axis in (forward, forward_error, backward, backward_error):
-        axis.set_xticklabels([])
-
-    for axis in (forward_error, backward_error, smooth_error):
-        axis.set_yticklabels([])
 
     if args.show:
         pyplot.show()

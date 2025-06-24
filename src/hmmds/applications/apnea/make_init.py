@@ -1,10 +1,11 @@
 """make_init.py Use parameters in first argument to craft call to
 model_init.py
 
-EG: $ python make_init.py FixMe
+EG: $ python make_init.py multi_state pattern model_path
 
-This script calls make in a subprocess to run model_init.py to make
-FixMe
+This script calls make in a subprocess to run model_init.py to make an
+initial model.  Pattern is something like
+ar6fs4lpp51.1rc11.53rw3.2rs0.486 which specifies model parameters.
 
 I wrote this ugly hack to use in a Makefile because make doesn't
 support multiple free parameters in a rule.
@@ -16,7 +17,9 @@ import argparse
 import subprocess
 import os.path
 
-import utilities
+# Using "import utilities" makes pickled models harder to use.
+# utilities has to be in the directory where such pickles are loaded.
+from hmmds.applications.apnea import utilities
 
 
 def parse_args(argv):
@@ -55,7 +58,9 @@ def register(func):
 
 @register
 def multi_state(args, dirname):
-    """
+    """Use args.pattern to create command string.
+
+    Here are the keys in args.pattern:
     ar AR_order
     fs model_sample_frequency  samples per minute
     lpp low_pass_period        seconds
@@ -64,6 +69,7 @@ def multi_state(args, dirname):
     rs respiration_smooth      cycles per minute
 
     Observation components: hr_respiration class
+
     """
     pathname = os.path.join(dirname, 'model_init.py')
     d = parse_pattern(args.pattern, 'ar fs lpp rc rw rs')
@@ -80,7 +86,7 @@ def multi_state(args, dirname):
 
 
 def parse_pattern(pattern, key_string):
-    """ Make a dict from pairs keynumber in pattern
+    """ Make a dict from pairs, eg, "ar5", in pattern.
     """
 
     keys = key_string.split()

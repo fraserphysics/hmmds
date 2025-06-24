@@ -1,6 +1,6 @@
 """entropy_particle.py Estimate cross-entropy from run of particle filter.
 
-python entropy_particle.py --dict_template study_threshold/{0}/dict.pkl 1e-2 1e-3 1e-4
+python entropy_particle.py --dir_template r_threshold/{0}
 
 """
 
@@ -62,14 +62,16 @@ def plot_key(args, axes_dict, key):
     log_gamma = numpy.log(gamma)[offset:]
     cum_sum = numpy.cumsum(log_gamma)
     entropy = -cum_sum / numpy.arange(1, len(cum_sum) + 1) / 0.15
-    reference = numpy.ones(len(entropy)) * 0.906
+    true_h = 0.906
+    reference = numpy.ones(len(entropy)) * true_h
     x = numpy.arange(offset, len(gamma))
 
     if len(args.keys) == 1:
         axes_dict['entropy'].plot(x, entropy, label=r'$\hat h$')
     else:
         axes_dict['entropy'].plot(x, entropy, label=f'{key}')
-    axes_dict['entropy'].plot(x, reference, label=r'$\lambda$')
+    if key == args.keys[-1]:  # only plot the reference line once
+        axes_dict['entropy'].plot(x, reference, label=r'$\lambda$')
     axes_dict['entropy'].set_xlabel(r'$n_{\text{samples}}$')
     axes_dict['entropy'].set_ylabel(r'$\hat h/\text{nats}$')
     h_hat = entropy[-1]
@@ -81,7 +83,7 @@ def plot_key(args, axes_dict, key):
         ax2.set_ylim(min_y, max_y)
         ax2.yaxis.set_major_formatter(
             matplotlib.ticker.StrMethodFormatter("{x:.3f}"))
-        ax2.set_yticks((.906, h_hat))
+        ax2.set_yticks((true_h, h_hat))
 
     if 'likelihood' in axes_dict:
         axes_dict['likelihood'].plot(numpy.log10(gamma), label=f'{key}')

@@ -1,4 +1,4 @@
-"""filter.py Support for particle filtering.  Separated from benettin.py
+"""filter.py Support for particle filtering.
 
 """
 
@@ -7,7 +7,6 @@ from __future__ import annotations  # Enables, eg, (self: Particle
 import numpy
 import numpy.linalg
 import numpy.random
-import scipy.integrate
 
 import hmmds.synthetic.filter.lorenz_sde
 
@@ -130,11 +129,15 @@ class Filter:
         rng: Random number generator for resampling
 
     Use the following attributes of args:
+        h_max: Step size for RK4 integrator
         r_threshold: Subdivide a box if the ratio quadratic/linear > r_threshold
         r_extra: Subdivide more finely than required by r_threshold
+        edge_max: Subdivide if any box edge larger
         time_step: Integrate Lorenz this interval between samples
-        atol: Absolute error tolerance for integrator
+        resample_pair: Resample to resample_pair[1] if n_boxes > resample_pair[0]
         s_augment: Small growth of box in all directions at each step
+        margin: Keep particles that are within margin of boundary
+        n_overlap: In resample, scale boxes to overlap n other boxes 
 
     """
 
@@ -147,9 +150,11 @@ class Filter:
         self.resample_pair = args.resample
         self.s_augment = args.s_augment
         self.margin = args.margin
+        self.n_overlap = args.n_overlap
         self.bins = bins
         self.rng = rng
         self.particles: list[Particle] = []
+        self.states_boxes = None
 
     def initialize(self: Filter, initial_x: numpy.ndarray, delta: float):
         """Populate self.particles
@@ -174,6 +179,7 @@ class Filter:
         s = 10.0
         r = 28.0
         b = 8.0 / 3
+        # This calls tangent_n_steps from a prange loop
         hmmds.synthetic.filter.lorenz_sde.integrate_particles(
             self.states_boxes, 0.0, time, s, r, b, self.h_max)
 
@@ -221,15 +227,34 @@ class Filter:
             x_box_weights.append(self.particles[index].resample(self.rng))
         self.list_to_particles(x_box_weights)
 
-    def list_to_particles(self, x_box_weights):
+    def list_to_particles(self: Filter, x_box_weights):
         """Create new self.states_boxes and self.particles
         """
-        self.states_boxes = numpy.empty((len(x_box_weights), 12))
+        n_particles = len(x_box_weights)
+        self.states_boxes = numpy.empty((n_particles, 12))
         self.particles = []
         for index, (x, box, weight) in enumerate(x_box_weights):
             self.states_boxes[index, :3] = x
             self.states_boxes[index, 3:] = box.flatten()
             self.particles.append(Particle(index, self.states_boxes, weight))
+
+        if self.n_overlap == 0:
+            return
+        # Scale boxes so that there are 7 other particles in each
+        states = self.states_boxes[:, :3]
+        for i, state_box in enumerate(self.states_boxes):
+            box = state_box[3:].reshape((3, 3))
+            state = state_box[:3]
+            u, s, vh = numpy.linalg.svd(box)
+            s[2] = max(s[2], s[0] / 1e2)
+            d2c = numpy.matmul(u / s, vh)
+            max_norm = numpy.abs(d2c @ (states - state).T).max(axis=0)
+            max_norm.sort()
+            assert max_norm.shape == (n_particles,)
+            # Calculate how much to stretch box to include 7 other particles
+            stretch = max(1, max_norm[min(n_particles - 1, self.n_overlap)] / 2)
+            self.states_boxes[i,
+                              3:] = stretch * numpy.matmul(u * s, vh).flatten()
 
     def update(self: Filter, y: int):
         """Delete particles that don't match y.

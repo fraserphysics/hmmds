@@ -424,8 +424,8 @@ To find something better than an HMM with zillions of states:
   decimate
 \end{itemize}
 \begin{center}
-  \resizebox{0.9\textwidth}{!}{\includegraphics{no_divide.pdf}}\\
-  \resizebox{0.9\textwidth}{!}{\includegraphics{with_divide.pdf}}\\
+  \resizebox{0.9\textwidth}{!}{\includegraphics{no_divide.jpeg}}\\
+  \resizebox{0.9\textwidth}{!}{\includegraphics{with_divide.jpeg}}\\
   \resizebox{0.9\textwidth}{!}{\includegraphics{entropy_filter.pdf}}
 \end{center}
 
@@ -447,10 +447,12 @@ particle filtering using the parallel code.
 
 First, I varied the the parameter r\_threshold against which the ratio
 of the quadratic and linear terms of a Taylor series of the Lorenz
-vector field is compared.  I did that comparison for several values of
-the resample parameters.  Here are the parameters values that I didn't
-vary:
+vector field is compared.  I did runs resampling from 2,000,000 to
+200,000 that took a long time.  With the following paramaters, I got
+$\hat h = 0.927$.
 \begin{verbatim}
+r_threshold: 3e-4
+resample 2000000, 200000
 atol: 1e-08
 edge_max: 0.2
 margin: 0.01
@@ -463,54 +465,6 @@ s_augment: 0.0005
 t_relax: 50.0
 time_step: 0.15
 \end{verbatim}
-
-\begin{tabular*}{1.0\linewidth}{rrrrr}
-  r\_threshold& Resample$_{\text{max}}$ & Resample$_{\text{target}}$ &min\_time:N\_min &
-                                                                    $\hat
-                                                                    h$ \\
-                                                                    \hline
-  *  & 10,000 & 1,000 & \multicolumn{2}{c}{Particle exhaustion} \\
-                        \hline
-  1e-2  & 20,000 & 2,000 & 584: & 0.950 \\
-  others  & 20,000 & 2,000 & \multicolumn{2}{c}{Particle exhaustion} \\
-                        \hline 
-  1e-2 & 20,000 & 5,000 & 584:96 & 0.942   \\
-  3e-3 & 20,000 & 5,000 & 584:51 & 0.952   \\
-  1e-3 & 20,000 & 5,000 & 396:0 &   \\
-  3e-4 & 20,000 & 5,000 & 570:0 &   \\
-  1e-4 & 20,000 & 5,000 & 584:41 & 0.946  \\ \hline
-                        \hline 
-  1e-2 & 50,000 & 5,000 & 584:5 & 0.962 \\
-  3e-3 & 50,000 & 5,000 & 584:169 & 0.953 \\
-  1e-3 & 50,000 & 5,000 & 584:63 & 0.949  \\
-  3e-4 & 50,000 & 5,000 & 584:212 & \textbf{0.925}  \\
-  1e-4 & 50,000 & 5,000 & 584:45 & 0.953  \\ \hline
-                        \hline
-  1e-2 & 50,000 & 10,000 & 584:17  & 0.958  \\
-  3e-3 & 50,000 & 10,000 & 584:392 & 0.940  \\
-  1e-3 & 50,000 & 10,000 & 584:176 & \textbf{0.932}  \\
-  3e-4 & 50,000 & 10,000 & 396:0   &        \\
-  1e-4 & 50,000 & 10,000 & 584:31  & 0.952  \\ \hline
-  %
-  1e-2 & 100,000 & 10,000 & 584:62  & 0.954          \\
-  3e-3 & 100,000 & 10,000 & 584:373 & 0.948          \\
-  1e-3 & 100,000 & 10,000 & 584:101 & \textbf{0.939} \\
-  3e-4 & 100,000 & 10,000 & 147:118 & 0.945          \\
-  1e-4 & 100,000 & 10,000 & 584:152 & 0.948          \\ \hline
-  %
-  1e-2 & 200,000 & 20,000 && 0.943          \\
-  3e-3 & 200,000 & 20,000 && 0.943          \\
-  1e-3 & 200,000 & 20,000 & 584:1349& \textbf{0.929} \\
-  3e-4 & 200,000 & 20,000 && 0.931          \\
-  1e-4 & 200,000 & 20,000 && 0.940          \\ \hline
-  %
-  1e-2 & 2,000,000 & 200,000 && 0.942          \\
-  3e-3 & 2,000,000 & 200,000 && 0.944          \\
-  1e-3 & 2,000,000 & 200,000 && 0.936          \\
-  3e-4 & 2,000,000 & 200,000 & 584:994 & \textbf{0.927} \\
-  1e-4 & 2,000,000 & 200,000 && 0.942          \\ \hline
-\end{tabular*}
-Cython RK4 parameter h\_max set to $1e-5$ for table above.
 
 2025-04-04 Found that decreasing atol from 1e-8 to 1e-10 caused
 more particle exhaustion.  I was using scipy integrate to make the
@@ -542,19 +496,59 @@ parameters:
 \item[edge\_max] Divide edges bigger than this.  I don't have a theory
   why some values lead to particle exhaustion.  Picking 0.2 seems safe.\\
   \input{edge_max.tex}
-\item[margin] Keep particles this close to boundaries\\
+\item[margin] Keep particles this close to boundaries.  Pick 0.01.\\
   \input{margin.tex}  
 \item[r\_extra] When dividing boxes multiply the number required by
-  the ratio of quadratic/linear by r\_extra.\\
+  the ratio of quadratic/linear by r\_extra.  Pick 3.0. \\
   \input{r_extra.tex}
-\item[s\_augment] With h\_max = 0.0003\\
+\item[s\_augment] At each sample time add this amount to each singular
+  value of each box.  (Is this the same as adding this amount to each
+  edge?)  Larger values increase the cross entropy, and smaller values
+  lead to particle exhaustion.  Choose 0.001.\\
   \input{s_augment.tex}
 \end{description}
 
-April 10: redo study of $r_{\text{threshold}}$ with h\_max = 0.0001,
-edge\_max = 0.2, margin = 0.01, r\_extra = 3.0, s\_augment = 0.001, and
-resample = $50,000 \rightarrow 5,000$.\\
-  \input{r_threshold.tex}
+April 14: redid study of $s_{\text{augment}}$ with h\_max = 0.0001,
+margin = 0.01, n\_y = 5,000, r\_extra = 3.0, r\_threshold=0.003, , and
+resample = $500,000 \rightarrow 50,000$.\\
+\input{s_augment10X.tex}
+
+The plot on the right in Figure~\ref{fig:clouds10X}, with
+s\_augment=0.0001, shows that the true trajectory has moved away from
+the cloud of particles.  The filter fails with particle exhaustion at
+$n=2638$.  On the other hand, in the plot on the left with
+s\_augment=0.0003 the cloud spreads fast enough to catch up.  At
+first, I suspected that the integration of the true trajectory is not
+exactly the same as integration, which includes integration of the
+tangent, for the particles in the cloud.  I wrote code to check for
+differences between trajectories generated using the 3-d Lorenz system
+and the 12-d system that includes the tangent and found the
+trajectories are identical.
+
+\begin{figure}
+  \centering
+  \resizebox{0.45\textwidth}{!}{\includegraphics{clouds10XOK.jpeg}}
+  \resizebox{0.45\textwidth}{!}{\includegraphics{clouds10Xbad.jpeg}}
+  \caption{Left plot with s\_augment=0.0003, and right plot with
+    s\_augment=0.0001.  The \emph{true} trajectory, marked with
+    $\times$, is moving away from the cloud faster than the cloud
+    expands with s\_augment=0.0001.}
+  \label{fig:clouds10X}
+\end{figure}
+
+\subsection{Modified Resampling}
+\label{sec:resample}
+
+The work at the end of the previous section shows that the cloud of
+particles gets separated from the true trajectory even after ensuring
+that the code for propagating the particles matches the code for
+propagating the true trajectory perform identically.  Perhaps the
+separation starts as part of the resample operation.  In particular,
+perhaps the new boxes are too small.  To address that possibility, I
+will expand each new box based on the distribution of its nearest
+neighbors.
+
+
 \end{document}
 
 %%% Local Variables:

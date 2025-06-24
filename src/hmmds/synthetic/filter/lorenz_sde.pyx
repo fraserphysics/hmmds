@@ -54,13 +54,12 @@ def lorenz_integrate(
     # Calculate number of Runge-Kutta steps
     delta_t = t_final - t_initial
     if h_min < delta_t < h_max:
-        lorenz_step(&initial_view[0], &final_view[0], delta_t, s, b, r)
-        return x_final
-    if delta_t > 0:
+        n_steps = 1
+    elif delta_t > 0:
         n_steps = int(delta_t/h_max) + 1
     else:
         n_steps = int(delta_t/h_min) + 1
-    assert n_steps > 1
+    assert n_steps > 0
     
     # Call multi-step integrate function
     lorenz_n_steps(&initial_view[0], &final_view[0], delta_t/n_steps, s, b, r, n_steps)
@@ -74,7 +73,8 @@ def tangent_integrate(
         float r,
         float b,
         float h_max = 0.0025,
-        float h_min =-0.001):
+        float h_min = -0.001,
+):
     """Integrate tangent system from (x_initial, t_initial) to t_final.
 
     Args:

@@ -16,7 +16,11 @@ include Rules.mk
 
 # explore.py needs $(MODELS)/default
 $(MODELS)/default: $(BEST)
-	ln -s $< $@
+	ln -sf $< $@
+
+## default                         : Build this before running explore.py
+.PHONY : default
+default: $(MODELS)/default
 
 event-2-answers:
 	wget --no-check-certificate https://www.physionet.org/files/challenge-2000/1.0.0/event-2-answers
@@ -53,6 +57,7 @@ clean:
 .PHONY : variables
 variables:
 	@echo ARs: $(ARs)
+	@echo MODELS: $(MODELS)
 	@echo BEST: $(BEST)
 ## help                           : Print comments on targets from makefile
 .PHONY : help

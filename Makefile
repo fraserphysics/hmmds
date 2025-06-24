@@ -13,7 +13,9 @@ N_TRAIN = 50
 
 # Look at: https://makefiletutorial.com/
 
-ROOT:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+# ROOT:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+ROOT := .
+
 TEX = $(ROOT)/src/TeX
 PLOTSCRIPTS = $(ROOT)/src/plotscripts
 HMMDS = $(ROOT)/src/hmmds
@@ -27,11 +29,6 @@ book:
 .PHONY : book
 book: $(BUILD)/TeX/book/main.pdf
 
-## ddays25                        : Poster for Dynamics Days 2025 in Denver
-.PHONY : ddays25
-# Rule in src/TeX/dynamics_days_25/Rules.mk
-ddays25: $(BUILD)/TeX/dynamics_days_25/poster.pdf
-
 ## filter                         : Document about filtering
 .PHONY : filter
 # Rule in src/TeX/filter/Rules.mk
@@ -41,6 +38,14 @@ filter: $(BUILD)/TeX/filter/filter.pdf
 .PHONY : skeleton
 skeleton: $(BUILD)/TeX/skeleton/figures.pdf
 
+## ecg                            : Documents my derivation ECG -> HR
+.PHONY : ecg
+ecg: $(BUILD)/TeX/ecg/ecg.pdf
+
+## all_ecgs                       : Standard grids on ECG plots for MDs
+.PHONY : all_ecgs
+all_ecgs: $(BUILD)/TeX/ecg/all_ecgs.pdf
+
 ## respiration                    : A short explanation of how I derive the respiration signal
 .PHONY : respiration
 respiration: $(BUILD)/TeX/apnea/respiration.pdf
@@ -49,9 +54,28 @@ respiration: $(BUILD)/TeX/apnea/respiration.pdf
 .PHONY : hand_opt
 hand_opt: $(BUILD)/TeX/apnea/hand_opt.pdf
 
+## ddays25                        : Poster for Dynamics Days 2025 in Denver
+.PHONY : ddays25
+# Rule in src/TeX/dynamics_days_25/Rules.mk
+ddays25: $(BUILD)/TeX/dynamics_days_25/poster.pdf
+
+## ds25                           : Presentation for SIAM Dynamical Systems meeting
+.PHONY : ds25
+ds25: $(BUILD)/TeX/ds25/ds25.pdf
+
 ## ds23                           : Presentation for SIAM Dynamical Systems meeting
 .PHONY : ds23
 ds23: $(BUILD)/TeX/ecg/ds23.pdf
+
+## ds21                           : Slides for 2021 SIAM Dynamical Systems meeting
+.PHONY : ds21
+ds21 : $(TEX)/ds21/slides.pdf
+$(TEX)/ds21/slides.pdf:
+	cd $(TEX)/ds21 && $(MAKE) slides.pdf
+
+## pdfs                           : Target for all pdfs above
+.PHONY : pdfs
+pdfs: book filter skeleton ecg all_ecgs respiration hand_opt ddays25 ds25 ds23 ds21
 
 $(ROOT)/raw_data/menken.txt:
 	mkdir -p $(@D)
@@ -97,14 +121,9 @@ include $(TEX)/filter/Rules.mk
 include $(TEX)/laser/Rules.mk
 include $(TEX)/apnea/Rules.mk
 include $(TEX)/ecg/Rules.mk
+include $(TEX)/siamDS25/Rules.mk
 
 ######################Target Documents##########################################
-## ds21                           : Slides for 2021 SIAM Dynamical Systems meeting
-.PHONY : ds21
-ds21 : $(TEX)/ds21/slides.pdf
-
-$(TEX)/ds21/slides.pdf:
-	cd $(TEX)/ds21 && $(MAKE) slides.pdf
 
 $(TEX)/bundles.pdf: $(TEX)/bundles.tex  $(INTRODUCTION_FIGS) $(BASIC_ALGORITHMS_FIGS) $(APNEA_FIGS)
 	cd TeX && $(MAKE) bundles.pdf
@@ -173,7 +192,7 @@ test :
 ## variables     : Print selected variables.
 .PHONY : variables
 variables:
-	@echo ECG_TeX: $(BUILD_ECG_TeX)
+	@echo BUILD_ECG_TeX: $(BUILD_ECG_TeX)
 	@echo PICKLED_ECG: $(PICKLED_ECG)
 	@echo In root Makefile, ROOT: $(ROOT)
 ## help                           : Print comments on targets from makefile

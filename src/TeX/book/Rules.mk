@@ -37,7 +37,8 @@ elgendi a03a10b03c02 constant_a03 a01c02_states simulated ecg2hr))
 ECG_XFIGS =  $(call ADD_PDF_PDF_T, $(BUILD)/figs/ecg/, ecg_hmm)
 
 TEX_INCLUDES = $(addsuffix .tex, $(addprefix $(BUILD)/derived_data/apnea/, score test_score))
-TEX_BOOK = $(ROOT)/src/TeX/book
+# Using absolute paths has resolved trouble with the TeX programs
+TEX_BOOK = $(abspath $(ROOT)/src/TeX/book)
 
 BOOK_FIGS = $(INTRODUCTION_FIGS) \
 $(LASER_FIGS) \
@@ -70,16 +71,16 @@ $(BOOK_OUT)/main.pdf: $(TEX_BOOK)/main.tex $(BOOK_CHAPTERS) $(BOOK_FIGS) $(TEX_I
 	export TEXINPUTS=$(TEX_BOOK)//:$(abspath $(BUILD))//:; \
 export BIBINPUTS=$(TEX_BOOK)//:; export BSTINPUTS=$(TEX_BOOK)//:; \
 cd $(@D) ; \
-pdflatex --output-directory=$(@D) $< ; \
+pdflatex --output-directory=$(abspath $(@D)) $< ; \
 # The next line builds main.nls.  I needed to call makeindex from the \
 # build dir \
 makeindex main.nlo -s nomencl.ist -o main.nls; \
 # The next line makes main.idx \
 makeindex main.idx ; \
 bibtex main.aux ; \
-pdflatex --output-directory=$(@D) $< ; \
+pdflatex --output-directory=$(abspath $(@D)) $< ; \
 # The next pdflatex gets "Notation" into the table of contents \
-pdflatex --output-directory=$(@D) $<
+pdflatex --output-directory=$(abspath $(@D)) $<
 
 # Note that latexmk seems to detect changes in dependencies without
 # using file change times.  Thus deleting and regenerating a figure

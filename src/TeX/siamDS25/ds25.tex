@@ -1,0 +1,353 @@
+% The presentation for 2025-05-11 at the SIAM DS meeting
+\documentclass[dvipsnames]{beamer}
+\setbeamertemplate{navigation symbols}{} %no nav symbols
+\usepackage{graphicx,xcolor}
+\usepackage{amsmath, amsfonts}% ToDo: compatible w/siammathtime.sty?
+\usepackage{amsthm}% Note: Conflicts with newsiambook
+\usepackage{xspace}
+\usepackage{bm} % Bold Math
+\usepackage{rotating} % for sidewaysfigure
+\usepackage{afterpage}
+\usepackage{booktabs}       % for nicer looking tables
+\usepackage{dcolumn}        % decimal point aligned columns
+\renewcommand{\th}{^{\text th}}
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\INTEGER}{\field{Z}}
+\newcommand{\REAL}{\field{R}}
+\newcommand{\COMPLEX}{\field{C}}
+\newcommand{\EV}{\field{E}}
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\s}{{\bf s}}
+\newcommand{\bS}{{\bf S}}
+\newcommand{\Y}{{\bf Y}}
+\newcommand{\Tsamp}{\tau_s }
+\newcommand{\ColorComment}[3]{}
+\newcommand{\argmin}{\operatorname*{argmin}}
+\newcommand{\argmax}{\operatorname*{argmax}}
+\newcommand{\Normal}{{\mathcal{N}}}
+\newcommand{\NormalE}[3]{{\mathcal{N}}\left.\left(#1,#2\right)\right|_{#3}}
+\newcommand{\transpose}{^\top}
+\newcommand{\ceil}[1]{\lceil#1\rceil}
+\newcommand{\bceil}[1]{\left\lceil#1\right\rceil}
+\newcommand{\floor}[1]{\lfloor#1\rfloor}
+\newcommand{\bfloor}[1]{\left\lfloor#1\right\rfloor}
+\newcommand{\states}{{\cal S}}
+\newcommand{\outputs}{{\cal Y}}
+\newcommand{\State}{S}
+\newcommand{\Output}{Y}
+\newcommand{\parameters}{\theta}
+\newcommand{\parametersPrime}{\theta'}% for EM1.gpt
+
+\newcommand{\ti}[2]{{#1}{(#2)}}                  % Time Index
+%%% \newcommand{\ts}[3]{{#1}{(t\=#2,\ldots,#3)}}         % Time Sequence
+\newcommand{\ts}[3]{#1_{#2}^{#3}}                    % Time Sequence
+%%% \newcommand{\ts}[3]{\left\{ #1(l) \right\}_{l=#2}^{#3}}  % Time Sequence
+\newcommand{\id}{{\bf I}}
+\newcommand{\ie}{i.e.\xspace}
+\newcommand{\eg}{e.g.\xspace}
+\newcommand{\etal}{et al.\xspace}
+\newcommand{\iid}{i.~i.~d.\xspace}
+\newcommand{\apost}{\emph{a posteriori}\xspace}
+\newcommand{\apri}{\emph{a priori}\xspace}
+\newcommand{\plotsize}{\small}
+\newcommand{\mlabel}[1]{\label{#1}}
+\newcommand{\EMmap}{{\mathcal T}} %
+
+\newcommand{\Green}[1]{{\color{ForestGreen}#1}}
+\newcommand{\Red}[1]{{\color{red}#1}}
+\newcommand{\Blue}[1]{{\color{blue}#1}}
+\newcommand{\given}{~|~}
+
+
+\title{Estimating Dynamics and Data Assimilation to Detect Obstructive
+Sleep Apnea}
+
+\author{Andrew M.\ Fraser}
+\date{2025-5-11}
+\institute{SIAM DS25}
+
+\usetheme{default}
+\usefonttheme[]{serif}
+\begin{document}
+\frame{\titlepage}
+
+%\frame{\frametitle{Outline}\tableofcontents}
+
+\section{Computers IN Cardiology 2000}%
+\label{sec:apnea}
+
+\frame{ \frametitle{Goal of CINC 2000: Use ECG to Detect Apnea}
+  Computers in Cardiology 2000 Challenge: Classify EKG
+  \begin{columns}[c]
+    \column{0.45\textwidth}%
+    \begin{center}
+    Normal\\
+    \resizebox{\textwidth}{!}{\includegraphics{a03erN.pdf}}
+    \end{center}
+    \column{0.45\textwidth}%
+    \begin{center}
+      Apnea\\
+      \resizebox{\textwidth}{!}{\includegraphics{a03erA.pdf}}
+    \end{center}
+  \end{columns}
+  Intermediate Objectives: \\Detect QRS Pattern $\rightarrow$ Estimate
+  Heart Rate
+}
+
+\frame{\frametitle{See Apnea in Heart Rate}
+  \resizebox{0.9\textwidth}{!}{\includegraphics{a03HR.pdf}}
+}
+
+\frame{\frametitle{Respiration in Spectrogram}
+  \resizebox{0.9\textwidth}{!}{\includegraphics{sgram.jpg}}
+  
+  James McNames saw respiration between 10 and 20 cpm.
+}
+
+\frame{\frametitle{Different Strokes}
+  \resizebox{0.6\textwidth}{!}{\includegraphics{a03a10b03c02.pdf}}
+  
+  The waveforms differ between records.
+}
+
+\frame{\frametitle{Unvarying PQRST Duration}
+  \resizebox{\textwidth}{!}{\includegraphics{constant_a03.pdf}}
+
+  At different heart rates the shape and duration of the PQRST pattern
+  doesn't change.  Only the delay between the sequences changes.
+}
+
+\frame{\frametitle{HMM State Structure}
+  \begin{center}
+    \resizebox{0.5\textwidth}{!}{\input{ecg_hmm.pdf_t}}
+  \end{center}
+  Code fits deterministic chain of 49 states to unvarying PQRST data.
+  Variable residence time in states $s_0, s_1$ and $s_2$ accommodates
+  delay between PQRST sequences.
+}
+
+\frame{\frametitle{Heart Rate from Viterbi Algorithm}
+  \begin{center}
+    \resizebox{0.5\textwidth}{!}{\includegraphics{ecg2hr.pdf}}    
+  \end{center}
+}
+
+\frame{\frametitle{2-d Vector Observations}
+  \begin{center}
+    \resizebox{0.8\textwidth}{!}{\includegraphics{explore.pdf}}
+  \end{center}
+  Observation at $t$ is
+  \begin{equation*}
+    \bm{y}[t] \equiv \left(
+    \text{Low Pass}[t], \text{Respiration}[t]
+    \right)
+  \end{equation*}
+}
+
+\frame{\frametitle{Observation Model Given $s[t]= s$}
+  \begin{center}
+    \resizebox{0.8\textwidth}{!}{\input{apnea_observation.pdf_t}}
+  \end{center}\medskip
+  \begin{equation*}
+    \left.
+    \begin{bmatrix}
+      \text{hr}\\
+      \text{resp}
+    \end{bmatrix}[t]\right|s \sim \Normal\left( \bm{\mu}_{s,t}, \Sigma_s
+  \right) \text{ with } \bm{\mu}_{s,t} = L_s(\text{past 5 observations})
+  \end{equation*}
+}
+
+\frame{\frametitle{Schematic of HMM from Graphviz}
+  \begin{center}
+    \resizebox{2.0\textwidth}{!}{\includegraphics{viz.pdf}}    
+  \end{center}
+  7 apnea states and 4 normal states.
+}
+
+\frame{\frametitle{Training and Classification}
+  Choose maximum likelihood parameters given the training data,
+  $y_{\text{training}}$
+  \begin{equation*}
+    \bm{\hat \theta} = \argmax_\theta P(y_{\text{training}} | \theta).
+  \end{equation*}
+  
+  For each testing record consider all of the data, $y[0:T]$, and for
+  each state, $s_i$, and each time, $t$, calculate the probability of
+  being in that state at that time,
+  \begin{equation*}
+    w_{t,i} \equiv P\left(s[t]=s_i | y[0:T], \bm{\hat \theta} \right).
+  \end{equation*}
+
+Finally classify each time using the ratio
+\begin{equation*}
+  R[t] \equiv \frac{\sum_{i\in\text{Apnea}}w_{t,i}}{\sum_{i\in\text{Normal}}w_{t,i}}.
+\end{equation*}
+}
+
+\frame{\frametitle{Classification Performance}
+  \begin{center}
+    \resizebox{0.7\textwidth}{!}{\includegraphics{hr_resp_class.pdf}}
+  \end{center}
+  Error rates:
+  \begin{description}
+  \item[14\%] On training data
+  \item[15\%] On testing data
+  \item[7.5\%] Classification by eye won in 2000
+  \item[3.6\%] Zhou and Kang 2024 Wavelets + NNs + \ldots
+  \end{description}
+}
+
+\frame{\frametitle{Multi-Level Modeling?}
+  %
+  Here, I have integrated separate simplistic dynamical models of
+  these three aspects of physiology:
+  \begin{itemize}
+  \item Dynamics of single heart beat
+  \item Dynamics of respiration
+  \item Dynamics of apnea
+  \end{itemize}
+  Separating those aspects seems appropriate and useful in a way that
+  I would like to quantify.
+}
+
+\frame{\frametitle{The End}
+  Questions?
+}
+
+\end{document}
+
+arXiv:1105.1476v2 [stat.CO] 7 Sep 2012
+EM algorithm and variants: an informal tutorial
+Alexis Roche∗
+https://arxiv.org/pdf/1105.1476
+
+Notes from Mac's Claude generated document:
+
+[1] **** 2013 Prevalence is increasing 17\% among 50-70 year old men
+Free https://pubmed.ncbi.nlm.nih.gov/23589584/
+
+P. E. Peppard et al., “Increased prevalence of sleep-disordered
+breathing in adults,” American Journal of Epidemiology, vol. 177,
+no. 9, pp. 1006–1014, 2013.
+
+[2] 2017 These limitations have driven research into simpler, more
+accessible diagnosis methods that can reach the millions of people
+with undiagnosed sleep apnea
+
+V. K. Kapur et al., “Clinical practice guideline for diagnostic
+testing for adult obstructive sleep apnea,” Journal of Clinical Sleep
+Medicine, vol. 13, no. 3, pp. 479–504, 2017.
+
+[3] 2002 from CINC2000.  These heart pattern changes show up in the
+ECG and can help identify when apnea is happening
+
+T. Penzel, J. McNames, P. de Chazal, B. Raymond, A. Murray, and
+G. Moody, “Systematic comparison of different algorithms for apnoea
+detection based on electrocardiogram recordings,” Medical and
+Biological Engineering and Computing, vol. 40, no. 4, pp. 402–407,
+2002.
+
+[4] 2015 Paywall. Ignore.  From the abstract: ``It uses two novel
+features derived from the ECG, and two well-known features in heart
+rate variability analysis, namely the standard deviation and the
+serial correlation coefficients of the RR interval time series.''
+
+C. Varon, A. Caicedo, D. Testelmans, B. Buyse, and S. Van Huffel, “A
+novel algorithm for the automatic detection of sleep apnea from
+single-lead ECG,” IEEE Transactions on Biomedical Engineering,
+vol. 62, no. 9, pp. 2269–2278, 2015.
+
+[5] 2009 Ignore By analyzing these subtle changes, researchers can estimate
+breathing patterns without direct respiratory measurements
+
+W. Karlen, C. Mattiussi, and D. Floreano, “Sleep and wake
+classification with ECG and respiratory effort signals,” IEEE
+Transactions on Biomedical Circuits and Systems, vol. 3, no. 2,
+pp. 71–78, 2009.
+
+From the abstract: ``We propose a single-sensor photoplethysmographic (PPG)-based automated multi-stage sleep classification. This experimental study recorded the PPG during the entire night's sleep of 10 patients. Data analysis was performed to obtain 79 features from the recordings, which were then classified according to sleep stages.''
+
+[11] Ignore 2011 applied HMMs to model the time-varying nature of ECG signals
+during sleep and reported 85% accuracy in detecting apnea events.
+
+M. Migliorini, J. M. Kortelainen, J. Pärkkä, K. M. Tenhunen,
+H. M. Himanen, and M. J. Bianchi, “Monitoring nocturnal heart rate
+with bed sensor,” Methods of Information in Medicine, vol. 50, no. 4,
+pp. 356–360, 2011.
+
+From https://pubmed.ncbi.nlm.nih.gov/24889150/:
+``The aim of this study is to assess the reliability of the estimated Nocturnal Heart Rate (HR), recorded through a bed sensor, compared with the one obtained from standard electrocardiography (ECG)''
+
+[14] Paywall E. Urtnasan, J. U. Park, E. Y. Joo, and K. J. Lee, “Automated
+detection of obstructive sleep apnea events from a single-lead
+electrocardiogram using a convolutional neural network,” Journal of
+Medical Systems, vol. 42, no. 6, p. 104, 2018.
+
+[15] Ignore.  Claude lies about citation. used long short-term memory
+(LSTM) networks, a type of RNN, to capture temporal patterns in ECG
+signals. Their method achieved 97.3% accuracy on the Physionet Apnea-
+ECG dataset.
+
+L. Chen, X. Zhang, and C. Song, “An automatic screening approach for
+obstructive sleep apnea diagnosis based on single-lead
+electrocardiogram,” IEEE Transactions on Automation Science and
+Engineering, vol. 17, no. 2, pp. 1056–1067, 2020.
+
+[20] 2011 Traditional 24–48 hour ECG recorders have been adapted with sleep
+apnea detection algorithms for overnight screening
+
+N. A. Collop et al., “Clinical guidelines for the use of unattended
+portable monitors in the diagnosis of obstructive sleep apnea in adult
+patients,” Journal of Clinical Sleep Medicine, vol. 7, no. 5,
+pp. 531–548, 2011.  I think Claude lies about citation.
+
+https://jcsm.aasm.org/doi/10.5664/jcsm.27032  2007
+From Abstract: ``At a minimum, PM must record airflow, respiratory effort, and blood oxygenation. The airflow, effort, and oximetric biosensors conventionally used for in-laboratory PSG should be used in PM.''
+
+[23] ignore can't find. 2018 Adhesive patches such as the VitalPatch or ePatch can record ECG
+for multiple days and are being used for sleep apnea screening
+
+M. Sharma et al., “Ambulatory sleep monitoring via a patch-based
+device,” Sleep Medicine, vol. 43, pp. 64–70, 2018.
+
+[24] 2003 ignore too old.  Studies by Flemons et al. [24] and Masa et
+al. [25] have shown that home-based monitoring can effectively
+identify most cases of moderate to severe sleep apnea.
+
+W. W. Flemons et al., “Home diagnosis of sleep apnea: a systematic
+review of the literature,” Chest, vol. 124, no. 4, pp. 1543–1579,
+2003.
+
+[25] ignore 2011 is ``The effect of supplemental oxygen in obesity
+hypoventilation syndrome,”
+
+[29] ignore 2016 Penzel et al. [29] noted that these comorbidities can
+confound detection algorithms by creating similar patterns to those
+caused by apnea.
+
+T. Penzel et al., “Digital analysis and technical specifications,”
+Journal of Clinical Sleep Medicine, vol. 12, no. 3, pp. 429–449, 2016.
+
+I find it to be 2007.  ``The evidence review suggested that computer
+scoring and quantitative analysis of sleep is still in the formative
+stage of development.''
+
+--------------------------------------------------------------------
+Jiao, M., Song, C., Xian, X., Yang, S., & Liu, F. (2024). Deep
+Attention Networks With Multi-Temporal Information Fusion for Sleep
+Apnea Detection. IEEE open journal of engineering in medicine and
+biology, 5, 792–802. https://doi.org/10.1109/OJEMB.2024.3405666
+
+https://pmc.ncbi.nlm.nih.gov/articles/PMC11505982/
+Uses CINC2000 data 0.9106 accuracy with neural nets.
+
+-----
+Zhou Y, Kang K. Multi-Feature Automatic Extraction for Detecting
+Obstructive Sleep Apnea Based on Single-Lead Electrocardiography
+Signals. Sensors (Basel). 2024;24(4):1159. Published 2024 Feb
+9. doi:10.3390/s24041159
+
+https://pubmed.ncbi.nlm.nih.gov/38400317/
+Uses CINC2000 data and does well with neural nets.

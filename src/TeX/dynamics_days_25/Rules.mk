@@ -22,6 +22,7 @@ $(BUILD)/TeX/dynamics_days_25/poster.pdf: $(DD25SRC)/poster.tex $(DD25_FIGS)
 	mkdir -p $(@D)
 	export TEXINPUTS=$(DD25SRC)//:$(abspath $(BUILD))//:; \
 latexmk --outdir=$(@D) -pdflatex poster.tex;
+	touch $@
 
 # Local Variables:
 # mode: makefile

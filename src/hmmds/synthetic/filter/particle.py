@@ -40,6 +40,10 @@ def parse_args(argv):
     """
     parser = argparse.ArgumentParser(
         description='Apply particle filter to Lorenz data')
+    parser.add_argument('--h_max',
+                        type=float,
+                        default=1.5e-5,
+                        help='Runge Kutta step size')
     parser.add_argument(
         '--r_threshold',
         type=float,
@@ -53,14 +57,26 @@ def parse_args(argv):
                         type=float,
                         default=0.2,
                         help='Divide edges bigger than this')
-    parser.add_argument('--margin',
-                        type=float,
-                        default=.5,
-                        help='Keep outside particles this close to boundaries')
+    parser.add_argument('--time_step', type=float, default=0.15)
+    parser.add_argument(
+        '--resample',
+        type=int,
+        nargs=2,
+        default=(10000, 4000),
+        help='If more than resample[0] particles, resample to resample[1]')
     parser.add_argument('--s_augment',
                         type=float,
                         default=.0005,
                         help='Grow boxes at each step')
+    parser.add_argument('--margin',
+                        type=float,
+                        default=.5,
+                        help='Keep outside particles this close to boundaries')
+    parser.add_argument(
+        '--n_overlap',
+        type=int,
+        default=0,
+        help='In resample, scale boxes to overlap n other boxes')
     parser.add_argument('--n_y',
                         type=int,
                         default=1000,
@@ -73,28 +89,21 @@ def parse_args(argv):
                         type=int,
                         default=4,
                         help='Cardinality of test observations')
-    parser.add_argument('--time_step', type=float, default=0.15)
     parser.add_argument('--t_relax',
                         type=float,
                         default=50.0,
                         help='Time to move to attractor')
-    parser.add_argument('--h_max',
-                        type=float,
-                        default=1.5e-5,
-                        help='Runge Kutta step size')
     parser.add_argument('--verbose',
                         action='store_true',
                         help='print filter steps')
-    parser.add_argument(
-        '--resample',
-        type=int,
-        nargs=2,
-        default=(10000, 4000),
-        help='If more than resample[0] particles, resample to resample[1]')
     parser.add_argument('--random_seed',
                         type=int,
                         default=7,
                         help='For random number generator')
+    parser.add_argument(
+        '--test_tangent',
+        action='store_true',
+        help='ensure that integrating tangent yields same trajectory')
     parser.add_argument('result_dir',
                         type=str,
                         help='write results to this path')
@@ -132,6 +141,21 @@ def make_data(args):
     assert x_all.shape == (args.n_y + args.n_initialize, 3)
     bins = numpy.linspace(-20, 20, args.n_quantized + 1)[1:-1]
     y_q = numpy.digitize(x_all[:, 0], bins)
+    if args.test_tangent:
+        # Check to ensure that integrating the tangent yields the same
+        # trajectory as integrating the 3-d Lorenz system.  I wrote
+        # this because I thought that a difference between the
+        # integration for filtering and integration for generating the
+        # data might be causing particle exhaustion.
+        tangent = numpy.empty(12)
+        tangent[:3] = x_all[0]
+        tangent[3:] = (numpy.eye(3) * 1e-2).flatten()
+        for i in range(1, args.n_y + args.n_initialize):
+            assert numpy.array_equal(
+                tangent[:3], x_all[i - 1]), f'{i=} {tangent[:3] - x_all[i-1]}'
+            tangent = hmmds.synthetic.filter.lorenz_sde.tangent_integrate(
+                tangent, 0, args.time_step, s, r, b, h_max=args.h_max)
+            tangent[3:] = (numpy.eye(3) * 1e-2).flatten()
 
     return y_q, x_all, bins
 
@@ -249,6 +273,8 @@ def wrapper(args):
     keys.sort()
     name_list = []
     for key in keys:
+        if key in 'n_initialize test_tangent verbose'.split():
+            continue  # avoid "OSError: [Errno 36] File name too long:"
         name_list.append(f'{key}..{args_dict[key]}..')
     name = ''.join(name_list).replace(', ', '..').replace(']',
                                                           '').replace('[', '')
@@ -262,9 +288,9 @@ def main():
 
     """
     args = parse_args(sys.argv[1:])
-    if sys.argv[0].find('wrapper_particle.py') > 0:
+    if sys.argv[0].find('wrapper_particle.py') >= 0:
         return wrapper(args)
-    if sys.argv[0].find('particle.py') > 0:
+    if sys.argv[0].find('particle.py') >= 0:
         return particle(args)
     raise RuntimeError(f'particle.py called with {sys.argv[0]=}')
 

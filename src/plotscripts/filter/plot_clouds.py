@@ -1,6 +1,6 @@
-"""plot.py: Plots for debugging.
+"""plot_clouds.py: Plots for debugging.
 
-python plot.py --start 50 study_threshold5k/1e-3
+python plot_clouds.py --start 50 r_threshold/0.003
 
 """
 
@@ -30,6 +30,9 @@ def parse_args(argv):
                         type=int,
                         default=0,
                         help='Plot particles at 5 times starting here')
+    parser.add_argument('--save',
+                        type=str,
+                        help='path to result.  Show if not set')
     parser.add_argument('input', type=str, help='Path to data directory')
     args = parser.parse_args(argv)
     return args
@@ -205,7 +208,10 @@ def main(argv=None):
     # Print box for closest
     if args.print_box:
         print(f'box=\n{closest.box}')
-    pyplot.show()
+    if args.save:
+        figure.savefig(args.save)
+    else:
+        pyplot.show()
     return 0
 
 

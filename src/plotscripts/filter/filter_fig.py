@@ -1,6 +1,6 @@
-"""linear_filter.py <data> <plot_file>.  Make a 6 plot figure
-displaying forward filtering.
+"""filter_fig.py Make a 6 plot figure illustrating forward filtering.
 
+python filter_fig.py data fig_path
 """
 import sys
 import argparse
